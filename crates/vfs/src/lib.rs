@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt;
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, RwLock};
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -25,6 +26,11 @@ impl ResourceUri {
         }
 
         Ok(Self(input.to_string()))
+    }
+
+    #[cfg(test)]
+    fn unchecked(input: &str) -> Self {
+        Self(input.to_string())
     }
 
     pub fn from_local_path(path: &Path) -> Result<Self, VfsError> {
@@ -213,10 +219,77 @@ pub trait VfsProvider: Send + Sync {
     ) -> Result<(), VfsError>;
 }
 
+pub struct VfsRegistry {
+    providers_by_scheme: RwLock<std::collections::HashMap<String, Arc<dyn VfsProvider>>>,
+}
+
+impl VfsRegistry {
+    pub fn new() -> Self {
+        Self {
+            providers_by_scheme: RwLock::new(std::collections::HashMap::new()),
+        }
+    }
+
+    pub fn register(&self, provider: Arc<dyn VfsProvider>) -> Result<(), VfsError> {
+        let mut providers = self
+            .providers_by_scheme
+            .write()
+            .map_err(|_| VfsError::internal("provider registry lock poisoned"))?;
+
+        for scheme in provider.schemes() {
+            if providers.contains_key(*scheme) {
+                return Err(VfsError::DuplicateProvider {
+                    scheme: (*scheme).to_string(),
+                });
+            }
+        }
+
+        for scheme in provider.schemes() {
+            providers.insert((*scheme).to_string(), provider.clone());
+        }
+
+        Ok(())
+    }
+
+    pub fn provider_for(&self, uri: &ResourceUri) -> Result<Arc<dyn VfsProvider>, VfsError> {
+        let providers = self
+            .providers_by_scheme
+            .read()
+            .map_err(|_| VfsError::internal("provider registry lock poisoned"))?;
+
+        providers
+            .get(uri.scheme())
+            .cloned()
+            .ok_or_else(|| VfsError::UnsupportedProvider {
+                scheme: uri.scheme().to_string(),
+            })
+    }
+
+    pub async fn stat(&self, uri: &ResourceUri) -> Result<FileEntry, VfsError> {
+        self.provider_for(uri)?.stat(uri).await
+    }
+
+    pub async fn list(
+        &self,
+        uri: &ResourceUri,
+        options: ListOptions,
+        sink: DirectorySink,
+    ) -> Result<(), VfsError> {
+        self.provider_for(uri)?.list(uri, options, sink).await
+    }
+}
+
+impl Default for VfsRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VfsError {
     InvalidUri { uri: String, reason: String },
     UnsupportedProvider { scheme: String },
+    DuplicateProvider { scheme: String },
     Internal { message: String },
 }
 
@@ -225,6 +298,7 @@ impl VfsError {
         match self {
             Self::InvalidUri { .. } => "invalid_uri",
             Self::UnsupportedProvider { .. } => "unsupported_provider",
+            Self::DuplicateProvider { .. } => "duplicate_provider",
             Self::Internal { .. } => "internal",
         }
     }
@@ -252,6 +326,9 @@ impl fmt::Display for VfsError {
             Self::UnsupportedProvider { scheme } => {
                 write!(formatter, "unsupported provider scheme `{scheme}`")
             }
+            Self::DuplicateProvider { scheme } => {
+                write!(formatter, "duplicate provider scheme `{scheme}`")
+            }
             Self::Internal { message } => write!(formatter, "{message}"),
         }
     }
@@ -277,6 +354,7 @@ fn has_windows_drive_prefix(value: &str) -> bool {
 mod tests {
     use super::*;
     use std::path::Path;
+    use std::sync::Arc;
 
     #[test]
     fn parses_unix_local_uri() {
@@ -464,5 +542,69 @@ mod tests {
         assert_eq!(provider.schemes(), &["local"]);
         assert_eq!(entry.kind, FileKind::Directory);
         assert!(batch.is_complete);
+    }
+
+    #[test]
+    fn registry_returns_provider_for_uri_scheme() {
+        let registry = VfsRegistry::new();
+
+        registry.register(Arc::new(TestProvider)).unwrap();
+
+        let uri = ResourceUri::parse("local:///Users").unwrap();
+        let provider = registry.provider_for(&uri).unwrap();
+
+        assert_eq!(provider.id().as_str(), "test");
+    }
+
+    #[test]
+    fn registry_rejects_unknown_uri_scheme() {
+        let registry = VfsRegistry::new();
+        let uri = ResourceUri::parse("sftp:///Users").unwrap_err();
+
+        assert_eq!(uri.code(), "unsupported_provider");
+
+        let unsupported = ResourceUri::unchecked("archive:///tmp/data.zip");
+        let error = match registry.provider_for(&unsupported) {
+            Ok(_) => panic!("expected unsupported provider error"),
+            Err(error) => error,
+        };
+
+        assert_eq!(error.code(), "unsupported_provider");
+    }
+
+    #[test]
+    fn registry_rejects_duplicate_scheme_registration() {
+        let registry = VfsRegistry::new();
+
+        registry.register(Arc::new(TestProvider)).unwrap();
+        let error = registry.register(Arc::new(TestProvider)).unwrap_err();
+
+        assert_eq!(error.code(), "duplicate_provider");
+    }
+
+    #[tokio::test]
+    async fn registry_delegates_stat_and_list_to_registered_provider() {
+        let registry = VfsRegistry::new();
+        let uri = ResourceUri::parse("local:///Users").unwrap();
+        let (sender, mut receiver) = tokio::sync::mpsc::channel(1);
+
+        registry.register(Arc::new(TestProvider)).unwrap();
+
+        let entry = registry.stat(&uri).await.unwrap();
+        registry
+            .list(
+                &uri,
+                ListOptions {
+                    session_id: ListSessionId::new("session-1"),
+                    batch_size: 100,
+                    include_hidden: false,
+                },
+                sender,
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(entry.name, "Users");
+        assert!(receiver.recv().await.unwrap().is_complete);
     }
 }
