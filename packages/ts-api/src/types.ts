@@ -1,8 +1,20 @@
-export type FileKind = "file" | "directory" | "symlink" | "archive" | "virtual" | "unknown";
+export type FileKind =
+  | "file"
+  | "directory"
+  | "symlink"
+  | "archive"
+  | "virtual"
+  | "unknown";
 
 export interface IpcTransport {
-  invoke<TResponse>(command: string, args?: Record<string, unknown>): Promise<TResponse>;
-  listen?<TPayload>(event: string, handler: (payload: TPayload) => void): Promise<UnlistenFn>;
+  invoke<TResponse>(
+    command: string,
+    args?: Record<string, unknown>,
+  ): Promise<TResponse>;
+  listen?<TPayload>(
+    event: string,
+    handler: (payload: TPayload) => void,
+  ): Promise<UnlistenFn>;
 }
 
 export type UnlistenFn = () => void;

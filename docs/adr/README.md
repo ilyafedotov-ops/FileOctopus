@@ -11,4 +11,3 @@ Use `NNNN-short-title.md`.
 - Proposed
 - Accepted
 - Superseded
-

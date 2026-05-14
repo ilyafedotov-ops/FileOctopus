@@ -14,7 +14,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run tests --environment jsdom"
   },
   "dependencies": {
     "@fileoctopus/ts-api": "workspace:*",
@@ -25,8 +25,10 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.1.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "jsdom": "^25.0.1",
     "typescript": "^5.8.3",
     "vitest": "^4.0.14"
   }

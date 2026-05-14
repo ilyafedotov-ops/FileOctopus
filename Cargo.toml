@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+  "apps/cli",
   "apps/desktop-tauri/src-tauri",
   "crates/app-core",
   "crates/app-ipc",
@@ -16,4 +17,3 @@ members = [
 [workspace.package]
 edition = "2021"
 version = "0.1.0"
-

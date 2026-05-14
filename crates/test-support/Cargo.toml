@@ -5,3 +5,6 @@ edition.workspace = true
 
 [dependencies]
 
+[[bin]]
+name = "fileoctopus-test-tree"
+path = "src/bin/fileoctopus-test-tree.rs"

@@ -5,7 +5,7 @@ use app_ipc::{
     DirectoryBatchEventDto, IpcError, ListStartRequest, ListStartResponse, StatRequest,
     StatResponse, DIRECTORY_BATCH_EVENT,
 };
-use tauri::{AppHandle, Emitter, Manager, State};
+use tauri::{AppHandle, Emitter, State};
 use vfs::{DirectoryBatch, ListOptions, ListSessionId, ResourceUri};
 
 #[tauri::command]
@@ -59,7 +59,9 @@ async fn fs_list_start(
 
     tauri::async_runtime::spawn(async move {
         while let Some(batch) = receiver.recv().await {
-            if let Err(error) = events_app.emit(DIRECTORY_BATCH_EVENT, DirectoryBatchEventDto::from(batch)) {
+            if let Err(error) =
+                events_app.emit(DIRECTORY_BATCH_EVENT, DirectoryBatchEventDto::from(batch))
+            {
                 telemetry::error(&format!("failed to emit directory batch: {error}"));
                 break;
             }
@@ -94,8 +96,7 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(app_state)
-        .setup(|app| {
-            let _ = app.handle();
+        .setup(|_app| {
             telemetry::info("FileOctopus Tauri shell started");
             Ok(())
         })

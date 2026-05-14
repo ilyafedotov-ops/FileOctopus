@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { DIRECTORY_BATCH_EVENT, FileOctopusClient, normalizeIpcError } from "./client";
-import type { IpcTransport } from "./types";
+import {
+  DIRECTORY_BATCH_EVENT,
+  FileOctopusClient,
+  normalizeIpcError,
+} from "../src/client";
+import type { IpcTransport } from "../src/types";
 
 describe("FileOctopusClient", () => {
   it("routes app info through the transport", async () => {
@@ -9,7 +13,7 @@ describe("FileOctopusClient", () => {
       async invoke<TResponse>(command: string) {
         calls.push(command);
         return { name: "FileOctopus", version: "0.1.0" } as TResponse;
-      }
+      },
     };
 
     const client = new FileOctopusClient(transport);
@@ -20,26 +24,35 @@ describe("FileOctopusClient", () => {
   });
 
   it("routes filesystem stat and list start through the fs client", async () => {
-    const calls: Array<{ command: string; args?: Record<string, unknown> }> = [];
+    const calls: Array<{ command: string; args?: Record<string, unknown> }> =
+      [];
     const transport: IpcTransport = {
       async invoke<TResponse>(command: string, args?: Record<string, unknown>) {
         calls.push({ command, args });
 
         if (command === "fs.stat") {
-          return { entry: { uri: "local:///tmp", name: "tmp", kind: "directory" } } as TResponse;
+          return {
+            entry: { uri: "local:///tmp", name: "tmp", kind: "directory" },
+          } as TResponse;
         }
 
         return { sessionId: "session-1" } as TResponse;
-      }
+      },
     };
 
     const client = new FileOctopusClient(transport);
 
     await client.fs.stat({ uri: "local:///tmp" });
-    const list = await client.fs.listStart({ uri: "local:///tmp", batchSize: 128 });
+    const list = await client.fs.listStart({
+      uri: "local:///tmp",
+      batchSize: 128,
+    });
 
     expect(list.sessionId).toBe("session-1");
-    expect(calls.map((call) => call.command)).toEqual(["fs.stat", "fs.list_start"]);
+    expect(calls.map((call) => call.command)).toEqual([
+      "fs.stat",
+      "fs.list_start",
+    ]);
   });
 
   it("subscribes to directory batch events", async () => {
@@ -55,10 +68,10 @@ describe("FileOctopusClient", () => {
           uri: "local:///tmp",
           entries: [],
           batchIndex: 0,
-          isComplete: true
+          isComplete: true,
         });
         return () => undefined;
-      }
+      },
     };
     const client = new FileOctopusClient(transport);
     const events: string[] = [];
@@ -70,13 +83,15 @@ describe("FileOctopusClient", () => {
   });
 
   it("normalizes frontend-safe ipc errors", () => {
-    expect(normalizeIpcError({ code: "not_found", message: "missing" })).toEqual({
+    expect(
+      normalizeIpcError({ code: "not_found", message: "missing" }),
+    ).toEqual({
       code: "not_found",
-      message: "missing"
+      message: "missing",
     });
     expect(normalizeIpcError("boom")).toEqual({
       code: "unknown",
-      message: "boom"
+      message: "boom",
     });
   });
 });

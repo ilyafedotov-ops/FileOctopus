@@ -10,3 +10,4 @@ coverage/
 !.env.example
 apps/desktop-tauri/src-tauri/gen/
 
+.playwright-mcp/

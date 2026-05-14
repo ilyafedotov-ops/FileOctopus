@@ -19,4 +19,3 @@ Rust owns privileged filesystem and platform behavior. The web frontend remains 
 ## Alternatives
 
 Electron was rejected for MVP because it adds a larger runtime and does not reinforce Rust ownership of privileged operations.
-

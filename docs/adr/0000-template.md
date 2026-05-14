@@ -19,4 +19,3 @@ Describe the expected tradeoffs.
 ## Alternatives
 
 Describe the rejected options.
-

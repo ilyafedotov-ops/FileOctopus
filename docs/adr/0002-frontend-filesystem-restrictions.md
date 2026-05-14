@@ -19,4 +19,3 @@ The UI cannot perform arbitrary local file access. Dangerous operations can beco
 ## Alternatives
 
 Direct frontend filesystem plugins were rejected because they weaken safety and make future plugin security harder.
-

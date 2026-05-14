@@ -28,4 +28,3 @@ The UI may show friendly display paths, but persistent state and IPC use canonic
 ## Alternatives
 
 Raw platform paths were rejected as the primary IPC model because they do not generalize to future provider schemes.
-

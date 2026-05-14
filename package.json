@@ -6,10 +6,12 @@
   "packageManager": "pnpm@10.26.2",
   "scripts": {
     "bootstrap": "bash scripts/bootstrap.sh",
-    "dev": "pnpm --filter @fileoctopus/frontend build && pnpm --filter @fileoctopus/desktop-tauri tauri dev",
+    "dev": "pnpm --filter @fileoctopus/ts-api build && pnpm --filter @fileoctopus/ui build && pnpm --filter @fileoctopus/frontend build && pnpm --filter @fileoctopus/desktop-tauri tauri dev",
     "build": "pnpm -r --sort --if-present build",
     "typecheck": "pnpm -r --sort --if-present typecheck",
     "lint": "eslint \"{apps,packages}/**/*.{ts,tsx}\"",
+    "format:check": "prettier --check package.json pnpm-workspace.yaml README.md \".github/**/*.{md,yml,yaml}\" \"docs/**/*.md\" \"apps/**/*.{ts,tsx,css,json,md}\" \"packages/**/*.{ts,tsx,json,md}\"",
+    "format": "prettier --write package.json pnpm-workspace.yaml README.md \".github/**/*.{md,yml,yaml}\" \"docs/**/*.md\" \"apps/**/*.{ts,tsx,css,json,md}\" \"packages/**/*.{ts,tsx,json,md}\"",
     "test": "pnpm -r --sort --if-present test",
     "rust:check": "cargo check --workspace",
     "rust:test": "cargo test --workspace",
@@ -19,6 +21,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.1",
     "eslint": "^9.39.1",
+    "prettier": "^3.7.4",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.46.4",
     "vitest": "^4.0.14"

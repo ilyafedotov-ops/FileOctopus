@@ -13,4 +13,3 @@ assignees: ""
 ## Expected behavior
 
 ## Acceptance criteria
-

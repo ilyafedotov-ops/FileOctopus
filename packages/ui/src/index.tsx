@@ -6,7 +6,11 @@ export interface ShellPanelProps {
   children?: ReactNode;
 }
 
-export function ShellPanel({ title, active = false, children }: ShellPanelProps) {
+export function ShellPanel({
+  title,
+  active = false,
+  children,
+}: ShellPanelProps) {
   return (
     <section className={active ? "fo-panel fo-panel-active" : "fo-panel"}>
       <header className="fo-panel-header">
@@ -17,4 +21,3 @@ export function ShellPanel({ title, active = false, children }: ShellPanelProps)
     </section>
   );
 }
-
