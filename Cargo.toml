@@ -1,0 +1,19 @@
+[workspace]
+resolver = "2"
+members = [
+  "apps/desktop-tauri/src-tauri",
+  "crates/app-core",
+  "crates/app-ipc",
+  "crates/config",
+  "crates/fs-core",
+  "crates/jobs",
+  "crates/platform",
+  "crates/telemetry",
+  "crates/test-support",
+  "crates/vfs",
+]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+
