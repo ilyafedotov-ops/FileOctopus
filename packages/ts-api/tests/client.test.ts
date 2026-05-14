@@ -82,6 +82,98 @@ describe("FileOctopusClient", () => {
     expect(events).toEqual(["session-1"]);
   });
 
+  it("routes file operation and job commands through typed clients", async () => {
+    const calls: Array<{ command: string; args?: Record<string, unknown> }> =
+      [];
+    const transport: IpcTransport = {
+      async invoke<TResponse>(command: string, args?: Record<string, unknown>) {
+        calls.push({ command, args });
+
+        if (command === "fileOperation.plan") {
+          return {
+            plan: {
+              operationId: "op-1",
+              kind: "copy",
+              sources: ["local:///tmp/a.txt"],
+              destination: "local:///tmp/dest",
+              conflictPolicy: "fail",
+              items: [],
+              conflicts: [],
+              warnings: [],
+              totalItems: 0,
+            },
+          } as TResponse;
+        }
+
+        if (command === "operationHistory.listRecent") {
+          return { operations: [] } as TResponse;
+        }
+
+        return {
+          job: {
+            jobId: "job-1",
+            operationKind: "copy",
+            status: "running",
+            completedItems: 0,
+            totalItems: 1,
+            completedBytes: 0,
+            startedAt: new Date(0).toISOString(),
+            updatedAt: new Date(0).toISOString(),
+          },
+        } as TResponse;
+      },
+      async listen(event, handler) {
+        handler({
+          jobId: "job-1",
+          operationKind: "copy",
+          completedItems: 0,
+          totalItems: 1,
+          completedBytes: 0,
+          updatedAt: new Date(0).toISOString(),
+        });
+        return () => undefined;
+      },
+    };
+    const client = new FileOctopusClient(transport);
+    const events: string[] = [];
+
+    await client.fileOperations.planFileOperation({
+      operation: {
+        kind: "copy",
+        sources: ["local:///tmp/a.txt"],
+        destination: "local:///tmp/dest",
+      },
+    });
+    await client.fileOperations.startFileOperation({
+      plan: {
+        operationId: "op-1",
+        kind: "copy",
+        sources: ["local:///tmp/a.txt"],
+        destination: "local:///tmp/dest",
+        conflictPolicy: "fail",
+        items: [],
+        conflicts: [],
+        warnings: [],
+        totalItems: 0,
+      },
+    });
+    await client.jobs.cancelJob({ jobId: "job-1" });
+    await client.jobs.getJobStatus({ jobId: "job-1" });
+    await client.operationHistory.listRecentOperations({ limit: 10 });
+    await client.fileOperations.onJobProgress((event) =>
+      events.push(String(event.jobId)),
+    );
+
+    expect(calls.map((call) => call.command)).toEqual([
+      "fileOperation.plan",
+      "fileOperation.start",
+      "job.cancel",
+      "job.status",
+      "operationHistory.listRecent",
+    ]);
+    expect(events).toEqual(["job-1"]);
+  });
+
   it("normalizes frontend-safe ipc errors", () => {
     expect(
       normalizeIpcError({ code: "not_found", message: "missing" }),

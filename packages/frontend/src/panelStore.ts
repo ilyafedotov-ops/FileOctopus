@@ -14,8 +14,10 @@ export interface PanelTabState {
   uri: string;
   entriesById: Record<string, FileEntryDto>;
   orderedEntryIds: string[];
+  selectedIds: string[];
   selectedId: string | null;
   focusedId: string | null;
+  anchorId: string | null;
   sessionId: string | null;
   loading: boolean;
   error: string | null;
@@ -40,6 +42,12 @@ export type PanelAction =
   | { type: "startSession"; panelId: PanelId; sessionId: string }
   | { type: "applyBatch"; batch: DirectoryBatchEventDto }
   | { type: "setSelection"; panelId: PanelId; entryId: string | null }
+  | {
+      type: "selectEntry";
+      panelId: PanelId;
+      entryId: string;
+      mode: "single" | "toggle" | "range";
+    }
   | { type: "moveSelection"; panelId: PanelId; delta: number }
   | { type: "setLoading"; panelId: PanelId; loading: boolean }
   | { type: "setError"; panelId: PanelId; error: string | null }
@@ -81,8 +89,10 @@ export function panelReducer(
         uri: normalizeLocalInput(action.uri),
         entriesById: {},
         orderedEntryIds: [],
+        selectedIds: [],
         selectedId: null,
         focusedId: null,
+        anchorId: null,
         sessionId: null,
         loading: true,
         error: null,
@@ -99,9 +109,15 @@ export function panelReducer(
     case "setSelection":
       return updatePanel(state, action.panelId, (tab) => ({
         ...tab,
+        selectedIds: action.entryId ? [action.entryId] : [],
         selectedId: action.entryId,
         focusedId: action.entryId,
+        anchorId: action.entryId,
       }));
+    case "selectEntry":
+      return updatePanel(state, action.panelId, (tab) =>
+        selectEntry(tab, action.entryId, action.mode),
+      );
     case "moveSelection":
       return updatePanel(state, action.panelId, (tab) =>
         moveSelection(tab, action.delta),
@@ -196,8 +212,10 @@ function createPanel(id: PanelId, uri: string): PanelState {
         uri,
         entriesById: {},
         orderedEntryIds: [],
+        selectedIds: [],
         selectedId: null,
         focusedId: null,
+        anchorId: null,
         sessionId: null,
         loading: false,
         error: null,
@@ -255,18 +273,83 @@ function applyBatch(
       entriesById[entry.uri] = entry;
     }
 
-    const firstId = tab.selectedId ?? orderedEntryIds[0] ?? null;
+    const retainedSelection = tab.selectedIds.filter((id) => entriesById[id]);
+    const firstId =
+      retainedSelection[0] ?? tab.selectedId ?? orderedEntryIds[0] ?? null;
 
     return {
       ...tab,
       entriesById,
       orderedEntryIds,
+      selectedIds:
+        retainedSelection.length > 0
+          ? retainedSelection
+          : firstId
+            ? [firstId]
+            : [],
       selectedId: firstId,
       focusedId: firstId,
       loading: batch.isComplete ? false : tab.loading,
       error,
     };
   });
+}
+
+function selectEntry(
+  tab: PanelTabState,
+  entryId: string,
+  mode: "single" | "toggle" | "range",
+): PanelTabState {
+  if (mode === "single") {
+    return {
+      ...tab,
+      selectedIds: [entryId],
+      selectedId: entryId,
+      focusedId: entryId,
+      anchorId: entryId,
+    };
+  }
+
+  if (mode === "toggle") {
+    const selected = new Set(tab.selectedIds);
+
+    if (selected.has(entryId)) {
+      selected.delete(entryId);
+    } else {
+      selected.add(entryId);
+    }
+
+    const selectedIds = [...selected];
+
+    return {
+      ...tab,
+      selectedIds,
+      selectedId: selectedIds[0] ?? null,
+      focusedId: entryId,
+      anchorId: entryId,
+    };
+  }
+
+  const visible = selectVisibleEntries(tab).map((entry) => entry.uri);
+  const anchor = tab.anchorId ?? tab.focusedId ?? entryId;
+  const anchorIndex = visible.indexOf(anchor);
+  const entryIndex = visible.indexOf(entryId);
+
+  if (anchorIndex < 0 || entryIndex < 0) {
+    return selectEntry(tab, entryId, "single");
+  }
+
+  const start = Math.min(anchorIndex, entryIndex);
+  const end = Math.max(anchorIndex, entryIndex);
+  const selectedIds = visible.slice(start, end + 1);
+
+  return {
+    ...tab,
+    selectedIds,
+    selectedId: selectedIds[0] ?? null,
+    focusedId: entryId,
+    anchorId: anchor,
+  };
 }
 
 function findPanelBySession(
@@ -307,8 +390,10 @@ function moveSelection(tab: PanelTabState, delta: number): PanelTabState {
 
   return {
     ...tab,
+    selectedIds: [nextId],
     selectedId: nextId,
     focusedId: nextId,
+    anchorId: nextId,
   };
 }
 

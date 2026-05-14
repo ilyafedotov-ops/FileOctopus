@@ -118,6 +118,44 @@ describe("panel store", () => {
     ).toEqual(["alpha", "beta.txt", "zeta.txt"]);
   });
 
+  it("supports toggle and range multi-selection", () => {
+    let state = createInitialState("local:///left", "local:///right");
+
+    state = panelReducer(state, {
+      type: "startSession",
+      panelId: "left",
+      sessionId: "session",
+    });
+    state = panelReducer(state, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "session",
+        uri: "local:///left",
+        entries: [entry("a.txt"), entry("b.txt"), entry("c.txt")],
+        batchIndex: 0,
+        isComplete: true,
+      },
+    });
+    state = panelReducer(state, {
+      type: "selectEntry",
+      panelId: "left",
+      entryId: "local:///tmp/a.txt",
+      mode: "single",
+    });
+    state = panelReducer(state, {
+      type: "selectEntry",
+      panelId: "left",
+      entryId: "local:///tmp/c.txt",
+      mode: "range",
+    });
+
+    expect(activeTab(state.panels.left).selectedIds).toEqual([
+      "local:///tmp/a.txt",
+      "local:///tmp/b.txt",
+      "local:///tmp/c.txt",
+    ]);
+  });
+
   it("normalizes local paths and finds parent uris", () => {
     expect(normalizeLocalInput("/Users/ilya")).toBe("local:///Users/ilya");
     expect(normalizeLocalInput("C:\\Users\\Ilya")).toBe(
