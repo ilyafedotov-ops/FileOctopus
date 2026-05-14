@@ -205,6 +205,169 @@ pub struct DirectoryBatch {
 
 pub type DirectorySink = tokio::sync::mpsc::Sender<DirectoryBatch>;
 
+/// File operation supported by the local operation pipeline.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum FileOperationKind {
+    Copy,
+    Move,
+    Rename,
+    DeleteToTrash,
+    CreateDirectory,
+}
+
+/// Conflict behavior selected before an operation mutates the filesystem.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ConflictPolicy {
+    Fail,
+    Skip,
+    Overwrite,
+    RenameNew,
+    RenameExisting,
+}
+
+/// Backend-neutral request to plan or execute a file operation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationRequest {
+    pub kind: FileOperationKind,
+    pub sources: Vec<ResourceUri>,
+    pub destination: Option<ResourceUri>,
+    pub new_name: Option<String>,
+    pub conflict_policy: ConflictPolicy,
+}
+
+/// Deterministic result produced by validating a requested operation.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationPlan {
+    pub operation_id: String,
+    pub kind: FileOperationKind,
+    pub sources: Vec<ResourceUri>,
+    pub destination: Option<ResourceUri>,
+    pub new_name: Option<String>,
+    pub conflict_policy: ConflictPolicy,
+    pub items: Vec<FileOperationItem>,
+    pub conflicts: Vec<FileOperationConflict>,
+    pub warnings: Vec<FileOperationWarning>,
+    pub total_items: u64,
+    pub total_bytes: Option<u64>,
+}
+
+/// Single filesystem item included in an operation plan.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationItem {
+    pub source: Option<ResourceUri>,
+    pub destination: Option<ResourceUri>,
+    pub kind: FileKind,
+    pub size: Option<u64>,
+    pub recursive: bool,
+}
+
+/// Destination conflict detected before operation execution.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationConflict {
+    pub source: ResourceUri,
+    pub destination: ResourceUri,
+}
+
+/// Non-fatal planner diagnostic for incomplete metadata.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationWarning {
+    pub code: String,
+    pub message: String,
+    pub uri: Option<ResourceUri>,
+}
+
+/// Stable file operation error taxonomy shared by planning, execution, and IPC.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "type")]
+pub enum FileOperationError {
+    InvalidRequest { message: String },
+    InvalidName { name: String },
+    InvalidPath { uri: String, message: String },
+    UnsupportedProvider { scheme: String },
+    NotFound { uri: String },
+    PermissionDenied { uri: String },
+    DestinationMissing { uri: String },
+    DestinationConflict { uri: String },
+    RecursiveOperation { message: String },
+    UnsupportedTrash { message: String },
+    Cancelled { job_id: Option<String> },
+    Io { code: String, message: String },
+    Internal { message: String },
+}
+
+impl FileOperationError {
+    pub fn code(&self) -> &'static str {
+        match self {
+            Self::InvalidRequest { .. } => "invalid_request",
+            Self::InvalidName { .. } => "invalid_name",
+            Self::InvalidPath { .. } => "invalid_path",
+            Self::UnsupportedProvider { .. } => "unsupported_provider",
+            Self::NotFound { .. } => "not_found",
+            Self::PermissionDenied { .. } => "permission_denied",
+            Self::DestinationMissing { .. } => "destination_missing",
+            Self::DestinationConflict { .. } => "destination_conflict",
+            Self::RecursiveOperation { .. } => "recursive_operation",
+            Self::UnsupportedTrash { .. } => "unsupported_trash",
+            Self::Cancelled { .. } => "cancelled",
+            Self::Io { .. } => "io_error",
+            Self::Internal { .. } => "internal",
+        }
+    }
+
+    pub fn user_message(&self) -> String {
+        match self {
+            Self::InvalidRequest { message }
+            | Self::InvalidPath { message, .. }
+            | Self::RecursiveOperation { message }
+            | Self::UnsupportedTrash { message }
+            | Self::Io { message, .. }
+            | Self::Internal { message } => message.clone(),
+            Self::InvalidName { name } => format!("invalid file name `{name}`"),
+            Self::UnsupportedProvider { scheme } => {
+                format!("unsupported provider scheme `{scheme}`")
+            }
+            Self::NotFound { uri } => format!("resource not found `{uri}`"),
+            Self::PermissionDenied { uri } => format!("permission denied `{uri}`"),
+            Self::DestinationMissing { uri } => format!("destination parent missing `{uri}`"),
+            Self::DestinationConflict { uri } => format!("destination already exists `{uri}`"),
+            Self::Cancelled { .. } => "operation cancelled".to_string(),
+        }
+    }
+}
+
+impl fmt::Display for FileOperationError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter.write_str(&self.user_message())
+    }
+}
+
+impl Error for FileOperationError {}
+
+impl From<VfsError> for FileOperationError {
+    fn from(error: VfsError) -> Self {
+        match error {
+            VfsError::InvalidUri { uri, reason } => Self::InvalidPath {
+                uri,
+                message: reason,
+            },
+            VfsError::UnsupportedProvider { scheme } => Self::UnsupportedProvider { scheme },
+            VfsError::NotFound { uri } => Self::NotFound { uri },
+            VfsError::PermissionDenied { uri } => Self::PermissionDenied { uri },
+            VfsError::DuplicateProvider { scheme } => Self::Internal {
+                message: format!("duplicate provider scheme `{scheme}`"),
+            },
+            VfsError::Internal { message } => Self::Internal { message },
+        }
+    }
+}
+
 #[async_trait::async_trait]
 pub trait VfsProvider: Send + Sync {
     fn id(&self) -> ProviderId;
@@ -479,6 +642,59 @@ mod tests {
         assert_eq!(decoded.session_id.as_str(), "session-1");
         assert!(decoded.is_complete);
         assert_eq!(decoded.total_hint, Some(0));
+    }
+
+    #[test]
+    fn constructs_file_operation_model_for_each_kind() {
+        let kinds = [
+            FileOperationKind::Copy,
+            FileOperationKind::Move,
+            FileOperationKind::Rename,
+            FileOperationKind::DeleteToTrash,
+            FileOperationKind::CreateDirectory,
+        ];
+
+        for kind in kinds {
+            let request = FileOperationRequest {
+                kind,
+                sources: vec![ResourceUri::parse("local:///tmp/source.txt").unwrap()],
+                destination: Some(ResourceUri::parse("local:///tmp/dest").unwrap()),
+                new_name: Some("renamed.txt".to_string()),
+                conflict_policy: ConflictPolicy::Fail,
+            };
+            let item = FileOperationItem {
+                source: request.sources.first().cloned(),
+                destination: request.destination.clone(),
+                kind: FileKind::File,
+                size: Some(1),
+                recursive: false,
+            };
+            let plan = FileOperationPlan {
+                operation_id: "operation-1".to_string(),
+                kind,
+                sources: request.sources,
+                destination: request.destination,
+                new_name: request.new_name,
+                conflict_policy: request.conflict_policy,
+                items: vec![item],
+                conflicts: Vec::new(),
+                warnings: Vec::new(),
+                total_items: 1,
+                total_bytes: Some(1),
+            };
+
+            assert_eq!(plan.kind, kind);
+            assert_eq!(plan.total_items, 1);
+        }
+    }
+
+    #[test]
+    fn maps_vfs_error_to_file_operation_error() {
+        let error = FileOperationError::from(VfsError::UnsupportedProvider {
+            scheme: "sftp".to_string(),
+        });
+
+        assert_eq!(error.code(), "unsupported_provider");
     }
 
     struct TestProvider;
