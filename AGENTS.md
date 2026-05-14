@@ -2,7 +2,17 @@
 
 ## Project Structure & Module Organization
 
-FileOctopus is a Tauri v2 desktop file manager with Rust owning privileged filesystem logic and React TypeScript owning the UI. The root Rust workspace is defined in `Cargo.toml`; crates live in `crates/`, including `vfs`, `fs-core`, `app-ipc`, `config`, `jobs`, `platform`, `telemetry`, and `test-support`. The desktop shell is in `apps/desktop-tauri/`, with React entry files in `src/` and Tauri Rust code in `src-tauri/`. Shared TypeScript packages live in `packages/frontend`, `packages/ui`, and `packages/ts-api`. Architecture records are in `docs/adr/`; do not add new docs unless requested.
+FileOctopus is a Tauri v2 desktop file manager with Rust owning privileged filesystem logic and React TypeScript owning the UI. The root Rust workspace is defined in `Cargo.toml`; crates live in `crates/`, including `vfs` (domain types and provider trait), `fs-core` (`LocalFsProvider` and the `file_ops` planner/executor), `app-core` (runtime + operation history), `app-ipc` (IPC DTOs and event-name constants), `jobs`, `telemetry`, `config`, `platform`, and `test-support`. The desktop shell is in `apps/desktop-tauri/`, with React entry files in `src/` and Tauri command handlers in `src-tauri/src/lib.rs`. Shared TypeScript packages live in `packages/frontend`, `packages/ui`, and `packages/ts-api`. Architecture records are in `docs/adr/`; the runtime API surface is documented in `docs/architecture/api-reference.md`. Do not add new docs unless requested.
+
+## API & Boundary Invariants
+
+The Rust↔TS boundary is the trust boundary. Read `docs/architecture/api-reference.md` before changing anything that crosses it.
+
+- All resources cross the boundary as `local://` `ResourceUri` strings (ADR-0003). Parse with `ResourceUri::parse` or `ResourceUri::from_local_path`; do not pass raw OS paths.
+- The frontend has no unrestricted FS plugin access (ADR-0002). Every mutating effect must go through a planned `FileOperation*` job with progress, cancellation, and a history row.
+- IPC contracts are mirrored on both sides. When adding or changing a DTO in `crates/app-ipc`, update `packages/ts-api/src/types.ts`, the corresponding method and `commandMap` entry in `packages/ts-api/src/client.ts`, and the handler in `apps/desktop-tauri/src-tauri/src/lib.rs` together. DTOs use `#[serde(rename_all = "camelCase")]` to match the TS types.
+- Errors cross the boundary as `IpcError { code, message }`. Use the stable codes from `FileOperationError::code()` / `VfsError::code()` (e.g. `permission_denied`, `not_found`, `destination_conflict`, `invalid_name`, `cancelled`); extend the catalog in the API reference when adding new variants.
+- Event channel names live in `crates/app-ipc` constants (`DIRECTORY_BATCH_EVENT`, `JOB_*_EVENT`) and must match `packages/ts-api/src/client.ts`. The Rust enum→name mapping is `app_ipc::job_event_name`.
 
 ## Build, Test, and Development Commands
 
