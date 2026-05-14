@@ -1,8 +1,18 @@
 use chrono::{DateTime, Utc};
+use jobs::{JobEvent, JobSnapshot};
 use serde::{Deserialize, Serialize};
-use vfs::{DirectoryBatch, FileEntry, FileKind, VfsError};
+use vfs::{
+    ConflictPolicy, DirectoryBatch, FileEntry, FileKind, FileOperationConflict, FileOperationError,
+    FileOperationItem, FileOperationKind, FileOperationPlan, FileOperationRequest,
+    FileOperationWarning, ResourceUri, VfsError,
+};
 
 pub const DIRECTORY_BATCH_EVENT: &str = "directory.batch";
+pub const JOB_STARTED_EVENT: &str = "fileOperation.job.started";
+pub const JOB_PROGRESS_EVENT: &str = "fileOperation.job.progress";
+pub const JOB_COMPLETED_EVENT: &str = "fileOperation.job.completed";
+pub const JOB_FAILED_EVENT: &str = "fileOperation.job.failed";
+pub const JOB_CANCELLED_EVENT: &str = "fileOperation.job.cancelled";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -66,6 +76,125 @@ pub struct DirectoryBatchEventDto {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct FileOperationRequestDto {
+    pub kind: FileOperationKind,
+    pub sources: Vec<String>,
+    pub destination: Option<String>,
+    pub new_name: Option<String>,
+    pub conflict_policy: Option<ConflictPolicy>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanFileOperationRequest {
+    pub operation: FileOperationRequestDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PlanFileOperationResponse {
+    pub plan: FileOperationPlanDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartFileOperationRequest {
+    pub plan: FileOperationPlanDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartFileOperationResponse {
+    pub job: JobSnapshot,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CancelJobRequest {
+    pub job_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JobStatusRequest {
+    pub job_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JobStatusResponse {
+    pub job: JobSnapshot,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListRecentOperationsRequest {
+    pub limit: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListRecentOperationsResponse {
+    pub operations: Vec<OperationHistoryRecordDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OperationHistoryRecordDto {
+    pub job_id: String,
+    pub operation_kind: String,
+    pub source_count: u64,
+    pub representative_source_path: Option<String>,
+    pub destination_path: Option<String>,
+    pub status: String,
+    pub started_at: String,
+    pub completed_at: Option<String>,
+    pub error_code: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationPlanDto {
+    pub operation_id: String,
+    pub kind: FileOperationKind,
+    pub sources: Vec<String>,
+    pub destination: Option<String>,
+    pub new_name: Option<String>,
+    pub conflict_policy: ConflictPolicy,
+    pub items: Vec<FileOperationItemDto>,
+    pub conflicts: Vec<FileOperationConflictDto>,
+    pub warnings: Vec<FileOperationWarningDto>,
+    pub total_items: u64,
+    pub total_bytes: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationItemDto {
+    pub source: Option<String>,
+    pub destination: Option<String>,
+    pub kind: FileKind,
+    pub size: Option<u64>,
+    pub recursive: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationConflictDto {
+    pub source: String,
+    pub destination: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FileOperationWarningDto {
+    pub code: String,
+    pub message: String,
+    pub uri: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct IpcError {
     pub code: String,
     pub message: String,
@@ -109,12 +238,229 @@ impl From<DirectoryBatch> for DirectoryBatchEventDto {
     }
 }
 
+impl TryFrom<FileOperationRequestDto> for FileOperationRequest {
+    type Error = IpcError;
+
+    fn try_from(value: FileOperationRequestDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            kind: value.kind,
+            sources: value
+                .sources
+                .iter()
+                .map(|uri| ResourceUri::parse(uri).map_err(IpcError::from))
+                .collect::<Result<Vec<_>, _>>()?,
+            destination: value
+                .destination
+                .as_deref()
+                .map(ResourceUri::parse)
+                .transpose()
+                .map_err(IpcError::from)?,
+            new_name: value.new_name,
+            conflict_policy: value.conflict_policy.unwrap_or(ConflictPolicy::Fail),
+        })
+    }
+}
+
+impl From<FileOperationPlan> for FileOperationPlanDto {
+    fn from(plan: FileOperationPlan) -> Self {
+        Self {
+            operation_id: plan.operation_id,
+            kind: plan.kind,
+            sources: plan
+                .sources
+                .into_iter()
+                .map(|uri| uri.as_str().to_string())
+                .collect(),
+            destination: plan.destination.map(|uri| uri.as_str().to_string()),
+            new_name: plan.new_name,
+            conflict_policy: plan.conflict_policy,
+            items: plan.items.into_iter().map(Into::into).collect(),
+            conflicts: plan.conflicts.into_iter().map(Into::into).collect(),
+            warnings: plan.warnings.into_iter().map(Into::into).collect(),
+            total_items: plan.total_items,
+            total_bytes: plan.total_bytes,
+        }
+    }
+}
+
+impl TryFrom<FileOperationPlanDto> for FileOperationPlan {
+    type Error = IpcError;
+
+    fn try_from(value: FileOperationPlanDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            operation_id: value.operation_id,
+            kind: value.kind,
+            sources: value
+                .sources
+                .iter()
+                .map(|uri| ResourceUri::parse(uri).map_err(IpcError::from))
+                .collect::<Result<Vec<_>, _>>()?,
+            destination: value
+                .destination
+                .as_deref()
+                .map(ResourceUri::parse)
+                .transpose()
+                .map_err(IpcError::from)?,
+            new_name: value.new_name,
+            conflict_policy: value.conflict_policy,
+            items: value
+                .items
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?,
+            conflicts: value
+                .conflicts
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?,
+            warnings: value.warnings.into_iter().map(Into::into).collect(),
+            total_items: value.total_items,
+            total_bytes: value.total_bytes,
+        })
+    }
+}
+
+impl From<FileOperationItem> for FileOperationItemDto {
+    fn from(item: FileOperationItem) -> Self {
+        Self {
+            source: item.source.map(|uri| uri.as_str().to_string()),
+            destination: item.destination.map(|uri| uri.as_str().to_string()),
+            kind: item.kind,
+            size: item.size,
+            recursive: item.recursive,
+        }
+    }
+}
+
+impl TryFrom<FileOperationItemDto> for FileOperationItem {
+    type Error = IpcError;
+
+    fn try_from(value: FileOperationItemDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            source: value
+                .source
+                .as_deref()
+                .map(ResourceUri::parse)
+                .transpose()
+                .map_err(IpcError::from)?,
+            destination: value
+                .destination
+                .as_deref()
+                .map(ResourceUri::parse)
+                .transpose()
+                .map_err(IpcError::from)?,
+            kind: value.kind,
+            size: value.size,
+            recursive: value.recursive,
+        })
+    }
+}
+
+impl From<FileOperationConflict> for FileOperationConflictDto {
+    fn from(conflict: FileOperationConflict) -> Self {
+        Self {
+            source: conflict.source.as_str().to_string(),
+            destination: conflict.destination.as_str().to_string(),
+        }
+    }
+}
+
+impl TryFrom<FileOperationConflictDto> for FileOperationConflict {
+    type Error = IpcError;
+
+    fn try_from(value: FileOperationConflictDto) -> Result<Self, Self::Error> {
+        Ok(Self {
+            source: ResourceUri::parse(&value.source).map_err(IpcError::from)?,
+            destination: ResourceUri::parse(&value.destination).map_err(IpcError::from)?,
+        })
+    }
+}
+
+impl From<FileOperationWarning> for FileOperationWarningDto {
+    fn from(warning: FileOperationWarning) -> Self {
+        Self {
+            code: warning.code,
+            message: warning.message,
+            uri: warning.uri.map(|uri| uri.as_str().to_string()),
+        }
+    }
+}
+
+impl From<FileOperationWarningDto> for FileOperationWarning {
+    fn from(warning: FileOperationWarningDto) -> Self {
+        Self {
+            code: warning.code,
+            message: warning.message,
+            uri: warning.uri.and_then(|uri| ResourceUri::parse(&uri).ok()),
+        }
+    }
+}
+
 impl From<VfsError> for IpcError {
     fn from(error: VfsError) -> Self {
         Self {
             code: error.code().to_string(),
             message: error.to_string(),
         }
+    }
+}
+
+impl From<FileOperationError> for IpcError {
+    fn from(error: FileOperationError) -> Self {
+        Self {
+            code: error.code().to_string(),
+            message: error.user_message(),
+        }
+    }
+}
+
+impl From<app_core_history::Record> for OperationHistoryRecordDto {
+    fn from(record: app_core_history::Record) -> Self {
+        Self {
+            job_id: record.job_id,
+            operation_kind: record.operation_kind,
+            source_count: record.source_count,
+            representative_source_path: record.representative_source_path,
+            destination_path: record.destination_path,
+            status: record.status,
+            started_at: record.started_at,
+            completed_at: record.completed_at,
+            error_code: record.error_code,
+        }
+    }
+}
+
+pub mod app_core_history {
+    pub struct Record {
+        pub job_id: String,
+        pub operation_kind: String,
+        pub source_count: u64,
+        pub representative_source_path: Option<String>,
+        pub destination_path: Option<String>,
+        pub status: String,
+        pub started_at: String,
+        pub completed_at: Option<String>,
+        pub error_code: Option<String>,
+    }
+}
+
+pub fn job_event_name(event: &JobEvent) -> &'static str {
+    match event {
+        JobEvent::Started(_) => JOB_STARTED_EVENT,
+        JobEvent::Progress(_) => JOB_PROGRESS_EVENT,
+        JobEvent::Completed(_) => JOB_COMPLETED_EVENT,
+        JobEvent::Failed(_) => JOB_FAILED_EVENT,
+        JobEvent::Cancelled(_) => JOB_CANCELLED_EVENT,
+    }
+}
+
+pub fn job_event_payload(event: JobEvent) -> serde_json::Value {
+    match event {
+        JobEvent::Started(event) => serde_json::to_value(event).unwrap_or_default(),
+        JobEvent::Progress(event) => serde_json::to_value(event).unwrap_or_default(),
+        JobEvent::Completed(event) => serde_json::to_value(event).unwrap_or_default(),
+        JobEvent::Failed(event) => serde_json::to_value(event).unwrap_or_default(),
+        JobEvent::Cancelled(event) => serde_json::to_value(event).unwrap_or_default(),
     }
 }
 
