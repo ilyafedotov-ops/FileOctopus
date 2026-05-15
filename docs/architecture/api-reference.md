@@ -496,6 +496,7 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/inde
 | `not_found`             | `VfsError`, `FileOperationError` | Resource or job id does not exist.                             |
 | `permission_denied`     | `VfsError`, `FileOperationError` | OS denied the read/write/delete.                               |
 | `timeout`               | `VfsError`                       | Directory listing exceeded the server timeout (30s).             |
+| `cancelled`             | `VfsError`                       | Directory listing was cancelled (superseded navigation or timeout). |
 | `preferences_error`     | Preferences repository           | Invalid preference key/value or database failure.            |
 | `invalid_request`       | `FileOperationError`             | Operation request shape is wrong (missing sources, etc.).      |
 | `invalid_name`          | `FileOperationError`             | Proposed name is empty, contains separators, or is reserved.   |

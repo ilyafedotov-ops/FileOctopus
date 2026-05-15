@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
 
 use chrono::{DateTime, Utc};
@@ -184,18 +185,41 @@ impl ProviderCapabilities {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Default)]
+pub struct ListCancellation {
+    cancelled: Arc<AtomicBool>,
+}
+
+impl ListCancellation {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn cancel(&self) {
+        self.cancelled.store(true, Ordering::SeqCst);
+    }
+
+    pub fn is_cancelled(&self) -> bool {
+        self.cancelled.load(Ordering::SeqCst)
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ListOptions {
     pub session_id: ListSessionId,
+    pub request_id: String,
     pub batch_size: usize,
     pub include_hidden: bool,
+    #[serde(skip, default)]
+    pub cancel: ListCancellation,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DirectoryBatch {
     pub session_id: ListSessionId,
+    pub request_id: String,
     pub uri: ResourceUri,
     pub entries: Vec<FileEntry>,
     pub batch_index: u64,
@@ -369,6 +393,7 @@ impl From<VfsError> for FileOperationError {
                 code: "timeout".to_string(),
                 message: format!("Directory listing timed out for `{uri}`"),
             },
+            VfsError::Cancelled { .. } => Self::Cancelled { job_id: None },
             VfsError::DuplicateProvider { scheme } => Self::Internal {
                 message: format!("duplicate provider scheme `{scheme}`"),
             },
@@ -465,6 +490,7 @@ pub enum VfsError {
     NotFound { uri: String },
     PermissionDenied { uri: String },
     Timeout { uri: String },
+    Cancelled { uri: String },
     Internal { message: String },
 }
 
@@ -477,6 +503,7 @@ impl VfsError {
             Self::NotFound { .. } => "not_found",
             Self::PermissionDenied { .. } => "permission_denied",
             Self::Timeout { .. } => "timeout",
+            Self::Cancelled { .. } => "cancelled",
             Self::Internal { .. } => "internal",
         }
     }
@@ -506,6 +533,12 @@ impl VfsError {
         }
     }
 
+    pub fn cancelled(uri: &ResourceUri) -> Self {
+        Self::Cancelled {
+            uri: uri.as_str().to_string(),
+        }
+    }
+
     pub fn internal(message: &str) -> Self {
         Self::Internal {
             message: message.to_string(),
@@ -528,6 +561,7 @@ impl fmt::Display for VfsError {
             Self::NotFound { uri } => write!(formatter, "resource not found `{uri}`"),
             Self::PermissionDenied { uri } => write!(formatter, "permission denied `{uri}`"),
             Self::Timeout { uri } => write!(formatter, "directory listing timed out `{uri}`"),
+            Self::Cancelled { uri } => write!(formatter, "directory listing cancelled `{uri}`"),
             Self::Internal { message } => write!(formatter, "{message}"),
         }
     }
@@ -647,6 +681,7 @@ mod tests {
     fn serializes_directory_batch_for_ipc() {
         let batch = DirectoryBatch {
             session_id: ListSessionId::new("session-1"),
+            request_id: "request-1".to_string(),
             uri: ResourceUri::parse("local:///Users/ilya").unwrap(),
             entries: Vec::new(),
             batch_index: 0,
@@ -757,6 +792,7 @@ mod tests {
         ) -> Result<(), VfsError> {
             sink.send(DirectoryBatch {
                 session_id: options.session_id,
+                request_id: options.request_id,
                 uri: uri.clone(),
                 entries: Vec::new(),
                 batch_index: 0,
@@ -780,8 +816,10 @@ mod tests {
                 &uri,
                 ListOptions {
                     session_id: ListSessionId::new("session-1"),
+                    request_id: "request-1".to_string(),
                     batch_size: 100,
                     include_hidden: false,
+                    cancel: ListCancellation::new(),
                 },
                 sender,
             )
@@ -848,8 +886,10 @@ mod tests {
                 &uri,
                 ListOptions {
                     session_id: ListSessionId::new("session-1"),
+                    request_id: "request-1".to_string(),
                     batch_size: 100,
                     include_hidden: false,
+                    cancel: ListCancellation::new(),
                 },
                 sender,
             )

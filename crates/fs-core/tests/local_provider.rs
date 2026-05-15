@@ -2,7 +2,7 @@ use std::fs;
 use std::io::Write;
 
 use fs_core::LocalFsProvider;
-use vfs::{FileKind, ListOptions, ListSessionId, ResourceUri, VfsProvider};
+use vfs::{FileKind, ListCancellation, ListOptions, ListSessionId, ResourceUri, VfsProvider};
 
 #[tokio::test]
 async fn stat_returns_file_metadata() {
@@ -61,8 +61,10 @@ async fn list_emits_batches_and_final_completion() {
             &uri,
             ListOptions {
                 session_id: ListSessionId::new("session-1"),
+                request_id: "request-1".to_string(),
                 batch_size: 2,
                 include_hidden: true,
+                cancel: ListCancellation::new(),
             },
             sender,
         )
@@ -72,6 +74,7 @@ async fn list_emits_batches_and_final_completion() {
     let first = receiver.recv().await.unwrap();
     let second = receiver.recv().await.unwrap();
 
+    assert_eq!(first.request_id, "request-1");
     assert_eq!(first.entries.len(), 2);
     assert!(!first.is_complete);
     assert_eq!(second.entries.len(), 1);
@@ -95,8 +98,10 @@ async fn list_streams_without_collecting_all_entries_first() {
                 &uri,
                 ListOptions {
                     session_id: ListSessionId::new("large-session"),
+                    request_id: "request-large".to_string(),
                     batch_size: 128,
                     include_hidden: true,
+                    cancel: ListCancellation::new(),
                 },
                 sender,
             )
@@ -130,8 +135,10 @@ async fn list_returns_permission_denied_for_inaccessible_directory() {
             &uri,
             ListOptions {
                 session_id: ListSessionId::new("permission-denied"),
+                request_id: "request-denied".to_string(),
                 batch_size: 2,
                 include_hidden: true,
+                cancel: ListCancellation::new(),
             },
             sender,
         )
@@ -158,8 +165,10 @@ async fn list_preserves_unicode_names() {
             &uri,
             ListOptions {
                 session_id: ListSessionId::new("unicode"),
+                request_id: "request-unicode".to_string(),
                 batch_size: 4,
                 include_hidden: true,
+                cancel: ListCancellation::new(),
             },
             sender,
         )
@@ -169,4 +178,40 @@ async fn list_preserves_unicode_names() {
     let batch = receiver.recv().await.unwrap();
 
     assert_eq!(batch.entries[0].name, "файл 🚀.txt");
+}
+
+#[tokio::test]
+async fn list_stops_when_cancelled() {
+    let temp = tempfile::tempdir().unwrap();
+
+    for index in 0..512 {
+        fs::write(temp.path().join(format!("file-{index:04}.txt")), "").unwrap();
+    }
+
+    let uri = ResourceUri::from_local_path(temp.path()).unwrap();
+    let provider = LocalFsProvider::new();
+    let cancel = ListCancellation::new();
+    let token = cancel.clone();
+    let (sender, mut receiver) = tokio::sync::mpsc::channel(4);
+    let task = tokio::spawn(async move {
+        provider
+            .list(
+                &uri,
+                ListOptions {
+                    session_id: ListSessionId::new("cancel-session"),
+                    request_id: "cancel-request".to_string(),
+                    batch_size: 32,
+                    include_hidden: true,
+                    cancel,
+                },
+                sender,
+            )
+            .await
+    });
+
+    let _ = receiver.recv().await;
+    token.cancel();
+
+    let error = task.await.unwrap().unwrap_err();
+    assert_eq!(error.code(), "cancelled");
 }

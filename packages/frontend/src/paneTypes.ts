@@ -73,9 +73,15 @@ export function shouldApplyBatch(
   tabRequestId: string | null,
   batch: DirectoryBatchEventDto,
 ): boolean {
-  if (!tabRequestId || !batch.requestId) {
-    return true;
+  const batchRequestId = batch.requestId.trim();
+
+  if (!tabRequestId) {
+    return batchRequestId.length === 0;
   }
 
-  return tabRequestId === batch.requestId;
+  if (batchRequestId.length === 0) {
+    return false;
+  }
+
+  return tabRequestId === batchRequestId;
 }

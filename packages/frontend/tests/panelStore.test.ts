@@ -102,6 +102,30 @@ describe("panel store", () => {
     expect(activeTab(state.panels.left).orderedEntryIds).toEqual([]);
   });
 
+  it("ignores batches with empty request id while pane expects correlation", () => {
+    let state = createInitialState("local:///left", "local:///right");
+
+    state = panelReducer(state, {
+      type: "startSession",
+      panelId: "left",
+      sessionId: "new-session",
+      requestId: "new-request",
+    });
+    state = panelReducer(state, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "new-session",
+        requestId: "",
+        uri: "local:///left",
+        entries: [entry("uncorrelated.txt")],
+        batchIndex: 0,
+        isComplete: true,
+      },
+    });
+
+    expect(activeTab(state.panels.left).orderedEntryIds).toEqual([]);
+  });
+
   it("transitions to empty and loaded terminal states", () => {
     let state = createInitialState("local:///left", "local:///right");
 

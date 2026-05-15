@@ -136,6 +136,10 @@ fn list_blocking(
         fs::read_dir(&path).map_err(|error| LocalFsProvider::map_io_error(&uri, error))?;
 
     for entry in read_dir {
+        if options.cancel.is_cancelled() {
+            return Err(VfsError::cancelled(&uri));
+        }
+
         let entry = entry.map_err(|error| LocalFsProvider::map_io_error(&uri, error))?;
         let entry_path = entry.path();
 
@@ -156,10 +160,15 @@ fn list_blocking(
         ));
 
         if entries.len() >= batch_size {
+            if options.cancel.is_cancelled() {
+                return Err(VfsError::cancelled(&uri));
+            }
+
             send_batch(
                 &sink,
                 DirectoryBatch {
                     session_id: options.session_id.clone(),
+                    request_id: options.request_id.clone(),
                     uri: uri.clone(),
                     entries,
                     batch_index,
@@ -176,6 +185,7 @@ fn list_blocking(
         &sink,
         DirectoryBatch {
             session_id: options.session_id,
+            request_id: options.request_id,
             uri,
             entries,
             batch_index,

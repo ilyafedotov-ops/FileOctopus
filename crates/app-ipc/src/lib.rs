@@ -494,7 +494,7 @@ impl From<DirectoryBatch> for DirectoryBatchEventDto {
     fn from(batch: DirectoryBatch) -> Self {
         Self {
             session_id: batch.session_id.as_str().to_string(),
-            request_id: String::new(),
+            request_id: batch.request_id,
             uri: batch.uri.as_str().to_string(),
             entries: batch.entries.into_iter().map(Into::into).collect(),
             batch_index: batch.batch_index,
@@ -756,7 +756,7 @@ impl IpcError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use vfs::{EntryCapabilities, ProviderId, ResourceUri};
+    use vfs::{EntryCapabilities, ListSessionId, ProviderId, ResourceUri};
 
     #[test]
     fn serializes_stat_response() {
@@ -783,6 +783,24 @@ mod tests {
 
         assert_eq!(decoded.entry.uri, "local:///tmp/file.txt");
         assert_eq!(decoded.entry.kind, FileKind::File);
+    }
+
+    #[test]
+    fn maps_directory_batch_request_id_to_event_dto() {
+        let batch = DirectoryBatch {
+            session_id: ListSessionId::new("session-1"),
+            request_id: "request-1".to_string(),
+            uri: ResourceUri::parse("local:///tmp").unwrap(),
+            entries: Vec::new(),
+            batch_index: 0,
+            is_complete: true,
+            total_hint: None,
+        };
+
+        let event = DirectoryBatchEventDto::from(batch);
+
+        assert_eq!(event.request_id, "request-1");
+        assert_eq!(event.session_id, "session-1");
     }
 
     #[test]

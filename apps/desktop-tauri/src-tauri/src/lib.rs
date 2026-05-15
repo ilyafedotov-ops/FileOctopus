@@ -31,8 +31,8 @@ use jobs::{
 };
 use tauri::{AppHandle, Emitter, State};
 use vfs::{
-    DirectoryBatch, FileOperationError, FileOperationKind, ListOptions, ListSessionId, ResourceUri,
-    VfsError,
+    DirectoryBatch, FileOperationError, FileOperationKind, ListCancellation, ListOptions,
+    ListSessionId, ResourceUri, VfsError,
 };
 use zip::write::FileOptions;
 
@@ -51,9 +51,29 @@ struct MetadataJobState {
     jobs: Arc<Mutex<HashMap<String, MetadataJobRuntime>>>,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 struct ListingRegistry {
-    tokens: Mutex<HashMap<String, CancellationToken>>,
+    tokens: Arc<Mutex<HashMap<String, ListCancellation>>>,
+}
+
+impl ListingRegistry {
+    fn register(&self, panel_key: &str) -> ListCancellation {
+        let token = ListCancellation::new();
+        let mut tokens = self.tokens.lock().expect("listing registry lock poisoned");
+
+        if let Some(previous) = tokens.remove(panel_key) {
+            previous.cancel();
+        }
+
+        tokens.insert(panel_key.to_string(), token.clone());
+        token
+    }
+
+    fn remove(&self, panel_key: &str) {
+        if let Ok(mut tokens) = self.tokens.lock() {
+            tokens.remove(panel_key);
+        }
+    }
 }
 
 const LISTING_TIMEOUT: Duration = Duration::from_secs(30);
@@ -113,10 +133,13 @@ async fn fs_list_start(
         session_id: session_id.as_str().to_string(),
         request_id: request_id.clone(),
     };
+    let cancel = listings.register(&panel_key);
     let options = ListOptions {
         session_id: session_id.clone(),
+        request_id: request_id.clone(),
         batch_size: request.batch_size.unwrap_or(256).max(1),
         include_hidden: request.include_hidden.unwrap_or(false),
+        cancel: cancel.clone(),
     };
     let (sender, mut receiver) = tokio::sync::mpsc::channel::<DirectoryBatch>(16);
     let events_app = app.clone();
@@ -125,30 +148,19 @@ async fn fs_list_start(
     let list_uri = uri.clone();
     let error_uri = uri.clone();
     let error_session_id = response.session_id.clone();
-    let cancel_token = {
-        let mut tokens = listings.tokens.lock().map_err(|_| IpcError {
-            code: "internal".to_string(),
-            message: "listing registry lock poisoned".to_string(),
-        })?;
-        if let Some(previous) = tokens.remove(&panel_key) {
-            previous.cancel();
-        }
-        let token = CancellationToken::new();
-        tokens.insert(panel_key, token.clone());
-        token
-    };
+    let listings_cleanup = listings.inner().clone();
+    let cleanup_panel_key = panel_key.clone();
 
     telemetry::debug(&format!(
         "fs.list_start requested uri={} request_id={}",
         request.uri, request_id
     ));
 
-    let batch_request_id = request_id.clone();
     tauri::async_runtime::spawn(async move {
         while let Some(batch) = receiver.recv().await {
-            let mut event = DirectoryBatchEventDto::from(batch);
-            event.request_id = batch_request_id.clone();
-            if let Err(error) = events_app.emit(DIRECTORY_BATCH_EVENT, event) {
+            if let Err(error) =
+                events_app.emit(DIRECTORY_BATCH_EVENT, DirectoryBatchEventDto::from(batch))
+            {
                 telemetry::error(&format!("failed to emit directory batch: {error}"));
                 break;
             }
@@ -168,6 +180,12 @@ async fn fs_list_start(
                     started.elapsed().as_millis()
                 ));
             }
+            Ok(Err(error)) if error.code() == "cancelled" => {
+                telemetry::debug(&format!(
+                    "fs.list_start cancelled request_id={} (superseded or interrupted)",
+                    request_id
+                ));
+            }
             Ok(Err(error)) => {
                 telemetry::error(&format!("directory listing failed: {error}"));
                 let event = DirectoryBatchEventDto {
@@ -184,7 +202,7 @@ async fn fs_list_start(
                 let _ = listing_app.emit(DIRECTORY_BATCH_EVENT, event);
             }
             Err(_) => {
-                cancel_token.cancel();
+                cancel.cancel();
                 let event = DirectoryBatchEventDto {
                     session_id: error_session_id,
                     request_id,
@@ -199,6 +217,8 @@ async fn fs_list_start(
                 let _ = listing_app.emit(DIRECTORY_BATCH_EVENT, event);
             }
         }
+
+        listings_cleanup.remove(&cleanup_panel_key);
     });
 
     Ok(response)
