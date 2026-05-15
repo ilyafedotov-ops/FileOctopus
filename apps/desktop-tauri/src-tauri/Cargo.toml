@@ -15,6 +15,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 app-core = { path = "../../../crates/app-core" }
 app-ipc = { path = "../../../crates/app-ipc" }
+config = { path = "../../../crates/config" }
 chrono = "0.4"
 fs-core = { path = "../../../crates/fs-core" }
 jobs = { path = "../../../crates/jobs" }

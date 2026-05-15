@@ -69,6 +69,7 @@ export function SettingsDialog({
               <option value="details">Details</option>
               <option value="list">List</option>
               <option value="icons">Icons</option>
+              <option value="columns">Columns</option>
             </select>
           </label>
           <label className="fo-checkbox-label">
@@ -80,6 +81,22 @@ export function SettingsDialog({
               }
             />
             Show hidden files by default
+          </label>
+        </section>
+        <section className="fo-settings-section">
+          <h3>Layout</h3>
+          <label className="fo-checkbox-label">
+            <input
+              type="checkbox"
+              checked={preferences.activityPanelVisible}
+              onChange={(event) =>
+                onChange(
+                  "activityPanelVisible",
+                  event.target.checked ? "true" : "false",
+                )
+              }
+            />
+            Show activity panel
           </label>
         </section>
       </dialog>

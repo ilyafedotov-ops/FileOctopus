@@ -31,6 +31,8 @@ describe("visual state fixtures", () => {
           showHiddenFiles: false,
           sidebarWidth: 240,
           splitRatio: 0.5,
+          activityPanelVisible: true,
+          activityPanelWidth: 288,
         }}
         onClose={() => undefined}
         onChange={() => undefined}

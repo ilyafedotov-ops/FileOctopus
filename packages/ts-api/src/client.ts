@@ -28,6 +28,19 @@ import type {
   ListRecentOperationsResponse,
   ListStartRequest,
   ListStartResponse,
+  NavigationAddFavoriteRequest,
+  NavigationFavoriteResponse,
+  NavigationIsStarredRequest,
+  NavigationIsStarredResponse,
+  NavigationListFavoritesResponse,
+  NavigationListRecentRequest,
+  NavigationListRecentResponse,
+  NavigationListStarredResponse,
+  NavigationRecordVisitRequest,
+  NavigationRemoveFavoriteRequest,
+  NavigationRenameFavoriteRequest,
+  NavigationToggleStarredRequest,
+  NavigationToggleStarredResponse,
   GetPreferencesResponse,
   SetPreferenceRequest,
   SetPreferenceResponse,
@@ -89,6 +102,15 @@ const commandMap: Record<string, string> = {
   "diagnostics.exportBundle": "export_diagnostics_bundle",
   "preferences.get": "get_preferences",
   "preferences.set": "set_preference",
+  "navigation.recordVisit": "navigation_record_visit",
+  "navigation.listFavorites": "navigation_list_favorites",
+  "navigation.addFavorite": "navigation_add_favorite",
+  "navigation.removeFavorite": "navigation_remove_favorite",
+  "navigation.renameFavorite": "navigation_rename_favorite",
+  "navigation.listRecent": "navigation_list_recent",
+  "navigation.listStarred": "navigation_list_starred",
+  "navigation.toggleStarred": "navigation_toggle_starred",
+  "navigation.isStarred": "navigation_is_starred",
 };
 
 export class FileOctopusClient {
@@ -98,6 +120,7 @@ export class FileOctopusClient {
   readonly operationHistory: OperationHistoryClient;
   readonly diagnostics: DiagnosticsClient;
   readonly preferences: PreferencesClient;
+  readonly navigation: NavigationClient;
 
   constructor(private readonly transport: IpcTransport) {
     this.fs = new FsClient(transport);
@@ -106,6 +129,7 @@ export class FileOctopusClient {
     this.operationHistory = new OperationHistoryClient(transport);
     this.diagnostics = new DiagnosticsClient(transport);
     this.preferences = new PreferencesClient(transport);
+    this.navigation = new NavigationClient(transport);
   }
 
   getAppInfo(): Promise<AppInfoResponse> {
@@ -263,6 +287,92 @@ export class PreferencesClient {
       return await this.transport.invoke<SetPreferenceResponse>("preferences.set", {
         request,
       });
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+}
+
+export class NavigationClient {
+  constructor(private readonly transport: IpcTransport) {}
+
+  async recordVisit(request: NavigationRecordVisitRequest): Promise<OkResponse> {
+    try {
+      return await this.transport.invoke("navigation.recordVisit", { request });
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async listFavorites(): Promise<NavigationListFavoritesResponse> {
+    try {
+      return await this.transport.invoke("navigation.listFavorites");
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async addFavorite(
+    request: NavigationAddFavoriteRequest,
+  ): Promise<NavigationFavoriteResponse> {
+    try {
+      return await this.transport.invoke("navigation.addFavorite", { request });
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async removeFavorite(request: NavigationRemoveFavoriteRequest): Promise<OkResponse> {
+    try {
+      return await this.transport.invoke("navigation.removeFavorite", { request });
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async renameFavorite(
+    request: NavigationRenameFavoriteRequest,
+  ): Promise<NavigationFavoriteResponse> {
+    try {
+      return await this.transport.invoke("navigation.renameFavorite", { request });
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async listRecent(
+    request: NavigationListRecentRequest,
+  ): Promise<NavigationListRecentResponse> {
+    try {
+      return await this.transport.invoke("navigation.listRecent", { request });
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async listStarred(): Promise<NavigationListStarredResponse> {
+    try {
+      return await this.transport.invoke("navigation.listStarred");
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async toggleStarred(
+    request: NavigationToggleStarredRequest,
+  ): Promise<NavigationToggleStarredResponse> {
+    try {
+      return await this.transport.invoke("navigation.toggleStarred", { request });
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async isStarred(
+    request: NavigationIsStarredRequest,
+  ): Promise<NavigationIsStarredResponse> {
+    try {
+      return await this.transport.invoke("navigation.isStarred", { request });
     } catch (error) {
       throw normalizeIpcError(error);
     }

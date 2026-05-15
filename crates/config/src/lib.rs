@@ -1,3 +1,5 @@
+mod navigation;
+
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -5,7 +7,11 @@ use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-pub const SCHEMA_VERSION: u32 = 2;
+pub use navigation::{
+    FavoriteEntry, NavigationError, NavigationRepository, RecentBucket, RecentEntry, StarredEntry,
+};
+
+pub const SCHEMA_VERSION: u32 = 3;
 
 #[derive(Debug, Error)]
 pub enum PreferencesError {
@@ -26,6 +32,8 @@ pub struct UserPreferences {
     pub show_hidden_files: bool,
     pub sidebar_width: u32,
     pub split_ratio: f64,
+    pub activity_panel_visible: bool,
+    pub activity_panel_width: u32,
 }
 
 impl Default for UserPreferences {
@@ -37,6 +45,8 @@ impl Default for UserPreferences {
             show_hidden_files: false,
             sidebar_width: 240,
             split_ratio: 0.5,
+            activity_panel_visible: true,
+            activity_panel_width: 288,
         }
     }
 }
@@ -112,6 +122,30 @@ impl PreferencesRepository {
             self.seed_defaults(&connection)?;
         }
 
+        if user_version < 3 {
+            self.backfill_v3_keys(&connection)?;
+            connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
+        Ok(())
+    }
+
+    fn backfill_v3_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [
+            ("activityPanelVisible", defaults.activity_panel_visible.to_string()),
+            ("activityPanelWidth", defaults.activity_panel_width.to_string()),
+        ];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
+        }
+
         Ok(())
     }
 
@@ -183,6 +217,11 @@ impl UserPreferences {
             ("showHiddenFiles", self.show_hidden_files.to_string()),
             ("sidebarWidth", self.sidebar_width.to_string()),
             ("splitRatio", self.split_ratio.to_string()),
+            (
+                "activityPanelVisible",
+                self.activity_panel_visible.to_string(),
+            ),
+            ("activityPanelWidth", self.activity_panel_width.to_string()),
         ]
     }
 }
@@ -217,6 +256,15 @@ fn apply_value(
                 .map_err(|error| invalid_value(key, error.to_string()))?
                 .clamp(0.2, 0.8);
         }
+        "activityPanelVisible" => {
+            preferences.activity_panel_visible = parse_bool(value)?;
+        }
+        "activityPanelWidth" => {
+            preferences.activity_panel_width = value
+                .parse::<u32>()
+                .map_err(|error| invalid_value(key, error.to_string()))?
+                .clamp(200, 480);
+        }
         _ => {}
     }
 
@@ -245,7 +293,7 @@ fn parse_density(value: &str) -> Result<String, PreferencesError> {
 
 fn parse_view_mode(value: &str) -> Result<String, PreferencesError> {
     match value {
-        "details" | "list" | "icons" => Ok(value.to_string()),
+        "details" | "list" | "icons" | "columns" => Ok(value.to_string()),
         other => Err(invalid_value(
             "defaultViewMode",
             format!("unsupported value `{other}`"),

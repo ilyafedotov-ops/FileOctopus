@@ -1,14 +1,21 @@
 :root {
-  --fo-text: #18202a;
-  --fo-app-bg: #e9edf2;
+  --fo-text: #172033;
+  --fo-app-bg: #f5f7fb;
+  --fo-workspace-bg: #f1f4f9;
   --fo-disabled-text: #8b96a7;
-  --fo-border: #aab4c1;
-  --fo-surface: #f7f9fb;
-  --fo-muted-text: #526174;
-  --fo-strong-border: #939faf;
+  --fo-border: #d9e0ec;
+  --fo-surface: #ffffff;
+  --fo-muted-text: #5e6b80;
+  --fo-strong-border: #c3ccd8;
   --fo-control-bg: #ffffff;
-  --fo-accent: #2563eb;
-  --fo-accent-soft: #dceafe;
+  --fo-accent: #3578ff;
+  --fo-accent-soft: #e8f0ff;
+  --fo-shell-shadow: rgb(29 42 68 / 16%);
+  --fo-sidebar-width: 224px;
+  --fo-activity-width: 288px;
+  --fo-left-pane-fr: 0.5;
+  --fo-success: #24a148;
+  --fo-warning: #f59e0b;
   --fo-strip-bg: #e3e8ef;
   --fo-control-border: #929dac;
   --fo-danger: #b42318;
@@ -82,15 +89,50 @@ button:disabled {
 
 .fo-shell {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
-  gap: 8px;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 0;
   min-height: 100vh;
-  padding: 8px;
+  padding: 16px;
+  background: var(--fo-app-bg);
+}
+
+.fo-shell-frame {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  min-height: calc(100vh - 32px);
+  border: 1px solid var(--fo-border);
+  border-radius: 24px;
+  background: var(--fo-surface);
+  box-shadow: 0 16px 48px var(--fo-shell-shadow);
+  overflow: hidden;
+}
+
+.fo-workspace {
+  display: grid;
+  grid-template-columns: var(--fo-sidebar-width) 4px minmax(0, 1fr) var(--fo-activity-width);
+  gap: 0;
+  min-height: 0;
+  padding: 12px;
+  background: var(--fo-workspace-bg);
+}
+
+:root[data-activity-panel="hidden"] .fo-workspace {
+  grid-template-columns: var(--fo-sidebar-width) 4px minmax(0, 1fr) 0;
+}
+
+.fo-dual-pane {
+  display: grid;
+  grid-template-columns: minmax(0, var(--fo-left-pane-fr)) 4px minmax(0, 1fr);
+  gap: 12px;
+  min-width: 0;
+  min-height: 0;
 }
 
 .fo-topbar,
 .fo-status,
-.fo-panel {
+.fo-panel,
+.fo-sidebar,
+.fo-activity {
   border: 1px solid var(--fo-border);
   background: var(--fo-surface);
 }
@@ -99,38 +141,88 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 54px;
-  padding: 8px 10px;
+  min-height: 56px;
+  padding: 0 20px;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background: #f8fafc;
+}
+
+.fo-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fo-brand-mark {
+  font-size: 22px;
 }
 
 .fo-topbar h1 {
   margin: 0;
-  font-size: 20px;
-  line-height: 1.1;
+  font-size: 16px;
+  line-height: 1.2;
 }
 
-.fo-topbar p {
-  margin: 3px 0 0;
+.fo-brand-badge {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--fo-workspace-bg);
   color: var(--fo-muted-text);
-  font-size: 13px;
-}
-
-.fo-command-strip {
-  display: grid;
-  place-items: center;
-  min-width: 72px;
-  height: 32px;
-  border: 1px solid var(--fo-strong-border);
-  background: var(--fo-control-bg);
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 700;
 }
 
-.fo-panels {
-  display: grid;
-  grid-template-columns: 180px minmax(0, 1fr) minmax(0, 1fr);
+.fo-readiness {
+  display: flex;
+  align-items: center;
   gap: 8px;
-  min-height: 0;
+  color: var(--fo-muted-text);
+  font-size: 12px;
+}
+
+.fo-readiness-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--fo-success);
+}
+
+.fo-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fo-help-menu {
+  position: relative;
+}
+
+.fo-help-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  display: grid;
+  gap: 4px;
+  min-width: 10rem;
+  padding: 6px;
+  border: 1px solid var(--fo-border);
+  border-radius: 8px;
+  background: var(--fo-control-bg);
+  box-shadow: 0 8px 24px var(--fo-menu-shadow);
+}
+
+.fo-resizer {
+  width: 4px;
+  cursor: col-resize;
+  background: transparent;
+}
+
+.fo-resizer:hover {
+  background: var(--fo-accent-soft);
 }
 
 .fo-sidebar {
@@ -139,9 +231,8 @@ button:disabled {
   gap: 10px;
   min-width: 0;
   overflow: auto;
-  border: 1px solid var(--fo-border);
-  background: var(--fo-surface);
-  padding: 8px;
+  border-radius: 16px;
+  padding: 12px;
 }
 
 .fo-sidebar section {
@@ -177,9 +268,15 @@ button:disabled {
   overflow: hidden;
 }
 
+.fo-panel {
+  border-radius: 16px;
+}
+
 .fo-panel-active {
   border-color: var(--fo-accent);
-  box-shadow: inset 0 0 0 1px var(--fo-accent);
+  box-shadow:
+    0 0 0 2px var(--fo-accent-soft),
+    inset 0 0 0 1px var(--fo-accent);
 }
 
 .fo-panel-header {
@@ -446,6 +543,101 @@ button:disabled {
   font-size: 12px;
 }
 
+.fo-activity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 16px;
+  font-size: 12px;
+}
+
+.fo-activity-collapsed {
+  align-items: stretch;
+  justify-content: center;
+  width: 40px;
+  padding: 8px;
+}
+
+.fo-activity-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid var(--fo-border);
+}
+
+.fo-activity-header h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.fo-activity-header p {
+  margin: 4px 0 0;
+  color: var(--fo-muted-text);
+  font-size: 12px;
+}
+
+.fo-activity-cards {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  overflow: auto;
+}
+
+.fo-job-card {
+  padding: 12px;
+  border: 1px solid var(--fo-border);
+  border-radius: 12px;
+  background: var(--fo-workspace-bg);
+}
+
+.fo-job-card-running {
+  background: var(--fo-accent-soft);
+}
+
+.fo-job-card-queued {
+  background: #fff8eb;
+  border-color: #f6d58a;
+}
+
+.fo-job-card-completed {
+  background: #ecfdf3;
+  border-color: #9fd8b3;
+}
+
+.fo-job-card-failed {
+  background: var(--fo-danger-bg);
+  border-color: var(--fo-danger-border);
+}
+
+.fo-job-card-title {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.fo-job-card-bar {
+  height: 8px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: var(--fo-border);
+  overflow: hidden;
+}
+
+.fo-job-card-bar > div {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--fo-accent);
+}
+
+.fo-job-card-meta {
+  margin: 8px 0 0;
+  color: var(--fo-muted-text);
+}
+
 .fo-job-panel {
   display: grid;
   gap: 6px;
@@ -588,6 +780,12 @@ button:disabled {
 .fo-dialog-summary span {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+
+.fo-dialog-danger {
+  border-color: var(--fo-danger-border);
+  background: var(--fo-danger-bg);
+  color: var(--fo-danger-text);
 }
 
 .fo-dialog-actions {
@@ -824,11 +1022,120 @@ button:disabled {
   gap: 0.5rem;
 }
 
+.fo-panel-title-row,
 .fo-panel-toolbar-row,
-.fo-panel-path-row {
+.fo-panel-path-row,
+.fo-panel-filter-row {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  min-width: 0;
+}
+
+.fo-panel-title-row {
+  flex-wrap: wrap;
+}
+
+.fo-panel-title-row .fo-breadcrumb,
+.fo-panel-title-row .fo-path {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.fo-pane-badge {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.fo-pane-active-label {
+  border-radius: 999px;
+  background: var(--fo-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+.fo-pane-label {
+  color: var(--fo-muted-text);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.fo-pane-status {
+  border-top: 1px solid var(--fo-border);
+  color: var(--fo-muted-text);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.fo-panel-filter-row .fo-filter {
+  flex: 1;
+}
+
+.fo-filter-active {
+  border-color: var(--fo-accent);
+  background: var(--fo-accent-soft);
+}
+
+.fo-columns-view {
+  display: flex;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  flex: 1;
+}
+
+.fo-columns-column {
+  display: grid;
+  align-content: start;
+  gap: 2px;
+  min-width: 180px;
+  max-height: 100%;
+  overflow: auto;
+  border-right: 1px solid var(--fo-border);
+  padding-right: 8px;
+}
+
+.fo-columns-column button {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  border: 1px solid transparent;
+  background: transparent;
+  text-align: left;
+}
+
+.fo-columns-active {
+  border-color: var(--fo-accent);
+  background: var(--fo-accent-soft);
+}
+
+.fo-sidebar-icon {
+  display: inline-block;
+  width: 1.25rem;
+  text-align: center;
+}
+
+.fo-sidebar-indented {
+  padding-left: 1.5rem;
+}
+
+.fo-sidebar-subdued {
+  color: var(--fo-muted-text);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.fo-sidebar-menu {
+  display: grid;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid var(--fo-border);
+  border-radius: 8px;
+  background: var(--fo-control-bg);
 }
 
 .fo-panel-nav {

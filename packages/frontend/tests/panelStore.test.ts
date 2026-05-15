@@ -302,6 +302,19 @@ describe("panel store", () => {
     expect(activeTab(state.panels.right).viewMode).toBe("list");
   });
 
+  it("hydrates columns view mode from persisted preferences", () => {
+    let state = createInitialState("local:///left", "local:///right");
+
+    state = panelReducer(state, {
+      type: "hydratePreferences",
+      showHidden: false,
+      viewMode: "columns",
+    });
+
+    expect(activeTab(state.panels.left).viewMode).toBe("columns");
+    expect(activeTab(state.panels.right).viewMode).toBe("columns");
+  });
+
   it("normalizes local paths and finds parent uris", () => {
     expect(normalizeLocalInput("/Users/ilya")).toBe("local:///Users/ilya");
     expect(normalizeLocalInput("C:\\Users\\Ilya")).toBe(

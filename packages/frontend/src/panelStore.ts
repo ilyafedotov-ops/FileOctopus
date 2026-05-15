@@ -9,7 +9,7 @@ export type { PaneLoadState } from "./paneTypes";
 export type PanelId = "left" | "right";
 export type SortField = "name" | "type" | "size" | "modified";
 export type SortDirection = "asc" | "desc";
-export type ViewMode = "details" | "list" | "icons";
+export type ViewMode = "details" | "list" | "icons" | "columns";
 
 export interface SortState {
   field: SortField;
@@ -698,7 +698,7 @@ function persistJson(key: string, value: unknown) {
   persistValue(key, JSON.stringify(value));
 }
 
-function homeUri(): string {
+export function homeUri(): string {
   const home = readValue("fileoctopus.homeUri");
 
   if (home) return home;

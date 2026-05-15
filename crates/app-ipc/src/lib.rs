@@ -37,6 +37,114 @@ pub struct UserPreferencesDto {
     pub show_hidden_files: bool,
     pub sidebar_width: u32,
     pub split_ratio: f64,
+    pub activity_panel_visible: bool,
+    pub activity_panel_width: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FavoriteEntryDto {
+    pub id: u64,
+    pub uri: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecentEntryDto {
+    pub uri: String,
+    pub label: String,
+    pub visited_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StarredEntryDto {
+    pub uri: String,
+    pub label: String,
+    pub starred_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationRecordVisitRequest {
+    pub uri: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationListFavoritesResponse {
+    pub favorites: Vec<FavoriteEntryDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationAddFavoriteRequest {
+    pub uri: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationFavoriteResponse {
+    pub favorite: FavoriteEntryDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationRemoveFavoriteRequest {
+    pub id: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationRenameFavoriteRequest {
+    pub id: u64,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationListRecentRequest {
+    pub bucket: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationListRecentResponse {
+    pub entries: Vec<RecentEntryDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationListStarredResponse {
+    pub entries: Vec<StarredEntryDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationToggleStarredRequest {
+    pub uri: String,
+    pub label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationToggleStarredResponse {
+    pub starred: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationIsStarredRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NavigationIsStarredResponse {
+    pub starred: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -514,6 +622,38 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             show_hidden_files: value.show_hidden_files,
             sidebar_width: value.sidebar_width,
             split_ratio: value.split_ratio,
+            activity_panel_visible: value.activity_panel_visible,
+            activity_panel_width: value.activity_panel_width,
+        }
+    }
+}
+
+impl From<config::FavoriteEntry> for FavoriteEntryDto {
+    fn from(value: config::FavoriteEntry) -> Self {
+        Self {
+            id: value.id,
+            uri: value.uri,
+            label: value.label,
+        }
+    }
+}
+
+impl From<config::RecentEntry> for RecentEntryDto {
+    fn from(value: config::RecentEntry) -> Self {
+        Self {
+            uri: value.uri,
+            label: value.label,
+            visited_at: value.visited_at,
+        }
+    }
+}
+
+impl From<config::StarredEntry> for StarredEntryDto {
+    fn from(value: config::StarredEntry) -> Self {
+        Self {
+            uri: value.uri,
+            label: value.label,
+            starred_at: value.starred_at,
         }
     }
 }

@@ -465,6 +465,8 @@ describe("FileOctopusClient", () => {
               showHiddenFiles: false,
               sidebarWidth: 240,
               splitRatio: 0.5,
+              activityPanelVisible: true,
+              activityPanelWidth: 288,
             },
           } as TResponse;
         }
@@ -477,6 +479,8 @@ describe("FileOctopusClient", () => {
             showHiddenFiles: false,
             sidebarWidth: 240,
             splitRatio: 0.5,
+            activityPanelVisible: true,
+            activityPanelWidth: 288,
           },
         } as TResponse;
       },
@@ -494,6 +498,49 @@ describe("FileOctopusClient", () => {
     ]);
     expect(calls[1]?.args).toEqual({
       request: { key: "theme", value: "dark" },
+    });
+  });
+
+  it("routes navigation commands through the navigation client", async () => {
+    const calls: Array<{ command: string; args?: Record<string, unknown> }> =
+      [];
+    const transport: IpcTransport = {
+      async invoke<TResponse>(command: string, args?: Record<string, unknown>) {
+        calls.push({ command, args });
+
+        if (command === "navigation.listFavorites") {
+          return { favorites: [] } as TResponse;
+        }
+
+        if (command === "navigation.toggleStarred") {
+          return { starred: true } as TResponse;
+        }
+
+        return { ok: true } as TResponse;
+      },
+    };
+
+    const client = new FileOctopusClient(transport);
+
+    await client.navigation.recordVisit({
+      uri: "local:///tmp",
+      label: "tmp",
+    });
+    const favorites = await client.navigation.listFavorites();
+    const starred = await client.navigation.toggleStarred({
+      uri: "local:///tmp",
+      label: "tmp",
+    });
+
+    expect(favorites.favorites).toEqual([]);
+    expect(starred.starred).toBe(true);
+    expect(calls.map((call) => call.command)).toEqual([
+      "navigation.recordVisit",
+      "navigation.listFavorites",
+      "navigation.toggleStarred",
+    ]);
+    expect(calls[0]?.args).toEqual({
+      request: { uri: "local:///tmp", label: "tmp" },
     });
   });
 

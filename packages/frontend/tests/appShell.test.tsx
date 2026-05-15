@@ -61,6 +61,8 @@ const preferencesGet = vi.fn(async () => ({
     showHiddenFiles: false,
     sidebarWidth: 240,
     splitRatio: 0.5,
+    activityPanelVisible: true,
+    activityPanelWidth: 288,
   },
 }));
 const preferencesSet = vi.fn(async () => preferencesGet());
@@ -409,6 +411,21 @@ vi.mock("@fileoctopus/ts-api", () => ({
       get: preferencesGet,
       set: preferencesSet,
     },
+    navigation: {
+      recordVisit: vi.fn(async () => ({ ok: true })),
+      listFavorites: vi.fn(async () => ({ favorites: [] })),
+      addFavorite: vi.fn(async () => ({
+        favorite: { id: 1, uri: "local:///test", label: "test" },
+      })),
+      removeFavorite: vi.fn(async () => ({ ok: true })),
+      renameFavorite: vi.fn(async () => ({
+        favorite: { id: 1, uri: "local:///test", label: "test" },
+      })),
+      listRecent: vi.fn(async () => ({ entries: [] })),
+      listStarred: vi.fn(async () => ({ entries: [] })),
+      toggleStarred: vi.fn(async () => ({ starred: true })),
+      isStarred: vi.fn(async () => ({ starred: false })),
+    },
   }),
   normalizeIpcError: (error: unknown) =>
     error && typeof error === "object" && "message" in error
@@ -511,7 +528,7 @@ describe("FileOctopusShell", () => {
     render(<FileOctopusShell />);
     await waitFor(() => expect(listStart).toHaveBeenCalledTimes(2));
 
-    clickToolbar("New", 0);
+    clickToolbar("New Folder", 0);
     fireEvent.change(screen.getByLabelText("Folder name"), {
       target: { value: "bad/name" },
     });
@@ -635,8 +652,8 @@ describe("FileOctopusShell", () => {
       });
     });
 
-    expect(screen.getByText("alpha.txt")).toBeTruthy();
-    fireEvent.click(screen.getByText("Cancel"));
+    expect(screen.getByText(/copy running/i)).toBeTruthy();
+    fireEvent.click(screen.getAllByText("Cancel")[0]);
     expect(cancelJob).toHaveBeenCalledWith({ jobId: "job-live" });
 
     act(() => {
@@ -655,6 +672,7 @@ describe("FileOctopusShell", () => {
   it("shows app diagnostics and exports a bundle", async () => {
     render(<FileOctopusShell />);
 
+    fireEvent.click(screen.getByText("Help"));
     fireEvent.click(screen.getByText("Diagnostics"));
     expect(await screen.findByText("0.1.0")).toBeTruthy();
     fireEvent.click(screen.getByText("Export bundle"));

@@ -135,6 +135,43 @@ fn standard_locations_include_home_and_existing_targets_only() {
 }
 
 #[test]
+fn standard_locations_tag_sections_consistently() {
+    let locations = standard_locations();
+
+    let home = locations
+        .iter()
+        .find(|location| location.id == "home")
+        .expect("home location is required");
+    assert_eq!(home.section, "Favorites");
+
+    for location in locations
+        .iter()
+        .filter(|location| matches!(location.id.as_str(), "desktop" | "documents" | "downloads" | "pictures" | "music" | "videos"))
+    {
+        assert_eq!(location.section, "User folders");
+    }
+
+    assert!(
+        !locations
+            .iter()
+            .any(|location| location.uri.to_ascii_lowercase().contains("timemachine")),
+        "TimeMachine snapshot volumes should be filtered from sidebar"
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn standard_locations_include_unix_root_volume() {
+    let locations = standard_locations();
+
+    let root = locations
+        .iter()
+        .find(|location| location.uri == "local:///")
+        .expect("unix root volume should appear in sidebar");
+    assert_eq!(root.section, "Devices/Volumes");
+}
+
+#[test]
 fn open_and_reveal_reject_missing_paths_before_launching_os_commands() {
     let dir = tempdir().unwrap();
     let missing = uri(&dir.path().join("missing.txt"));

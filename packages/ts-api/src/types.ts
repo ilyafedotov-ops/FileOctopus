@@ -84,6 +84,82 @@ export interface UserPreferencesDto {
   showHiddenFiles: boolean;
   sidebarWidth: number;
   splitRatio: number;
+  activityPanelVisible: boolean;
+  activityPanelWidth: number;
+}
+
+export interface FavoriteEntryDto {
+  id: number;
+  uri: string;
+  label: string;
+}
+
+export interface RecentEntryDto {
+  uri: string;
+  label: string;
+  visitedAt: string;
+}
+
+export interface StarredEntryDto {
+  uri: string;
+  label: string;
+  starredAt: string;
+}
+
+export interface NavigationRecordVisitRequest {
+  uri: string;
+  label: string;
+}
+
+export interface NavigationListFavoritesResponse {
+  favorites: FavoriteEntryDto[];
+}
+
+export interface NavigationAddFavoriteRequest {
+  uri: string;
+  label: string;
+}
+
+export interface NavigationFavoriteResponse {
+  favorite: FavoriteEntryDto;
+}
+
+export interface NavigationRemoveFavoriteRequest {
+  id: number;
+}
+
+export interface NavigationRenameFavoriteRequest {
+  id: number;
+  label: string;
+}
+
+export interface NavigationListRecentRequest {
+  bucket: "today" | "thisWeek";
+}
+
+export interface NavigationListRecentResponse {
+  entries: RecentEntryDto[];
+}
+
+export interface NavigationListStarredResponse {
+  entries: StarredEntryDto[];
+}
+
+export interface NavigationToggleStarredRequest {
+  uri: string;
+  label: string;
+}
+
+export interface NavigationToggleStarredResponse {
+  starred: boolean;
+}
+
+export interface NavigationIsStarredRequest {
+  uri: string;
+}
+
+export interface NavigationIsStarredResponse {
+  starred: boolean;
 }
 
 export interface GetPreferencesResponse {

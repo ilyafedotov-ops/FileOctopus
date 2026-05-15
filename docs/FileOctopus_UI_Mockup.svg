@@ -1,0 +1,130 @@
+<svg width="1600" height="1000" viewBox="0 0 1600 1000" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="24" flood-color="#1d2a44" flood-opacity="0.16"/>
+    </filter>
+    <style>
+      .bg { fill: #f5f7fb; }
+      .surface { fill: #ffffff; stroke: #d9e0ec; stroke-width: 1; }
+      .muted { fill: #f1f4f9; }
+      .border { stroke: #d9e0ec; stroke-width: 1; }
+      .text { fill: #172033; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+      .subtle { fill: #5e6b80; font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+      .tiny { font-size: 12px; }
+      .small { font-size: 14px; }
+      .medium { font-size: 16px; }
+      .title { font-size: 18px; font-weight: 700; }
+      .label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; fill: #5e6b80; }
+      .accent { fill: #3578ff; }
+      .accent-stroke { stroke: #3578ff; stroke-width: 2; }
+      .danger { fill: #e5484d; }
+      .success { fill: #24a148; }
+      .folder { fill: #3b82f6; }
+      .file { fill: #f59e0b; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="1600" height="1000" rx="0"/>
+
+  <text x="60" y="70" class="text" font-size="42" font-weight="800">🐙 FileOctopus</text>
+  <text x="62" y="105" class="subtle medium">Target interface concept for the Rust-powered dual-pane file manager</text>
+
+  <g filter="url(#shadow)">
+    <rect x="250" y="70" width="1100" height="700" rx="18" class="surface"/>
+    <rect x="250" y="70" width="1100" height="42" rx="18" class="muted"/>
+    <circle cx="280" cy="91" r="6" fill="#ff5f57"/><circle cx="300" cy="91" r="6" fill="#ffbd2e"/><circle cx="320" cy="91" r="6" fill="#28c840"/>
+    <text x="760" y="96" text-anchor="middle" class="text small" font-weight="700">FileOctopus</text>
+
+    <!-- Sidebar -->
+    <rect x="250" y="112" width="170" height="618" class="surface"/>
+    <text x="270" y="145" class="label">Favorites</text>
+    <text x="278" y="178" class="text small">⌂  Home</text>
+    <text x="278" y="210" class="text small">▣  Desktop</text>
+    <text x="278" y="242" class="text small">□  Documents</text>
+    <text x="278" y="274" class="text small">↓  Downloads</text>
+    <text x="278" y="306" class="text small">▧  Pictures</text>
+    <text x="278" y="338" class="text small">♫  Music</text>
+    <text x="270" y="385" class="label">Devices / Volumes</text>
+    <text x="278" y="418" class="text small">◉  Macintosh HD</text>
+    <text x="278" y="450" class="text small">◌  Backup</text>
+    <text x="278" y="482" class="text small">◎  Network</text>
+    <text x="270" y="530" class="label">Recent</text>
+    <text x="278" y="563" class="text small">◷  Today</text>
+    <text x="278" y="595" class="text small">☆  Starred</text>
+
+    <!-- Workspace -->
+    <rect x="420" y="112" width="720" height="618" fill="#fbfcff" stroke="#d9e0ec"/>
+    <rect x="436" y="132" width="336" height="560" rx="10" fill="#ffffff" stroke="#3578ff" stroke-width="2"/>
+    <rect x="788" y="132" width="336" height="560" rx="10" fill="#ffffff" stroke="#d9e0ec"/>
+
+    <!-- Left pane header -->
+    <text x="454" y="160" class="text small" font-weight="700">Left</text>
+    <rect x="620" y="142" width="132" height="26" rx="8" fill="#e8f0ff" stroke="#b7ccff"/>
+    <text x="636" y="160" class="text tiny">/Users/ilya/Pictures</text>
+    <rect x="454" y="182" width="72" height="28" rx="6" class="muted" stroke="#d9e0ec"/><text x="466" y="201" class="text tiny">New Folder</text>
+    <rect x="532" y="182" width="60" height="28" rx="6" class="muted" stroke="#d9e0ec"/><text x="546" y="201" class="text tiny">Copy</text>
+    <rect x="598" y="182" width="60" height="28" rx="6" class="muted" stroke="#d9e0ec"/><text x="611" y="201" class="text tiny">Move</text>
+    <rect x="664" y="182" width="52" height="28" rx="6" class="muted" stroke="#d9e0ec"/><text x="676" y="201" class="text tiny">Trash</text>
+    <rect x="454" y="225" width="298" height="30" rx="7" fill="#ffffff" stroke="#d9e0ec"/><text x="470" y="245" class="subtle tiny">Filter current folder...</text>
+
+    <!-- Left table -->
+    <line x1="454" y1="280" x2="752" y2="280" class="border"/>
+    <text x="470" y="272" class="text tiny" font-weight="700">Name</text><text x="610" y="272" class="text tiny" font-weight="700">Size</text><text x="675" y="272" class="text tiny" font-weight="700">Modified</text>
+    <rect x="454" y="335" width="298" height="30" rx="4" fill="#e8f0ff"/>
+    <text x="470" y="310" class="text small">📁 Camera Roll</text><text x="470" y="345" class="text small">🖼 DSC_0124.jpg</text><text x="615" y="345" class="subtle tiny">3.8 MB</text><text x="675" y="345" class="subtle tiny">Today</text>
+    <text x="470" y="380" class="text small">🎬 Video_001.mp4</text><text x="615" y="380" class="subtle tiny">52 MB</text><text x="675" y="380" class="subtle tiny">Yesterday</text>
+    <text x="470" y="415" class="text small">📄 notes.txt</text><text x="615" y="415" class="subtle tiny">2 KB</text><text x="675" y="415" class="subtle tiny">Aug 21</text>
+    <text x="454" y="675" class="subtle tiny">1 of 7 selected · 82.3 MB · 7 items</text>
+
+    <!-- Right pane -->
+    <text x="806" y="160" class="text small" font-weight="700">Right</text>
+    <rect x="972" y="142" width="132" height="26" rx="8" fill="#f1f4f9" stroke="#d9e0ec"/>
+    <text x="988" y="160" class="text tiny">/Users/ilya/Documents</text>
+    <rect x="806" y="182" width="72" height="28" rx="6" class="muted" stroke="#d9e0ec"/><text x="818" y="201" class="text tiny">New Folder</text>
+    <rect x="884" y="182" width="60" height="28" rx="6" class="muted" stroke="#d9e0ec"/><text x="898" y="201" class="text tiny">Copy</text>
+    <rect x="950" y="182" width="60" height="28" rx="6" class="muted" stroke="#d9e0ec"/><text x="963" y="201" class="text tiny">Move</text>
+    <rect x="1016" y="182" width="52" height="28" rx="6" class="muted" stroke="#d9e0ec"/><text x="1028" y="201" class="text tiny">Trash</text>
+    <rect x="806" y="225" width="298" height="30" rx="7" fill="#ffffff" stroke="#d9e0ec"/><text x="822" y="245" class="subtle tiny">Filter current folder...</text>
+    <line x1="806" y1="280" x2="1104" y2="280" class="border"/>
+    <text x="822" y="272" class="text tiny" font-weight="700">Name</text><text x="962" y="272" class="text tiny" font-weight="700">Size</text><text x="1027" y="272" class="text tiny" font-weight="700">Modified</text>
+    <text x="822" y="310" class="text small">📁 Projects</text><text x="822" y="345" class="text small">📁 Reports</text><text x="822" y="380" class="text small">📕 Presentation.pdf</text><text x="965" y="380" class="subtle tiny">2.4 MB</text><text x="822" y="415" class="text small">📊 Todo.xlsx</text><text x="965" y="415" class="subtle tiny">1.1 MB</text>
+    <text x="806" y="675" class="subtle tiny">0 selected · 6 items</text>
+
+    <!-- Activity -->
+    <rect x="1140" y="112" width="210" height="618" fill="#ffffff" stroke="#d9e0ec"/>
+    <text x="1160" y="150" class="title">Jobs &amp; Activity</text>
+    <rect x="1160" y="178" width="170" height="76" rx="10" fill="#f8fbff" stroke="#d9e0ec"/>
+    <text x="1175" y="202" class="text small" font-weight="700">Copy 3 items</text>
+    <rect x="1175" y="218" width="130" height="8" rx="4" fill="#d9e0ec"/><rect x="1175" y="218" width="82" height="8" rx="4" class="accent"/>
+    <text x="1175" y="241" class="subtle tiny">56% · 45 MB/s</text>
+    <rect x="1160" y="270" width="170" height="58" rx="10" fill="#fffaf1" stroke="#f4d08b"/>
+    <text x="1175" y="295" class="text small" font-weight="700">Move queued</text><text x="1175" y="315" class="subtle tiny">Vacation → Archive</text>
+    <rect x="1160" y="344" width="170" height="58" rx="10" fill="#f1fff6" stroke="#bfe8ce"/>
+    <text x="1175" y="369" class="text small" font-weight="700">Rename complete</text><text x="1175" y="389" class="subtle tiny">5 files renamed</text>
+    <text x="1160" y="445" class="label">History</text>
+    <text x="1170" y="480" class="subtle tiny">14:32 Copied DSC_0124.jpg</text>
+    <text x="1170" y="510" class="subtle tiny">14:30 Created folder /2025</text>
+    <text x="1170" y="540" class="subtle tiny">14:28 Moved 2 items to Trash</text>
+
+    <!-- Status -->
+    <rect x="250" y="730" width="1100" height="40" rx="0" fill="#fbfcff" stroke="#d9e0ec"/>
+    <circle cx="274" cy="750" r="5" class="success"/><text x="288" y="755" class="subtle tiny">Ready</text>
+    <text x="640" y="755" class="subtle tiny">2 selected · 8 items · 82.3 MB selected</text>
+    <text x="1250" y="755" class="subtle tiny">No errors</text>
+  </g>
+
+  <!-- Feature cards -->
+  <g>
+    <rect x="60" y="160" width="150" height="72" rx="14" class="surface"/><text x="82" y="190" class="text small" font-weight="700">Dual-pane</text><text x="82" y="213" class="subtle tiny">Side-by-side work</text>
+    <rect x="60" y="250" width="150" height="72" rx="14" class="surface"/><text x="82" y="280" class="text small" font-weight="700">Smart toolbar</text><text x="82" y="303" class="subtle tiny">Primary actions only</text>
+    <rect x="60" y="340" width="150" height="72" rx="14" class="surface"/><text x="82" y="370" class="text small" font-weight="700">Safe operations</text><text x="82" y="393" class="subtle tiny">Confirm destructive work</text>
+    <rect x="60" y="430" width="150" height="72" rx="14" class="surface"/><text x="82" y="460" class="text small" font-weight="700">Themes</text><text x="82" y="483" class="subtle tiny">Light / dark / density</text>
+  </g>
+
+  <g>
+    <rect x="250" y="820" width="250" height="130" rx="16" class="surface"/><text x="275" y="855" class="text medium" font-weight="800">Grid View Mode</text><text x="275" y="882" class="subtle small">Thumbnail-first browsing for media folders.</text><rect x="275" y="900" width="45" height="32" rx="6" fill="#e8f0ff"/><rect x="330" y="900" width="45" height="32" rx="6" fill="#e8f0ff"/><rect x="385" y="900" width="45" height="32" rx="6" fill="#e8f0ff"/>
+    <rect x="525" y="820" width="250" height="130" rx="16" class="surface"/><text x="550" y="855" class="text medium" font-weight="800">Keyboard Shortcuts</text><text x="550" y="882" class="subtle small">Power-user navigation and operations.</text><text x="550" y="915" class="text tiny">Copy ⌘C · Move ⌘M · Search ⌘F</text>
+    <rect x="800" y="820" width="250" height="130" rx="16" class="surface"/><text x="825" y="855" class="text medium" font-weight="800">Preferences</text><text x="825" y="882" class="subtle small">Theme, density, behavior, shortcuts.</text><rect x="825" y="905" width="190" height="10" rx="5" fill="#d9e0ec"/><rect x="825" y="925" width="150" height="10" rx="5" fill="#d9e0ec"/>
+    <rect x="1075" y="820" width="250" height="130" rx="16" class="surface"/><text x="1100" y="855" class="text medium" font-weight="800">Context Menu</text><text x="1100" y="882" class="subtle small">Right-click actions per selection.</text><text x="1100" y="915" class="text tiny">Open · Rename · Copy To · Properties</text>
+  </g>
+</svg>

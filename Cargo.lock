@@ -437,6 +437,7 @@ dependencies = [
 name = "config"
 version = "0.1.0"
 dependencies = [
+ "chrono",
  "rusqlite",
  "serde",
  "serde_json",
@@ -897,6 +898,7 @@ dependencies = [
  "app-core",
  "app-ipc",
  "chrono",
+ "config",
  "fs-core",
  "jobs",
  "serde",

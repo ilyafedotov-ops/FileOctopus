@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
-use config::PreferencesRepository;
+use config::{NavigationRepository, PreferencesRepository};
 use fs_core::file_ops::{execute_file_operation, plan_file_operation, FileOperationEventSink};
 use fs_core::LocalFsProvider;
 use jobs::{
@@ -32,6 +32,7 @@ pub struct AppState {
     vfs: Arc<VfsRegistry>,
     operations: Arc<OperationRuntime>,
     preferences: PreferencesRepository,
+    navigation: NavigationRepository,
     paths: AppPaths,
     startup_recovery_count: usize,
 }
@@ -47,6 +48,10 @@ impl AppState {
 
     pub fn preferences(&self) -> &PreferencesRepository {
         &self.preferences
+    }
+
+    pub fn navigation(&self) -> &NavigationRepository {
+        &self.navigation
     }
 
     pub fn app_data_health(&self) -> AppDataHealth {
@@ -117,6 +122,8 @@ impl AppCore {
         let operations = Arc::new(OperationRuntime::new(history));
         let preferences = PreferencesRepository::new(paths.preferences_db.clone())
             .map_err(|error| AppCoreError::History(error.to_string()))?;
+        let navigation = NavigationRepository::new(paths.navigation_db.clone())
+            .map_err(|error| AppCoreError::History(error.to_string()))?;
 
         telemetry::info("FileOctopus app core booted");
 
@@ -124,6 +131,7 @@ impl AppCore {
             vfs,
             operations,
             preferences,
+            navigation,
             paths,
             startup_recovery_count,
         }))
@@ -137,6 +145,7 @@ pub struct AppPaths {
     pub log_dir: PathBuf,
     pub history_db: PathBuf,
     pub preferences_db: PathBuf,
+    pub navigation_db: PathBuf,
 }
 
 impl AppPaths {
@@ -150,6 +159,10 @@ impl AppPaths {
         }
 
         if let Some(parent) = self.preferences_db.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
+        if let Some(parent) = self.navigation_db.parent() {
             std::fs::create_dir_all(parent)?;
         }
 
@@ -167,6 +180,7 @@ impl Default for AppPaths {
             log_dir: telemetry::default_log_dir(),
             history_db: root.join("operation-history.sqlite"),
             preferences_db: root.join("preferences.sqlite"),
+            navigation_db: root.join("navigation.sqlite"),
         }
     }
 }

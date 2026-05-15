@@ -20,6 +20,17 @@ export function applyDensityPreference(density: string): DensityPreference {
   return resolved;
 }
 
+export function applyLayoutPreferences(preferences: UserPreferencesDto) {
+  const root = document.documentElement;
+  root.style.setProperty("--fo-sidebar-width", `${preferences.sidebarWidth}px`);
+  root.style.setProperty(
+    "--fo-activity-width",
+    preferences.activityPanelVisible ? `${preferences.activityPanelWidth}px` : "0px",
+  );
+  root.style.setProperty("--fo-left-pane-fr", String(preferences.splitRatio));
+  root.dataset.activityPanel = preferences.activityPanelVisible ? "visible" : "hidden";
+}
+
 export function rowHeightForDensity(density: DensityPreference): number {
   switch (density) {
     case "compact":
@@ -33,10 +44,13 @@ export function rowHeightForDensity(density: DensityPreference): number {
 }
 
 export function viewModeFromPreference(value: string): ViewMode {
-  return value === "list" || value === "icons" ? value : "details";
+  return value === "list" || value === "icons" || value === "columns"
+    ? value
+    : "details";
 }
 
 export function applyAllPreferences(preferences: UserPreferencesDto) {
   applyThemePreference(preferences.theme);
   applyDensityPreference(preferences.density);
+  applyLayoutPreferences(preferences);
 }
