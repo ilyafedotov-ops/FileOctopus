@@ -598,7 +598,12 @@ fn push_location(
         return;
     }
 
-    let Ok(uri) = ResourceUri::from_local_path(&path) else {
+    if should_skip_volume_path(&path) {
+        return;
+    }
+
+    let resolved = path.canonicalize().unwrap_or(path);
+    let Ok(uri) = ResourceUri::from_local_path(&resolved) else {
         return;
     };
 
@@ -610,6 +615,13 @@ fn push_location(
             section: section.to_string(),
         });
     }
+}
+
+fn should_skip_volume_path(path: &Path) -> bool {
+    let value = path.to_string_lossy().to_ascii_lowercase();
+    value.contains("timemachine")
+        || value.contains("com.apple.time_machine")
+        || value.ends_with(".timemachine")
 }
 
 fn platform_roots() -> Vec<PathBuf> {
@@ -638,7 +650,7 @@ fn read_existing_children(path: &Path) -> Vec<PathBuf> {
         .into_iter()
         .flat_map(|items| items.filter_map(Result::ok))
         .map(|entry| entry.path())
-        .filter(|path| path.exists())
+        .filter(|path| path.exists() && !should_skip_volume_path(path))
         .collect()
 }
 

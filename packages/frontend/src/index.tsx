@@ -46,8 +46,27 @@ import {
   type SortField,
   type ViewMode,
 } from "./panelStore";
+import {
+  applyAllPreferences,
+  applyDensityPreference,
+  rowHeightForDensity,
+  viewModeFromPreference,
+  type DensityPreference,
+} from "./applyPreferences";
+import { DiagnosticsDialog } from "./components/DiagnosticsDialog";
+import { PaneStateView } from "./components/PaneStateView";
+import { SettingsDialog } from "./components/SettingsDialog";
+import { ShortcutsDialog } from "./components/ShortcutsDialog";
+import { ToastStack, type ToastMessage } from "./components/ToastStack";
+import {
+  createRequestId,
+  isPaneLoading,
+  paneStateLabel,
+  type PaneLoadState,
+} from "./paneTypes";
+import { isEditableTarget } from "./shortcuts";
+import type { UserPreferencesDto } from "@fileoctopus/ts-api";
 
-const rowHeight = 30;
 const overscan = 8;
 const isProductionBuild = Boolean(
   (import.meta as ImportMeta & { env?: { PROD?: boolean } }).env?.PROD,
@@ -156,6 +175,16 @@ export function FileOctopusShell() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [search, setSearch] = useState<SearchState | null>(null);
   const [pathFocusToken, setPathFocusToken] = useState(0);
+  const [filterFocusToken, setFilterFocusToken] = useState(0);
+  const [preferences, setPreferences] = useState<UserPreferencesDto | null>(
+    null,
+  );
+  const [density, setDensity] = useState<DensityPreference>("comfortable");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const rowHeight = rowHeightForDensity(density);
   const left = activeTab(state.panels.left);
   const right = activeTab(state.panels.right);
   const statusTab = activeTab(state.panels[state.activePanelId]);
@@ -178,9 +207,11 @@ export function FileOctopusShell() {
       .catch((error) => {
         const normalized = normalizeIpcError(error);
         dispatch({
-          type: "setError",
+          type: "setPaneError",
           panelId: "left",
           error: normalized.message,
+          errorCode: normalized.code,
+          loadState: "error",
         });
       });
   }, [client]);
@@ -229,6 +260,11 @@ export function FileOctopusShell() {
           ...current,
           [jobIdValue(event.jobId)]: mergeCompleted(current, event),
         }));
+        pushToast({
+          tone: "success",
+          title: "Operation completed",
+          detail: event.operationKind,
+        });
         refreshVisiblePanels();
         void refreshHistory();
       }),
@@ -237,6 +273,13 @@ export function FileOctopusShell() {
           ...current,
           [jobIdValue(event.jobId)]: mergeFailed(current, event),
         }));
+        pushToast({
+          tone: "error",
+          title: "Operation failed",
+          detail: event.message,
+          actionLabel: "View details",
+          onAction: () => setOperationError(event.message),
+        });
         setSearch((current) =>
           current?.jobId === jobIdValue(event.jobId)
             ? { ...current, running: false, error: event.message }
@@ -256,6 +299,11 @@ export function FileOctopusShell() {
           ...current,
           [jobIdValue(event.jobId)]: mergeCancelled(current, event),
         }));
+        pushToast({
+          tone: "info",
+          title: "Operation cancelled",
+          detail: event.operationKind,
+        });
         setSearch((current) =>
           current?.jobId === jobIdValue(event.jobId)
             ? { ...current, running: false, error: "Operation cancelled." }
@@ -308,12 +356,59 @@ export function FileOctopusShell() {
   }, [client]);
 
   useEffect(() => {
-    void navigatePanel("left", activeTab(state.panels.left).uri);
-    void navigatePanel("right", activeTab(state.panels.right).uri);
-    void refreshLocations();
-    void refreshHistory();
-    void refreshDiagnostics();
+    void (async () => {
+      let showHidden = false;
+
+      try {
+        const response = await client.preferences.get();
+        setPreferences(response.preferences);
+        applyAllPreferences(response.preferences);
+        setDensity(applyDensityPreference(response.preferences.density));
+        showHidden = response.preferences.showHiddenFiles;
+        dispatch({
+          type: "hydratePreferences",
+          showHidden,
+          viewMode: viewModeFromPreference(
+            response.preferences.defaultViewMode,
+          ),
+        });
+      } catch {
+        // Fall back to localStorage-backed defaults in panelStore.
+      }
+
+      await navigatePanel("left", activeTab(state.panels.left).uri, {
+        includeHidden: showHidden,
+      });
+      await navigatePanel("right", activeTab(state.panels.right).uri, {
+        includeHidden: showHidden,
+      });
+      void refreshLocations();
+      void refreshHistory();
+      void refreshDiagnostics();
+    })();
   }, []);
+
+  function pushToast(toast: Omit<ToastMessage, "id">) {
+    const id = createRequestId();
+    setToasts((current) => [...current, { ...toast, id }]);
+    globalThis.setTimeout(() => {
+      setToasts((current) => current.filter((item) => item.id !== id));
+    }, 5000);
+  }
+
+  async function updatePreference(key: string, value: string) {
+    try {
+      const response = await client.preferences.set({ key, value });
+      setPreferences(response.preferences);
+      applyAllPreferences(response.preferences);
+      setDensity(applyDensityPreference(response.preferences.density));
+      if (key === "showHiddenFiles") {
+        refreshVisiblePanels();
+      }
+    } catch (error) {
+      setOperationError(normalizeIpcError(error).message);
+    }
+  }
 
   useEffect(() => {
     const tab = activeTab(state.panels[state.activePanelId]);
@@ -335,9 +430,11 @@ export function FileOctopusShell() {
 
     if (!uri.startsWith("local://")) {
       dispatch({
-        type: "setError",
+        type: "setPaneError",
         panelId,
         error: "Enter a local:// URI or absolute path",
+        errorCode: "invalid_uri",
+        loadState: "error",
       });
       return;
     }
@@ -355,9 +452,13 @@ export function FileOctopusShell() {
     uri: string,
     includeHidden: boolean,
   ) {
+    const requestId = createRequestId();
+
     try {
       const response = await client.fs.listStart({
         uri,
+        requestId,
+        panelId,
         batchSize: 256,
         includeHidden,
       });
@@ -365,10 +466,22 @@ export function FileOctopusShell() {
         type: "startSession",
         panelId,
         sessionId: response.sessionId,
+        requestId: response.requestId,
       });
     } catch (error) {
       const normalized = normalizeIpcError(error);
-      dispatch({ type: "setError", panelId, error: normalized.message });
+      dispatch({
+        type: "setPaneError",
+        panelId,
+        error: normalized.message,
+        errorCode: normalized.code,
+        loadState:
+          normalized.code === "permission_denied"
+            ? "permissionDenied"
+            : normalized.code === "timeout"
+              ? "timeout"
+              : "error",
+      });
     }
   }
 
@@ -1094,6 +1207,18 @@ export function FileOctopusShell() {
       return;
     }
 
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "f") {
+      event.preventDefault();
+      setFilterFocusToken((value) => value + 1);
+      return;
+    }
+
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "n") {
+      event.preventDefault();
+      handleCreateFolder(panelId);
+      return;
+    }
+
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "a") {
       event.preventDefault();
       dispatch({ type: "selectAll", panelId });
@@ -1179,6 +1304,17 @@ export function FileOctopusShell() {
           </div>
           <div className="fo-command-strip">
             <span>{state.activePanelId.toUpperCase()}</span>
+            <nav className="fo-app-menu" aria-label="Help">
+              <button type="button" onClick={() => setSettingsOpen(true)}>
+                Settings
+              </button>
+              <button type="button" onClick={() => setShortcutsOpen(true)}>
+                Shortcuts
+              </button>
+              <button type="button" onClick={() => setDiagnosticsOpen(true)}>
+                Diagnostics
+              </button>
+            </nav>
           </div>
         </header>
         <section className="fo-panels" aria-label="File panels">
@@ -1242,6 +1378,8 @@ export function FileOctopusShell() {
             }
             canPaste={Boolean(clipboard)}
             pathFocusToken={pathFocusToken}
+            filterFocusToken={filterFocusToken}
+            rowHeight={rowHeight}
             search={search?.panelId === "left" ? search : null}
             onContextMenu={setContextMenu}
             onEntryActivate={(entry) => activateEntry("left", entry)}
@@ -1306,6 +1444,8 @@ export function FileOctopusShell() {
             }
             canPaste={Boolean(clipboard)}
             pathFocusToken={pathFocusToken}
+            filterFocusToken={filterFocusToken}
+            rowHeight={rowHeight}
             search={search?.panelId === "right" ? search : null}
             onContextMenu={setContextMenu}
             onEntryActivate={(entry) => activateEntry("right", entry)}
@@ -1314,18 +1454,41 @@ export function FileOctopusShell() {
         <JobActivityPanel
           jobs={Object.values(jobs)}
           history={history}
-          appInfo={appInfo}
-          appHealth={appHealth}
-          diagnosticsDestination={diagnosticsDestination}
-          diagnosticsMessage={diagnosticsMessage}
-          exportingDiagnostics={exportingDiagnostics}
           error={operationError}
           onCancel={(jobId) => void client.jobs.cancelJob({ jobId })}
           onRefreshHistory={() => void refreshHistory()}
           onClearHistory={() => void clearHistory()}
-          onRefreshDiagnostics={() => void refreshDiagnostics()}
-          onDiagnosticsDestinationChange={setDiagnosticsDestination}
-          onExportDiagnostics={() => void exportDiagnostics()}
+        />
+        <ToastStack
+          toasts={toasts}
+          onDismiss={(id) =>
+            setToasts((current) => current.filter((toast) => toast.id !== id))
+          }
+        />
+        {preferences ? (
+          <SettingsDialog
+            open={settingsOpen}
+            preferences={preferences}
+            onClose={() => setSettingsOpen(false)}
+            onChange={(key, value) => void updatePreference(key, value)}
+          />
+        ) : null}
+        <ShortcutsDialog
+          open={shortcutsOpen}
+          onClose={() => setShortcutsOpen(false)}
+        />
+        <DiagnosticsDialog
+          open={diagnosticsOpen}
+          appInfo={appInfo}
+          appHealth={appHealth}
+          destination={diagnosticsDestination}
+          message={diagnosticsMessage}
+          exporting={exportingDiagnostics}
+          showDeveloperFields={!isProductionBuild}
+          onClose={() => setDiagnosticsOpen(false)}
+          onDestinationChange={setDiagnosticsDestination}
+          onRefresh={() => void refreshDiagnostics()}
+          onExport={() => void exportDiagnostics()}
         />
         <OperationDialogView
           dialog={dialog}
@@ -1372,11 +1535,28 @@ export function FileOctopusShell() {
           }
         />
         <footer className="fo-status">
-          {statusSelection.length} selected
-          {statusSelection.length > 0
-            ? `, ${formatSize(statusKnownBytes)}${statusUnknownSizes ? " plus folders or unknown sizes" : ""}`
-            : ""}
-          , {statusTab.orderedEntryIds.length} entries loaded
+          <span className="fo-status-pane">
+            {state.activePanelId === "left" ? "Left pane" : "Right pane"}
+          </span>
+          <span>{paneStateLabel(statusTab.loadState)}</span>
+          <span>
+            {statusSelection.length} selected, {statusTab.orderedEntryIds.length}{" "}
+            entries
+          </span>
+          {statusSelection.length > 0 ? (
+            <span>
+              {formatSize(statusKnownBytes)}
+              {statusUnknownSizes ? " plus unknown sizes" : ""}
+            </span>
+          ) : null}
+          <span>
+            {
+              Object.values(jobs).filter(
+                (job) => job.status === "queued" || job.status === "running",
+              ).length
+            }{" "}
+            active jobs
+          </span>
         </footer>
       </main>
     </ErrorBoundary>
@@ -1419,6 +1599,8 @@ interface FilePanelProps {
   onToggleHidden: () => void;
   canPaste: boolean;
   pathFocusToken: number;
+  filterFocusToken: number;
+  rowHeight: number;
   search: SearchState | null;
   onContextMenu: (menu: ContextMenuState | null) => void;
 }
@@ -1459,6 +1641,8 @@ function FilePanel({
   onToggleHidden,
   canPaste,
   pathFocusToken,
+  filterFocusToken,
+  rowHeight,
   search,
   onContextMenu,
 }: FilePanelProps) {
@@ -1474,45 +1658,48 @@ function FilePanel({
     >
       <header className="fo-panel-header">
         <span>{title}</span>
-        <span>{tab.loading ? "Loading" : `${entries.length} shown`}</span>
+        <span>{isPaneLoading(tab.loadState) ? "Loading" : `${entries.length} shown`}</span>
       </header>
       <div className="fo-panel-body">
-        <div className="fo-panel-tools">
-          <button
-            type="button"
-            disabled={tab.backStack.length === 0}
-            onClick={onBack}
-            aria-label={`${panelId} back`}
-          >
-            Back
-          </button>
-          <button
-            type="button"
-            disabled={tab.forwardStack.length === 0}
-            onClick={onForward}
-            aria-label={`${panelId} forward`}
-          >
-            Forward
-          </button>
-          <button
-            type="button"
-            disabled={!upUri}
-            onClick={() => upUri && onNavigate(upUri)}
-          >
-            Up
-          </button>
+        <div className="fo-panel-toolbar-row">
+          <div className="fo-panel-nav">
+            <button
+              type="button"
+              disabled={tab.backStack.length === 0}
+              onClick={onBack}
+              aria-label={`${panelId} back`}
+            >
+              Back
+            </button>
+            <button
+              type="button"
+              disabled={tab.forwardStack.length === 0}
+              onClick={onForward}
+              aria-label={`${panelId} forward`}
+            >
+              Forward
+            </button>
+            <button
+              type="button"
+              disabled={!upUri}
+              onClick={() => upUri && onNavigate(upUri)}
+            >
+              Up
+            </button>
+          </div>
+        </div>
+        <div className="fo-panel-path-row">
           <PathBar
             value={tab.uri}
             error={tab.error}
             focusToken={pathFocusToken}
             onSubmit={onNavigate}
           />
-          <input
-            className="fo-filter"
-            aria-label={`${panelId} filter`}
+          <FilterInput
+            panelId={panelId}
             value={tab.filter}
-            placeholder="Filter"
-            onChange={(event) => onFilter(event.target.value)}
+            focusToken={filterFocusToken}
+            onChange={onFilter}
           />
         </div>
         <OperationToolbar
@@ -1549,17 +1736,18 @@ function FilePanel({
             Search
           </button>
         </div>
-        {tab.error ? (
-          <div className="fo-panel-error">
-            <span>{tab.error}</span>
-            <button type="button" onClick={() => onNavigate(tab.uri)}>
-              Retry
-            </button>
-          </div>
-        ) : null}
+        <PaneStateView
+          loadState={tab.loadState}
+          uri={tab.uri}
+          message={tab.error}
+          onRetry={() => onNavigate(tab.uri)}
+          onRefresh={onRefresh}
+          onCreateFolder={onCreateFolder}
+        />
         <FileTable
           entries={entries}
-          loading={tab.loading}
+          loadState={tab.loadState}
+          rowHeight={rowHeight}
           selectedId={tab.selectedId}
           selectedIds={tab.selectedIds}
           focusedId={tab.focusedId}
@@ -1727,78 +1915,133 @@ function OperationToolbar({
   onToggleHidden,
   onViewMode,
 }: OperationToolbarProps) {
+  const [overflowOpen, setOverflowOpen] = useState(false);
+
   return (
     <div className="fo-operation-toolbar" aria-label="File operations">
-      <button type="button" onClick={onCreateFolder}>
-        New Folder
-      </button>
-      <button type="button" onClick={onCreateFile}>
-        New File
-      </button>
-      <button type="button" disabled={!canRename} onClick={onRename}>
-        Rename
-      </button>
-      <button type="button" disabled={selectedCount === 0} onClick={onCopy}>
-        Copy
-      </button>
-      <button type="button" disabled={selectedCount === 0} onClick={onCut}>
-        Cut
-      </button>
-      <button type="button" disabled={!canPaste} onClick={onPaste}>
-        Paste
-      </button>
-      <button
-        type="button"
-        disabled={selectedCount === 0}
-        onClick={onCopyOperation}
-      >
-        Copy To
-      </button>
-      <button type="button" disabled={selectedCount === 0} onClick={onMove}>
-        Move To
-      </button>
-      <button type="button" disabled={selectedCount === 0} onClick={onTrash}>
-        Move to Trash
-      </button>
-      <button
-        type="button"
-        disabled={selectedCount === 0}
-        onClick={onPermanentDelete}
-      >
-        Delete
-      </button>
-      <button type="button" disabled={selectedCount === 0} onClick={onCopyPath}>
-        Copy Path
-      </button>
-      <button type="button" disabled={selectedCount === 0} onClick={onCopyName}>
-        Copy Name
-      </button>
-      <button type="button" onClick={onProperties}>
-        Properties
-      </button>
-      <button type="button" onClick={onRefresh}>
-        Refresh
-      </button>
-      <button type="button" onClick={onToggleHidden}>
-        {showHidden ? "Hide Hidden" : "Show Hidden"}
-      </button>
-      <select
-        aria-label="View mode"
-        value={viewMode}
-        onChange={(event) => onViewMode(event.target.value as ViewMode)}
-      >
-        <option value="details">Details</option>
-        <option value="list">List</option>
-        <option value="icons">Icons</option>
-      </select>
-      <span>{selectedCount} selected</span>
+      <div className="fo-toolbar-group">
+        <button type="button" onClick={onRefresh}>
+          Refresh
+        </button>
+        <button type="button" onClick={onCreateFolder}>
+          New
+        </button>
+        <button type="button" disabled={selectedCount === 0} onClick={onCopy}>
+          Copy
+        </button>
+        <button type="button" disabled={selectedCount === 0} onClick={onMove}>
+          Move
+        </button>
+        <button type="button" disabled={selectedCount === 0} onClick={onTrash}>
+          Trash
+        </button>
+        <button
+          type="button"
+          disabled={selectedCount === 0}
+          onClick={onPermanentDelete}
+        >
+          Delete
+        </button>
+      </div>
+      <div className="fo-toolbar-group fo-toolbar-overflow">
+        <button
+          type="button"
+          aria-expanded={overflowOpen}
+          onClick={() => setOverflowOpen((value) => !value)}
+        >
+          More
+        </button>
+        {overflowOpen ? (
+          <div className="fo-toolbar-menu">
+            <button type="button" onClick={onCreateFile}>
+              New File
+            </button>
+            <button type="button" disabled={!canRename} onClick={onRename}>
+              Rename
+            </button>
+            <button type="button" disabled={selectedCount === 0} onClick={onCut}>
+              Cut
+            </button>
+            <button type="button" disabled={!canPaste} onClick={onPaste}>
+              Paste
+            </button>
+            <button
+              type="button"
+              disabled={selectedCount === 0}
+              onClick={onCopyOperation}
+            >
+              Copy To
+            </button>
+            <button
+              type="button"
+              disabled={selectedCount === 0}
+              onClick={onCopyPath}
+            >
+              Copy Path
+            </button>
+            <button
+              type="button"
+              disabled={selectedCount === 0}
+              onClick={onCopyName}
+            >
+              Copy Name
+            </button>
+            <button type="button" onClick={onProperties}>
+              Properties
+            </button>
+            <button type="button" onClick={onToggleHidden}>
+              {showHidden ? "Hide Hidden" : "Show Hidden"}
+            </button>
+            <select
+              aria-label="View mode"
+              value={viewMode}
+              onChange={(event) => onViewMode(event.target.value as ViewMode)}
+            >
+              <option value="details">Details</option>
+              <option value="list">List</option>
+              <option value="icons">Icons</option>
+            </select>
+          </div>
+        ) : null}
+      </div>
+      <span className="fo-toolbar-meta">{selectedCount} selected</span>
     </div>
+  );
+}
+
+interface FilterInputProps {
+  panelId: PanelId;
+  value: string;
+  focusToken: number;
+  onChange: (value: string) => void;
+}
+
+function FilterInput({ panelId, value, focusToken, onChange }: FilterInputProps) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (focusToken > 0) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [focusToken]);
+
+  return (
+    <input
+      ref={inputRef}
+      className="fo-filter"
+      aria-label={`${panelId} filter`}
+      value={value}
+      placeholder="Filter"
+      onChange={(event) => onChange(event.target.value)}
+    />
   );
 }
 
 interface FileTableProps {
   entries: FileEntryDto[];
-  loading: boolean;
+  loadState: PaneLoadState;
+  rowHeight: number;
   selectedId: string | null;
   selectedIds: string[];
   focusedId: string | null;
@@ -1819,7 +2062,8 @@ interface FileTableProps {
 
 function FileTable({
   entries,
-  loading,
+  loadState,
+  rowHeight,
   selectedId,
   selectedIds,
   focusedId,
@@ -1949,7 +2193,9 @@ function FileTable({
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
       >
         {entries.length === 0 ? (
-          <div className="fo-empty">{loading ? "Loading" : "No entries"}</div>
+          <div className="fo-empty">
+            {isPaneLoading(loadState) ? "Loading…" : null}
+          </div>
         ) : (
           <div className="fo-table-spacer" style={{ height: totalHeight }}>
             {visibleEntries.map((entry, offset) => (
@@ -2828,35 +3074,19 @@ function OperationDialogView({
 interface JobActivityPanelProps {
   jobs: JobSnapshot[];
   history: OperationHistoryRecordDto[];
-  appInfo: AppInfoResponse | null;
-  appHealth: AppDataHealthResponse | null;
-  diagnosticsDestination: string;
-  diagnosticsMessage: string | null;
-  exportingDiagnostics: boolean;
   error: string | null;
   onCancel: (jobId: string) => void;
   onRefreshHistory: () => void;
   onClearHistory: () => void;
-  onRefreshDiagnostics: () => void;
-  onDiagnosticsDestinationChange: (value: string) => void;
-  onExportDiagnostics: () => void;
 }
 
 function JobActivityPanel({
   jobs,
   history,
-  appInfo,
-  appHealth,
-  diagnosticsDestination,
-  diagnosticsMessage,
-  exportingDiagnostics,
   error,
   onCancel,
   onRefreshHistory,
   onClearHistory,
-  onRefreshDiagnostics,
-  onDiagnosticsDestinationChange,
-  onExportDiagnostics,
 }: JobActivityPanelProps) {
   const activeJobs = jobs.filter(
     (job) => job.status === "queued" || job.status === "running",
@@ -2926,52 +3156,6 @@ function JobActivityPanel({
             </div>
           ))
         )}
-      </section>
-      <section className="fo-diagnostics" aria-label="Diagnostics">
-        <header>
-          <strong>Diagnostics</strong>
-          <button type="button" onClick={onRefreshDiagnostics}>
-            Refresh
-          </button>
-        </header>
-        <div className="fo-diagnostics-grid">
-          <span>Version</span>
-          <span>
-            {appInfo
-              ? `${appInfo.version} ${appInfo.buildProfile} ${appInfo.targetOs}`
-              : "Loading"}
-          </span>
-          <span>Commit</span>
-          <span>{appInfo?.commitSha ?? "unavailable"}</span>
-          <span>Schema</span>
-          <span>{appHealth?.schemaVersion ?? "unknown"}</span>
-          <span>Recovered</span>
-          <span>{appHealth?.startupRecoveryCount ?? 0}</span>
-          <span>Data</span>
-          <span>{appHealth?.dataDir ?? "unknown"}</span>
-          <span>Logs</span>
-          <span>{appHealth?.logDir ?? "unknown"}</span>
-        </div>
-        <label>
-          Diagnostics bundle
-          <input
-            aria-label="Diagnostics bundle destination"
-            value={diagnosticsDestination}
-            onChange={(event) =>
-              onDiagnosticsDestinationChange(event.target.value)
-            }
-          />
-        </label>
-        <button
-          type="button"
-          disabled={exportingDiagnostics}
-          onClick={onExportDiagnostics}
-        >
-          {exportingDiagnostics ? "Exporting" : "Export"}
-        </button>
-        {diagnosticsMessage ? (
-          <div className="fo-empty-inline">{diagnosticsMessage}</div>
-        ) : null}
       </section>
     </aside>
   );
@@ -3113,22 +3297,10 @@ function operationErrorMessage(code: string, fallback: string): string {
     unsupported_trash: "Move to Trash is not supported on this platform.",
     cancelled: "Operation cancelled.",
     interrupted: "Operation interrupted by app shutdown.",
+    timeout: "Directory listing timed out.",
   };
 
   return messages[code] ?? fallback;
-}
-
-function isEditableTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) {
-    return false;
-  }
-
-  return (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement ||
-    target.isContentEditable
-  );
 }
 
 interface ErrorBoundaryState {

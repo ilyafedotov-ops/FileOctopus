@@ -3,6 +3,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
+use config::PreferencesRepository;
 use fs_core::file_ops::{execute_file_operation, plan_file_operation, FileOperationEventSink};
 use fs_core::LocalFsProvider;
 use jobs::{
@@ -30,6 +31,7 @@ pub enum AppCoreError {
 pub struct AppState {
     vfs: Arc<VfsRegistry>,
     operations: Arc<OperationRuntime>,
+    preferences: PreferencesRepository,
     paths: AppPaths,
     startup_recovery_count: usize,
 }
@@ -41,6 +43,10 @@ impl AppState {
 
     pub fn operations(&self) -> Arc<OperationRuntime> {
         self.operations.clone()
+    }
+
+    pub fn preferences(&self) -> &PreferencesRepository {
+        &self.preferences
     }
 
     pub fn app_data_health(&self) -> AppDataHealth {
@@ -109,12 +115,15 @@ impl AppCore {
             .mark_interrupted_jobs()
             .map_err(|error| AppCoreError::History(error.to_string()))?;
         let operations = Arc::new(OperationRuntime::new(history));
+        let preferences = PreferencesRepository::new(paths.preferences_db.clone())
+            .map_err(|error| AppCoreError::History(error.to_string()))?;
 
         telemetry::info("FileOctopus app core booted");
 
         Ok(Arc::new(AppState {
             vfs,
             operations,
+            preferences,
             paths,
             startup_recovery_count,
         }))
@@ -127,6 +136,7 @@ pub struct AppPaths {
     pub data_dir: PathBuf,
     pub log_dir: PathBuf,
     pub history_db: PathBuf,
+    pub preferences_db: PathBuf,
 }
 
 impl AppPaths {
@@ -136,6 +146,10 @@ impl AppPaths {
         std::fs::create_dir_all(&self.log_dir)?;
 
         if let Some(parent) = self.history_db.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
+        if let Some(parent) = self.preferences_db.parent() {
             std::fs::create_dir_all(parent)?;
         }
 
@@ -152,6 +166,7 @@ impl Default for AppPaths {
             data_dir: root.clone(),
             log_dir: telemetry::default_log_dir(),
             history_db: root.join("operation-history.sqlite"),
+            preferences_db: root.join("preferences.sqlite"),
         }
     }
 }

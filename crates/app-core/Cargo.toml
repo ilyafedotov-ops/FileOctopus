@@ -5,6 +5,7 @@ edition.workspace = true
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }
+config = { path = "../config" }
 fs-core = { path = "../fs-core" }
 jobs = { path = "../jobs" }
 rusqlite = { version = "0.32", features = ["bundled"] }

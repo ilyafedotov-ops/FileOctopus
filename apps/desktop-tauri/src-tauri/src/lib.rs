@@ -11,16 +11,17 @@ use app_ipc::{
     ClearOperationHistoryResponse, CreateFileRequest, CreateFileResponse, DeletePermanentlyRequest,
     DirectoryBatchEventDto, ExportDiagnosticsBundleRequest, ExportDiagnosticsBundleResponse,
     FolderSizeCompletedEventDto, FolderSizeJobResponse, FolderSizeRequest, FolderSizeResponse,
-    FolderSizeSummaryDto, IpcError, JobStatusRequest, JobStatusResponse,
+    FolderSizeSummaryDto, GetPreferencesResponse, IpcError, JobStatusRequest, JobStatusResponse,
     ListRecentOperationsRequest, ListRecentOperationsResponse, ListStartRequest, ListStartResponse,
     OkResponse, OperationHistoryRecordDto, PathPropertiesDto, PathPropertiesRequest,
     PathPropertiesResponse, PathRequest, PlanFileOperationRequest, PlanFileOperationResponse,
     RecursiveSearchCompletedEventDto, RecursiveSearchJobResponse, RecursiveSearchMatchEventDto,
     RecursiveSearchRequest, RecursiveSearchResponse, RecursiveSearchResultDto, SearchMatchDto,
-    StandardLocationDto, StandardLocationsResponse, StartFileOperationRequest,
-    StartFileOperationResponse, StatRequest, StatResponse, WatchEventDto, WatchStartRequest,
-    DIRECTORY_BATCH_EVENT, FOLDER_SIZE_COMPLETED_EVENT, RECURSIVE_SEARCH_COMPLETED_EVENT,
-    RECURSIVE_SEARCH_MATCH_EVENT, WATCH_CHANGED_EVENT,
+    SetPreferenceRequest, SetPreferenceResponse, StandardLocationDto, StandardLocationsResponse,
+    StartFileOperationRequest, StartFileOperationResponse, StatRequest, StatResponse,
+    UserPreferencesDto, WatchEventDto, WatchStartRequest, DIRECTORY_BATCH_EVENT,
+    FOLDER_SIZE_COMPLETED_EVENT, RECURSIVE_SEARCH_COMPLETED_EVENT, RECURSIVE_SEARCH_MATCH_EVENT,
+    WATCH_CHANGED_EVENT,
 };
 use chrono::Utc;
 use fs_core::sprint4;
@@ -31,6 +32,7 @@ use jobs::{
 use tauri::{AppHandle, Emitter, State};
 use vfs::{
     DirectoryBatch, FileOperationError, FileOperationKind, ListOptions, ListSessionId, ResourceUri,
+    VfsError,
 };
 use zip::write::FileOptions;
 
@@ -48,6 +50,13 @@ struct WatchRuntime {
 struct MetadataJobState {
     jobs: Arc<Mutex<HashMap<String, MetadataJobRuntime>>>,
 }
+
+#[derive(Default)]
+struct ListingRegistry {
+    tokens: Mutex<HashMap<String, CancellationToken>>,
+}
+
+const LISTING_TIMEOUT: Duration = Duration::from_secs(30);
 
 struct MetadataJobRuntime {
     snapshot: JobSnapshot,
@@ -91,14 +100,21 @@ async fn fs_list_start(
     request: ListStartRequest,
     app: AppHandle,
     state: State<'_, Arc<AppState>>,
+    listings: State<'_, ListingRegistry>,
 ) -> Result<ListStartResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let request_id = request.request_id.clone();
+    let panel_key = request
+        .panel_id
+        .clone()
+        .unwrap_or_else(|| request_id.clone());
     let session_id = ListSessionId::new(&uuid::Uuid::new_v4().to_string());
     let response = ListStartResponse {
         session_id: session_id.as_str().to_string(),
+        request_id: request_id.clone(),
     };
     let options = ListOptions {
-        session_id,
+        session_id: session_id.clone(),
         batch_size: request.batch_size.unwrap_or(256).max(1),
         include_hidden: request.include_hidden.unwrap_or(false),
     };
@@ -109,14 +125,30 @@ async fn fs_list_start(
     let list_uri = uri.clone();
     let error_uri = uri.clone();
     let error_session_id = response.session_id.clone();
+    let cancel_token = {
+        let mut tokens = listings.tokens.lock().map_err(|_| IpcError {
+            code: "internal".to_string(),
+            message: "listing registry lock poisoned".to_string(),
+        })?;
+        if let Some(previous) = tokens.remove(&panel_key) {
+            previous.cancel();
+        }
+        let token = CancellationToken::new();
+        tokens.insert(panel_key, token.clone());
+        token
+    };
 
-    telemetry::debug("fs.list_start requested");
+    telemetry::debug(&format!(
+        "fs.list_start requested uri={} request_id={}",
+        request.uri, request_id
+    ));
 
+    let batch_request_id = request_id.clone();
     tauri::async_runtime::spawn(async move {
         while let Some(batch) = receiver.recv().await {
-            if let Err(error) =
-                events_app.emit(DIRECTORY_BATCH_EVENT, DirectoryBatchEventDto::from(batch))
-            {
+            let mut event = DirectoryBatchEventDto::from(batch);
+            event.request_id = batch_request_id.clone();
+            if let Err(error) = events_app.emit(DIRECTORY_BATCH_EVENT, event) {
                 telemetry::error(&format!("failed to emit directory batch: {error}"));
                 break;
             }
@@ -124,25 +156,82 @@ async fn fs_list_start(
     });
 
     tauri::async_runtime::spawn(async move {
-        if let Err(error) = vfs.list(&list_uri, options, sender).await {
-            telemetry::error(&format!("directory listing failed: {error}"));
-            let event = DirectoryBatchEventDto {
-                session_id: error_session_id,
-                uri: error_uri.as_str().to_string(),
-                entries: Vec::new(),
-                batch_index: 0,
-                is_complete: true,
-                total_hint: None,
-                error: Some(IpcError::from(error)),
-            };
+        let started = std::time::Instant::now();
+        let result =
+            tokio::time::timeout(LISTING_TIMEOUT, vfs.list(&list_uri, options, sender)).await;
 
-            let _ = listing_app.emit(DIRECTORY_BATCH_EVENT, event);
+        match result {
+            Ok(Ok(())) => {
+                telemetry::debug(&format!(
+                    "fs.list_start completed request_id={} elapsed_ms={}",
+                    request_id,
+                    started.elapsed().as_millis()
+                ));
+            }
+            Ok(Err(error)) => {
+                telemetry::error(&format!("directory listing failed: {error}"));
+                let event = DirectoryBatchEventDto {
+                    session_id: error_session_id,
+                    request_id,
+                    uri: error_uri.as_str().to_string(),
+                    entries: Vec::new(),
+                    batch_index: 0,
+                    is_complete: true,
+                    total_hint: None,
+                    error: Some(IpcError::from(error)),
+                };
+
+                let _ = listing_app.emit(DIRECTORY_BATCH_EVENT, event);
+            }
+            Err(_) => {
+                cancel_token.cancel();
+                let event = DirectoryBatchEventDto {
+                    session_id: error_session_id,
+                    request_id,
+                    uri: error_uri.as_str().to_string(),
+                    entries: Vec::new(),
+                    batch_index: 0,
+                    is_complete: true,
+                    total_hint: None,
+                    error: Some(IpcError::from(VfsError::timeout(&error_uri))),
+                };
+
+                let _ = listing_app.emit(DIRECTORY_BATCH_EVENT, event);
+            }
         }
-
-        telemetry::debug("fs.list_start completed");
     });
 
     Ok(response)
+}
+
+#[tauri::command]
+fn get_preferences(state: State<'_, Arc<AppState>>) -> Result<GetPreferencesResponse, IpcError> {
+    let preferences = state.preferences().get_all().map_err(|error| IpcError {
+        code: "preferences_error".to_string(),
+        message: error.to_string(),
+    })?;
+
+    Ok(GetPreferencesResponse {
+        preferences: UserPreferencesDto::from(preferences),
+    })
+}
+
+#[tauri::command]
+fn set_preference(
+    request: SetPreferenceRequest,
+    state: State<'_, Arc<AppState>>,
+) -> Result<SetPreferenceResponse, IpcError> {
+    let preferences = state
+        .preferences()
+        .set(&request.key, &request.value)
+        .map_err(|error| IpcError {
+            code: "preferences_error".to_string(),
+            message: error.to_string(),
+        })?;
+
+    Ok(SetPreferenceResponse {
+        preferences: UserPreferencesDto::from(preferences),
+    })
 }
 
 #[tauri::command]
@@ -711,6 +800,7 @@ pub fn run() {
         .manage(app_state)
         .manage(WatchState::default())
         .manage(MetadataJobState::default())
+        .manage(ListingRegistry::default())
         .setup(|_app| {
             telemetry::info("FileOctopus Tauri shell started");
             Ok(())
@@ -719,6 +809,8 @@ pub fn run() {
             app_get_info,
             fs_stat,
             fs_list_start,
+            get_preferences,
+            set_preference,
             fs_standard_locations,
             fs_open_default,
             fs_reveal,

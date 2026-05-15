@@ -33,10 +33,37 @@ let recursiveSearchCompletedHandler:
   | ((event: RecursiveSearchCompletedEventDto) => void)
   | null = null;
 let sessionIndex = 0;
-const listStart = vi.fn(async () => {
-  sessionIndex += 1;
-  return { sessionId: `session-${sessionIndex}` };
-});
+const panelSessions: Partial<
+  Record<"left" | "right", { sessionId: string; requestId: string }>
+> = {};
+const listStart = vi.fn(
+  async (request: { requestId?: string; panelId?: string }) => {
+    sessionIndex += 1;
+    const sessionId = `session-${sessionIndex}`;
+    const requestId = request.requestId ?? `request-${sessionIndex}`;
+    const panelId =
+      request.panelId === "left" || request.panelId === "right"
+        ? request.panelId
+        : sessionIndex % 2 === 1
+          ? "left"
+          : "right";
+
+    panelSessions[panelId] = { sessionId, requestId };
+
+    return { sessionId, requestId };
+  },
+);
+const preferencesGet = vi.fn(async () => ({
+  preferences: {
+    theme: "system",
+    density: "comfortable",
+    defaultViewMode: "details",
+    showHiddenFiles: false,
+    sidebarWidth: 240,
+    splitRatio: 0.5,
+  },
+}));
+const preferencesSet = vi.fn(async () => preferencesGet());
 const standardLocations = vi.fn(async () => ({
   locations: [
     {
@@ -378,6 +405,10 @@ vi.mock("@fileoctopus/ts-api", () => ({
       appDataHealth,
       exportBundle,
     },
+    preferences: {
+      get: preferencesGet,
+      set: preferencesSet,
+    },
   }),
   normalizeIpcError: (error: unknown) =>
     error && typeof error === "object" && "message" in error
@@ -451,7 +482,8 @@ describe("FileOctopusShell", () => {
 
     await act(async () => {
       batchHandler?.({
-        sessionId: "session-1",
+        sessionId: panelSessions.left?.sessionId ?? "session-1",
+        requestId: panelSessions.left?.requestId ?? "request-1",
         uri: "local:///tmp/100k",
         entries: Array.from({ length: 100_000 }, (_, index) => ({
           uri: `local:///tmp/100k/file-${index}.txt`,
@@ -479,7 +511,7 @@ describe("FileOctopusShell", () => {
     render(<FileOctopusShell />);
     await waitFor(() => expect(listStart).toHaveBeenCalledTimes(2));
 
-    fireEvent.click(screen.getAllByText("New Folder")[0]);
+    clickToolbar("New", 0);
     fireEvent.change(screen.getByLabelText("Folder name"), {
       target: { value: "bad/name" },
     });
@@ -506,7 +538,7 @@ describe("FileOctopusShell", () => {
     render(<FileOctopusShell />);
     await applyLeftEntries([entry("alpha.txt")]);
 
-    fireEvent.click(screen.getAllByText("Rename")[0]);
+    clickToolbar("Rename", 0);
     fireEvent.change(screen.getByLabelText("New name"), {
       target: { value: "bad/name" },
     });
@@ -533,7 +565,7 @@ describe("FileOctopusShell", () => {
     render(<FileOctopusShell />);
     await applyLeftEntries([entry("alpha.txt")]);
 
-    fireEvent.click(screen.getAllByText("Move to Trash")[0]);
+    clickToolbar("Trash", 0);
 
     expect(screen.getByText("Move 1 item(s) to Trash")).toBeTruthy();
     expect(screen.getByText("alpha.txt")).toBeTruthy();
@@ -551,7 +583,7 @@ describe("FileOctopusShell", () => {
     render(<FileOctopusShell />);
     await applyLeftEntries([entry("alpha.txt")]);
 
-    fireEvent.click(screen.getAllByText("Copy To")[0]);
+    clickToolbar("Copy To", 0);
     expect(
       (screen.getByLabelText("Conflict policy") as HTMLSelectElement).value,
     ).toBe("fail");
@@ -623,8 +655,9 @@ describe("FileOctopusShell", () => {
   it("shows app diagnostics and exports a bundle", async () => {
     render(<FileOctopusShell />);
 
-    expect(await screen.findByText("0.1.0 debug linux")).toBeTruthy();
-    fireEvent.click(screen.getByText("Export"));
+    fireEvent.click(screen.getByText("Diagnostics"));
+    expect(await screen.findByText("0.1.0")).toBeTruthy();
+    fireEvent.click(screen.getByText("Export bundle"));
 
     await waitFor(() => expect(exportBundle).toHaveBeenCalledTimes(1));
     expect(await screen.findByText("Exported 1 file(s).")).toBeTruthy();
@@ -648,7 +681,7 @@ describe("FileOctopusShell", () => {
     render(<FileOctopusShell />);
     await waitFor(() => expect(listStart).toHaveBeenCalledTimes(2));
 
-    fireEvent.click(screen.getAllByText("New File")[0]);
+    clickToolbar("New File", 0);
     fireEvent.change(screen.getByLabelText("File name"), {
       target: { value: "notes.txt" },
     });
@@ -685,7 +718,7 @@ describe("FileOctopusShell", () => {
     render(<FileOctopusShell />);
     await applyLeftEntries([entry("alpha.txt")]);
 
-    fireEvent.click(screen.getAllByText("Properties")[0]);
+    clickToolbar("Properties", 0);
     expect(await screen.findByText("/tmp/alpha.txt")).toBeTruthy();
 
     fireEvent.click(screen.getByText("Close"));
@@ -707,7 +740,18 @@ describe("FileOctopusShell", () => {
     render(<FileOctopusShell />);
     await applyLeftEntries([entry("alpha.txt")]);
 
-    fireEvent.click(screen.getAllByText("Show Hidden")[0]);
+    openToolbarOverflow(0);
+    const viewMode = document.querySelector(
+      ".fo-toolbar-menu select[aria-label='View mode']",
+    ) as HTMLSelectElement | null;
+
+    expect(viewMode).toBeTruthy();
+    fireEvent.change(viewMode!, {
+      target: { value: "icons" },
+    });
+    expect(document.querySelector(".fo-view-icons")).toBeTruthy();
+
+    clickToolbar("Show Hidden", 0);
     await waitFor(() =>
       expect(
         listStart.mock.calls[listStart.mock.calls.length - 1]?.[0],
@@ -716,11 +760,6 @@ describe("FileOctopusShell", () => {
         includeHidden: true,
       }),
     );
-
-    fireEvent.change(screen.getAllByLabelText("View mode")[0], {
-      target: { value: "icons" },
-    });
-    expect(document.querySelector(".fo-view-icons")).toBeTruthy();
   });
 });
 
@@ -750,12 +789,29 @@ function folderEntry(name: string): FileEntryDto {
   };
 }
 
+function openToolbarOverflow(panelIndex = 0) {
+  fireEvent.click(screen.getAllByText("More")[panelIndex]);
+}
+
+function clickToolbar(label: string, panelIndex = 0) {
+  const matches = screen.queryAllByText(label);
+
+  if (matches[panelIndex]) {
+    fireEvent.click(matches[panelIndex]);
+    return;
+  }
+
+  openToolbarOverflow(panelIndex);
+  fireEvent.click(screen.getAllByText(label)[0]);
+}
+
 async function applyLeftEntries(entries: FileEntryDto[]) {
   await waitFor(() => expect(listStart).toHaveBeenCalledTimes(2));
 
   await act(async () => {
     batchHandler?.({
-      sessionId: "session-1",
+      sessionId: panelSessions.left?.sessionId ?? "session-1",
+      requestId: panelSessions.left?.requestId ?? "request-1",
       uri: "local:///Users/ilya",
       entries,
       batchIndex: 0,

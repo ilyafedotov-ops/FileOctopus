@@ -1,5 +1,11 @@
 import type { DirectoryBatchEventDto, FileEntryDto } from "@fileoctopus/ts-api";
+import {
+  type PaneLoadState,
+  shouldApplyBatch,
+  terminalLoadState,
+} from "./paneTypes";
 
+export type { PaneLoadState } from "./paneTypes";
 export type PanelId = "left" | "right";
 export type SortField = "name" | "type" | "size" | "modified";
 export type SortDirection = "asc" | "desc";
@@ -20,8 +26,10 @@ export interface PanelTabState {
   focusedId: string | null;
   anchorId: string | null;
   sessionId: string | null;
-  loading: boolean;
+  activeRequestId: string | null;
+  loadState: PaneLoadState;
   error: string | null;
+  errorCode: string | null;
   filter: string;
   recursiveQuery: string;
   sort: SortState;
@@ -47,7 +55,12 @@ export type PanelAction =
   | { type: "navigate"; panelId: PanelId; uri: string; replace?: boolean }
   | { type: "goBack"; panelId: PanelId }
   | { type: "goForward"; panelId: PanelId }
-  | { type: "startSession"; panelId: PanelId; sessionId: string }
+  | {
+      type: "startSession";
+      panelId: PanelId;
+      sessionId: string;
+      requestId: string;
+    }
   | { type: "applyBatch"; batch: DirectoryBatchEventDto }
   | { type: "setSelection"; panelId: PanelId; entryId: string | null }
   | { type: "selectAll"; panelId: PanelId }
@@ -58,13 +71,23 @@ export type PanelAction =
       mode: "single" | "toggle" | "range";
     }
   | { type: "moveSelection"; panelId: PanelId; delta: number }
-  | { type: "setLoading"; panelId: PanelId; loading: boolean }
-  | { type: "setError"; panelId: PanelId; error: string | null }
+  | {
+      type: "setPaneError";
+      panelId: PanelId;
+      error: string | null;
+      errorCode?: string | null;
+      loadState?: PaneLoadState;
+    }
   | { type: "setFilter"; panelId: PanelId; filter: string }
   | { type: "setRecursiveQuery"; panelId: PanelId; query: string }
   | { type: "setSort"; panelId: PanelId; field: SortField }
   | { type: "setViewMode"; panelId: PanelId; viewMode: ViewMode }
-  | { type: "toggleHidden"; panelId: PanelId };
+  | { type: "toggleHidden"; panelId: PanelId }
+  | {
+      type: "hydratePreferences";
+      showHidden: boolean;
+      viewMode: ViewMode;
+    };
 
 export function createInitialState(
   leftUri = homeUri(),
@@ -127,8 +150,10 @@ export function panelReducer(
       return updatePanel(state, action.panelId, (tab) => ({
         ...tab,
         sessionId: action.sessionId,
-        loading: true,
+        activeRequestId: action.requestId,
+        loadState: "loading",
         error: null,
+        errorCode: null,
       }));
     case "applyBatch":
       return applyBatch(state, action.batch);
@@ -160,16 +185,12 @@ export function panelReducer(
       return updatePanel(state, action.panelId, (tab) =>
         moveSelection(tab, action.delta),
       );
-    case "setLoading":
-      return updatePanel(state, action.panelId, (tab) => ({
-        ...tab,
-        loading: action.loading,
-      }));
-    case "setError":
+    case "setPaneError":
       return updatePanel(state, action.panelId, (tab) => ({
         ...tab,
         error: action.error,
-        loading: false,
+        errorCode: action.errorCode ?? null,
+        loadState: action.loadState ?? (action.error ? "error" : tab.loadState),
       }));
     case "setFilter":
       return updatePanel(state, action.panelId, (tab) => ({
@@ -223,9 +244,39 @@ export function panelReducer(
           focusedId: null,
           anchorId: null,
           sessionId: null,
-          loading: true,
+          activeRequestId: null,
+          loadState: "loading",
+          error: null,
+          errorCode: null,
         };
       });
+    case "hydratePreferences":
+      persistValue("fileoctopus.viewMode", action.viewMode);
+      persistValue("fileoctopus.showHidden", String(action.showHidden));
+
+      return {
+        ...state,
+        panels: (Object.keys(state.panels) as PanelId[]).reduce(
+          (panels, panelId) => {
+            const panel = state.panels[panelId];
+
+            panels[panelId] = {
+              ...panel,
+              tabs: {
+                ...panel.tabs,
+                [panel.activeTabId]: {
+                  ...activeTab(panel),
+                  showHidden: action.showHidden,
+                  viewMode: action.viewMode,
+                },
+              },
+            };
+
+            return panels;
+          },
+          { ...state.panels },
+        ),
+      };
     default:
       return state;
   }
@@ -289,8 +340,10 @@ function createPanel(id: PanelId, uri: string): PanelState {
         focusedId: null,
         anchorId: null,
         sessionId: null,
-        loading: false,
+        activeRequestId: null,
+        loadState: "idle",
         error: null,
+        errorCode: null,
         filter: "",
         recursiveQuery: "",
         sort: storedSort(),
@@ -330,8 +383,10 @@ function applyNavigation(
     focusedId: null,
     anchorId: null,
     sessionId: null,
-    loading: true,
+    activeRequestId: null,
+    loadState: "loading",
     error: null,
+    errorCode: null,
     filter: "",
     backStack,
     forwardStack,
@@ -371,11 +426,24 @@ function applyBatch(
     return state;
   }
 
-  const error = batch.error?.message ?? null;
+  const tab = activeTab(state.panels[target]);
 
-  return updatePanel(state, target, (tab) => {
-    const entriesById = { ...tab.entriesById };
-    const orderedEntryIds = [...tab.orderedEntryIds];
+  if (!shouldApplyBatch(tab.activeRequestId, batch)) {
+    return state;
+  }
+
+  if (batch.error && batch.isComplete) {
+    return updatePanel(state, target, (current) => ({
+      ...current,
+      loadState: terminalLoadState(0, batch.error),
+      error: batch.error?.message ?? "Failed to load directory",
+      errorCode: batch.error?.code ?? null,
+    }));
+  }
+
+  return updatePanel(state, target, (current) => {
+    const entriesById = { ...current.entriesById };
+    const orderedEntryIds = [...current.orderedEntryIds];
 
     for (const entry of batch.entries) {
       if (!entriesById[entry.uri]) {
@@ -385,12 +453,16 @@ function applyBatch(
       entriesById[entry.uri] = entry;
     }
 
-    const retainedSelection = tab.selectedIds.filter((id) => entriesById[id]);
+    const retainedSelection = current.selectedIds.filter((id) => entriesById[id]);
     const firstId =
-      retainedSelection[0] ?? tab.selectedId ?? orderedEntryIds[0] ?? null;
+      retainedSelection[0] ?? current.selectedId ?? orderedEntryIds[0] ?? null;
+
+    const loadState = batch.isComplete
+      ? terminalLoadState(orderedEntryIds.length, batch.error)
+      : "loading";
 
     return {
-      ...tab,
+      ...current,
       entriesById,
       orderedEntryIds,
       selectedIds:
@@ -401,8 +473,9 @@ function applyBatch(
             : [],
       selectedId: firstId,
       focusedId: firstId,
-      loading: batch.isComplete ? false : tab.loading,
-      error,
+      loadState,
+      error: batch.error?.message ?? null,
+      errorCode: batch.error?.code ?? null,
     };
   });
 }

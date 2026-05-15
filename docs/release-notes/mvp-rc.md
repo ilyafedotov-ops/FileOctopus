@@ -6,6 +6,7 @@
 - Two-panel file browsing with sorting, filtering, keyboard navigation, and virtualized large lists.
 - Planned copy, move, rename, create-folder, and move-to-trash operations.
 - Job progress, cancellation, terminal operation history, startup interruption marking, and diagnostics export.
+- Sprint 5 polish: persisted preferences (theme, density, view mode, hidden files), pane load states with stale-listing guards, grouped toolbar with overflow, settings/shortcuts/diagnostics dialogs, and macOS sidebar path filtering. See `docs/releases/sprint-5.md` and `docs/testing/sprint-5-macos-qa.md`.
 
 ## Platforms
 
@@ -21,4 +22,4 @@
 
 ## Bug Reports
 
-Attach the diagnostics bundle from the Diagnostics panel and the completed `docs/qa/sprint-3-smoke-test.md` result table.
+Attach the diagnostics bundle from **Help → Diagnostics** and the completed QA checklist (`docs/testing/sprint-5-macos-qa.md` on macOS, or `docs/qa/sprint-3-smoke-test.md` on Linux).

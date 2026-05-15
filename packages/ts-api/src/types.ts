@@ -66,12 +66,37 @@ export interface StatResponse {
 
 export interface ListStartRequest {
   uri: string;
+  requestId: string;
+  panelId?: string;
   batchSize?: number;
   includeHidden?: boolean;
 }
 
 export interface ListStartResponse {
   sessionId: string;
+  requestId: string;
+}
+
+export interface UserPreferencesDto {
+  theme: string;
+  density: string;
+  defaultViewMode: string;
+  showHiddenFiles: boolean;
+  sidebarWidth: number;
+  splitRatio: number;
+}
+
+export interface GetPreferencesResponse {
+  preferences: UserPreferencesDto;
+}
+
+export interface SetPreferenceRequest {
+  key: string;
+  value: string;
+}
+
+export interface SetPreferenceResponse {
+  preferences: UserPreferencesDto;
 }
 
 export interface StandardLocationDto {
@@ -234,6 +259,7 @@ export interface FileEntryDto {
 
 export interface DirectoryBatchEventDto {
   sessionId: string;
+  requestId: string;
   uri: string;
   entries: FileEntryDto[];
   batchIndex: number;

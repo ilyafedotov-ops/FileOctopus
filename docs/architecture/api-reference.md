@@ -55,6 +55,8 @@ The desktop shell registers exactly these commands (`tauri::generate_handler!`):
 | `clear_operation_history`     | `OperationHistoryClient.clearOperationHistory()`   | —                                | `ClearOperationHistoryResponse`   | Delete terminal history rows while preserving active jobs.          |
 | `diagnostics_app_data_health` | `DiagnosticsClient.appDataHealth()`                | —                                | `AppDataHealthResponse`           | Report app data, log, and schema health without enumerating files.  |
 | `export_diagnostics_bundle`   | `DiagnosticsClient.exportBundle(req)`              | `ExportDiagnosticsBundleRequest` | `ExportDiagnosticsBundleResponse` | Write a redacted diagnostics `.zip` for bug reports.                |
+| `get_preferences`             | `PreferencesClient.get()`                          | —                                | `GetPreferencesResponse`            | Read persisted UI preferences (theme, density, view mode, etc.).   |
+| `set_preference`              | `PreferencesClient.set(req)`                       | `SetPreferenceRequest`           | `SetPreferenceResponse`           | Update a single preference key with validation.                     |
 
 All command handlers return `Result<TResponse, IpcError>`. Errors carry a stable string `code` (see [Error model](#error-model)).
 
@@ -96,21 +98,37 @@ const unlisten = await client.fs.onDirectoryBatch((event) => {
   if (event.isComplete) unlisten();
 });
 
-const { sessionId } = await client.fs.listStart({
+const { sessionId, requestId } = await client.fs.listStart({
   uri: "local:///home/me",
+  requestId: crypto.randomUUID(),
+  panelId: "left",
   batchSize: 256,
   includeHidden: false,
 });
 ```
 
-| Field                   | Type       | Notes                                             |
-| ----------------------- | ---------- | ------------------------------------------------- |
-| `request.uri`           | `string`   | Directory `ResourceUri`.                          |
-| `request.batchSize`     | `number?`  | Default `256`, clamped to `>= 1`.                 |
-| `request.includeHidden` | `boolean?` | Default `false`. Dotfiles are hidden.             |
-| `response.sessionId`    | `string`   | UUID; matches `DirectoryBatchEventDto.sessionId`. |
+| Field                   | Type       | Notes                                                                 |
+| ----------------------- | ---------- | --------------------------------------------------------------------- |
+| `request.uri`           | `string`   | Directory `ResourceUri`.                                              |
+| `request.requestId`     | `string`   | Client-generated correlation id; echoed on every batch for this list. |
+| `request.panelId`       | `string?`  | `"left"` or `"right"`; used to cancel superseded listings per pane.   |
+| `request.batchSize`     | `number?`  | Default `256`, clamped to `>= 1`.                                     |
+| `request.includeHidden` | `boolean?` | Default `false`. Dotfiles are hidden.                                 |
+| `response.sessionId`    | `string`   | UUID; matches `DirectoryBatchEventDto.sessionId`.                   |
+| `response.requestId`    | `string`   | Echo of `request.requestId`.                                        |
 
-Errors arrive on the event stream as `DirectoryBatchEventDto.error` when listing fails mid-stream; the synchronous response only fails for invalid input (`invalid_uri`, `unsupported_provider`).
+Errors arrive on the event stream as `DirectoryBatchEventDto.error` when listing fails mid-stream (including `permission_denied` and `timeout` after 30s). The synchronous response only fails for invalid input (`invalid_uri`, `unsupported_provider`).
+
+### `get_preferences` / `set_preference`
+
+Preferences persist in SQLite (`preferences.sqlite` under the app data directory). Keys: `theme` (`system` \| `light` \| `dark`), `density` (`compact` \| `comfortable` \| `spacious`), `defaultViewMode` (`details` \| `list` \| `icons`), `showHiddenFiles` (boolean string), `sidebarWidth`, `splitRatio`.
+
+```ts
+const { preferences } = await client.preferences.get();
+await client.preferences.set({ key: "theme", value: "dark" });
+```
+
+Invalid values reject with `IpcError` code `preferences_error`.
 
 ### `plan_file_operation`
 
@@ -163,6 +181,7 @@ Names are exported as constants from both sides (`crates/app-ipc/src/lib.rs` and
 ```ts
 {
   sessionId: string;          // matches ListStartResponse.sessionId
+  requestId: string;          // matches ListStartResponse.requestId
   uri: string;                // listed directory URI
   entries: FileEntryDto[];    // up to batchSize entries
   batchIndex: number;         // 0-based, monotonically increasing
@@ -476,6 +495,8 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/inde
 | `duplicate_provider`    | `VfsError`                       | Two providers tried to claim the same scheme.                  |
 | `not_found`             | `VfsError`, `FileOperationError` | Resource or job id does not exist.                             |
 | `permission_denied`     | `VfsError`, `FileOperationError` | OS denied the read/write/delete.                               |
+| `timeout`               | `VfsError`                       | Directory listing exceeded the server timeout (30s).             |
+| `preferences_error`     | Preferences repository           | Invalid preference key/value or database failure.            |
 | `invalid_request`       | `FileOperationError`             | Operation request shape is wrong (missing sources, etc.).      |
 | `invalid_name`          | `FileOperationError`             | Proposed name is empty, contains separators, or is reserved.   |
 | `invalid_path`          | `FileOperationError`             | URI parsed but is not usable for this operation.               |

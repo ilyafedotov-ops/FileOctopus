@@ -46,7 +46,7 @@ describe("FileOctopusClient", () => {
           } as TResponse;
         }
 
-        return { sessionId: "session-1" } as TResponse;
+        return { sessionId: "session-1", requestId: "req-1" } as TResponse;
       },
     };
 
@@ -55,14 +55,25 @@ describe("FileOctopusClient", () => {
     await client.fs.stat({ uri: "local:///tmp" });
     const list = await client.fs.listStart({
       uri: "local:///tmp",
+      requestId: "req-1",
+      panelId: "left",
       batchSize: 128,
     });
 
     expect(list.sessionId).toBe("session-1");
+    expect(list.requestId).toBe("req-1");
     expect(calls.map((call) => call.command)).toEqual([
       "fs.stat",
       "fs.list_start",
     ]);
+    expect(calls[1]?.args).toMatchObject({
+      request: {
+        uri: "local:///tmp",
+        requestId: "req-1",
+        panelId: "left",
+        batchSize: 128,
+      },
+    });
   });
 
   it("routes Sprint 4 baseline filesystem commands through typed clients", async () => {
@@ -436,6 +447,54 @@ describe("FileOctopusClient", () => {
       "diagnostics.exportBundle",
     ]);
     expect(events).toEqual(["job-1"]);
+  });
+
+  it("routes preferences through the preferences client", async () => {
+    const calls: Array<{ command: string; args?: Record<string, unknown> }> =
+      [];
+    const transport: IpcTransport = {
+      async invoke<TResponse>(command: string, args?: Record<string, unknown>) {
+        calls.push({ command, args });
+
+        if (command === "preferences.get") {
+          return {
+            preferences: {
+              theme: "system",
+              density: "comfortable",
+              defaultViewMode: "details",
+              showHiddenFiles: false,
+              sidebarWidth: 240,
+              splitRatio: 0.5,
+            },
+          } as TResponse;
+        }
+
+        return {
+          preferences: {
+            theme: "dark",
+            density: "comfortable",
+            defaultViewMode: "details",
+            showHiddenFiles: false,
+            sidebarWidth: 240,
+            splitRatio: 0.5,
+          },
+        } as TResponse;
+      },
+    };
+
+    const client = new FileOctopusClient(transport);
+    const initial = await client.preferences.get();
+    const updated = await client.preferences.set({ key: "theme", value: "dark" });
+
+    expect(initial.preferences.theme).toBe("system");
+    expect(updated.preferences.theme).toBe("dark");
+    expect(calls.map((call) => call.command)).toEqual([
+      "preferences.get",
+      "preferences.set",
+    ]);
+    expect(calls[1]?.args).toEqual({
+      request: { key: "theme", value: "dark" },
+    });
   });
 
   it("normalizes frontend-safe ipc errors", () => {

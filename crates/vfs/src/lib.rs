@@ -365,6 +365,10 @@ impl From<VfsError> for FileOperationError {
             VfsError::UnsupportedProvider { scheme } => Self::UnsupportedProvider { scheme },
             VfsError::NotFound { uri } => Self::NotFound { uri },
             VfsError::PermissionDenied { uri } => Self::PermissionDenied { uri },
+            VfsError::Timeout { uri } => Self::Io {
+                code: "timeout".to_string(),
+                message: format!("Directory listing timed out for `{uri}`"),
+            },
             VfsError::DuplicateProvider { scheme } => Self::Internal {
                 message: format!("duplicate provider scheme `{scheme}`"),
             },
@@ -460,6 +464,7 @@ pub enum VfsError {
     DuplicateProvider { scheme: String },
     NotFound { uri: String },
     PermissionDenied { uri: String },
+    Timeout { uri: String },
     Internal { message: String },
 }
 
@@ -471,6 +476,7 @@ impl VfsError {
             Self::DuplicateProvider { .. } => "duplicate_provider",
             Self::NotFound { .. } => "not_found",
             Self::PermissionDenied { .. } => "permission_denied",
+            Self::Timeout { .. } => "timeout",
             Self::Internal { .. } => "internal",
         }
     }
@@ -490,6 +496,12 @@ impl VfsError {
 
     pub fn permission_denied(uri: &ResourceUri) -> Self {
         Self::PermissionDenied {
+            uri: uri.as_str().to_string(),
+        }
+    }
+
+    pub fn timeout(uri: &ResourceUri) -> Self {
+        Self::Timeout {
             uri: uri.as_str().to_string(),
         }
     }
@@ -515,6 +527,7 @@ impl fmt::Display for VfsError {
             }
             Self::NotFound { uri } => write!(formatter, "resource not found `{uri}`"),
             Self::PermissionDenied { uri } => write!(formatter, "permission denied `{uri}`"),
+            Self::Timeout { uri } => write!(formatter, "directory listing timed out `{uri}`"),
             Self::Internal { message } => write!(formatter, "{message}"),
         }
     }

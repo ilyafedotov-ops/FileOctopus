@@ -38,16 +38,19 @@ describe("panel store", () => {
       type: "startSession",
       panelId: "left",
       sessionId: "left-session",
+      requestId: "left-request",
     });
     state = panelReducer(state, {
       type: "startSession",
       panelId: "right",
       sessionId: "right-session",
+      requestId: "right-request",
     });
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
         sessionId: "left-session",
+        requestId: "left-request",
         uri: "local:///left",
         entries: [entry("a.txt")],
         batchIndex: 0,
@@ -61,18 +64,20 @@ describe("panel store", () => {
     expect(activeTab(state.panels.right).orderedEntryIds).toEqual([]);
   });
 
-  it("ignores stale directory batches", () => {
+  it("ignores stale directory batches by session and request id", () => {
     let state = createInitialState("local:///left", "local:///right");
 
     state = panelReducer(state, {
       type: "startSession",
       panelId: "left",
       sessionId: "new-session",
+      requestId: "new-request",
     });
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
         sessionId: "old-session",
+        requestId: "old-request",
         uri: "local:///left",
         entries: [entry("stale.txt")],
         batchIndex: 0,
@@ -81,6 +86,104 @@ describe("panel store", () => {
     });
 
     expect(activeTab(state.panels.left).orderedEntryIds).toEqual([]);
+
+    state = panelReducer(state, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "new-session",
+        requestId: "old-request",
+        uri: "local:///left",
+        entries: [entry("stale-request.txt")],
+        batchIndex: 0,
+        isComplete: true,
+      },
+    });
+
+    expect(activeTab(state.panels.left).orderedEntryIds).toEqual([]);
+  });
+
+  it("transitions to empty and loaded terminal states", () => {
+    let state = createInitialState("local:///left", "local:///right");
+
+    state = panelReducer(state, {
+      type: "startSession",
+      panelId: "left",
+      sessionId: "session",
+      requestId: "request",
+    });
+    state = panelReducer(state, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "session",
+        requestId: "request",
+        uri: "local:///left",
+        entries: [],
+        batchIndex: 0,
+        isComplete: true,
+      },
+    });
+
+    expect(activeTab(state.panels.left).loadState).toBe("empty");
+
+    state = panelReducer(state, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "session",
+        requestId: "request",
+        uri: "local:///left",
+        entries: [entry("a.txt")],
+        batchIndex: 1,
+        isComplete: true,
+      },
+    });
+
+    expect(activeTab(state.panels.left).loadState).toBe("loaded");
+  });
+
+  it("maps permission and timeout errors to pane states", () => {
+    let state = createInitialState("local:///left", "local:///right");
+
+    state = panelReducer(state, {
+      type: "startSession",
+      panelId: "left",
+      sessionId: "session",
+      requestId: "request",
+    });
+    state = panelReducer(state, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "session",
+        requestId: "request",
+        uri: "local:///left",
+        entries: [],
+        batchIndex: 0,
+        isComplete: true,
+        error: { code: "permission_denied", message: "denied" },
+      },
+    });
+
+    expect(activeTab(state.panels.left).loadState).toBe("permissionDenied");
+
+    state = panelReducer(state, {
+      type: "startSession",
+      panelId: "left",
+      sessionId: "session-2",
+      requestId: "request-2",
+    });
+    state = panelReducer(state, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "session-2",
+        requestId: "request-2",
+        uri: "local:///left",
+        entries: [],
+        batchIndex: 0,
+        isComplete: true,
+        error: { code: "timeout", message: "timed out" },
+      },
+    });
+
+    expect(activeTab(state.panels.left).loadState).toBe("timeout");
   });
 
   it("sorts directories first and filters by name", () => {
@@ -90,11 +193,13 @@ describe("panel store", () => {
       type: "startSession",
       panelId: "left",
       sessionId: "session",
+      requestId: "request",
     });
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
         sessionId: "session",
+        requestId: "request",
         uri: "local:///left",
         entries: [
           entry("zeta.txt"),
@@ -125,11 +230,13 @@ describe("panel store", () => {
       type: "startSession",
       panelId: "left",
       sessionId: "session",
+      requestId: "request",
     });
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
         sessionId: "session",
+        requestId: "request",
         uri: "local:///left",
         entries: [entry("a.txt"), entry("b.txt"), entry("c.txt")],
         batchIndex: 0,
@@ -154,6 +261,21 @@ describe("panel store", () => {
       "local:///tmp/b.txt",
       "local:///tmp/c.txt",
     ]);
+  });
+
+  it("hydrates both panes from persisted preferences", () => {
+    let state = createInitialState("local:///left", "local:///right");
+
+    state = panelReducer(state, {
+      type: "hydratePreferences",
+      showHidden: true,
+      viewMode: "list",
+    });
+
+    expect(activeTab(state.panels.left).showHidden).toBe(true);
+    expect(activeTab(state.panels.right).showHidden).toBe(true);
+    expect(activeTab(state.panels.left).viewMode).toBe("list");
+    expect(activeTab(state.panels.right).viewMode).toBe("list");
   });
 
   it("normalizes local paths and finds parent uris", () => {

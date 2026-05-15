@@ -28,6 +28,36 @@ pub struct AppInfoResponse {
     pub target_os: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UserPreferencesDto {
+    pub theme: String,
+    pub density: String,
+    pub default_view_mode: String,
+    pub show_hidden_files: bool,
+    pub sidebar_width: u32,
+    pub split_ratio: f64,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GetPreferencesResponse {
+    pub preferences: UserPreferencesDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetPreferenceRequest {
+    pub key: String,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SetPreferenceResponse {
+    pub preferences: UserPreferencesDto,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppDataHealthResponse {
@@ -76,6 +106,8 @@ pub struct StatResponse {
 #[serde(rename_all = "camelCase")]
 pub struct ListStartRequest {
     pub uri: String,
+    pub request_id: String,
+    pub panel_id: Option<String>,
     pub batch_size: Option<usize>,
     pub include_hidden: Option<bool>,
 }
@@ -84,6 +116,7 @@ pub struct ListStartRequest {
 #[serde(rename_all = "camelCase")]
 pub struct ListStartResponse {
     pub session_id: String,
+    pub request_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -298,6 +331,7 @@ pub struct FileEntryDto {
 #[serde(rename_all = "camelCase")]
 pub struct DirectoryBatchEventDto {
     pub session_id: String,
+    pub request_id: String,
     pub uri: String,
     pub entries: Vec<FileEntryDto>,
     pub batch_index: u64,
@@ -460,12 +494,26 @@ impl From<DirectoryBatch> for DirectoryBatchEventDto {
     fn from(batch: DirectoryBatch) -> Self {
         Self {
             session_id: batch.session_id.as_str().to_string(),
+            request_id: String::new(),
             uri: batch.uri.as_str().to_string(),
             entries: batch.entries.into_iter().map(Into::into).collect(),
             batch_index: batch.batch_index,
             is_complete: batch.is_complete,
             total_hint: batch.total_hint,
             error: None,
+        }
+    }
+}
+
+impl From<config::UserPreferences> for UserPreferencesDto {
+    fn from(value: config::UserPreferences) -> Self {
+        Self {
+            theme: value.theme,
+            density: value.density,
+            default_view_mode: value.default_view_mode,
+            show_hidden_files: value.show_hidden_files,
+            sidebar_width: value.sidebar_width,
+            split_ratio: value.split_ratio,
         }
     }
 }
@@ -741,6 +789,7 @@ mod tests {
     fn serializes_directory_batch_event() {
         let event = DirectoryBatchEventDto {
             session_id: "session-1".to_string(),
+            request_id: "request-1".to_string(),
             uri: "local:///tmp".to_string(),
             entries: Vec::new(),
             batch_index: 0,

@@ -28,6 +28,9 @@ import type {
   ListRecentOperationsResponse,
   ListStartRequest,
   ListStartResponse,
+  GetPreferencesResponse,
+  SetPreferenceRequest,
+  SetPreferenceResponse,
   OkResponse,
   PathPropertiesRequest,
   PathPropertiesResponse,
@@ -84,6 +87,8 @@ const commandMap: Record<string, string> = {
   "operationHistory.clear": "clear_operation_history",
   "diagnostics.appDataHealth": "diagnostics_app_data_health",
   "diagnostics.exportBundle": "export_diagnostics_bundle",
+  "preferences.get": "get_preferences",
+  "preferences.set": "set_preference",
 };
 
 export class FileOctopusClient {
@@ -92,6 +97,7 @@ export class FileOctopusClient {
   readonly jobs: JobsClient;
   readonly operationHistory: OperationHistoryClient;
   readonly diagnostics: DiagnosticsClient;
+  readonly preferences: PreferencesClient;
 
   constructor(private readonly transport: IpcTransport) {
     this.fs = new FsClient(transport);
@@ -99,6 +105,7 @@ export class FileOctopusClient {
     this.jobs = new JobsClient(transport);
     this.operationHistory = new OperationHistoryClient(transport);
     this.diagnostics = new DiagnosticsClient(transport);
+    this.preferences = new PreferencesClient(transport);
   }
 
   getAppInfo(): Promise<AppInfoResponse> {
@@ -234,6 +241,28 @@ export class DiagnosticsClient {
         "diagnostics.exportBundle",
         { request },
       );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+}
+
+export class PreferencesClient {
+  constructor(private readonly transport: IpcTransport) {}
+
+  async get(): Promise<GetPreferencesResponse> {
+    try {
+      return await this.transport.invoke<GetPreferencesResponse>("preferences.get");
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async set(request: SetPreferenceRequest): Promise<SetPreferenceResponse> {
+    try {
+      return await this.transport.invoke<SetPreferenceResponse>("preferences.set", {
+        request,
+      });
     } catch (error) {
       throw normalizeIpcError(error);
     }
@@ -685,10 +714,13 @@ export function createPreviewTransport(): IpcTransport {
         const sessionId = `preview-${sessionIndex}`;
         const request = args?.request as Partial<ListStartRequest> | undefined;
 
+        const requestId = request?.requestId ?? `preview-${sessionIndex}`;
+
         globalThis.setTimeout(() => {
           for (const handler of batchHandlers) {
             handler({
               sessionId,
+              requestId,
               uri: request?.uri ?? "local:///",
               entries: [],
               batchIndex: 0,
@@ -699,7 +731,7 @@ export function createPreviewTransport(): IpcTransport {
           }
         }, 0);
 
-        return { sessionId } as TResponse;
+        return { sessionId, requestId } as TResponse;
       }
 
       throw {

@@ -75,6 +75,7 @@ name = "app-core"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "config",
  "fs-core",
  "jobs",
  "rusqlite",
@@ -90,6 +91,7 @@ name = "app-ipc"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "config",
  "jobs",
  "serde",
  "serde_json",
@@ -434,6 +436,13 @@ dependencies = [
 [[package]]
 name = "config"
 version = "0.1.0"
+dependencies = [
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 1.0.69",
+]
 
 [[package]]
 name = "constant_time_eq"
