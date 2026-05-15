@@ -154,14 +154,26 @@ export function panelReducer(
         });
       });
     case "startSession":
-      return updatePanel(state, action.panelId, (tab) => ({
-        ...tab,
-        sessionId: action.sessionId,
-        activeRequestId: action.requestId,
-        loadState: "loading",
-        error: null,
-        errorCode: null,
-      }));
+      return updatePanel(state, action.panelId, (tab) => {
+        // eslint-disable-next-line no-console
+        console.log("[FO][startSession reducer]", {
+          panelId: action.panelId,
+          sessionId: action.sessionId,
+          requestId: action.requestId,
+          previousSessionId: tab.sessionId,
+          previousRequestId: tab.activeRequestId,
+          previousEntries: tab.orderedEntryIds.length,
+          previousLoadState: tab.loadState,
+        });
+        return {
+          ...tab,
+          sessionId: action.sessionId,
+          activeRequestId: action.requestId,
+          loadState: "loading",
+          error: null,
+          errorCode: null,
+        };
+      });
     case "applyBatch":
       return applyBatch(state, action.batch);
     case "setSelection":
@@ -484,6 +496,17 @@ function applyBatch(
 
       entriesById[entry.uri] = entry;
     }
+
+    // eslint-disable-next-line no-console
+    console.log("[FO][applyBatch reducer]", {
+      target,
+      addedEntries: batch.entries.length,
+      totalEntries: orderedEntryIds.length,
+      isComplete: batch.isComplete,
+      finalLoadState: batch.isComplete
+        ? terminalLoadState(orderedEntryIds.length, batch.error)
+        : "loading",
+    });
 
     const retainedSelection = current.selectedIds.filter((id) => entriesById[id]);
     const firstId =

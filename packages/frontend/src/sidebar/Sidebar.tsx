@@ -17,7 +17,6 @@ interface SidebarProps {
   locations: StandardLocationDto[];
   favorites: FavoriteEntryDto[];
   recentToday: RecentEntryDto[];
-  recentWeek: RecentEntryDto[];
   starred: StarredEntryDto[];
   activeUri: string;
   onNavigate: (uri: string) => void;
@@ -31,7 +30,6 @@ export function Sidebar({
   locations,
   favorites,
   recentToday,
-  recentWeek,
   starred,
   activeUri,
   onNavigate,
@@ -108,9 +106,8 @@ export function Sidebar({
       ) : null}
 
       <SidebarSection title="Recent">
-        <SidebarGroupLabel>Today</SidebarGroupLabel>
         {recentToday.length === 0 ? (
-          <SidebarEmptyHint>No folders visited today</SidebarEmptyHint>
+          <SidebarEmptyHint>No recent folders</SidebarEmptyHint>
         ) : (
           recentToday.map((item) => (
             <SidebarItem
@@ -119,23 +116,6 @@ export function Sidebar({
               label={item.label}
               active={item.uri === activeUri}
               onClick={() => onNavigate(item.uri)}
-              indented
-              subdued
-            />
-          ))
-        )}
-        <SidebarGroupLabel>This week</SidebarGroupLabel>
-        {recentWeek.length === 0 ? (
-          <SidebarEmptyHint>No other recent folders</SidebarEmptyHint>
-        ) : (
-          recentWeek.map((item) => (
-            <SidebarItem
-              key={item.uri}
-              icon={Icons.recent()}
-              label={item.label}
-              active={item.uri === activeUri}
-              onClick={() => onNavigate(item.uri)}
-              indented
               subdued
             />
           ))

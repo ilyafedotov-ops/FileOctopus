@@ -1997,6 +1997,16 @@ function FilePanel({
   onContextMenu,
 }: FilePanelProps) {
   const entries = selectVisibleEntries(tab);
+  // eslint-disable-next-line no-console
+  console.log("[FO][FilePanel render]", {
+    panelId,
+    uri: tab.uri,
+    loadState: tab.loadState,
+    orderedCount: tab.orderedEntryIds.length,
+    visibleCount: entries.length,
+    sessionId: tab.sessionId,
+    activeRequestId: tab.activeRequestId,
+  });
   const selectedEntry =
     entries.find((entry) => entry.uri === tab.selectedId) ?? null;
   const upUri = parentUri(tab.uri);
