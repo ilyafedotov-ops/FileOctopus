@@ -18,8 +18,12 @@ Plus the panel store primitives, which are exported for tests:
 
 ```ts
 export {
-  activeTab, createInitialState, normalizeLocalInput, panelReducer,
-  parentUri, selectVisibleEntries,
+  activeTab,
+  createInitialState,
+  normalizeLocalInput,
+  panelReducer,
+  parentUri,
+  selectVisibleEntries,
 } from "./panelStore";
 export type { PanelId, PanelTabState, SortField } from "./panelStore";
 ```
@@ -54,8 +58,8 @@ These are all `useState` / `useReducer` locals; there is no global store. Persis
 `FileOctopusShell` runs three effects:
 
 1. **Directory-batch subscription**, on mount and on each `client` change (memoized once). Dispatches `applyBatch` actions to the reducer.
-2. **Job event subscriptions** for all five `fileOperation.job.*` events. Each callback merges its event into the `jobs` map; terminal events also refresh the visible panels and reload history. Effect re-runs when `left.uri` / `right.uri` change so subscriptions follow the active panels.
-3. **Initial navigation** runs once on mount: triggers `navigatePanel` for left and right, plus the first `refreshHistory` call.
+2. **Job event subscriptions** for all five `fileOperation:job:*` events. Each callback merges its event into the `jobs` map; terminal events also refresh the visible panels and reload history. Effect re-runs when `left.uri` / `right.uri` change so subscriptions follow the active panels.
+3. **Initial navigation** runs once on mount: triggers `navigatePanel` for left and right, plus the first `refreshHistory` and diagnostics calls.
 
 `navigatePanel` is the operation that wires together URI normalization, the reducer dispatch, and the `fs.list_start` call:
 
@@ -63,7 +67,7 @@ These are all `useState` / `useReducer` locals; there is no global store. Persis
 normalizeLocalInput(input) ─► dispatch "navigate" ─► client.fs.listStart(...) ─► dispatch "startSession"
 ```
 
-The reducer keys the panel by the returned `sessionId`; subsequent `directory.batch` events are routed by matching their `sessionId` to the panel.
+The reducer keys the panel by the returned `sessionId`; subsequent `directory:batch` events are routed by matching their `sessionId` to the panel.
 
 ## `panelStore`
 
@@ -88,24 +92,31 @@ interface PanelTabState {
   sort: SortState;
 }
 
-interface PanelState { id: PanelId; activeTabId: string; tabs: Record<string, PanelTabState>; }
-interface FileOctopusState { activePanelId: PanelId; panels: Record<PanelId, PanelState>; }
+interface PanelState {
+  id: PanelId;
+  activeTabId: string;
+  tabs: Record<string, PanelTabState>;
+}
+interface FileOctopusState {
+  activePanelId: PanelId;
+  panels: Record<PanelId, PanelState>;
+}
 ```
 
 A panel is a list of tabs keyed by id; the active tab is tracked by `activeTabId`. Today only one tab (`"main"`) is created per panel, but the shape is ready for multi-tab navigation.
 
 ### Actions
 
-| Action | Effect |
-| --- | --- |
-| `setActivePanel` | Updates `activePanelId`. |
-| `navigate` | Clears entries/selection, sets the new URI, marks `loading: true`, clears any prior `sessionId`. |
-| `startSession` | Stores the `sessionId` returned by `fs.list_start`. Subsequent batches with that id are routed here. |
-| `applyBatch` | Merges incoming entries into `entriesById` + `orderedEntryIds`, preserves selection where possible, clears `loading` on the final batch, surfaces any `batch.error`. |
-| `setSelection` | Single-id selection. |
-| `selectEntry` | Multi-id selection with `mode: "single" \| "toggle" \| "range"`. Range mode walks the visible (sorted+filtered) entry list between `anchorId` and the clicked id. |
-| `moveSelection` | Keyboard navigation (Up/Down/PageUp/PageDown/Home/End). |
-| `setLoading`, `setError`, `setFilter`, `setSort` | Field updates. |
+| Action                                           | Effect                                                                                                                                                               |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setActivePanel`                                 | Updates `activePanelId`.                                                                                                                                             |
+| `navigate`                                       | Clears entries/selection, sets the new URI, marks `loading: true`, clears any prior `sessionId`.                                                                     |
+| `startSession`                                   | Stores the `sessionId` returned by `fs.list_start`. Subsequent batches with that id are routed here.                                                                 |
+| `applyBatch`                                     | Merges incoming entries into `entriesById` + `orderedEntryIds`, preserves selection where possible, clears `loading` on the final batch, surfaces any `batch.error`. |
+| `setSelection`                                   | Single-id selection.                                                                                                                                                 |
+| `selectEntry`                                    | Multi-id selection with `mode: "single" \| "toggle" \| "range"`. Range mode walks the visible (sorted+filtered) entry list between `anchorId` and the clicked id.    |
+| `moveSelection`                                  | Keyboard navigation (Up/Down/PageUp/PageDown/Home/End).                                                                                                              |
+| `setLoading`, `setError`, `setFilter`, `setSort` | Field updates.                                                                                                                                                       |
 
 ### Selectors
 
@@ -129,7 +140,7 @@ Five operation entry points are exposed through `OperationToolbar`:
 - **Copy / Move** — opens the `copyMove` dialog with the other panel's URI as the default destination and `ConflictPolicy = "fail"`. The dialog has a two-step submit: **Plan** calls `client.fileOperations.planFileOperation` and renders the plan summary (item count, first 3 conflicts, first 3 warnings); **Start** uses the cached plan via `startPlannedOperation`.
 - **Move to Trash** — opens the `trash` dialog with a confirmation summary; submit calls `startOperation("deleteToTrash", uris)`.
 
-`operationErrorMessage(code, fallback)` maps common error codes (`permission_denied`, `not_found`, `destination_conflict`, `invalid_name`, `unsupported_trash`, `cancelled`) to friendly strings. Any other code falls back to `message`.
+`operationErrorMessage(code, fallback)` maps common error codes (`permission_denied`, `not_found`, `destination_missing`, `destination_conflict`, `invalid_name`, `unsupported_symlink`, `unsupported_trash`, `cancelled`, `interrupted`) to friendly strings. Any other code falls back to `message`.
 
 ## Job activity
 

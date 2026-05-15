@@ -51,17 +51,19 @@ Boot is fail-fast: if `AppCore::boot()` returns `Err(AppCoreError::…)` the pro
 
 ## Registered commands
 
-Eight handlers, each taking a typed request DTO and (where state is needed) `State<'_, Arc<AppState>>`. They are the entire privileged API:
+Eleven handlers, each taking a typed request DTO and (where state is needed) `State<'_, Arc<AppState>>`. They are the entire privileged API:
 
-| Command | Behaviour |
-| --- | --- |
-| `app_get_info` | Static JSON `{ name, version }` derived from `env!("CARGO_PKG_VERSION")`. |
-| `fs_stat` | Parses URI, delegates to `state.vfs().stat`, wraps result in `StatResponse`. |
-| `fs_list_start` | Allocates `ListSessionId` (UUID), spawns two `tauri::async_runtime::spawn` tasks: one drains the mpsc channel and forwards batches as `DIRECTORY_BATCH_EVENT` emissions, one runs `vfs.list(...)` and emits a final error frame if the listing aborts. Returns `{ sessionId }` immediately. |
-| `plan_file_operation` | `TryFrom` the DTO into `FileOperationRequest`, calls `state.operations().plan`, wraps the result. No side effects. |
-| `start_file_operation` | `TryFrom` the plan DTO, builds a sink that fans `JobEvent` values out to `app.emit(job_event_name(event), job_event_payload(event))`, calls `operations.start`. Returns the initial `JobSnapshot`. |
-| `cancel_job` / `get_job_status` | Look up the job in the runtime, return the current snapshot. |
-| `list_recent_operations` | Reads up to `limit` rows from the SQLite history; maps each `OperationHistoryRecord` into an `OperationHistoryRecordDto`. |
+| Command                                                     | Behaviour                                                                                                                                                                                                                                                                                   |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app_get_info`                                              | Static metadata `{ name, version, buildProfile, commitSha, targetOs }` derived from build/runtime constants.                                                                                                                                                                                |
+| `fs_stat`                                                   | Parses URI, delegates to `state.vfs().stat`, wraps result in `StatResponse`.                                                                                                                                                                                                                |
+| `fs_list_start`                                             | Allocates `ListSessionId` (UUID), spawns two `tauri::async_runtime::spawn` tasks: one drains the mpsc channel and forwards batches as `DIRECTORY_BATCH_EVENT` emissions, one runs `vfs.list(...)` and emits a final error frame if the listing aborts. Returns `{ sessionId }` immediately. |
+| `plan_file_operation`                                       | `TryFrom` the DTO into `FileOperationRequest`, calls `state.operations().plan`, wraps the result. No side effects.                                                                                                                                                                          |
+| `start_file_operation`                                      | `TryFrom` the plan DTO, builds a sink that fans `JobEvent` values out to `app.emit(job_event_name(event), job_event_payload(event))`, calls `operations.start`. Returns the initial `JobSnapshot`.                                                                                          |
+| `cancel_job` / `get_job_status`                             | Look up the job in the runtime, return the current snapshot.                                                                                                                                                                                                                                |
+| `list_recent_operations`                                    | Reads up to `limit` rows from the SQLite history; maps each `OperationHistoryRecord` into an `OperationHistoryRecordDto`.                                                                                                                                                                   |
+| `clear_operation_history`                                   | Deletes terminal history rows while preserving active jobs.                                                                                                                                                                                                                                 |
+| `diagnostics_app_data_health` / `export_diagnostics_bundle` | Report app data/log/schema health and write a redacted diagnostics ZIP.                                                                                                                                                                                                                     |
 
 Every handler returns `Result<TResponse, IpcError>`. All conversions from `VfsError` / `FileOperationError` go through the `From` impls in `crates/app-ipc`.
 
@@ -132,7 +134,9 @@ Adding a capability requires:
 `apps/desktop-tauri/src/App.tsx` is one line:
 
 ```tsx
-export default function App() { return <FileOctopusShell />; }
+export default function App() {
+  return <FileOctopusShell />;
+}
 ```
 
 `main.tsx` mounts it inside `React.StrictMode`. All product UI lives in `@fileoctopus/frontend` so the shell stays trivial to swap.

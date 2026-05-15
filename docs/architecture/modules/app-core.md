@@ -104,7 +104,7 @@ A thin, owned wrapper over a SQLite file:
 pub struct OperationHistoryRepository { path: Arc<PathBuf> }
 ```
 
-`new(path)` runs `migrate`, which creates the `operation_history` table if absent. The schema is intentionally narrow:
+`new(path)` runs `migrate`, which creates `schema_meta` and `operation_history` if absent. `schema_version = 1` is stored both in `schema_meta` and SQLite `user_version`; future schema versions fail startup instead of resetting the database.
 
 ```sql
 create table if not exists operation_history (
@@ -113,7 +113,7 @@ create table if not exists operation_history (
     source_count integer not null,
     representative_source_path text,
     destination_path text,
-    status text not null,        -- "running" | "completed" | "failed" | "cancelled"
+    status text not null,        -- "running" | "completed" | "failed" | "cancelled" | "interrupted"
     started_at text not null,    -- RFC3339
     completed_at text,           -- RFC3339, nullable
     error_code text              -- mirrors FileOperationError::code() on failure
@@ -124,17 +124,15 @@ Two write paths:
 
 - `insert_started(plan, snapshot)` — called once at `start`. Records the operation kind (Debug-formatted from `FileOperationKind`), source count, the first source's display path as `representative_source_path`, and `destination_path` if present. Failures are logged via `telemetry::error` but never propagated.
 - `update_terminal(job_id, status, error_code)` — called once when the job ends. Updates `status`, sets `completed_at` to `Utc::now().to_rfc3339()`, and stores the optional `error_code`.
+- `mark_interrupted_jobs()` — called during boot. Any `queued`, `running`, or `cancelling` row from a previous process is marked `interrupted`.
+- `clear_terminal_history()` / `cleanup_terminal_history(retain_count)` — delete terminal rows only, never active rows.
 
 Connections are **not pooled** — each operation opens a fresh `rusqlite::Connection::open(path)`. This is appropriate for the current write volume (one row per user operation); revisit if batch jobs become common.
 
 ### Path resolution
 
 ```rust
-fn default_history_path() -> PathBuf {
-    std::env::var_os("FILEOCTOPUS_HISTORY_DB")
-        .map(PathBuf::from)
-        .unwrap_or_else(|| home_dir().unwrap_or(".").join(".fileoctopus").join("operation-history.sqlite"))
-}
+AppPaths::default() -> ~/.fileoctopus/{config,logs,operation-history.sqlite}
 ```
 
 `home_dir` checks `HOME` then `USERPROFILE`. Tests inject a tempdir via `boot_with_history_path` to avoid touching the real user profile.

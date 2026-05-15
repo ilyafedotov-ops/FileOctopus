@@ -42,26 +42,29 @@ Each IPC payload is a `serde(rename_all = "camelCase")` DTO defined in `crates/a
 
 The desktop shell registers exactly these commands (`tauri::generate_handler!`):
 
-| Tauri command            | TS client method                                   | Request DTO                   | Response DTO                   | Purpose                                                             |
-| ------------------------ | -------------------------------------------------- | ----------------------------- | ------------------------------ | ------------------------------------------------------------------- |
-| `app_get_info`           | `FileOctopusClient.getAppInfo()`                   | —                             | `AppInfoResponse`              | App identity and version.                                           |
-| `fs_stat`                | `FsClient.stat(req)`                               | `StatRequest`                 | `StatResponse`                 | Metadata for a single resource.                                     |
-| `fs_list_start`          | `FsClient.listStart(req)`                          | `ListStartRequest`            | `ListStartResponse`            | Start a streamed directory listing. Emits `directory.batch` events. |
-| `plan_file_operation`    | `FileOperationsClient.planFileOperation(req)`      | `PlanFileOperationRequest`    | `PlanFileOperationResponse`    | Validate a `FileOperationRequest` and return a deterministic plan.  |
-| `start_file_operation`   | `FileOperationsClient.startFileOperation(req)`     | `StartFileOperationRequest`   | `StartFileOperationResponse`   | Enqueue a job from a plan. Emits `fileOperation.job.*` events.      |
-| `cancel_job`             | `JobsClient.cancelJob(req)`                        | `CancelJobRequest`            | `JobStatusResponse`            | Cancel a running job by id.                                         |
-| `get_job_status`         | `JobsClient.getJobStatus(req)`                     | `JobStatusRequest`            | `JobStatusResponse`            | Read the latest snapshot for a job.                                 |
-| `list_recent_operations` | `OperationHistoryClient.listRecentOperations(req)` | `ListRecentOperationsRequest` | `ListRecentOperationsResponse` | Read recent rows from the operation-history database.               |
+| Tauri command                 | TS client method                                   | Request DTO                      | Response DTO                      | Purpose                                                             |
+| ----------------------------- | -------------------------------------------------- | -------------------------------- | --------------------------------- | ------------------------------------------------------------------- |
+| `app_get_info`                | `FileOctopusClient.getAppInfo()`                   | —                                | `AppInfoResponse`                 | App identity, version, build profile, commit, and target OS.        |
+| `fs_stat`                     | `FsClient.stat(req)`                               | `StatRequest`                    | `StatResponse`                    | Metadata for a single resource.                                     |
+| `fs_list_start`               | `FsClient.listStart(req)`                          | `ListStartRequest`               | `ListStartResponse`               | Start a streamed directory listing. Emits `directory:batch` events. |
+| `plan_file_operation`         | `FileOperationsClient.planFileOperation(req)`      | `PlanFileOperationRequest`       | `PlanFileOperationResponse`       | Validate a `FileOperationRequest` and return a deterministic plan.  |
+| `start_file_operation`        | `FileOperationsClient.startFileOperation(req)`     | `StartFileOperationRequest`      | `StartFileOperationResponse`      | Enqueue a job from a plan. Emits `fileOperation:job:*` events.      |
+| `cancel_job`                  | `JobsClient.cancelJob(req)`                        | `CancelJobRequest`               | `JobStatusResponse`               | Cancel a running job by id.                                         |
+| `get_job_status`              | `JobsClient.getJobStatus(req)`                     | `JobStatusRequest`               | `JobStatusResponse`               | Read the latest snapshot for a job.                                 |
+| `list_recent_operations`      | `OperationHistoryClient.listRecentOperations(req)` | `ListRecentOperationsRequest`    | `ListRecentOperationsResponse`    | Read recent rows from the operation-history database.               |
+| `clear_operation_history`     | `OperationHistoryClient.clearOperationHistory()`   | —                                | `ClearOperationHistoryResponse`   | Delete terminal history rows while preserving active jobs.          |
+| `diagnostics_app_data_health` | `DiagnosticsClient.appDataHealth()`                | —                                | `AppDataHealthResponse`           | Report app data, log, and schema health without enumerating files.  |
+| `export_diagnostics_bundle`   | `DiagnosticsClient.exportBundle(req)`              | `ExportDiagnosticsBundleRequest` | `ExportDiagnosticsBundleResponse` | Write a redacted diagnostics `.zip` for bug reports.                |
 
 All command handlers return `Result<TResponse, IpcError>`. Errors carry a stable string `code` (see [Error model](#error-model)).
 
 ### `app_get_info`
 
-Returns the application's name and semantic version.
+Returns the application's name, semantic version, build profile, optional commit SHA, and target OS.
 
 ```ts
 const info = await client.getAppInfo();
-// { name: "FileOctopus", version: "0.1.0" }
+// { name: "FileOctopus", version: "0.1.0", buildProfile: "release", commitSha: "abc123", targetOs: "linux" }
 ```
 
 ### `fs_stat`
@@ -81,7 +84,7 @@ Errors: `invalid_uri`, `unsupported_provider`, `not_found`, `permission_denied`,
 
 ### `fs_list_start`
 
-Begins a streamed directory listing. Returns immediately with a `sessionId`; entries arrive asynchronously as `directory.batch` events keyed by that `sessionId`.
+Begins a streamed directory listing. Returns immediately with a `sessionId`; entries arrive asynchronously as `directory:batch` events keyed by that `sessionId`.
 
 ```ts
 const unlisten = await client.fs.onDirectoryBatch((event) => {
@@ -126,7 +129,7 @@ const { plan } = await client.fileOperations.planFileOperation({
 
 ### `start_file_operation`
 
-Spawns a background worker thread that executes the plan. Returns the initial `JobSnapshot` (status `queued` → `running`). Progress flows through `fileOperation.job.*` events. The runtime persists a row to the operation-history SQLite DB on start and updates it on terminal states.
+Spawns a background worker thread that executes the plan. Returns the initial `JobSnapshot` (status `queued` → `running`). Progress flows through `fileOperation:job:*` events. The runtime persists a row to the operation-history SQLite DB on start and updates it on terminal states.
 
 ```ts
 const { job } = await client.fileOperations.startFileOperation({ plan });
@@ -146,12 +149,12 @@ Rust pushes events via `app.emit(name, payload)`. The TS client wraps them in `t
 
 | Event name (constant)                                 | Payload                  | Emitted by                |
 | ----------------------------------------------------- | ------------------------ | ------------------------- |
-| `directory.batch` (`DIRECTORY_BATCH_EVENT`)           | `DirectoryBatchEventDto` | `fs_list_start` worker    |
-| `fileOperation.job.started` (`JOB_STARTED_EVENT`)     | `JobStartedEvent`        | `OperationRuntime::start` |
-| `fileOperation.job.progress` (`JOB_PROGRESS_EVENT`)   | `JobProgressEvent`       | Operation executor        |
-| `fileOperation.job.completed` (`JOB_COMPLETED_EVENT`) | `JobCompletedEvent`      | Operation executor        |
-| `fileOperation.job.failed` (`JOB_FAILED_EVENT`)       | `JobFailedEvent`         | Operation executor        |
-| `fileOperation.job.cancelled` (`JOB_CANCELLED_EVENT`) | `JobCancelledEvent`      | Operation executor        |
+| `directory:batch` (`DIRECTORY_BATCH_EVENT`)           | `DirectoryBatchEventDto` | `fs_list_start` worker    |
+| `fileOperation:job:started` (`JOB_STARTED_EVENT`)     | `JobStartedEvent`        | `OperationRuntime::start` |
+| `fileOperation:job:progress` (`JOB_PROGRESS_EVENT`)   | `JobProgressEvent`       | Operation executor        |
+| `fileOperation:job:completed` (`JOB_COMPLETED_EVENT`) | `JobCompletedEvent`      | Operation executor        |
+| `fileOperation:job:failed` (`JOB_FAILED_EVENT`)       | `JobFailedEvent`         | Operation executor        |
+| `fileOperation:job:cancelled` (`JOB_CANCELLED_EVENT`) | `JobCancelledEvent`      | Operation executor        |
 
 Names are exported as constants from both sides (`crates/app-ipc/src/lib.rs` and `packages/ts-api/src/client.ts`). The Rust enum-to-name mapping lives in `app_ipc::job_event_name`; the payload serializer is `app_ipc::job_event_payload`.
 
@@ -208,6 +211,7 @@ class FileOctopusClient {
   readonly fileOperations: FileOperationsClient;
   readonly jobs: JobsClient;
   readonly operationHistory: OperationHistoryClient;
+  readonly diagnostics: DiagnosticsClient;
   getAppInfo(): Promise<AppInfoResponse>;
 }
 
@@ -231,6 +235,20 @@ class FileOperationsClient {
   onJobCompleted(h: (e: JobCompletedEvent) => void): Promise<UnlistenFn>;
   onJobFailed(h: (e: JobFailedEvent) => void): Promise<UnlistenFn>;
   onJobCancelled(h: (e: JobCancelledEvent) => void): Promise<UnlistenFn>;
+}
+
+class OperationHistoryClient {
+  listRecentOperations(
+    req?: ListRecentOperationsRequest,
+  ): Promise<ListRecentOperationsResponse>;
+  clearOperationHistory(): Promise<ClearOperationHistoryResponse>;
+}
+
+class DiagnosticsClient {
+  appDataHealth(): Promise<AppDataHealthResponse>;
+  exportBundle(
+    req: ExportDiagnosticsBundleRequest,
+  ): Promise<ExportDiagnosticsBundleResponse>;
 }
 
 class JobsClient {
@@ -416,8 +434,9 @@ Cancellation is cooperative — the worker checks `CancellationToken::is_cancell
 A SQLite database stores one row per started job; rows are updated to a terminal status when the job ends.
 
 - Default path: `$HOME/.fileoctopus/operation-history.sqlite` (or `%USERPROFILE%\.fileoctopus\operation-history.sqlite`).
-- Override with `FILEOCTOPUS_HISTORY_DB`.
+- Schema version: `1`, stored in `schema_meta` and SQLite `user_version`.
 - Schema: `operation_history(job_id, operation_kind, source_count, representative_source_path, destination_path, status, started_at, completed_at, error_code)`.
+- Startup recovery marks `queued`, `running`, and `cancelling` rows as `interrupted`.
 
 `list_recent_operations` returns `OperationHistoryRecordDto`:
 
@@ -428,7 +447,7 @@ interface OperationHistoryRecordDto {
   sourceCount: number;
   representativeSourcePath?: string | null; // display path, not URI
   destinationPath?: string | null;
-  status: string; // "running" | "completed" | "failed" | "cancelled"
+  status: string; // "running" | "completed" | "failed" | "cancelled" | "interrupted"
   startedAt: string; // RFC3339
   completedAt?: string | null;
   errorCode?: string | null;
@@ -463,6 +482,7 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/inde
 | `destination_missing`   | `FileOperationError`             | Destination parent does not exist.                             |
 | `destination_conflict`  | `FileOperationError`             | Conflict detected and policy is `fail`.                        |
 | `recursive_operation`   | `FileOperationError`             | Source contains destination (move/copy into itself).           |
+| `unsupported_symlink`   | `FileOperationError`             | Symlink object copy is not supported in the MVP.               |
 | `unsupported_trash`     | `FileOperationError`             | Platform trash unavailable.                                    |
 | `cancelled`             | `FileOperationError`             | Operation aborted via `CancellationToken`.                     |
 | `io_error`              | `FileOperationError`             | Unclassified `std::io::Error`.                                 |
@@ -509,13 +529,14 @@ The frontend never imports these directly, but internal callers and tests do.
 
 ### `app-core`
 
-- `AppCore::boot() -> Result<Arc<AppState>, AppCoreError>` — registers `LocalFsProvider`, opens the history DB, returns shared state. Use `AppCore::boot_with_history_path(PathBuf)` in tests.
-- `AppState { vfs: Arc<VfsRegistry>, operations: Arc<OperationRuntime> }`.
+- `AppCore::boot() -> Result<Arc<AppState>, AppCoreError>` — registers `LocalFsProvider`, opens the history DB, marks previously running jobs as interrupted, returns shared state. Use `AppCore::boot_with_history_path(PathBuf)` in tests.
+- `AppState { vfs, operations, paths, startup_recovery_count }`.
 - `OperationRuntime::plan(request) -> FileOperationPlan` — delegates to `file_ops::plan_file_operation`.
 - `OperationRuntime::start(plan, sink) -> JobSnapshot` — spawns the worker thread, inserts a history row, returns the initial snapshot.
 - `OperationRuntime::cancel(&str) -> JobSnapshot` / `status(&str) -> JobSnapshot` — look up the job by id.
 - `OperationRuntime::recent_history(limit: u32) -> Vec<OperationHistoryRecord>` — clamped to `[1, 100]`.
-- `OperationHistoryRepository::new(PathBuf)` runs idempotent migrations on open.
+- `OperationRuntime::clear_terminal_history()` / `cleanup_history()` — remove terminal rows without deleting active jobs.
+- `OperationHistoryRepository::new(PathBuf)` runs idempotent migrations on open and pins `schema_version = 1`.
 
 ### `app-ipc`
 

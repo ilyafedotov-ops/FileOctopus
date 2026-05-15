@@ -8,20 +8,20 @@
 
 ## Types
 
-| Type | Purpose |
-| --- | --- |
-| `JobId(String)` | Opaque newtype. `app-core` constructs UUIDs. |
-| `JobStatus` | `Queued`, `Running`, `Paused`, `Cancelled`, `Completed`, `Failed`. `Paused` is reserved; no path currently produces it. |
-| `JobSnapshot` | Read-side view of a job (id, kind, status, progress counters, error fields, timestamps). |
-| `JobStartedEvent` | Emitted once when work begins. |
-| `JobProgressEvent` | Emitted periodically while items are processed. |
-| `JobCompletedEvent` | Emitted once on success. |
-| `JobFailedEvent` | Emitted once on failure with `error_code` and `message`. |
-| `JobCancelledEvent` | Emitted once when cooperative cancellation is observed. |
-| `JobEvent` | `enum { Started, Progress, Completed, Failed, Cancelled }`, tagged with `#[serde(tag = "event", rename_all = "camelCase")]`. |
-| `CancellationToken` | `Clone` wrapper around `Arc<AtomicBool>`. |
+| Type                | Purpose                                                                                                                      |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `JobId(String)`     | Opaque newtype. `app-core` constructs UUIDs.                                                                                 |
+| `JobStatus`         | `Queued`, `Running`, `Paused`, `Cancelled`, `Completed`, `Failed`. `Paused` is reserved; no path currently produces it.      |
+| `JobSnapshot`       | Read-side view of a job (id, kind, status, progress counters, error fields, timestamps).                                     |
+| `JobStartedEvent`   | Emitted once when work begins.                                                                                               |
+| `JobProgressEvent`  | Emitted periodically while items are processed.                                                                              |
+| `JobCompletedEvent` | Emitted once on success.                                                                                                     |
+| `JobFailedEvent`    | Emitted once on failure with `error_code` and `message`.                                                                     |
+| `JobCancelledEvent` | Emitted once when cooperative cancellation is observed.                                                                      |
+| `JobEvent`          | `enum { Started, Progress, Completed, Failed, Cancelled }`, tagged with `#[serde(tag = "event", rename_all = "camelCase")]`. |
+| `CancellationToken` | `Clone` wrapper around `Arc<AtomicBool>`.                                                                                    |
 
-All event types and `JobSnapshot` serialize with camelCase. `JobEvent`'s tag is `event`, so the wire form is `{"event":"progress", …}`. `app-ipc::job_event_name` maps each variant to the channel name (`fileOperation.job.progress`, etc.); `app-ipc::job_event_payload` strips the tag for the channel payload.
+All event types and `JobSnapshot` serialize with camelCase. `JobEvent`'s tag is `event`, so the wire form is `{"event":"progress", …}`. `app-ipc::job_event_name` maps each variant to the channel name (`fileOperation:job:progress`, etc.); `app-ipc::job_event_payload` strips the tag for the channel payload.
 
 ## Job lifecycle
 
@@ -80,7 +80,7 @@ impl CancellationToken {
 
 ## Wire-format invariants
 
-- Event-name strings (`fileOperation.job.*`) are owned by `crates/app-ipc`. Do **not** hardcode them in this crate.
+- Event-name strings (`fileOperation:job:*`) are owned by `crates/app-ipc`. Do **not** hardcode them in this crate.
 - New event variants must be added simultaneously here, in `app_ipc::job_event_name`, in `packages/ts-api/src/client.ts`, and in [api-reference.md](../api-reference.md).
 - New `JobStatus` values that can actually be emitted must propagate to `OperationHistoryRepository::status_string` so the SQLite row stays consistent.
 

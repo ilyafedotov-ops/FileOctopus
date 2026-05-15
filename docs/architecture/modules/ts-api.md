@@ -39,15 +39,21 @@ FileOctopusClient ── fs ─────► FsClient ────────
 
 ```ts
 export interface IpcTransport {
-  invoke<TResponse>(command: string, args?: Record<string, unknown>): Promise<TResponse>;
-  listen?<TPayload>(event: string, handler: (payload: TPayload) => void): Promise<UnlistenFn>;
+  invoke<TResponse>(
+    command: string,
+    args?: Record<string, unknown>,
+  ): Promise<TResponse>;
+  listen?<TPayload>(
+    event: string,
+    handler: (payload: TPayload) => void,
+  ): Promise<UnlistenFn>;
 }
 ```
 
 Two ship in-box:
 
 - `createTauriTransport()` — wraps `@tauri-apps/api/core::invoke` and `@tauri-apps/api/event::listen`. Translates dotted command names through `commandMap`. The Tauri `listen` callback hands you `{ payload }`; the transport unwraps it so handlers receive the payload directly.
-- `createPreviewTransport()` — degraded transport for running the React build in a plain browser (e.g. Storybook, design previews). `app.get_info` returns a stub; `fs.list_start` synthesizes a session id and emits an empty `directory.batch` event; every other command rejects with `code: "tauri_unavailable"`.
+- `createPreviewTransport()` — degraded transport for running the React build in a plain browser (e.g. Storybook, design previews). `app.get_info` returns a stub; `fs.list_start` synthesizes a session id and emits an empty `directory:batch` event; diagnostics returns safe stubs; mutating commands reject with `code: "tauri_unavailable"` unless explicitly stubbed for preview.
 
 `createFileOctopusClient(transport?)` auto-selects: if `globalThis.__TAURI_INTERNALS__` is present, the Tauri transport; otherwise the preview transport. Tests inject a mock transport directly into `new FileOctopusClient(transport)`.
 
@@ -65,6 +71,9 @@ const commandMap: Record<string, string> = {
   "job.cancel": "cancel_job",
   "job.status": "get_job_status",
   "operationHistory.listRecent": "list_recent_operations",
+  "operationHistory.clear": "clear_operation_history",
+  "diagnostics.appDataHealth": "diagnostics_app_data_health",
+  "diagnostics.exportBundle": "export_diagnostics_bundle",
 };
 ```
 
@@ -95,12 +104,12 @@ Event subscriptions use `requireListen` (a helper that rejects with `unsupported
 
 ### Method ↔ event matrix
 
-| Client | Methods | Events |
-| --- | --- | --- |
-| `FsClient` | `stat`, `listStart` | `onDirectoryBatch` |
-| `FileOperationsClient` | `planFileOperation`, `startFileOperation` | `onJobStarted`, `onJobProgress`, `onJobCompleted`, `onJobFailed`, `onJobCancelled` |
-| `JobsClient` | `cancelJob`, `getJobStatus` | — |
-| `OperationHistoryClient` | `listRecentOperations` | — |
+| Client                   | Methods                                   | Events                                                                             |
+| ------------------------ | ----------------------------------------- | ---------------------------------------------------------------------------------- |
+| `FsClient`               | `stat`, `listStart`                       | `onDirectoryBatch`                                                                 |
+| `FileOperationsClient`   | `planFileOperation`, `startFileOperation` | `onJobStarted`, `onJobProgress`, `onJobCompleted`, `onJobFailed`, `onJobCancelled` |
+| `JobsClient`             | `cancelJob`, `getJobStatus`               | —                                                                                  |
+| `OperationHistoryClient` | `listRecentOperations`                    | —                                                                                  |
 
 `onDirectoryBatch` and the `onJob*` family each return an `UnlistenFn`; the frontend cleans them up in `useEffect` teardown.
 
@@ -110,7 +119,7 @@ Event subscriptions use `requireListen` (a helper that rejects with `unsupported
 
 - `FileKind` is a string literal union (`"file" | "directory" | …`); Rust's `FileKind` enum serializes that way thanks to `#[serde(rename_all = "camelCase")]`.
 - `JobSnapshot.jobId` is typed `string | JobId` because `JobId` (in `crates/jobs`) serializes either as a plain string or as `{ value }` depending on the path. UI code coerces via `typeof jobId === "string" ? jobId : jobId.value`.
-- Every optional field uses `?` *and* a nullable type (`size?: number | null`) because the Rust DTO is `Option<u64>` and serde serializes `None` as `null`.
+- Every optional field uses `?` _and_ a nullable type (`size?: number | null`) because the Rust DTO is `Option<u64>` and serde serializes `None` as `null`.
 
 ## Error normalization
 

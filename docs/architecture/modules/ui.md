@@ -15,7 +15,11 @@ export interface ShellPanelProps {
   children?: ReactNode;
 }
 
-export function ShellPanel({ title, active = false, children }: ShellPanelProps): JSX.Element;
+export function ShellPanel({
+  title,
+  active = false,
+  children,
+}: ShellPanelProps): JSX.Element;
 ```
 
 Renders a `<section>` with the `fo-panel` / `fo-panel-active` class names (matching the styling in `apps/desktop-tauri/src/App.css`) and a small header that shows the title and `Ready` / `Active` state.

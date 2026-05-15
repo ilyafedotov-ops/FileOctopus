@@ -1,6 +1,6 @@
 # `app-ipc` — IPC contract: DTOs, event constants, error mapping
 
-`crates/app-ipc` is the **wire-format crate**. Every value that crosses the Tauri IPC boundary either *is* defined here or has a `From` / `TryFrom` between its domain type and a DTO defined here. There is no business logic — it's a translation layer. Mirror this crate's shape, field-for-field, in `packages/ts-api/src/types.ts`.
+`crates/app-ipc` is the **wire-format crate**. Every value that crosses the Tauri IPC boundary either _is_ defined here or has a `From` / `TryFrom` between its domain type and a DTO defined here. There is no business logic — it's a translation layer. Mirror this crate's shape, field-for-field, in `packages/ts-api/src/types.ts`.
 
 - Source: `crates/app-ipc/src/lib.rs`
 - Depends on: `vfs`, `jobs`, `chrono`, `serde`, `serde_json`.
@@ -19,16 +19,19 @@ Two reasons:
 
 Pair every Tauri command with a typed request and response:
 
-| Command | Request | Response |
-| --- | --- | --- |
-| `app_get_info` | — | `{ name, version }` (serde_json::Value in lib.rs) |
-| `fs_stat` | `StatRequest { uri }` | `StatResponse { entry: FileEntryDto }` |
-| `fs_list_start` | `ListStartRequest { uri, batchSize?, includeHidden? }` | `ListStartResponse { sessionId }` |
-| `plan_file_operation` | `PlanFileOperationRequest { operation: FileOperationRequestDto }` | `PlanFileOperationResponse { plan: FileOperationPlanDto }` |
-| `start_file_operation` | `StartFileOperationRequest { plan: FileOperationPlanDto }` | `StartFileOperationResponse { job: JobSnapshot }` |
-| `cancel_job` | `CancelJobRequest { jobId }` | `JobStatusResponse { job: JobSnapshot }` |
-| `get_job_status` | `JobStatusRequest { jobId }` | `JobStatusResponse { job: JobSnapshot }` |
-| `list_recent_operations` | `ListRecentOperationsRequest { limit? }` | `ListRecentOperationsResponse { operations: Vec<OperationHistoryRecordDto> }` |
+| Command                       | Request                                                           | Response                                                                      |
+| ----------------------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `app_get_info`                | —                                                                 | `AppInfoResponse`                                                             |
+| `fs_stat`                     | `StatRequest { uri }`                                             | `StatResponse { entry: FileEntryDto }`                                        |
+| `fs_list_start`               | `ListStartRequest { uri, batchSize?, includeHidden? }`            | `ListStartResponse { sessionId }`                                             |
+| `plan_file_operation`         | `PlanFileOperationRequest { operation: FileOperationRequestDto }` | `PlanFileOperationResponse { plan: FileOperationPlanDto }`                    |
+| `start_file_operation`        | `StartFileOperationRequest { plan: FileOperationPlanDto }`        | `StartFileOperationResponse { job: JobSnapshot }`                             |
+| `cancel_job`                  | `CancelJobRequest { jobId }`                                      | `JobStatusResponse { job: JobSnapshot }`                                      |
+| `get_job_status`              | `JobStatusRequest { jobId }`                                      | `JobStatusResponse { job: JobSnapshot }`                                      |
+| `list_recent_operations`      | `ListRecentOperationsRequest { limit? }`                          | `ListRecentOperationsResponse { operations: Vec<OperationHistoryRecordDto> }` |
+| `clear_operation_history`     | —                                                                 | `ClearOperationHistoryResponse { deletedCount }`                              |
+| `diagnostics_app_data_health` | —                                                                 | `AppDataHealthResponse`                                                       |
+| `export_diagnostics_bundle`   | `ExportDiagnosticsBundleRequest { destination }`                  | `ExportDiagnosticsBundleResponse { path, files }`                             |
 
 `JobSnapshot` from `crates/jobs` is re-exported through the response types — it is already camelCase, so it does not need a Dto twin.
 
@@ -43,12 +46,12 @@ Pair every Tauri command with a typed request and response:
 ### Event constants
 
 ```rust
-pub const DIRECTORY_BATCH_EVENT: &str = "directory.batch";
-pub const JOB_STARTED_EVENT: &str = "fileOperation.job.started";
-pub const JOB_PROGRESS_EVENT: &str = "fileOperation.job.progress";
-pub const JOB_COMPLETED_EVENT: &str = "fileOperation.job.completed";
-pub const JOB_FAILED_EVENT: &str = "fileOperation.job.failed";
-pub const JOB_CANCELLED_EVENT: &str = "fileOperation.job.cancelled";
+pub const DIRECTORY_BATCH_EVENT: &str = "directory:batch";
+pub const JOB_STARTED_EVENT: &str = "fileOperation:job:started";
+pub const JOB_PROGRESS_EVENT: &str = "fileOperation:job:progress";
+pub const JOB_COMPLETED_EVENT: &str = "fileOperation:job:completed";
+pub const JOB_FAILED_EVENT: &str = "fileOperation:job:failed";
+pub const JOB_CANCELLED_EVENT: &str = "fileOperation:job:cancelled";
 ```
 
 These are the **authoritative** names for `app.emit` / `tauri::listen`. The TS client mirrors them in `packages/ts-api/src/client.ts`; never hardcode a new string outside this file.
@@ -66,17 +69,17 @@ pub fn job_event_payload(event: JobEvent) -> serde_json::Value;
 
 Every domain ↔ DTO conversion is implemented as a `From` or `TryFrom`:
 
-| Direction | Trait | Notes |
-| --- | --- | --- |
-| `FileEntry → FileEntryDto` | `From` | Infallible. Stringifies `ResourceUri`, `ProviderId`, optional symlink target. |
-| `DirectoryBatch → DirectoryBatchEventDto` | `From` | `error` defaults to `None`; the shell sets it when listing fails. |
-| `FileOperationRequestDto → FileOperationRequest` | `TryFrom<…, Error = IpcError>` | Parses each URI via `ResourceUri::parse`; defaults `conflict_policy` to `Fail`. |
-| `FileOperationPlan ↔ FileOperationPlanDto` | `From` + `TryFrom` | Bidirectional because the plan goes UI → shell → executor through `start_file_operation`. |
-| `FileOperationItem ↔ FileOperationItemDto` | `From` + `TryFrom` | URIs are optional on both sides (createDirectory has no source). |
-| `FileOperationConflict ↔ FileOperationConflictDto` | `From` + `TryFrom` | Both URIs are required. |
-| `FileOperationWarning ↔ FileOperationWarningDto` | `From` (both directions) | The reverse direction silently drops invalid URIs (a warning is not worth failing for). |
-| `VfsError → IpcError` | `From` | `code = error.code()`, `message = error.to_string()`. |
-| `FileOperationError → IpcError` | `From` | `code = error.code()`, `message = error.user_message()`. |
+| Direction                                          | Trait                          | Notes                                                                                     |
+| -------------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------- |
+| `FileEntry → FileEntryDto`                         | `From`                         | Infallible. Stringifies `ResourceUri`, `ProviderId`, optional symlink target.             |
+| `DirectoryBatch → DirectoryBatchEventDto`          | `From`                         | `error` defaults to `None`; the shell sets it when listing fails.                         |
+| `FileOperationRequestDto → FileOperationRequest`   | `TryFrom<…, Error = IpcError>` | Parses each URI via `ResourceUri::parse`; defaults `conflict_policy` to `Fail`.           |
+| `FileOperationPlan ↔ FileOperationPlanDto`         | `From` + `TryFrom`             | Bidirectional because the plan goes UI → shell → executor through `start_file_operation`. |
+| `FileOperationItem ↔ FileOperationItemDto`         | `From` + `TryFrom`             | URIs are optional on both sides (createDirectory has no source).                          |
+| `FileOperationConflict ↔ FileOperationConflictDto` | `From` + `TryFrom`             | Both URIs are required.                                                                   |
+| `FileOperationWarning ↔ FileOperationWarningDto`   | `From` (both directions)       | The reverse direction silently drops invalid URIs (a warning is not worth failing for).   |
+| `VfsError → IpcError`                              | `From`                         | `code = error.code()`, `message = error.to_string()`.                                     |
+| `FileOperationError → IpcError`                    | `From`                         | `code = error.code()`, `message = error.user_message()`.                                  |
 
 `IpcError::internal(message)` is a small constructor for unexpected internal errors.
 
@@ -88,7 +91,7 @@ A small structural type lives in a child module to avoid pulling `app-core` (and
 
 - **Every DTO has `#[serde(rename_all = "camelCase")]`.** Don't introduce a DTO without it — the TS side will silently fail to deserialize.
 - **All errors out of `TryFrom` are `IpcError`.** Don't propagate `VfsError` directly; the `?` operator should hit the `From<VfsError> for IpcError` impl.
-- **URIs are strings on the wire, never paths.** Even in `OperationHistoryRecordDto` where the fields are display paths, they are display paths *because they are for human use*, not because the wire format ever leaks an `OsString`.
+- **URIs are strings on the wire, never paths.** Even in `OperationHistoryRecordDto` where the fields are display paths, they are display paths _because they are for human use_, not because the wire format ever leaks an `OsString`.
 - **One source of truth per event name.** The constants here are the canonical strings. If you add an event, name it here first.
 
 ## Tests
