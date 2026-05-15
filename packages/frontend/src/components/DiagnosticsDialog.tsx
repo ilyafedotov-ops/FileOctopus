@@ -1,6 +1,6 @@
 import type { AppDataHealthResponse, AppInfoResponse } from "@fileoctopus/ts-api";
-import { useEffect } from "react";
 import { Button } from "@fileoctopus/ui";
+import { useDialogEscape } from "../hooks/useDialogEscape";
 
 interface DiagnosticsDialogProps {
   open: boolean;
@@ -29,21 +29,7 @@ export function DiagnosticsDialog({
   onRefresh,
   onExport,
 }: DiagnosticsDialogProps) {
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose, open]);
+  useDialogEscape(open, onClose);
 
   if (!open) {
     return null;

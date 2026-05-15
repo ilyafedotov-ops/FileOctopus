@@ -101,7 +101,7 @@ button:disabled {
   padding: 0 20px;
   border-width: 0 0 1px;
   border-radius: 0;
-  background: #f8fafc;
+  background: var(--fo-strip-bg);
 }
 
 .fo-brand {
@@ -986,8 +986,15 @@ button:disabled {
   box-shadow: 0 12px 28px var(--fo-menu-shadow);
 }
 
-.fo-context-menu button {
+.fo-context-menu .fo-context-menu-item {
+  width: 100%;
+  justify-content: flex-start;
+  border-color: transparent;
   text-align: left;
+}
+
+.fo-context-menu .fo-context-menu-item:hover:not(:disabled) {
+  border-color: var(--fo-border);
 }
 
 .fo-properties dl {
@@ -1226,13 +1233,85 @@ button:disabled {
   background: var(--fo-dark-app-bg);
 }
 
-:root[data-theme="dark"] .fo-shell,
+:root[data-theme="dark"] .fo-shell {
+  background: var(--fo-dark-app-bg);
+}
+
+:root[data-theme="dark"] .fo-shell-frame {
+  background: var(--fo-dark-surface);
+  border-color: var(--fo-dark-border);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 40%);
+}
+
+:root[data-theme="dark"] .fo-workspace {
+  background: var(--fo-dark-app-bg);
+}
+
+:root[data-theme="dark"] .fo-topbar,
+:root[data-theme="dark"] .fo-status,
 :root[data-theme="dark"] .fo-panel,
 :root[data-theme="dark"] .fo-sidebar,
+:root[data-theme="dark"] .fo-activity,
 :root[data-theme="dark"] .fo-job-panel {
   background: var(--fo-dark-surface);
   border-color: var(--fo-dark-border);
   color: var(--fo-dark-text);
+}
+
+:root[data-theme="dark"] .fo-topbar {
+  background: var(--fo-dark-strip-bg);
+}
+
+:root[data-theme="dark"] .fo-readiness,
+:root[data-theme="dark"] .fo-status-segment,
+:root[data-theme="dark"] .fo-muted-text,
+:root[data-theme="dark"] .fo-toolbar-meta {
+  color: var(--fo-dark-muted-text);
+}
+
+:root[data-theme="dark"] .fo-status-readiness,
+:root[data-theme="dark"] .fo-brand h1 {
+  color: var(--fo-dark-text);
+}
+
+:root[data-theme="dark"] .fo-row:hover:not(.fo-row-selected) {
+  background: var(--fo-dark-strip-bg);
+}
+
+:root[data-theme="dark"] .fo-row-selected {
+  background: var(--fo-dark-accent-soft);
+}
+
+:root[data-theme="dark"] .fo-breadcrumb,
+:root[data-theme="dark"] .fo-filter,
+:root[data-theme="dark"] .fo-path,
+:root[data-theme="dark"] .fo-search-strip input {
+  background: var(--fo-dark-control-bg);
+  border-color: var(--fo-dark-control-border);
+  color: var(--fo-dark-text);
+}
+
+:root[data-theme="dark"] .fo-pane-state {
+  background: var(--fo-dark-strip-bg);
+  border-color: var(--fo-dark-border);
+  color: var(--fo-dark-text);
+}
+
+:root[data-theme="dark"] .fo-toast {
+  background: var(--fo-dark-control-bg);
+  border-color: var(--fo-dark-border);
+  color: var(--fo-dark-text);
+}
+
+:root[data-theme="dark"] .fo-toast-success {
+  background: var(--fo-dark-accent-soft);
+  border-color: var(--fo-accent);
+}
+
+:root[data-theme="dark"] .fo-toast-error {
+  background: var(--fo-dark-danger-bg);
+  border-color: var(--fo-dark-danger-border);
+  color: var(--fo-dark-danger-text);
 }
 
 :root[data-density="compact"] {

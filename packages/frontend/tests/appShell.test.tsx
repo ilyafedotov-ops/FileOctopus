@@ -667,6 +667,7 @@ describe("FileOctopusShell", () => {
     });
 
     expect(screen.getByText("copy completed")).toBeTruthy();
+    expect(screen.getByText("Operation completed")).toBeTruthy();
   });
 
   it("shows app diagnostics and exports a bundle", async () => {

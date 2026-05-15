@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import { Button } from "@fileoctopus/ui";
+import { useDialogEscape } from "../hooks/useDialogEscape";
 import { formatShortcut, shortcutGroups } from "../shortcuts";
 
 interface ShortcutsDialogProps {
@@ -8,21 +8,7 @@ interface ShortcutsDialogProps {
 }
 
 export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
-  useEffect(() => {
-    if (!open) {
-      return;
-    }
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose, open]);
+  useDialogEscape(open, onClose);
 
   if (!open) {
     return null;

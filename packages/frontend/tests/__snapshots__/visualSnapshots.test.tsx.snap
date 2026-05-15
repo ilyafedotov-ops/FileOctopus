@@ -1,0 +1,419 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`visual regression snapshots > matches the shell chrome structure in dark theme 1`] = `
+<div
+  class="fo-shell-frame"
+>
+  <header
+    class="fo-topbar"
+  >
+    <div
+      class="fo-brand"
+    >
+      <span
+        aria-hidden="true"
+        class="fo-brand-mark"
+      >
+        🐙
+      </span>
+      <div>
+        <h1>
+          FileOctopus
+        </h1>
+        <span
+          class="fo-ui-badge fo-ui-badge--default"
+        >
+          Rust-powered
+        </span>
+      </div>
+    </div>
+    <div
+      class="fo-readiness"
+    >
+      <span
+        aria-hidden="true"
+        class="fo-readiness-dot"
+      />
+      <span>
+        Ready
+      </span>
+    </div>
+    <div
+      class="fo-topbar-actions"
+    >
+      <button
+        class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"
+        type="button"
+      >
+        Settings
+      </button>
+      <div
+        class="fo-ui-dropdown fo-ui-dropdown--end"
+      >
+        <button
+          aria-controls="_r_1_"
+          aria-expanded="false"
+          aria-haspopup="menu"
+          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"
+          type="button"
+        >
+          Help
+        </button>
+      </div>
+    </div>
+  </header>
+  <section
+    aria-label="File workspace preview"
+    class="fo-workspace"
+  >
+    <aside
+      class="fo-sidebar fo-sidebar-section"
+    >
+      <h2
+        class="fo-sidebar-section-title"
+      >
+        Favorites
+      </h2>
+    </aside>
+    <div
+      aria-label="File panels preview"
+      class="fo-dual-pane"
+    >
+      <section
+        class="fo-panel fo-panel-active"
+      >
+        <header
+          class="fo-panel-header"
+        >
+          <span
+            class="fo-pane-badge"
+          >
+            Left
+          </span>
+        </header>
+      </section>
+      <section
+        class="fo-panel"
+      >
+        <header
+          class="fo-panel-header"
+        >
+          <span
+            class="fo-pane-badge"
+          >
+            Right
+          </span>
+        </header>
+      </section>
+    </div>
+    <aside
+      aria-label="Job activity"
+      class="fo-activity fo-activity-rail"
+    >
+      <header
+        class="fo-activity-header"
+      >
+        <div>
+          <h2>
+            Jobs & Activity
+          </h2>
+          <p>
+            Current operations and recent history
+          </p>
+        </div>
+        <button
+          aria-label="Collapse activity panel"
+          class="fo-ui-btn fo-ui-btn--ghost fo-ui-icon-btn fo-ui-btn--sm"
+          title="Collapse activity panel"
+          type="button"
+        >
+          −
+        </button>
+      </header>
+      <div
+        class="fo-activity-cards"
+      >
+        <div
+          class="fo-empty-inline"
+        >
+          No active jobs
+        </div>
+      </div>
+      <section
+        aria-label="Operation history"
+        class="fo-history"
+      >
+        <header>
+          <strong>
+            History
+          </strong>
+          <div>
+            <button
+              class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"
+              type="button"
+            >
+              Refresh
+            </button>
+            <button
+              class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"
+              type="button"
+            >
+              Clear
+            </button>
+          </div>
+        </header>
+        <div
+          class="fo-empty-inline"
+        >
+          No recent operations
+        </div>
+      </section>
+    </aside>
+  </section>
+  <footer
+    aria-label="Application status"
+    class="fo-status"
+  >
+    <span
+      class="fo-status-segment fo-status-readiness"
+    >
+      Ready
+    </span>
+    <span
+      class="fo-status-segment fo-status-pane"
+      title="/Users/ilya/Documents"
+    >
+      Left pane
+       · 
+      /Users/ilya/Documents
+    </span>
+    <span
+      class="fo-status-segment"
+    >
+      1 selected · 128 KB
+    </span>
+    <span
+      class="fo-status-segment"
+    >
+      12 items
+    </span>
+    <span
+      class="fo-status-segment"
+    >
+      0
+       active job
+      s
+       · No errors
+    </span>
+  </footer>
+</div>
+`;
+
+exports[`visual regression snapshots > matches the shell chrome structure in light theme 1`] = `
+<div
+  class="fo-shell-frame"
+>
+  <header
+    class="fo-topbar"
+  >
+    <div
+      class="fo-brand"
+    >
+      <span
+        aria-hidden="true"
+        class="fo-brand-mark"
+      >
+        🐙
+      </span>
+      <div>
+        <h1>
+          FileOctopus
+        </h1>
+        <span
+          class="fo-ui-badge fo-ui-badge--default"
+        >
+          Rust-powered
+        </span>
+      </div>
+    </div>
+    <div
+      class="fo-readiness"
+    >
+      <span
+        aria-hidden="true"
+        class="fo-readiness-dot"
+      />
+      <span>
+        Ready
+      </span>
+    </div>
+    <div
+      class="fo-topbar-actions"
+    >
+      <button
+        class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"
+        type="button"
+      >
+        Settings
+      </button>
+      <div
+        class="fo-ui-dropdown fo-ui-dropdown--end"
+      >
+        <button
+          aria-controls="_r_0_"
+          aria-expanded="false"
+          aria-haspopup="menu"
+          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"
+          type="button"
+        >
+          Help
+        </button>
+      </div>
+    </div>
+  </header>
+  <section
+    aria-label="File workspace preview"
+    class="fo-workspace"
+  >
+    <aside
+      class="fo-sidebar fo-sidebar-section"
+    >
+      <h2
+        class="fo-sidebar-section-title"
+      >
+        Favorites
+      </h2>
+    </aside>
+    <div
+      aria-label="File panels preview"
+      class="fo-dual-pane"
+    >
+      <section
+        class="fo-panel fo-panel-active"
+      >
+        <header
+          class="fo-panel-header"
+        >
+          <span
+            class="fo-pane-badge"
+          >
+            Left
+          </span>
+        </header>
+      </section>
+      <section
+        class="fo-panel"
+      >
+        <header
+          class="fo-panel-header"
+        >
+          <span
+            class="fo-pane-badge"
+          >
+            Right
+          </span>
+        </header>
+      </section>
+    </div>
+    <aside
+      aria-label="Job activity"
+      class="fo-activity fo-activity-rail"
+    >
+      <header
+        class="fo-activity-header"
+      >
+        <div>
+          <h2>
+            Jobs & Activity
+          </h2>
+          <p>
+            Current operations and recent history
+          </p>
+        </div>
+        <button
+          aria-label="Collapse activity panel"
+          class="fo-ui-btn fo-ui-btn--ghost fo-ui-icon-btn fo-ui-btn--sm"
+          title="Collapse activity panel"
+          type="button"
+        >
+          −
+        </button>
+      </header>
+      <div
+        class="fo-activity-cards"
+      >
+        <div
+          class="fo-empty-inline"
+        >
+          No active jobs
+        </div>
+      </div>
+      <section
+        aria-label="Operation history"
+        class="fo-history"
+      >
+        <header>
+          <strong>
+            History
+          </strong>
+          <div>
+            <button
+              class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"
+              type="button"
+            >
+              Refresh
+            </button>
+            <button
+              class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"
+              type="button"
+            >
+              Clear
+            </button>
+          </div>
+        </header>
+        <div
+          class="fo-empty-inline"
+        >
+          No recent operations
+        </div>
+      </section>
+    </aside>
+  </section>
+  <footer
+    aria-label="Application status"
+    class="fo-status"
+  >
+    <span
+      class="fo-status-segment fo-status-readiness"
+    >
+      Ready
+    </span>
+    <span
+      class="fo-status-segment fo-status-pane"
+      title="/Users/ilya/Documents"
+    >
+      Left pane
+       · 
+      /Users/ilya/Documents
+    </span>
+    <span
+      class="fo-status-segment"
+    >
+      1 selected · 128 KB
+    </span>
+    <span
+      class="fo-status-segment"
+    >
+      12 items
+    </span>
+    <span
+      class="fo-status-segment"
+    >
+      0
+       active job
+      s
+       · No errors
+    </span>
+  </footer>
+</div>
+`;

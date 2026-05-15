@@ -75,10 +75,13 @@ import { StatusBar, readinessFromLoadState } from "./shell/StatusBar";
 import { TitleBar } from "./shell/TitleBar";
 import { Sidebar } from "./sidebar/Sidebar";
 import { DiagnosticsDialog } from "./components/DiagnosticsDialog";
+import { ContextMenu, type ContextMenuState } from "./components/ContextMenu";
 import { PaneStateView } from "./components/PaneStateView";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { ToastStack, type ToastMessage } from "./components/ToastStack";
+import { mergeToast } from "./toastNotifications";
+import { useDialogEscape } from "./hooks/useDialogEscape";
 import { createRequestId } from "./paneTypes";
 import { isEditableTarget } from "./shortcuts";
 import type { UserPreferencesDto } from "@fileoctopus/ts-api";
@@ -95,13 +98,6 @@ interface FileClipboardState {
   uris: string[];
   providerId: string;
   timestamp: number;
-}
-
-interface ContextMenuState {
-  panelId: PanelId;
-  x: number;
-  y: number;
-  entry: FileEntryDto | null;
 }
 
 interface SearchState {
@@ -464,16 +460,9 @@ export function FileOctopusShell() {
   function pushToast(toast: Omit<ToastMessage, "id">) {
     let toastId = createRequestId();
     setToasts((current) => {
-      const duplicate = current.find(
-        (item) => item.title === toast.title && item.tone === toast.tone,
-      );
-      if (duplicate) {
-        toastId = duplicate.id;
-        return current.map((item) =>
-          item.id === duplicate.id ? { ...item, ...toast } : item,
-        );
-      }
-      return [...current.slice(-2), { ...toast, id: toastId }];
+      const merged = mergeToast(current, toast, createRequestId);
+      toastId = merged.toastId;
+      return merged.toasts;
     });
     globalThis.setTimeout(() => {
       setToasts((current) => current.filter((item) => item.id !== toastId));
@@ -1975,9 +1964,9 @@ function FilePanel({
             placeholder="Recursive search"
             onChange={(event) => onRecursiveQuery(event.target.value)}
           />
-          <button type="button" onClick={onRecursiveSearch}>
+          <Button type="button" variant="ghost" size="sm" onClick={onRecursiveSearch}>
             Search
-          </button>
+          </Button>
         </div>
         <PaneStateView
           loadState={tab.loadState}
@@ -2222,221 +2211,6 @@ function RecursiveSearchPanel({
   );
 }
 
-interface ContextMenuProps {
-  menu: ContextMenuState | null;
-  canPaste: boolean;
-  isStarred: boolean;
-  onClose: () => void;
-  onOpen: (panelId: PanelId, entry: FileEntryDto | null) => void;
-  onRename: (panelId: PanelId) => void;
-  onCopy: (panelId: PanelId) => void;
-  onCut: (panelId: PanelId) => void;
-  onPaste: (panelId: PanelId) => void;
-  onTrash: (panelId: PanelId) => void;
-  onToggleStarred: (panelId: PanelId, entry: FileEntryDto) => void;
-  onPermanentDelete: (panelId: PanelId) => void;
-  onCopyPath: (panelId: PanelId) => void;
-  onCopyName: (panelId: PanelId) => void;
-  onProperties: (panelId: PanelId, entry: FileEntryDto | null) => void;
-  onReveal: (panelId: PanelId, entry: FileEntryDto | null) => void;
-  onCreateFolder: (panelId: PanelId) => void;
-  onCreateFile: (panelId: PanelId) => void;
-  onRefresh: (panelId: PanelId) => void;
-  onSelectAll: (panelId: PanelId) => void;
-  onViewMode: (panelId: PanelId, viewMode: ViewMode) => void;
-  onSort: (panelId: PanelId, field: SortField) => void;
-}
-
-function ContextMenu({
-  menu,
-  canPaste,
-  isStarred,
-  onClose,
-  onOpen,
-  onRename,
-  onCopy,
-  onCut,
-  onPaste,
-  onTrash,
-  onToggleStarred,
-  onPermanentDelete,
-  onCopyPath,
-  onCopyName,
-  onProperties,
-  onReveal,
-  onCreateFolder,
-  onCreateFile,
-  onRefresh,
-  onSelectAll,
-  onViewMode,
-  onSort,
-}: ContextMenuProps) {
-  if (!menu) {
-    return null;
-  }
-
-  const itemMenu = Boolean(menu.entry);
-  const run = (action: () => void) => {
-    action();
-    onClose();
-  };
-
-  return (
-    <div className="fo-menu-backdrop" onClick={onClose} role="presentation">
-      <div
-        className="fo-context-menu"
-        role="menu"
-        style={{ left: menu.x, top: menu.y }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <button
-          type="button"
-          disabled={!itemMenu}
-          onClick={() => run(() => onOpen(menu.panelId, menu.entry))}
-        >
-          Open
-        </button>
-        <button
-          type="button"
-          disabled={!itemMenu}
-          onClick={() => run(() => onRename(menu.panelId))}
-        >
-          Rename
-        </button>
-        <button
-          type="button"
-          disabled={!itemMenu}
-          onClick={() => run(() => onCopy(menu.panelId))}
-        >
-          Copy
-        </button>
-        <button
-          type="button"
-          disabled={!itemMenu}
-          onClick={() => run(() => onCut(menu.panelId))}
-        >
-          Cut
-        </button>
-        <button
-          type="button"
-          disabled={!canPaste}
-          onClick={() => run(() => onPaste(menu.panelId))}
-        >
-          Paste
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => onCreateFolder(menu.panelId))}
-        >
-          New Folder
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => onCreateFile(menu.panelId))}
-        >
-          New File
-        </button>
-        <button
-          type="button"
-          disabled={!itemMenu}
-          onClick={() => run(() => onTrash(menu.panelId))}
-        >
-          Move to Trash
-        </button>
-        <button
-          type="button"
-          disabled={!itemMenu}
-          onClick={() => run(() => onPermanentDelete(menu.panelId))}
-        >
-          Delete Permanently
-        </button>
-        <button
-          type="button"
-          disabled={!itemMenu}
-          onClick={() => run(() => onCopyPath(menu.panelId))}
-        >
-          Copy Path
-        </button>
-        <button
-          type="button"
-          disabled={!itemMenu}
-          onClick={() => run(() => onCopyName(menu.panelId))}
-        >
-          Copy Name
-        </button>
-        <button
-          type="button"
-          disabled={!itemMenu}
-          onClick={() => run(() => onProperties(menu.panelId, menu.entry))}
-        >
-          Properties
-        </button>
-        <button
-          type="button"
-          disabled={!itemMenu}
-          onClick={() => run(() => onReveal(menu.panelId, menu.entry))}
-        >
-          Reveal
-        </button>
-        <button
-          type="button"
-          disabled={!itemMenu || !menu.entry}
-          onClick={() => run(() => onToggleStarred(menu.panelId, menu.entry!))}
-        >
-          {isStarred ? "Remove Star" : "Add Star"}
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => onRefresh(menu.panelId))}
-        >
-          Refresh
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => onSelectAll(menu.panelId))}
-        >
-          Select All
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => onViewMode(menu.panelId, "details"))}
-        >
-          Details View
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => onViewMode(menu.panelId, "list"))}
-        >
-          List View
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => onViewMode(menu.panelId, "icons"))}
-        >
-          Icon View
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => onViewMode(menu.panelId, "columns"))}
-        >
-          Columns View
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => onSort(menu.panelId, "name"))}
-        >
-          Sort Name
-        </button>
-        <button
-          type="button"
-          onClick={() => run(() => onSort(menu.panelId, "modified"))}
-        >
-          Sort Modified
-        </button>
-      </div>
-    </div>
-  );
-}
 
 function propertyType(properties: PathPropertiesDto): string {
   if (properties.kind === "directory") {
@@ -2539,6 +2313,8 @@ function OperationDialogView({
   onCopyPath,
   onReveal,
 }: OperationDialogViewProps) {
+  useDialogEscape(Boolean(dialog), onClose);
+
   if (!dialog) {
     return null;
   }
@@ -2562,12 +2338,12 @@ function OperationDialogView({
 
   return (
     <div className="fo-dialog-backdrop" role="presentation">
-      <section className="fo-dialog" role="dialog" aria-modal="true">
+      <section className="fo-dialog" role="dialog" aria-modal="true" aria-label={title}>
         <header>
           <strong>{title}</strong>
-          <button type="button" onClick={onClose}>
+          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
             Close
-          </button>
+          </Button>
         </header>
         {dialog.type === "createFolder" ? (
           <form
@@ -2589,7 +2365,9 @@ function OperationDialogView({
             {dialog.error ? (
               <div className="fo-operation-error">{dialog.error}</div>
             ) : null}
-            <button type="submit">Create</button>
+            <Button type="submit" variant="primary" size="sm">
+              Create
+            </Button>
           </form>
         ) : null}
         {dialog.type === "createFile" ? (
@@ -2612,7 +2390,9 @@ function OperationDialogView({
             {dialog.error ? (
               <div className="fo-operation-error">{dialog.error}</div>
             ) : null}
-            <button type="submit">Create</button>
+            <Button type="submit" variant="primary" size="sm">
+              Create
+            </Button>
           </form>
         ) : null}
         {dialog.type === "rename" ? (
@@ -2635,7 +2415,9 @@ function OperationDialogView({
             {dialog.error ? (
               <div className="fo-operation-error">{dialog.error}</div>
             ) : null}
-            <button type="submit">Rename</button>
+            <Button type="submit" variant="primary" size="sm">
+              Rename
+            </Button>
           </form>
         ) : null}
         {dialog.type === "copyMove" ? (
@@ -2708,16 +2490,23 @@ function OperationDialogView({
               <div className="fo-operation-error">{dialog.error}</div>
             ) : null}
             <div className="fo-dialog-actions">
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 disabled={dialog.planning}
                 onClick={() => onReviewCopyMove(dialog)}
               >
                 {dialog.planning ? "Planning" : "Plan"}
-              </button>
-              <button type="submit" disabled={dialog.planning || !dialog.plan}>
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="sm"
+                disabled={dialog.planning || !dialog.plan}
+              >
                 Start
-              </button>
+              </Button>
             </div>
           </form>
         ) : null}
@@ -2750,7 +2539,9 @@ function OperationDialogView({
               />
               Don&apos;t ask again this session
             </label>
-            <button type="submit">Move to Trash</button>
+            <Button type="submit" variant="primary" size="sm">
+              Move to Trash
+            </Button>
           </form>
         ) : null}
         {dialog.type === "permanentDelete" ? (
@@ -2769,9 +2560,9 @@ function OperationDialogView({
             {dialog.error ? (
               <div className="fo-operation-error">{dialog.error}</div>
             ) : null}
-            <button type="submit" className="fo-dialog-danger">
+            <Button type="submit" variant="danger" size="sm">
               Delete Permanently
-            </button>
+            </Button>
           </form>
         ) : null}
         {dialog.type === "properties" ? (
@@ -2816,18 +2607,22 @@ function OperationDialogView({
                   </div>
                 ) : null}
                 <div className="fo-dialog-actions">
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onCopyPath(dialog.panelId)}
                   >
                     Copy Path
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => onReveal(dialog.panelId, dialog.entry)}
                   >
                     Reveal
-                  </button>
+                  </Button>
                 </div>
               </>
             ) : null}
