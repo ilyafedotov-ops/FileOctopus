@@ -73,7 +73,10 @@ export function FileRow({
       draggable
       onDragStart={(event: DragEvent<HTMLDivElement>) => {
         event.dataTransfer.setData(URI_MIME, entry.uri);
-        event.dataTransfer.setData("application/x-fileoctopus-name", entry.name);
+        event.dataTransfer.setData(
+          "application/x-fileoctopus-name",
+          entry.name,
+        );
         event.dataTransfer.effectAllowed = "move";
       }}
       onContextMenu={(event) => {
@@ -91,8 +94,12 @@ export function FileRow({
       </span>
       {viewMode === "details" || viewMode === "list" ? (
         <>
-          <span>{entry.kind === "directory" ? "—" : formatSize(entry.size)}</span>
-          <span title={entry.modifiedAt ?? undefined}>{formatDate(entry.modifiedAt)}</span>
+          <span>
+            {entry.kind === "directory" ? "—" : formatSize(entry.size)}
+          </span>
+          <span title={entry.modifiedAt ?? undefined}>
+            {formatDate(entry.modifiedAt)}
+          </span>
           <span>{typeLabel}</span>
         </>
       ) : null}

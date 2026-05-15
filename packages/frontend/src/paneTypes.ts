@@ -11,14 +11,19 @@ export type PaneLoadState =
   | "timeout";
 
 export function createRequestId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
 
   return `req-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function loadStateFromBatchError(error: IpcError | null | undefined): PaneLoadState {
+export function loadStateFromBatchError(
+  error: IpcError | null | undefined,
+): PaneLoadState {
   if (!error) {
     return "error";
   }

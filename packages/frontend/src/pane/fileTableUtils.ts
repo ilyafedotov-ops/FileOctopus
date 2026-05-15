@@ -30,7 +30,11 @@ export function formatDate(value?: string | null): string {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  const valueDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const valueDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
   const time = date.toLocaleTimeString(undefined, {
     hour: "2-digit",
     minute: "2-digit",

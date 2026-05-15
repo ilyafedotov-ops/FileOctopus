@@ -6,7 +6,10 @@ export interface ToolbarButtonProps extends ButtonHTMLAttributes<HTMLButtonEleme
 }
 
 export const ToolbarButton = forwardRef<HTMLButtonElement, ToolbarButtonProps>(
-  function ToolbarButton({ primary = false, className, type = "button", ...props }, ref) {
+  function ToolbarButton(
+    { primary = false, className, type = "button", ...props },
+    ref,
+  ) {
     return (
       <button
         ref={ref}

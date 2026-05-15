@@ -12,7 +12,11 @@ export interface BreadcrumbPathProps {
   onEditPath: () => void;
 }
 
-export function BreadcrumbPath({ segments, onNavigate, onEditPath }: BreadcrumbPathProps) {
+export function BreadcrumbPath({
+  segments,
+  onNavigate,
+  onEditPath,
+}: BreadcrumbPathProps) {
   return (
     <div className="fo-breadcrumb">
       <div className="fo-breadcrumb-segments">
@@ -22,7 +26,11 @@ export function BreadcrumbPath({ segments, onNavigate, onEditPath }: BreadcrumbP
             type="button"
             variant="ghost"
             size="sm"
-            className={index === segments.length - 1 ? "fo-breadcrumb-current" : undefined}
+            className={
+              index === segments.length - 1
+                ? "fo-breadcrumb-current"
+                : undefined
+            }
             title={segment.path}
             onClick={() => onNavigate(segment.path)}
           >

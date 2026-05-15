@@ -1,4 +1,7 @@
-import type { AppDataHealthResponse, AppInfoResponse } from "@fileoctopus/ts-api";
+import type {
+  AppDataHealthResponse,
+  AppInfoResponse,
+} from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
 

@@ -55,7 +55,7 @@ The desktop shell registers exactly these commands (`tauri::generate_handler!`):
 | `clear_operation_history`     | `OperationHistoryClient.clearOperationHistory()`   | —                                | `ClearOperationHistoryResponse`   | Delete terminal history rows while preserving active jobs.          |
 | `diagnostics_app_data_health` | `DiagnosticsClient.appDataHealth()`                | —                                | `AppDataHealthResponse`           | Report app data, log, and schema health without enumerating files.  |
 | `export_diagnostics_bundle`   | `DiagnosticsClient.exportBundle(req)`              | `ExportDiagnosticsBundleRequest` | `ExportDiagnosticsBundleResponse` | Write a redacted diagnostics `.zip` for bug reports.                |
-| `get_preferences`             | `PreferencesClient.get()`                          | —                                | `GetPreferencesResponse`            | Read persisted UI preferences (theme, density, view mode, etc.).   |
+| `get_preferences`             | `PreferencesClient.get()`                          | —                                | `GetPreferencesResponse`          | Read persisted UI preferences (theme, density, view mode, etc.).    |
 | `set_preference`              | `PreferencesClient.set(req)`                       | `SetPreferenceRequest`           | `SetPreferenceResponse`           | Update a single preference key with validation.                     |
 
 All command handlers return `Result<TResponse, IpcError>`. Errors carry a stable string `code` (see [Error model](#error-model)).
@@ -114,8 +114,8 @@ const { sessionId, requestId } = await client.fs.listStart({
 | `request.panelId`       | `string?`  | `"left"` or `"right"`; used to cancel superseded listings per pane.   |
 | `request.batchSize`     | `number?`  | Default `256`, clamped to `>= 1`.                                     |
 | `request.includeHidden` | `boolean?` | Default `false`. Dotfiles are hidden.                                 |
-| `response.sessionId`    | `string`   | UUID; matches `DirectoryBatchEventDto.sessionId`.                   |
-| `response.requestId`    | `string`   | Echo of `request.requestId`.                                        |
+| `response.sessionId`    | `string`   | UUID; matches `DirectoryBatchEventDto.sessionId`.                     |
+| `response.requestId`    | `string`   | Echo of `request.requestId`.                                          |
 
 Errors arrive on the event stream as `DirectoryBatchEventDto.error` when listing fails mid-stream (including `permission_denied` and `timeout` after 30s). The synchronous response only fails for invalid input (`invalid_uri`, `unsupported_provider`).
 
@@ -488,30 +488,30 @@ interface IpcError {
 
 The `code` is stable and is what the UI branches on (`packages/frontend/src/index.tsx::operationErrorMessage`). All current codes:
 
-| Code                    | Origin                           | Meaning                                                        |
-| ----------------------- | -------------------------------- | -------------------------------------------------------------- |
-| `invalid_uri`           | `VfsError`                       | URI failed to parse (missing scheme, relative path, NUL byte). |
-| `unsupported_provider`  | `VfsError`, `FileOperationError` | No provider registered for the scheme.                         |
-| `duplicate_provider`    | `VfsError`                       | Two providers tried to claim the same scheme.                  |
-| `not_found`             | `VfsError`, `FileOperationError` | Resource or job id does not exist.                             |
-| `permission_denied`     | `VfsError`, `FileOperationError` | OS denied the read/write/delete.                               |
-| `timeout`               | `VfsError`                       | Directory listing exceeded the server timeout (30s).             |
+| Code                    | Origin                           | Meaning                                                             |
+| ----------------------- | -------------------------------- | ------------------------------------------------------------------- |
+| `invalid_uri`           | `VfsError`                       | URI failed to parse (missing scheme, relative path, NUL byte).      |
+| `unsupported_provider`  | `VfsError`, `FileOperationError` | No provider registered for the scheme.                              |
+| `duplicate_provider`    | `VfsError`                       | Two providers tried to claim the same scheme.                       |
+| `not_found`             | `VfsError`, `FileOperationError` | Resource or job id does not exist.                                  |
+| `permission_denied`     | `VfsError`, `FileOperationError` | OS denied the read/write/delete.                                    |
+| `timeout`               | `VfsError`                       | Directory listing exceeded the server timeout (30s).                |
 | `cancelled`             | `VfsError`                       | Directory listing was cancelled (superseded navigation or timeout). |
-| `preferences_error`     | Preferences repository           | Invalid preference key/value or database failure.            |
-| `invalid_request`       | `FileOperationError`             | Operation request shape is wrong (missing sources, etc.).      |
-| `invalid_name`          | `FileOperationError`             | Proposed name is empty, contains separators, or is reserved.   |
-| `invalid_path`          | `FileOperationError`             | URI parsed but is not usable for this operation.               |
-| `destination_missing`   | `FileOperationError`             | Destination parent does not exist.                             |
-| `destination_conflict`  | `FileOperationError`             | Conflict detected and policy is `fail`.                        |
-| `recursive_operation`   | `FileOperationError`             | Source contains destination (move/copy into itself).           |
-| `unsupported_symlink`   | `FileOperationError`             | Symlink object copy is not supported in the MVP.               |
-| `unsupported_trash`     | `FileOperationError`             | Platform trash unavailable.                                    |
-| `cancelled`             | `FileOperationError`             | Operation aborted via `CancellationToken`.                     |
-| `io_error`              | `FileOperationError`             | Unclassified `std::io::Error`.                                 |
-| `internal`              | `VfsError`, `FileOperationError` | Bug or invariant violation — file an issue.                    |
-| `unknown`               | TS client                        | A non-IPC error was caught and wrapped.                        |
-| `tauri_unavailable`     | Preview transport                | A mutating command was called outside the Tauri shell.         |
-| `unsupported_transport` | TS client                        | Event subscription on a transport without `listen`.            |
+| `preferences_error`     | Preferences repository           | Invalid preference key/value or database failure.                   |
+| `invalid_request`       | `FileOperationError`             | Operation request shape is wrong (missing sources, etc.).           |
+| `invalid_name`          | `FileOperationError`             | Proposed name is empty, contains separators, or is reserved.        |
+| `invalid_path`          | `FileOperationError`             | URI parsed but is not usable for this operation.                    |
+| `destination_missing`   | `FileOperationError`             | Destination parent does not exist.                                  |
+| `destination_conflict`  | `FileOperationError`             | Conflict detected and policy is `fail`.                             |
+| `recursive_operation`   | `FileOperationError`             | Source contains destination (move/copy into itself).                |
+| `unsupported_symlink`   | `FileOperationError`             | Symlink object copy is not supported in the MVP.                    |
+| `unsupported_trash`     | `FileOperationError`             | Platform trash unavailable.                                         |
+| `cancelled`             | `FileOperationError`             | Operation aborted via `CancellationToken`.                          |
+| `io_error`              | `FileOperationError`             | Unclassified `std::io::Error`.                                      |
+| `internal`              | `VfsError`, `FileOperationError` | Bug or invariant violation — file an issue.                         |
+| `unknown`               | TS client                        | A non-IPC error was caught and wrapped.                             |
+| `tauri_unavailable`     | Preview transport                | A mutating command was called outside the Tauri shell.              |
+| `unsupported_transport` | TS client                        | Event subscription on a transport without `listen`.                 |
 
 The Rust enums are `VfsError::code()` and `FileOperationError::code()` — those are the source of truth, and any new variant must extend this table.
 

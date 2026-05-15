@@ -29,7 +29,14 @@ import type { ReactNode } from "react";
 export const iconSize = 16;
 
 export function renderIcon(Icon: LucideIcon, className?: string): ReactNode {
-  return <Icon size={iconSize} strokeWidth={1.75} className={className} aria-hidden />;
+  return (
+    <Icon
+      size={iconSize}
+      strokeWidth={1.75}
+      className={className}
+      aria-hidden
+    />
+  );
 }
 
 export const Icons = {
@@ -59,7 +66,10 @@ export const Icons = {
 };
 
 export function fileEntryIcon(
-  entry: Pick<{ kind: string; extension?: string | null; name: string }, "kind" | "extension" | "name">,
+  entry: Pick<
+    { kind: string; extension?: string | null; name: string },
+    "kind" | "extension" | "name"
+  >,
 ): ReactNode {
   if (entry.kind === "directory") {
     return Icons.folder();

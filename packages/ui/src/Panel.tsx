@@ -8,7 +8,12 @@ export interface PanelProps {
   className?: string;
 }
 
-export function Panel({ title, active = false, children, className }: PanelProps) {
+export function Panel({
+  title,
+  active = false,
+  children,
+  className,
+}: PanelProps) {
   return (
     <section className={cx("fo-panel", active && "fo-panel-active", className)}>
       <header className="fo-panel-header">

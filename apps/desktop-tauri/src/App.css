@@ -1152,7 +1152,9 @@ button:disabled {
   display: none;
 }
 
-.fo-workspace[data-layout="narrow"] .fo-dual-pane > .fo-panel:not(.fo-panel-active) {
+.fo-workspace[data-layout="narrow"]
+  .fo-dual-pane
+  > .fo-panel:not(.fo-panel-active) {
   display: none;
 }
 

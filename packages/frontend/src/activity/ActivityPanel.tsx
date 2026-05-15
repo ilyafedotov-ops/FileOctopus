@@ -2,7 +2,13 @@ import type {
   JobSnapshot,
   OperationHistoryRecordDto,
 } from "@fileoctopus/ts-api";
-import { Badge, Button, IconButton, Icons, SegmentedControl } from "@fileoctopus/ui";
+import {
+  Badge,
+  Button,
+  IconButton,
+  Icons,
+  SegmentedControl,
+} from "@fileoctopus/ui";
 import { useMemo, useState } from "react";
 import { formatDate } from "../pane/fileTableUtils";
 import { JobCard } from "./JobCard";

@@ -71,9 +71,7 @@ export function SettingsDialog({
             <button
               type="button"
               className={
-                activeSection === "files"
-                  ? "fo-settings-nav-active"
-                  : undefined
+                activeSection === "files" ? "fo-settings-nav-active" : undefined
               }
               onClick={() => setActiveSection("files")}
             >
@@ -116,7 +114,9 @@ export function SettingsDialog({
                   <span>Density</span>
                   <select
                     value={preferences.density}
-                    onChange={(event) => onChange("density", event.target.value)}
+                    onChange={(event) =>
+                      onChange("density", event.target.value)
+                    }
                   >
                     <option value="compact">Compact</option>
                     <option value="comfortable">Comfortable</option>

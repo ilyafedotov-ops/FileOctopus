@@ -128,10 +128,15 @@ export function ContextMenu({
         >
           Cut
         </ContextMenuItem>
-        <ContextMenuItem disabled={!canPaste} onClick={() => run(() => onPaste(menu.panelId))}>
+        <ContextMenuItem
+          disabled={!canPaste}
+          onClick={() => run(() => onPaste(menu.panelId))}
+        >
           Paste
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => run(() => onCreateFolder(menu.panelId))}>
+        <ContextMenuItem
+          onClick={() => run(() => onCreateFolder(menu.panelId))}
+        >
           New Folder
         </ContextMenuItem>
         <ContextMenuItem onClick={() => run(() => onCreateFile(menu.panelId))}>
@@ -182,28 +187,42 @@ export function ContextMenu({
         <ContextMenuItem onClick={() => run(() => onRefresh(menu.panelId))}>
           Refresh
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => run(() => onToggleHidden(menu.panelId))}>
+        <ContextMenuItem
+          onClick={() => run(() => onToggleHidden(menu.panelId))}
+        >
           {showHidden ? "Hide Hidden Files" : "Show Hidden Files"}
         </ContextMenuItem>
         <ContextMenuItem onClick={() => run(() => onSelectAll(menu.panelId))}>
           Select All
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => run(() => onViewMode(menu.panelId, "details"))}>
+        <ContextMenuItem
+          onClick={() => run(() => onViewMode(menu.panelId, "details"))}
+        >
           Details View
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => run(() => onViewMode(menu.panelId, "list"))}>
+        <ContextMenuItem
+          onClick={() => run(() => onViewMode(menu.panelId, "list"))}
+        >
           List View
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => run(() => onViewMode(menu.panelId, "icons"))}>
+        <ContextMenuItem
+          onClick={() => run(() => onViewMode(menu.panelId, "icons"))}
+        >
           Icon View
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => run(() => onViewMode(menu.panelId, "columns"))}>
+        <ContextMenuItem
+          onClick={() => run(() => onViewMode(menu.panelId, "columns"))}
+        >
           Columns View
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => run(() => onSort(menu.panelId, "name"))}>
+        <ContextMenuItem
+          onClick={() => run(() => onSort(menu.panelId, "name"))}
+        >
           Sort Name
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => run(() => onSort(menu.panelId, "modified"))}>
+        <ContextMenuItem
+          onClick={() => run(() => onSort(menu.panelId, "modified"))}
+        >
           Sort Modified
         </ContextMenuItem>
       </div>

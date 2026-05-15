@@ -1687,7 +1687,9 @@ export function FileOctopusShell() {
                 onReveal={(entry) => void revealEntry("left", entry)}
                 onRefresh={() => refreshPanel("left")}
                 onToggleHidden={() => toggleHidden("left")}
-                onSelectAll={() => dispatch({ type: "selectAll", panelId: "left" })}
+                onSelectAll={() =>
+                  dispatch({ type: "selectAll", panelId: "left" })
+                }
                 onMove={(delta) =>
                   dispatch({ type: "moveSelection", panelId: "left", delta })
                 }
@@ -1761,7 +1763,9 @@ export function FileOctopusShell() {
                 onReveal={(entry) => void revealEntry("right", entry)}
                 onRefresh={() => refreshPanel("right")}
                 onToggleHidden={() => toggleHidden("right")}
-                onSelectAll={() => dispatch({ type: "selectAll", panelId: "right" })}
+                onSelectAll={() =>
+                  dispatch({ type: "selectAll", panelId: "right" })
+                }
                 onMove={(delta) =>
                   dispatch({ type: "moveSelection", panelId: "right", delta })
                 }

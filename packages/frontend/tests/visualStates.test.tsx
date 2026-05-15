@@ -60,7 +60,9 @@ describe("visual state fixtures", () => {
 
     expect(screen.getByText("Permission denied")).toBeTruthy();
     expect(
-      screen.getByText("Check macOS privacy settings or choose another location."),
+      screen.getByText(
+        "Check macOS privacy settings or choose another location.",
+      ),
     ).toBeTruthy();
     view.restore();
   });
@@ -119,10 +121,14 @@ describe("visual state fixtures", () => {
   it("renders shortcuts dialog", () => {
     const view = renderVisualState(<ShortcutsDialog open onClose={noop} />);
 
-    expect(screen.getByRole("heading", { name: "Keyboard shortcuts" })).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Keyboard shortcuts" }),
+    ).toBeTruthy();
     expect(screen.getByText("Copy selection")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Navigation" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "File operations" })).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "File operations" }),
+    ).toBeTruthy();
     view.restore();
   });
 

@@ -1,4 +1,11 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { createPortal } from "react-dom";
 import { cx } from "./cx";
 import { Button } from "./Button";
@@ -38,9 +45,11 @@ export function DropdownMenu({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
-  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; minWidth: number } | null>(
-    null,
-  );
+  const [menuStyle, setMenuStyle] = useState<{
+    top: number;
+    left: number;
+    minWidth: number;
+  } | null>(null);
 
   useLayoutEffect(() => {
     if (!open || !triggerRef.current) {
@@ -50,8 +59,7 @@ export function DropdownMenu({
 
     const trigger = triggerRef.current.getBoundingClientRect();
     const menuWidth = menuRef.current?.offsetWidth ?? 208;
-    const left =
-      align === "end" ? trigger.right - menuWidth : trigger.left;
+    const left = align === "end" ? trigger.right - menuWidth : trigger.left;
 
     setMenuStyle({
       top: trigger.bottom + 4,
@@ -149,7 +157,9 @@ export function DropdownMenu({
                   </span>
                   <span className="fo-ui-dropdown-label">{item.label}</span>
                   {item.shortcut ? (
-                    <span className="fo-ui-dropdown-shortcut">{item.shortcut}</span>
+                    <span className="fo-ui-dropdown-shortcut">
+                      {item.shortcut}
+                    </span>
                   ) : null}
                 </button>
               ))}

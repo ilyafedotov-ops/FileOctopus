@@ -39,7 +39,9 @@ export function Sidebar({
   onRenameFavorite,
   onRevealFavorite,
 }: SidebarProps) {
-  const [favoriteMenu, setFavoriteMenu] = useState<FavoriteEntryDto | null>(null);
+  const [favoriteMenu, setFavoriteMenu] = useState<FavoriteEntryDto | null>(
+    null,
+  );
   const grouped = locations.reduce<Record<string, StandardLocationDto[]>>(
     (groups, location) => ({
       ...groups,
@@ -53,13 +55,17 @@ export function Sidebar({
       className="fo-sidebar"
       aria-label="Standard locations"
       onDragOver={(event) => {
-        if (event.dataTransfer.types.includes("application/x-fileoctopus-uri")) {
+        if (
+          event.dataTransfer.types.includes("application/x-fileoctopus-uri")
+        ) {
           event.preventDefault();
         }
       }}
       onDrop={(event) => {
         const uri = event.dataTransfer.getData("application/x-fileoctopus-uri");
-        const label = event.dataTransfer.getData("application/x-fileoctopus-name");
+        const label = event.dataTransfer.getData(
+          "application/x-fileoctopus-name",
+        );
         if (uri) {
           event.preventDefault();
           onAddFavorite(uri, label || uri);
@@ -144,7 +150,10 @@ export function Sidebar({
             variant="ghost"
             size="sm"
             onClick={() => {
-              const next = globalThis.prompt("Rename favorite", favoriteMenu.label);
+              const next = globalThis.prompt(
+                "Rename favorite",
+                favoriteMenu.label,
+              );
               if (next) {
                 onRenameFavorite(favoriteMenu.id, next);
               }
@@ -175,7 +184,12 @@ export function Sidebar({
           >
             Remove
           </Button>
-          <Button type="button" variant="ghost" size="sm" onClick={() => setFavoriteMenu(null)}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setFavoriteMenu(null)}
+          >
             Cancel
           </Button>
         </div>

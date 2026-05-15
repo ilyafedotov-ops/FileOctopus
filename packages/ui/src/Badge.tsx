@@ -8,9 +8,17 @@ export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
   children: ReactNode;
 }
 
-export function Badge({ tone = "default", className, children, ...props }: BadgeProps) {
+export function Badge({
+  tone = "default",
+  className,
+  children,
+  ...props
+}: BadgeProps) {
   return (
-    <span className={cx("fo-ui-badge", `fo-ui-badge--${tone}`, className)} {...props}>
+    <span
+      className={cx("fo-ui-badge", `fo-ui-badge--${tone}`, className)}
+      {...props}
+    >
       {children}
     </span>
   );

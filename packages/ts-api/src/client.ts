@@ -278,7 +278,9 @@ export class PreferencesClient {
 
   async get(): Promise<GetPreferencesResponse> {
     try {
-      return await this.transport.invoke<GetPreferencesResponse>("preferences.get");
+      return await this.transport.invoke<GetPreferencesResponse>(
+        "preferences.get",
+      );
     } catch (error) {
       throw normalizeIpcError(error);
     }
@@ -286,9 +288,12 @@ export class PreferencesClient {
 
   async set(request: SetPreferenceRequest): Promise<SetPreferenceResponse> {
     try {
-      return await this.transport.invoke<SetPreferenceResponse>("preferences.set", {
-        request,
-      });
+      return await this.transport.invoke<SetPreferenceResponse>(
+        "preferences.set",
+        {
+          request,
+        },
+      );
     } catch (error) {
       throw normalizeIpcError(error);
     }
@@ -298,7 +303,9 @@ export class PreferencesClient {
 export class NavigationClient {
   constructor(private readonly transport: IpcTransport) {}
 
-  async recordVisit(request: NavigationRecordVisitRequest): Promise<OkResponse> {
+  async recordVisit(
+    request: NavigationRecordVisitRequest,
+  ): Promise<OkResponse> {
     try {
       return await this.transport.invoke("navigation.recordVisit", { request });
     } catch (error) {
@@ -324,9 +331,13 @@ export class NavigationClient {
     }
   }
 
-  async removeFavorite(request: NavigationRemoveFavoriteRequest): Promise<OkResponse> {
+  async removeFavorite(
+    request: NavigationRemoveFavoriteRequest,
+  ): Promise<OkResponse> {
     try {
-      return await this.transport.invoke("navigation.removeFavorite", { request });
+      return await this.transport.invoke("navigation.removeFavorite", {
+        request,
+      });
     } catch (error) {
       throw normalizeIpcError(error);
     }
@@ -336,7 +347,9 @@ export class NavigationClient {
     request: NavigationRenameFavoriteRequest,
   ): Promise<NavigationFavoriteResponse> {
     try {
-      return await this.transport.invoke("navigation.renameFavorite", { request });
+      return await this.transport.invoke("navigation.renameFavorite", {
+        request,
+      });
     } catch (error) {
       throw normalizeIpcError(error);
     }
@@ -364,7 +377,9 @@ export class NavigationClient {
     request: NavigationToggleStarredRequest,
   ): Promise<NavigationToggleStarredResponse> {
     try {
-      return await this.transport.invoke("navigation.toggleStarred", { request });
+      return await this.transport.invoke("navigation.toggleStarred", {
+        request,
+      });
     } catch (error) {
       throw normalizeIpcError(error);
     }
@@ -662,7 +677,9 @@ export function createPreviewTransport(): IpcTransport {
       }
 
       if (command === "preferences.set") {
-        const request = args?.request as Partial<SetPreferenceRequest> | undefined;
+        const request = args?.request as
+          | Partial<SetPreferenceRequest>
+          | undefined;
         const value = request?.value ?? "";
 
         previewPreferences = {

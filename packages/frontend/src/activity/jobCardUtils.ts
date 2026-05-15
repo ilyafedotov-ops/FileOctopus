@@ -6,10 +6,16 @@ export function jobIdValue(jobId: JobSnapshot["jobId"]): string {
 
 export function progressPercent(job: JobSnapshot): number {
   if (job.totalBytes && job.totalBytes > 0) {
-    return Math.min(100, Math.round((job.completedBytes / job.totalBytes) * 100));
+    return Math.min(
+      100,
+      Math.round((job.completedBytes / job.totalBytes) * 100),
+    );
   }
   if (job.totalItems > 0) {
-    return Math.min(100, Math.round((job.completedItems / job.totalItems) * 100));
+    return Math.min(
+      100,
+      Math.round((job.completedItems / job.totalItems) * 100),
+    );
   }
   return 0;
 }
@@ -56,7 +62,9 @@ function operationPastTense(kind: FileOperationKind): string {
 
 export function jobTitle(job: JobSnapshot): string {
   const verb =
-    job.status === "completed" || job.status === "failed" || job.status === "cancelled"
+    job.status === "completed" ||
+    job.status === "failed" ||
+    job.status === "cancelled"
       ? operationPastTense(job.operationKind)
       : operationVerb(job.operationKind);
   if (job.totalItems > 1) {

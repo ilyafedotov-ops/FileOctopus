@@ -25,6 +25,9 @@ export function mergeToast(
   const toastId = createId();
   return {
     toastId,
-    toasts: [...current.slice(-(MAX_VISIBLE_TOASTS - 1)), { ...toast, id: toastId }],
+    toasts: [
+      ...current.slice(-(MAX_VISIBLE_TOASTS - 1)),
+      { ...toast, id: toastId },
+    ],
   };
 }

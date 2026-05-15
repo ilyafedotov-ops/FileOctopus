@@ -22,7 +22,11 @@ export function PaneStateView({
   onRefresh,
   onCreateFolder,
 }: PaneStateViewProps) {
-  if (loadState === "loading" || loadState === "loaded" || loadState === "idle") {
+  if (
+    loadState === "loading" ||
+    loadState === "loaded" ||
+    loadState === "idle"
+  ) {
     return null;
   }
 
@@ -37,7 +41,12 @@ export function PaneStateView({
           <Button type="button" variant="ghost" size="sm" onClick={onRefresh}>
             Refresh
           </Button>
-          <Button type="button" variant="primary" size="sm" onClick={onCreateFolder}>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={onCreateFolder}
+          >
             New Folder
           </Button>
         </div>
@@ -65,8 +74,12 @@ export function PaneStateView({
     <div className="fo-pane-state fo-pane-state-error">
       <strong>{title}</strong>
       <span className="fo-pane-state-path">{pathLabel}</span>
-      {message ? <span className="fo-pane-state-message">{message}</span> : null}
-      {guidance ? <span className="fo-pane-state-message">{guidance}</span> : null}
+      {message ? (
+        <span className="fo-pane-state-message">{message}</span>
+      ) : null}
+      {guidance ? (
+        <span className="fo-pane-state-message">{guidance}</span>
+      ) : null}
       {!isProductionBuild && message ? (
         <details className="fo-pane-state-details">
           <summary>Technical details</summary>

@@ -19,7 +19,9 @@ describe("StatusBar", () => {
     );
 
     expect(screen.getByText("Ready")).toBeTruthy();
-    expect(screen.getByText(/Left pane - \/Users\/ilya\/Documents/)).toBeTruthy();
+    expect(
+      screen.getByText(/Left pane - \/Users\/ilya\/Documents/),
+    ).toBeTruthy();
     expect(screen.getByText("2 selected - 4.2 MB")).toBeTruthy();
     expect(screen.getByText("18 items")).toBeTruthy();
   });

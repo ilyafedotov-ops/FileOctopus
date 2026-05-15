@@ -22,7 +22,10 @@ export function ColumnsView({
   onOpen,
   fileIcon,
 }: ColumnsViewProps) {
-  const stack = useMemo(() => uriStack(activeUri, rootUri), [activeUri, rootUri]);
+  const stack = useMemo(
+    () => uriStack(activeUri, rootUri),
+    [activeUri, rootUri],
+  );
   const [columns, setColumns] = useState<Record<string, FileEntryDto[]>>({});
 
   useEffect(() => {

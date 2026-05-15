@@ -256,19 +256,19 @@ Important settings:
 
 Recommended defaults:
 
-| Action | macOS | Windows/Linux |
-|---|---:|---:|
-| New Folder | Cmd+Shift+N | Ctrl+Shift+N |
-| Copy | Cmd+C | Ctrl+C |
-| Cut / Move intent | Cmd+X | Ctrl+X |
-| Paste | Cmd+V | Ctrl+V |
-| Rename | Return or F2 | F2 |
-| Delete / Trash | Cmd+Backspace | Delete |
-| Refresh | Cmd+R | F5 |
-| Search | Cmd+F | Ctrl+F |
-| Switch Pane | Tab | Tab |
-| Show Hidden Files | Cmd+Shift+. | Ctrl+H |
-| Preferences | Cmd+, | Ctrl+, |
+| Action            |         macOS | Windows/Linux |
+| ----------------- | ------------: | ------------: |
+| New Folder        |   Cmd+Shift+N |  Ctrl+Shift+N |
+| Copy              |         Cmd+C |        Ctrl+C |
+| Cut / Move intent |         Cmd+X |        Ctrl+X |
+| Paste             |         Cmd+V |        Ctrl+V |
+| Rename            |  Return or F2 |            F2 |
+| Delete / Trash    | Cmd+Backspace |        Delete |
+| Refresh           |         Cmd+R |            F5 |
+| Search            |         Cmd+F |        Ctrl+F |
+| Switch Pane       |           Tab |           Tab |
+| Show Hidden Files |   Cmd+Shift+. |        Ctrl+H |
+| Preferences       |         Cmd+, |        Ctrl+, |
 
 ## Visual Style
 
@@ -277,7 +277,12 @@ Recommended defaults:
 Use system UI fonts by default:
 
 ```css
-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+font-family:
+  system-ui,
+  -apple-system,
+  BlinkMacSystemFont,
+  "Segoe UI",
+  sans-serif;
 ```
 
 Recommended scale:

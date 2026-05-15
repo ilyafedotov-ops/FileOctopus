@@ -5,7 +5,11 @@ interface LayoutResizersProps {
   onSplitResize: (ratio: number) => void;
 }
 
-export function SidebarResizer({ onSidebarResize }: { onSidebarResize: (width: number) => void }) {
+export function SidebarResizer({
+  onSidebarResize,
+}: {
+  onSidebarResize: (width: number) => void;
+}) {
   const dragging = useRef(false);
 
   return (
@@ -27,7 +31,10 @@ export function SidebarResizer({ onSidebarResize }: { onSidebarResize: (width: n
             return;
           }
           const width = Math.round(
-            Math.min(480, Math.max(160, startWidth + (moveEvent.clientX - startX))),
+            Math.min(
+              480,
+              Math.max(160, startWidth + (moveEvent.clientX - startX)),
+            ),
           );
           onSidebarResize(width);
         };
@@ -45,7 +52,11 @@ export function SidebarResizer({ onSidebarResize }: { onSidebarResize: (width: n
   );
 }
 
-export function SplitResizer({ onSplitResize }: { onSplitResize: (ratio: number) => void }) {
+export function SplitResizer({
+  onSplitResize,
+}: {
+  onSplitResize: (ratio: number) => void;
+}) {
   const dragging = useRef(false);
 
   return (
@@ -68,7 +79,10 @@ export function SplitResizer({ onSplitResize }: { onSplitResize: (ratio: number)
           }
           const ratio = Math.min(
             0.8,
-            Math.max(0.2, (moveEvent.clientX - workspace.left) / workspace.width),
+            Math.max(
+              0.2,
+              (moveEvent.clientX - workspace.left) / workspace.width,
+            ),
           );
           onSplitResize(ratio);
         };

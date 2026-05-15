@@ -508,7 +508,9 @@ function applyBatch(
         : "loading",
     });
 
-    const retainedSelection = current.selectedIds.filter((id) => entriesById[id]);
+    const retainedSelection = current.selectedIds.filter(
+      (id) => entriesById[id],
+    );
     const firstId =
       retainedSelection[0] ?? current.selectedId ?? orderedEntryIds[0] ?? null;
 

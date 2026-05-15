@@ -35,10 +35,14 @@ export function applyLayoutPreferences(preferences: UserPreferencesDto) {
   root.style.setProperty("--fo-sidebar-width", `${preferences.sidebarWidth}px`);
   root.style.setProperty(
     "--fo-activity-width",
-    preferences.activityPanelVisible ? `${preferences.activityPanelWidth}px` : "44px",
+    preferences.activityPanelVisible
+      ? `${preferences.activityPanelWidth}px`
+      : "44px",
   );
   applySplitRatio(preferences.splitRatio);
-  root.dataset.activityPanel = preferences.activityPanelVisible ? "visible" : "hidden";
+  root.dataset.activityPanel = preferences.activityPanelVisible
+    ? "visible"
+    : "hidden";
 }
 
 export function rowHeightForDensity(density: DensityPreference): number {

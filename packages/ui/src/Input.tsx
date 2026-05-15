@@ -12,7 +12,11 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <input
       ref={ref}
-      className={cx("fo-ui-input", invalid && "fo-ui-input--invalid", className)}
+      className={cx(
+        "fo-ui-input",
+        invalid && "fo-ui-input--invalid",
+        className,
+      )}
       {...props}
     />
   );

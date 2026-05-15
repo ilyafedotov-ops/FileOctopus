@@ -9,16 +9,23 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  { variant = "default", size = "md", className, type = "button", ...props },
-  ref,
-) {
-  return (
-    <button
-      ref={ref}
-      type={type}
-      className={cx("fo-ui-btn", `fo-ui-btn--${variant}`, `fo-ui-btn--${size}`, className)}
-      {...props}
-    />
-  );
-});
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+  function Button(
+    { variant = "default", size = "md", className, type = "button", ...props },
+    ref,
+  ) {
+    return (
+      <button
+        ref={ref}
+        type={type}
+        className={cx(
+          "fo-ui-btn",
+          `fo-ui-btn--${variant}`,
+          `fo-ui-btn--${size}`,
+          className,
+        )}
+        {...props}
+      />
+    );
+  },
+);

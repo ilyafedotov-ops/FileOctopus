@@ -166,8 +166,7 @@ export const shortcutGroups = Array.from(
 ).map(([title, entries]) => ({ title, entries }));
 
 export function formatShortcut(entry: ShortcutEntry): string {
-  const platform =
-    typeof navigator !== "undefined" ? navigator.platform : "";
+  const platform = typeof navigator !== "undefined" ? navigator.platform : "";
   return platform.includes("Mac") ? entry.mac : entry.windowsLinux;
 }
 

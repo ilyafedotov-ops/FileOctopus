@@ -74,7 +74,9 @@ export function StatusBar({
         {filterActive ? " - Filtered" : ""}
       </span>
       <span className="fo-status-segment">{selectionLabel}</span>
-      <span className="fo-status-segment">{entrySummary(loadState, entryCount)}</span>
+      <span className="fo-status-segment">
+        {entrySummary(loadState, entryCount)}
+      </span>
       <span className="fo-status-segment">
         {activeJobCount} active job{activeJobCount === 1 ? "" : "s"}
         {operationError ? " - Errors" : " - No errors"}

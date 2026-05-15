@@ -40,7 +40,9 @@ describe("accessibility basics", () => {
 
   it("exposes dialog semantics for shortcuts and diagnostics", () => {
     const { rerender } = render(<ShortcutsDialog open onClose={noop} />);
-    expect(screen.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeTruthy();
+    expect(
+      screen.getByRole("dialog", { name: "Keyboard shortcuts" }),
+    ).toBeTruthy();
 
     rerender(<div />);
     render(

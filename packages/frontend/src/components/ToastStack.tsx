@@ -20,7 +20,11 @@ export function ToastStack({ toasts, onDismiss }: ToastStackProps) {
   }
 
   return (
-    <div className="fo-toast-stack" aria-live="polite" aria-label="Notifications">
+    <div
+      className="fo-toast-stack"
+      aria-live="polite"
+      aria-label="Notifications"
+    >
       {toasts.map((toast) => (
         <div
           key={toast.id}
@@ -33,7 +37,12 @@ export function ToastStack({ toasts, onDismiss }: ToastStackProps) {
           </div>
           <div className="fo-toast-actions">
             {toast.actionLabel && toast.onAction ? (
-              <Button type="button" variant="ghost" size="sm" onClick={toast.onAction}>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={toast.onAction}
+              >
                 {toast.actionLabel}
               </Button>
             ) : null}

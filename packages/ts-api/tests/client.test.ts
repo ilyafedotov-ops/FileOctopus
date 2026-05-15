@@ -488,7 +488,10 @@ describe("FileOctopusClient", () => {
 
     const client = new FileOctopusClient(transport);
     const initial = await client.preferences.get();
-    const updated = await client.preferences.set({ key: "theme", value: "dark" });
+    const updated = await client.preferences.set({
+      key: "theme",
+      value: "dark",
+    });
 
     expect(initial.preferences.theme).toBe("system");
     expect(updated.preferences.theme).toBe("dark");

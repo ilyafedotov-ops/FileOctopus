@@ -262,7 +262,11 @@ function FileListSkeleton({ rowHeight, viewMode }: FileListSkeletonProps) {
   }
 
   return (
-    <div className="fo-file-skeleton" aria-busy="true" aria-label="Loading folder">
+    <div
+      className="fo-file-skeleton"
+      aria-busy="true"
+      aria-label="Loading folder"
+    >
       <p className="fo-pane-state-loading-label">Loading folder…</p>
       {Array.from({ length: rows }, (_, index) => (
         <div
@@ -274,4 +278,3 @@ function FileListSkeleton({ rowHeight, viewMode }: FileListSkeletonProps) {
     </div>
   );
 }
-

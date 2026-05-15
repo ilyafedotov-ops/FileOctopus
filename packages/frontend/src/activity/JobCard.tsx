@@ -1,11 +1,7 @@
 import type { JobSnapshot } from "@fileoctopus/ts-api";
 import { Button, Icons } from "@fileoctopus/ui";
 import type { ReactNode } from "react";
-import {
-  jobProgressMeta,
-  jobTitle,
-  progressPercent,
-} from "./jobCardUtils";
+import { jobProgressMeta, jobTitle, progressPercent } from "./jobCardUtils";
 
 interface JobMetrics {
   speedLabel: string | null;

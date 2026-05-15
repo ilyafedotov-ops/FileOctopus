@@ -57,11 +57,18 @@ export function OperationToolbar({
   return (
     <div className="fo-operation-toolbar" aria-label="File operations">
       <div className="fo-toolbar-actions">
-        <ToolbarButton primary className="fo-toolbar-priority-high" onClick={onCreateFolder}>
+        <ToolbarButton
+          primary
+          className="fo-toolbar-priority-high"
+          onClick={onCreateFolder}
+        >
           {Icons.folderPlus()}
           <span>New Folder</span>
         </ToolbarButton>
-        <ToolbarButton className="fo-toolbar-priority-high" onClick={onCreateFile}>
+        <ToolbarButton
+          className="fo-toolbar-priority-high"
+          onClick={onCreateFile}
+        >
           {Icons.filePlus()}
           <span>New File</span>
         </ToolbarButton>
@@ -90,7 +97,10 @@ export function OperationToolbar({
           <span>Move</span>
         </ToolbarButton>
         {canPaste ? (
-          <ToolbarButton className="fo-toolbar-priority-medium" onClick={onPaste}>
+          <ToolbarButton
+            className="fo-toolbar-priority-medium"
+            onClick={onPaste}
+          >
             {Icons.copy()}
             <span>Paste</span>
           </ToolbarButton>
