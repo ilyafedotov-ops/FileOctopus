@@ -43,7 +43,7 @@ Known MVP exclusions remain tabs, archive browsing, file previews, remote/cloud 
 
 - Rust via `rustup`
 - Node.js
-- pnpm (managed via corepack)
+- pnpm 10.26.2+ (version pinned in `package.json` via `packageManager`; install with `npm i -g pnpm` or `corepack enable && corepack prepare`)
 - Platform prerequisites for Tauri v2
 
 ## Quick Start
