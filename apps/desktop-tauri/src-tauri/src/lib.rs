@@ -1,22 +1,58 @@
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use app_core::{AppCore, AppState, OperationHistoryRecord};
 use app_ipc::{
     job_event_name, job_event_payload, AppDataHealthResponse, AppInfoResponse, CancelJobRequest,
-    ClearOperationHistoryResponse, DirectoryBatchEventDto, ExportDiagnosticsBundleRequest,
-    ExportDiagnosticsBundleResponse, IpcError, JobStatusRequest, JobStatusResponse,
+    ClearOperationHistoryResponse, CreateFileRequest, CreateFileResponse, DeletePermanentlyRequest,
+    DirectoryBatchEventDto, ExportDiagnosticsBundleRequest, ExportDiagnosticsBundleResponse,
+    FolderSizeCompletedEventDto, FolderSizeJobResponse, FolderSizeRequest, FolderSizeResponse,
+    FolderSizeSummaryDto, IpcError, JobStatusRequest, JobStatusResponse,
     ListRecentOperationsRequest, ListRecentOperationsResponse, ListStartRequest, ListStartResponse,
-    OperationHistoryRecordDto, PlanFileOperationRequest, PlanFileOperationResponse,
-    StartFileOperationRequest, StartFileOperationResponse, StatRequest, StatResponse,
-    DIRECTORY_BATCH_EVENT,
+    OkResponse, OperationHistoryRecordDto, PathPropertiesDto, PathPropertiesRequest,
+    PathPropertiesResponse, PathRequest, PlanFileOperationRequest, PlanFileOperationResponse,
+    RecursiveSearchCompletedEventDto, RecursiveSearchJobResponse, RecursiveSearchMatchEventDto,
+    RecursiveSearchRequest, RecursiveSearchResponse, RecursiveSearchResultDto, SearchMatchDto,
+    StandardLocationDto, StandardLocationsResponse, StartFileOperationRequest,
+    StartFileOperationResponse, StatRequest, StatResponse, WatchEventDto, WatchStartRequest,
+    DIRECTORY_BATCH_EVENT, FOLDER_SIZE_COMPLETED_EVENT, RECURSIVE_SEARCH_COMPLETED_EVENT,
+    RECURSIVE_SEARCH_MATCH_EVENT, WATCH_CHANGED_EVENT,
 };
-use jobs::JobEvent;
+use chrono::Utc;
+use fs_core::sprint4;
+use jobs::{
+    CancellationToken, JobCancelledEvent, JobCompletedEvent, JobEvent, JobFailedEvent, JobId,
+    JobProgressEvent, JobSnapshot, JobStartedEvent, JobStatus,
+};
 use tauri::{AppHandle, Emitter, State};
-use vfs::{DirectoryBatch, ListOptions, ListSessionId, ResourceUri};
+use vfs::{
+    DirectoryBatch, FileOperationError, FileOperationKind, ListOptions, ListSessionId, ResourceUri,
+};
 use zip::write::FileOptions;
+
+#[derive(Default)]
+struct WatchState {
+    current: Mutex<Option<WatchRuntime>>,
+}
+
+struct WatchRuntime {
+    stop: Arc<std::sync::atomic::AtomicBool>,
+    handle: std::thread::JoinHandle<()>,
+}
+
+#[derive(Clone, Default)]
+struct MetadataJobState {
+    jobs: Arc<Mutex<HashMap<String, MetadataJobRuntime>>>,
+}
+
+struct MetadataJobRuntime {
+    snapshot: JobSnapshot,
+    cancel: CancellationToken,
+}
 
 #[tauri::command]
 fn app_get_info() -> AppInfoResponse {
@@ -110,6 +146,430 @@ async fn fs_list_start(
 }
 
 #[tauri::command]
+async fn fs_standard_locations() -> Result<StandardLocationsResponse, IpcError> {
+    Ok(StandardLocationsResponse {
+        locations: sprint4::standard_locations()
+            .into_iter()
+            .map(|location| StandardLocationDto {
+                id: location.id,
+                name: location.name,
+                uri: location.uri,
+                section: location.section,
+            })
+            .collect(),
+    })
+}
+
+#[tauri::command]
+async fn fs_open_default(request: PathRequest) -> Result<OkResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+
+    sprint4::open_path_with_default_app(&uri).map_err(IpcError::from)?;
+
+    Ok(OkResponse { ok: true })
+}
+
+#[tauri::command]
+async fn fs_reveal(request: PathRequest) -> Result<OkResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+
+    sprint4::reveal_path_in_file_manager(&uri).map_err(IpcError::from)?;
+
+    Ok(OkResponse { ok: true })
+}
+
+#[tauri::command]
+async fn fs_create_file(request: CreateFileRequest) -> Result<CreateFileResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let entry = sprint4::create_empty_file(&uri).map_err(IpcError::from)?;
+
+    Ok(CreateFileResponse {
+        entry: entry.into(),
+    })
+}
+
+#[tauri::command]
+async fn fs_delete_permanently(request: DeletePermanentlyRequest) -> Result<OkResponse, IpcError> {
+    let uris = request
+        .uris
+        .iter()
+        .map(|uri| ResourceUri::parse(uri).map_err(IpcError::from))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    sprint4::delete_permanently(&uris).map_err(IpcError::from)?;
+
+    Ok(OkResponse { ok: true })
+}
+
+#[tauri::command]
+async fn fs_properties(request: PathPropertiesRequest) -> Result<PathPropertiesResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let properties =
+        sprint4::path_properties(&uri, request.include_folder_summary.unwrap_or(false))
+            .map_err(IpcError::from)?;
+
+    Ok(PathPropertiesResponse {
+        properties: PathPropertiesDto {
+            uri: properties.uri,
+            name: properties.name,
+            kind: properties.kind,
+            size: properties.size,
+            total_size: properties.total_size,
+            item_count: properties.item_count,
+            file_count: properties.file_count,
+            directory_count: properties.directory_count,
+            modified_at: properties.modified_at,
+            created_at: properties.created_at,
+            accessed_at: properties.accessed_at,
+            is_hidden: properties.is_hidden,
+            is_symlink: properties.is_symlink,
+            symlink_target: properties.symlink_target,
+            readonly: properties.readonly,
+            warnings: properties.warnings,
+        },
+    })
+}
+
+#[tauri::command]
+async fn fs_folder_size(request: FolderSizeRequest) -> Result<FolderSizeResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let summary = sprint4::calculate_folder_size(&uri).map_err(IpcError::from)?;
+
+    Ok(FolderSizeResponse {
+        summary: folder_summary_to_dto(summary),
+    })
+}
+
+#[tauri::command]
+async fn fs_folder_size_start(
+    request: FolderSizeRequest,
+    app: AppHandle,
+    metadata_jobs: State<'_, MetadataJobState>,
+) -> Result<FolderSizeJobResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let path = uri.to_local_path().map_err(IpcError::from)?;
+
+    if !path.exists() {
+        return Err(IpcError::from(FileOperationError::NotFound {
+            uri: uri.as_str().to_string(),
+        }));
+    }
+
+    let job = start_metadata_job(&metadata_jobs, FileOperationKind::FolderSize)?;
+    let job_id = job.job_id.clone();
+    let token = metadata_job_token(&metadata_jobs, job_id.as_str())?;
+    let jobs = metadata_jobs.jobs.clone();
+    let uri_text = uri.as_str().to_string();
+
+    emit_job(
+        &app,
+        JobEvent::Started(JobStartedEvent {
+            job_id: job_id.clone(),
+            operation_kind: FileOperationKind::FolderSize,
+            total_items: 0,
+            total_bytes: None,
+            started_at: job.started_at,
+        }),
+    );
+    set_metadata_job_status(&jobs, job_id.as_str(), JobStatus::Running, None, None);
+
+    std::thread::spawn(move || {
+        let thread_job_id = job_id.clone();
+        let progress_app = app.clone();
+        let progress_jobs = jobs.clone();
+        let result = sprint4::calculate_folder_size_with_progress(&uri, &token, |summary, path| {
+            update_metadata_job_progress(
+                &progress_jobs,
+                &progress_app,
+                &thread_job_id,
+                FileOperationKind::FolderSize,
+                path.to_string_lossy().to_string(),
+                summary.item_count,
+                summary.total_size,
+            );
+        });
+
+        match result {
+            Ok(summary) => {
+                let dto = folder_summary_to_dto(summary);
+                set_metadata_job_status(
+                    &jobs,
+                    thread_job_id.as_str(),
+                    JobStatus::Completed,
+                    None,
+                    None,
+                );
+                let completed_at = Utc::now();
+                let _ = app.emit(
+                    FOLDER_SIZE_COMPLETED_EVENT,
+                    FolderSizeCompletedEventDto {
+                        job_id: thread_job_id.as_str().to_string(),
+                        uri: uri_text,
+                        summary: dto.clone(),
+                    },
+                );
+                emit_job(
+                    &app,
+                    JobEvent::Completed(JobCompletedEvent {
+                        job_id: thread_job_id,
+                        operation_kind: FileOperationKind::FolderSize,
+                        completed_items: dto.item_count,
+                        completed_bytes: dto.total_size,
+                        completed_at,
+                    }),
+                );
+            }
+            Err(FileOperationError::Cancelled { .. }) => {
+                set_metadata_job_status(
+                    &jobs,
+                    thread_job_id.as_str(),
+                    JobStatus::Cancelled,
+                    None,
+                    None,
+                );
+                emit_job(
+                    &app,
+                    JobEvent::Cancelled(JobCancelledEvent {
+                        job_id: thread_job_id,
+                        operation_kind: FileOperationKind::FolderSize,
+                        cancelled_at: Utc::now(),
+                    }),
+                );
+            }
+            Err(error) => {
+                let code = error.code().to_string();
+                let message = error.user_message();
+                set_metadata_job_status(
+                    &jobs,
+                    thread_job_id.as_str(),
+                    JobStatus::Failed,
+                    Some(code.clone()),
+                    Some(message.clone()),
+                );
+                emit_job(
+                    &app,
+                    JobEvent::Failed(JobFailedEvent {
+                        job_id: thread_job_id,
+                        operation_kind: FileOperationKind::FolderSize,
+                        error_code: code,
+                        message,
+                        failed_at: Utc::now(),
+                    }),
+                );
+            }
+        }
+    });
+
+    Ok(FolderSizeJobResponse { job })
+}
+
+#[tauri::command]
+async fn fs_recursive_search(
+    request: RecursiveSearchRequest,
+) -> Result<RecursiveSearchResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let result = sprint4::recursive_search(&uri, &request.query, request.limit.unwrap_or(500))
+        .map_err(IpcError::from)?;
+
+    Ok(RecursiveSearchResponse {
+        result: search_result_to_dto(result),
+    })
+}
+
+#[tauri::command]
+async fn fs_recursive_search_start(
+    request: RecursiveSearchRequest,
+    app: AppHandle,
+    metadata_jobs: State<'_, MetadataJobState>,
+) -> Result<RecursiveSearchJobResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let path = uri.to_local_path().map_err(IpcError::from)?;
+
+    if !path.is_dir() {
+        return Err(IpcError::from(FileOperationError::DestinationMissing {
+            uri: uri.as_str().to_string(),
+        }));
+    }
+
+    let query = request.query.trim().to_string();
+    let limit = request.limit.unwrap_or(500);
+    let job = start_metadata_job(&metadata_jobs, FileOperationKind::RecursiveSearch)?;
+    let job_id = job.job_id.clone();
+    let token = metadata_job_token(&metadata_jobs, job_id.as_str())?;
+    let jobs = metadata_jobs.jobs.clone();
+    let uri_text = uri.as_str().to_string();
+
+    emit_job(
+        &app,
+        JobEvent::Started(JobStartedEvent {
+            job_id: job_id.clone(),
+            operation_kind: FileOperationKind::RecursiveSearch,
+            total_items: 0,
+            total_bytes: None,
+            started_at: job.started_at,
+        }),
+    );
+    set_metadata_job_status(&jobs, job_id.as_str(), JobStatus::Running, None, None);
+
+    std::thread::spawn(move || {
+        let thread_job_id = job_id.clone();
+        let progress_app = app.clone();
+        let progress_jobs = jobs.clone();
+        let progress_query = query.clone();
+        let result =
+            sprint4::recursive_search_with_progress(&uri, &query, limit, &token, |item, result| {
+                update_metadata_job_progress(
+                    &progress_jobs,
+                    &progress_app,
+                    &thread_job_id,
+                    FileOperationKind::RecursiveSearch,
+                    item.name.clone(),
+                    result.matches.len() as u64,
+                    0,
+                );
+                let _ = progress_app.emit(
+                    RECURSIVE_SEARCH_MATCH_EVENT,
+                    RecursiveSearchMatchEventDto {
+                        job_id: thread_job_id.as_str().to_string(),
+                        uri: uri_text.clone(),
+                        query: progress_query.clone(),
+                        item: search_match_to_dto(item.clone()),
+                    },
+                );
+            });
+
+        match result {
+            Ok(result) => {
+                let dto = search_result_to_dto(result);
+                set_metadata_job_status(
+                    &jobs,
+                    thread_job_id.as_str(),
+                    JobStatus::Completed,
+                    None,
+                    None,
+                );
+                let _ = app.emit(
+                    RECURSIVE_SEARCH_COMPLETED_EVENT,
+                    RecursiveSearchCompletedEventDto {
+                        job_id: thread_job_id.as_str().to_string(),
+                        uri: uri_text,
+                        query,
+                        result: dto.clone(),
+                    },
+                );
+                emit_job(
+                    &app,
+                    JobEvent::Completed(JobCompletedEvent {
+                        job_id: thread_job_id,
+                        operation_kind: FileOperationKind::RecursiveSearch,
+                        completed_items: dto.matches.len() as u64,
+                        completed_bytes: 0,
+                        completed_at: Utc::now(),
+                    }),
+                );
+            }
+            Err(FileOperationError::Cancelled { .. }) => {
+                set_metadata_job_status(
+                    &jobs,
+                    thread_job_id.as_str(),
+                    JobStatus::Cancelled,
+                    None,
+                    None,
+                );
+                emit_job(
+                    &app,
+                    JobEvent::Cancelled(JobCancelledEvent {
+                        job_id: thread_job_id,
+                        operation_kind: FileOperationKind::RecursiveSearch,
+                        cancelled_at: Utc::now(),
+                    }),
+                );
+            }
+            Err(error) => {
+                let code = error.code().to_string();
+                let message = error.user_message();
+                set_metadata_job_status(
+                    &jobs,
+                    thread_job_id.as_str(),
+                    JobStatus::Failed,
+                    Some(code.clone()),
+                    Some(message.clone()),
+                );
+                emit_job(
+                    &app,
+                    JobEvent::Failed(JobFailedEvent {
+                        job_id: thread_job_id,
+                        operation_kind: FileOperationKind::RecursiveSearch,
+                        error_code: code,
+                        message,
+                        failed_at: Utc::now(),
+                    }),
+                );
+            }
+        }
+    });
+
+    Ok(RecursiveSearchJobResponse { job })
+}
+
+#[tauri::command]
+async fn fs_watch_start(
+    request: WatchStartRequest,
+    app: AppHandle,
+    watch: State<'_, WatchState>,
+) -> Result<OkResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let path = uri.to_local_path().map_err(IpcError::from)?;
+
+    if !path.is_dir() {
+        return Err(IpcError {
+            code: "folder_not_found".to_string(),
+            message: "Choose an existing folder to watch.".to_string(),
+        });
+    }
+
+    stop_watcher(&watch)?;
+
+    let stop = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let thread_stop = stop.clone();
+    let event_uri = uri.as_str().to_string();
+    let handle = std::thread::spawn(move || {
+        let mut previous = folder_fingerprint(&path);
+
+        while !thread_stop.load(std::sync::atomic::Ordering::Relaxed) {
+            std::thread::sleep(Duration::from_millis(1200));
+            let current = folder_fingerprint(&path);
+
+            if current != previous {
+                previous = current;
+                let _ = app.emit(
+                    WATCH_CHANGED_EVENT,
+                    WatchEventDto {
+                        uri: event_uri.clone(),
+                        changed_at: Utc::now(),
+                    },
+                );
+            }
+        }
+    });
+
+    *watch
+        .current
+        .lock()
+        .map_err(|_| IpcError::internal("watch state lock poisoned"))? =
+        Some(WatchRuntime { stop, handle });
+
+    Ok(OkResponse { ok: true })
+}
+
+#[tauri::command]
+async fn fs_watch_stop(watch: State<'_, WatchState>) -> Result<OkResponse, IpcError> {
+    stop_watcher(&watch)?;
+
+    Ok(OkResponse { ok: true })
+}
+
+#[tauri::command]
 async fn plan_file_operation(
     request: PlanFileOperationRequest,
     state: State<'_, Arc<AppState>>,
@@ -151,8 +611,13 @@ async fn start_file_operation(
 #[tauri::command]
 async fn cancel_job(
     request: CancelJobRequest,
+    metadata_jobs: State<'_, MetadataJobState>,
     state: State<'_, Arc<AppState>>,
 ) -> Result<JobStatusResponse, IpcError> {
+    if let Some(job) = cancel_metadata_job(&metadata_jobs, &request.job_id)? {
+        return Ok(JobStatusResponse { job });
+    }
+
     let job = state
         .operations()
         .cancel(&request.job_id)
@@ -164,8 +629,13 @@ async fn cancel_job(
 #[tauri::command]
 async fn get_job_status(
     request: JobStatusRequest,
+    metadata_jobs: State<'_, MetadataJobState>,
     state: State<'_, Arc<AppState>>,
 ) -> Result<JobStatusResponse, IpcError> {
+    if let Some(job) = metadata_job_snapshot(&metadata_jobs, &request.job_id)? {
+        return Ok(JobStatusResponse { job });
+    }
+
     let job = state
         .operations()
         .status(&request.job_id)
@@ -239,6 +709,8 @@ pub fn run() {
 
     tauri::Builder::default()
         .manage(app_state)
+        .manage(WatchState::default())
+        .manage(MetadataJobState::default())
         .setup(|_app| {
             telemetry::info("FileOctopus Tauri shell started");
             Ok(())
@@ -247,6 +719,18 @@ pub fn run() {
             app_get_info,
             fs_stat,
             fs_list_start,
+            fs_standard_locations,
+            fs_open_default,
+            fs_reveal,
+            fs_create_file,
+            fs_delete_permanently,
+            fs_properties,
+            fs_folder_size,
+            fs_folder_size_start,
+            fs_recursive_search,
+            fs_recursive_search_start,
+            fs_watch_start,
+            fs_watch_stop,
             plan_file_operation,
             start_file_operation,
             cancel_job,
@@ -272,6 +756,226 @@ fn operation_history_record_to_dto(record: OperationHistoryRecord) -> OperationH
         completed_at: record.completed_at,
         error_code: record.error_code,
     }
+}
+
+fn start_metadata_job(
+    state: &MetadataJobState,
+    kind: FileOperationKind,
+) -> Result<JobSnapshot, IpcError> {
+    let job_id = JobId::new(uuid::Uuid::new_v4().to_string());
+    let now = Utc::now();
+    let snapshot = JobSnapshot {
+        job_id: job_id.clone(),
+        operation_kind: kind,
+        status: JobStatus::Queued,
+        current_item: None,
+        completed_items: 0,
+        total_items: 0,
+        completed_bytes: 0,
+        total_bytes: None,
+        error_code: None,
+        message: None,
+        started_at: now,
+        updated_at: now,
+    };
+    let runtime = MetadataJobRuntime {
+        snapshot: snapshot.clone(),
+        cancel: CancellationToken::new(),
+    };
+
+    state
+        .jobs
+        .lock()
+        .map_err(|_| IpcError::internal("metadata job state lock poisoned"))?
+        .insert(job_id.as_str().to_string(), runtime);
+
+    Ok(snapshot)
+}
+
+fn metadata_job_token(
+    state: &MetadataJobState,
+    job_id: &str,
+) -> Result<CancellationToken, IpcError> {
+    state
+        .jobs
+        .lock()
+        .map_err(|_| IpcError::internal("metadata job state lock poisoned"))?
+        .get(job_id)
+        .map(|runtime| runtime.cancel.clone())
+        .ok_or_else(|| {
+            IpcError::from(FileOperationError::NotFound {
+                uri: job_id.to_string(),
+            })
+        })
+}
+
+fn metadata_job_snapshot(
+    state: &MetadataJobState,
+    job_id: &str,
+) -> Result<Option<JobSnapshot>, IpcError> {
+    Ok(state
+        .jobs
+        .lock()
+        .map_err(|_| IpcError::internal("metadata job state lock poisoned"))?
+        .get(job_id)
+        .map(|runtime| runtime.snapshot.clone()))
+}
+
+fn cancel_metadata_job(
+    state: &MetadataJobState,
+    job_id: &str,
+) -> Result<Option<JobSnapshot>, IpcError> {
+    let mut jobs = state
+        .jobs
+        .lock()
+        .map_err(|_| IpcError::internal("metadata job state lock poisoned"))?;
+    let Some(runtime) = jobs.get_mut(job_id) else {
+        return Ok(None);
+    };
+
+    runtime.cancel.cancel();
+    runtime.snapshot.status = JobStatus::Cancelled;
+    runtime.snapshot.updated_at = Utc::now();
+
+    Ok(Some(runtime.snapshot.clone()))
+}
+
+fn set_metadata_job_status(
+    jobs: &Arc<Mutex<HashMap<String, MetadataJobRuntime>>>,
+    job_id: &str,
+    status: JobStatus,
+    code: Option<String>,
+    message: Option<String>,
+) {
+    if let Ok(mut jobs) = jobs.lock() {
+        if let Some(runtime) = jobs.get_mut(job_id) {
+            runtime.snapshot.status = status;
+            runtime.snapshot.error_code = code;
+            runtime.snapshot.message = message;
+            runtime.snapshot.updated_at = Utc::now();
+        }
+    }
+}
+
+fn update_metadata_job_progress(
+    jobs: &Arc<Mutex<HashMap<String, MetadataJobRuntime>>>,
+    app: &AppHandle,
+    job_id: &JobId,
+    kind: FileOperationKind,
+    current_item: String,
+    completed_items: u64,
+    completed_bytes: u64,
+) {
+    let updated_at = Utc::now();
+
+    if let Ok(mut jobs) = jobs.lock() {
+        if let Some(runtime) = jobs.get_mut(job_id.as_str()) {
+            runtime.snapshot.current_item = Some(current_item.clone());
+            runtime.snapshot.completed_items = completed_items;
+            runtime.snapshot.completed_bytes = completed_bytes;
+            runtime.snapshot.updated_at = updated_at;
+        }
+    }
+
+    emit_job(
+        app,
+        JobEvent::Progress(JobProgressEvent {
+            job_id: job_id.clone(),
+            operation_kind: kind,
+            current_item: Some(current_item),
+            completed_items,
+            total_items: 0,
+            completed_bytes,
+            total_bytes: None,
+            updated_at,
+        }),
+    );
+}
+
+fn emit_job(app: &AppHandle, event: JobEvent) {
+    let name = job_event_name(&event);
+    let payload = job_event_payload(event);
+
+    if let Err(error) = app.emit(name, payload) {
+        telemetry::error(&format!("failed to emit job event: {error}"));
+    }
+}
+
+fn folder_summary_to_dto(summary: sprint4::FolderSizeSummary) -> FolderSizeSummaryDto {
+    FolderSizeSummaryDto {
+        total_size: summary.total_size,
+        item_count: summary.item_count,
+        file_count: summary.file_count,
+        directory_count: summary.directory_count,
+        warnings: summary.warnings,
+        incomplete: summary.incomplete,
+    }
+}
+
+fn search_match_to_dto(item: sprint4::SearchMatch) -> SearchMatchDto {
+    SearchMatchDto {
+        uri: item.uri,
+        parent_uri: item.parent_uri,
+        name: item.name,
+        kind: item.kind,
+        size: item.size,
+        modified_at: item.modified_at,
+    }
+}
+
+fn search_result_to_dto(result: sprint4::SearchResult) -> RecursiveSearchResultDto {
+    RecursiveSearchResultDto {
+        matches: result
+            .matches
+            .into_iter()
+            .map(search_match_to_dto)
+            .collect(),
+        warnings: result.warnings,
+        incomplete: result.incomplete,
+    }
+}
+
+fn stop_watcher(watch: &WatchState) -> Result<(), IpcError> {
+    let current = watch
+        .current
+        .lock()
+        .map_err(|_| IpcError::internal("watch state lock poisoned"))?
+        .take();
+
+    if let Some(runtime) = current {
+        runtime
+            .stop
+            .store(true, std::sync::atomic::Ordering::Relaxed);
+        let _ = runtime.handle.join();
+    }
+
+    Ok(())
+}
+
+fn folder_fingerprint(path: &Path) -> Vec<(String, u64, u128)> {
+    let mut entries = std::fs::read_dir(path)
+        .ok()
+        .into_iter()
+        .flat_map(|items| items.filter_map(Result::ok))
+        .filter_map(|entry| {
+            let metadata = entry.metadata().ok()?;
+            let modified = metadata
+                .modified()
+                .ok()
+                .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+                .map(|duration| duration.as_millis())
+                .unwrap_or(0);
+
+            Some((
+                entry.file_name().to_string_lossy().to_string(),
+                metadata.len(),
+                modified,
+            ))
+        })
+        .collect::<Vec<_>>();
+
+    entries.sort();
+    entries
 }
 
 fn write_diagnostics_bundle(destination: &Path, state: &AppState) -> Result<Vec<String>, IpcError> {

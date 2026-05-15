@@ -15,6 +15,8 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 app-core = { path = "../../../crates/app-core" }
 app-ipc = { path = "../../../crates/app-ipc" }
+chrono = "0.4"
+fs-core = { path = "../../../crates/fs-core" }
 jobs = { path = "../../../crates/jobs" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
