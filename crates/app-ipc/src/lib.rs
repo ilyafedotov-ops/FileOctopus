@@ -13,6 +13,10 @@ pub const JOB_PROGRESS_EVENT: &str = "fileOperation:job:progress";
 pub const JOB_COMPLETED_EVENT: &str = "fileOperation:job:completed";
 pub const JOB_FAILED_EVENT: &str = "fileOperation:job:failed";
 pub const JOB_CANCELLED_EVENT: &str = "fileOperation:job:cancelled";
+pub const WATCH_CHANGED_EVENT: &str = "fs:watch:changed";
+pub const FOLDER_SIZE_COMPLETED_EVENT: &str = "fs:folderSize:completed";
+pub const RECURSIVE_SEARCH_MATCH_EVENT: &str = "fs:recursiveSearch:match";
+pub const RECURSIVE_SEARCH_COMPLETED_EVENT: &str = "fs:recursiveSearch:completed";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -80,6 +84,192 @@ pub struct ListStartRequest {
 #[serde(rename_all = "camelCase")]
 pub struct ListStartResponse {
     pub session_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StandardLocationDto {
+    pub id: String,
+    pub name: String,
+    pub uri: String,
+    pub section: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StandardLocationsResponse {
+    pub locations: Vec<StandardLocationDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PathRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeletePermanentlyRequest {
+    pub uris: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct OkResponse {
+    pub ok: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateFileRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateFileResponse {
+    pub entry: FileEntryDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PathPropertiesRequest {
+    pub uri: String,
+    pub include_folder_summary: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PathPropertiesDto {
+    pub uri: String,
+    pub name: String,
+    pub kind: FileKind,
+    pub size: Option<u64>,
+    pub total_size: Option<u64>,
+    pub item_count: Option<u64>,
+    pub file_count: Option<u64>,
+    pub directory_count: Option<u64>,
+    pub modified_at: Option<DateTime<Utc>>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub accessed_at: Option<DateTime<Utc>>,
+    pub is_hidden: bool,
+    pub is_symlink: bool,
+    pub symlink_target: Option<String>,
+    pub readonly: bool,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PathPropertiesResponse {
+    pub properties: PathPropertiesDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderSizeRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderSizeSummaryDto {
+    pub total_size: u64,
+    pub item_count: u64,
+    pub file_count: u64,
+    pub directory_count: u64,
+    pub warnings: Vec<String>,
+    pub incomplete: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderSizeResponse {
+    pub summary: FolderSizeSummaryDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderSizeJobResponse {
+    pub job: JobSnapshot,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FolderSizeCompletedEventDto {
+    pub job_id: String,
+    pub uri: String,
+    pub summary: FolderSizeSummaryDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecursiveSearchRequest {
+    pub uri: String,
+    pub query: String,
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SearchMatchDto {
+    pub uri: String,
+    pub parent_uri: String,
+    pub name: String,
+    pub kind: FileKind,
+    pub size: Option<u64>,
+    pub modified_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecursiveSearchResultDto {
+    pub matches: Vec<SearchMatchDto>,
+    pub warnings: Vec<String>,
+    pub incomplete: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecursiveSearchResponse {
+    pub result: RecursiveSearchResultDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecursiveSearchJobResponse {
+    pub job: JobSnapshot,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecursiveSearchMatchEventDto {
+    pub job_id: String,
+    pub uri: String,
+    pub query: String,
+    pub item: SearchMatchDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RecursiveSearchCompletedEventDto {
+    pub job_id: String,
+    pub uri: String,
+    pub query: String,
+    pub result: RecursiveSearchResultDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WatchStartRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct WatchEventDto {
+    pub uri: String,
+    pub changed_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
