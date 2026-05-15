@@ -157,19 +157,31 @@ async fn fs_list_start(
     let listings_cleanup = listings.inner().clone();
     let cleanup_panel_key = panel_key.clone();
 
-    telemetry::debug(&format!(
-        "fs.list_start requested uri={} request_id={}",
-        request.uri, request_id
-    ));
+    eprintln!(
+        "[FO-RS] fs.list_start requested uri={} request_id={} panel_key={} session_id={}",
+        request.uri,
+        request_id,
+        panel_key,
+        response.session_id
+    );
 
     tauri::async_runtime::spawn(async move {
         while let Some(batch) = receiver.recv().await {
+            let entries_count = batch.entries.len();
+            let is_complete = batch.is_complete;
+            let session_id_str = batch.session_id.as_str().to_string();
+            let request_id_str = batch.request_id.clone();
             if let Err(error) =
                 events_app.emit(DIRECTORY_BATCH_EVENT, DirectoryBatchEventDto::from(batch))
             {
+                eprintln!("[FO-RS] failed to emit directory batch: {error}");
                 telemetry::error(&format!("failed to emit directory batch: {error}"));
                 break;
             }
+            eprintln!(
+                "[FO-RS] emitted batch session_id={} request_id={} entries={} is_complete={}",
+                session_id_str, request_id_str, entries_count, is_complete
+            );
         }
     });
 
@@ -180,19 +192,20 @@ async fn fs_list_start(
 
         match result {
             Ok(Ok(())) => {
-                telemetry::debug(&format!(
-                    "fs.list_start completed request_id={} elapsed_ms={}",
+                eprintln!(
+                    "[FO-RS] fs.list_start completed request_id={} elapsed_ms={}",
                     request_id,
                     started.elapsed().as_millis()
-                ));
+                );
             }
             Ok(Err(error)) if error.code() == "cancelled" => {
-                telemetry::debug(&format!(
-                    "fs.list_start cancelled request_id={} (superseded or interrupted)",
+                eprintln!(
+                    "[FO-RS] fs.list_start cancelled request_id={} (superseded or interrupted)",
                     request_id
-                ));
+                );
             }
             Ok(Err(error)) => {
+                eprintln!("[FO-RS] directory listing failed request_id={request_id} error={error}");
                 telemetry::error(&format!("directory listing failed: {error}"));
                 let event = DirectoryBatchEventDto {
                     session_id: error_session_id,
@@ -1219,24 +1232,16 @@ fn stop_watcher(watch: &WatchState) -> Result<(), IpcError> {
     Ok(())
 }
 
-fn folder_fingerprint(path: &Path) -> Vec<(String, u64, u128)> {
+fn folder_fingerprint(path: &Path) -> Vec<(String, u64)> {
     let mut entries = std::fs::read_dir(path)
         .ok()
         .into_iter()
         .flat_map(|items| items.filter_map(Result::ok))
         .filter_map(|entry| {
             let metadata = entry.metadata().ok()?;
-            let modified = metadata
-                .modified()
-                .ok()
-                .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
-                .map(|duration| duration.as_millis())
-                .unwrap_or(0);
-
             Some((
                 entry.file_name().to_string_lossy().to_string(),
                 metadata.len(),
-                modified,
             ))
         })
         .collect::<Vec<_>>();

@@ -296,27 +296,34 @@ export function FileOctopusShell() {
 
   useEffect(() => {
     let unlisten: (() => void) | null = null;
+    let disposed = false;
     const activePanelId = state.activePanelId;
     const activeUri = activeTab(state.panels[activePanelId]).uri;
 
     client.fs
       .onWatchChanged((event) => {
         if (event.uri === activeUri) {
-          refreshPanel(activePanelId, { replace: true });
+          refreshPanel(activePanelId, { replace: true, softRefresh: true });
         }
       })
       .then((value) => {
+        if (disposed) {
+          value();
+          return;
+        }
         unlisten = value;
       })
       .catch(() => undefined);
 
     return () => {
+      disposed = true;
       unlisten?.();
     };
   }, [client, state.activePanelId, left.uri, right.uri]);
 
   useEffect(() => {
     const unlisteners: Array<() => void> = [];
+    let disposed = false;
     const remember = (event: JobSnapshot) =>
       setJobs((current) => ({
         ...current,
@@ -429,12 +436,21 @@ export function FileOctopusShell() {
         void refreshHistory();
       }),
     ])
-      .then((items) => unlisteners.push(...items))
+      .then((items) => {
+        if (disposed) {
+          for (const unlisten of items) {
+            unlisten();
+          }
+          return;
+        }
+        unlisteners.push(...items);
+      })
       .catch((error) => {
         setOperationError(normalizeIpcError(error).message);
       });
 
     return () => {
+      disposed = true;
       for (const unlisten of unlisteners) {
         unlisten();
       }
@@ -443,6 +459,7 @@ export function FileOctopusShell() {
 
   useEffect(() => {
     const unlisteners: Array<() => void> = [];
+    let disposed = false;
 
     Promise.all([
       client.fs.onFolderSizeCompleted((event) =>
@@ -455,10 +472,19 @@ export function FileOctopusShell() {
         applyRecursiveSearchCompleted(event),
       ),
     ])
-      .then((items) => unlisteners.push(...items))
+      .then((items) => {
+        if (disposed) {
+          for (const unlisten of items) {
+            unlisten();
+          }
+          return;
+        }
+        unlisteners.push(...items);
+      })
       .catch(() => undefined);
 
     return () => {
+      disposed = true;
       for (const unlisten of unlisteners) {
         unlisten();
       }
@@ -473,6 +499,9 @@ export function FileOctopusShell() {
 
     void (async () => {
       let showHidden = false;
+
+      void refreshLocations();
+      void refreshNavigation();
 
       try {
         const response = await client.preferences.get();
@@ -493,14 +522,15 @@ export function FileOctopusShell() {
         // Fall back to localStorage-backed defaults in panelStore.
       }
 
-      await navigatePanel("left", activeTab(state.panels.left).uri, {
-        includeHidden: showHidden,
-      });
-      await navigatePanel("right", activeTab(state.panels.right).uri, {
-        includeHidden: showHidden,
-      });
+      await Promise.allSettled([
+        navigatePanel("left", activeTab(state.panels.left).uri, {
+          includeHidden: showHidden,
+        }),
+        navigatePanel("right", activeTab(state.panels.right).uri, {
+          includeHidden: showHidden,
+        }),
+      ]);
       void refreshLocations();
-      void refreshNavigation();
       void refreshHistory();
       void refreshDiagnostics();
     })();
@@ -549,7 +579,11 @@ export function FileOctopusShell() {
   async function navigatePanel(
     panelId: PanelId,
     input: string,
-    options: { replace?: boolean; includeHidden?: boolean } = {},
+    options: {
+      replace?: boolean;
+      includeHidden?: boolean;
+      softRefresh?: boolean;
+    } = {},
   ) {
     const uri = normalizeLocalInput(input);
     const tab = activeTab(state.panels[panelId]);
@@ -565,16 +599,26 @@ export function FileOctopusShell() {
       return;
     }
 
-    dispatch({ type: "navigate", panelId, uri, replace: options.replace });
-    setSearch((current) =>
-      current?.panelId === panelId ? { ...current, result: null } : current,
-    );
+    dispatch({
+      type: "navigate",
+      panelId,
+      uri,
+      replace: options.replace,
+      softRefresh: options.softRefresh,
+    });
+    if (!options.softRefresh) {
+      setSearch((current) =>
+        current?.panelId === panelId ? { ...current, result: null } : current,
+      );
+    }
 
     await startListing(panelId, uri, options.includeHidden ?? tab.showHidden);
-    void client.navigation
-      .recordVisit({ uri, label: localPathFromUri(uri) })
-      .then(() => refreshNavigation())
-      .catch(() => undefined);
+    if (!options.softRefresh) {
+      void client.navigation
+        .recordVisit({ uri, label: localPathFromUri(uri) })
+        .then(() => refreshNavigation())
+        .catch(() => undefined);
+    }
   }
 
   async function refreshNavigation() {
@@ -659,13 +703,18 @@ export function FileOctopusShell() {
 
   function refreshPanel(
     panelId: PanelId,
-    options: { replace?: boolean; includeHidden?: boolean } = {},
+    options: {
+      replace?: boolean;
+      includeHidden?: boolean;
+      softRefresh?: boolean;
+    } = {},
   ) {
     const tab = activeTab(state.panels[panelId]);
 
     void navigatePanel(panelId, tab.uri, {
       replace: options.replace ?? true,
       includeHidden: options.includeHidden ?? tab.showHidden,
+      softRefresh: options.softRefresh ?? false,
     });
   }
 

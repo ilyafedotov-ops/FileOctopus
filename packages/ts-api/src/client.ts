@@ -730,8 +730,8 @@ export function createPreviewTransport(): IpcTransport {
               section: "User folders",
             },
             {
-              id: "root",
-              name: "/",
+              id: "macintosh-hd",
+              name: "Macintosh HD",
               uri: "local:///",
               section: "Devices/Volumes",
             },

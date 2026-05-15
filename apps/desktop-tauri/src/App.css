@@ -126,7 +126,9 @@ button:disabled {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   min-height: 42px;
+  min-width: 0;
   padding: 0 14px;
   border-width: 0 0 1px;
   border-radius: 0;
@@ -137,6 +139,8 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  flex: 1;
 }
 
 .fo-brand-mark {
@@ -147,6 +151,9 @@ button:disabled {
   margin: 0;
   font-size: 14px;
   line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fo-brand-badge {
@@ -164,6 +171,13 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+.fo-menu-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .fo-help-menu {
@@ -1977,6 +1991,10 @@ button:disabled {
   box-shadow: 0 16px 48px var(--fo-dialog-shadow);
 }
 
+.fo-settings-dialog {
+  width: min(52rem, calc(100vw - 2rem));
+}
+
 .fo-dialog-header {
   display: flex;
   align-items: center;
@@ -1996,8 +2014,9 @@ button:disabled {
 
 .fo-settings-layout {
   display: grid;
-  grid-template-columns: 10rem minmax(0, 1fr);
+  grid-template-columns: minmax(9rem, 11rem) minmax(0, 1fr);
   gap: 1rem;
+  min-width: 0;
 }
 
 .fo-settings-nav {

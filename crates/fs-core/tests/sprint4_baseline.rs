@@ -171,6 +171,12 @@ fn standard_locations_include_unix_root_volume() {
         .find(|location| location.uri == "local:///")
         .expect("unix root volume should appear in sidebar");
     assert_eq!(root.section, "Devices/Volumes");
+
+    #[cfg(target_os = "macos")]
+    if std::path::Path::new("/Volumes/Macintosh HD").exists() {
+        assert_eq!(root.name, "Macintosh HD");
+        assert_eq!(root.id, "macintosh-hd");
+    }
 }
 
 #[test]

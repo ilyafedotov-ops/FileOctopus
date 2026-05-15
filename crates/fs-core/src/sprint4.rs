@@ -277,16 +277,11 @@ pub fn standard_locations() -> Vec<StandardLocation> {
     }
 
     for root in platform_roots() {
-        let name = root
-            .file_name()
-            .and_then(|value| value.to_str())
-            .filter(|value| !value.is_empty())
-            .unwrap_or_else(|| root.to_str().unwrap_or("/"))
-            .to_string();
+        let (id, name) = volume_descriptor(&root);
         push_location(
             &mut locations,
             &mut seen,
-            &name,
+            &id,
             &name,
             "Devices/Volumes",
             root,
@@ -615,6 +610,29 @@ fn push_location(
             section: section.to_string(),
         });
     }
+}
+
+fn volume_descriptor(path: &Path) -> (String, String) {
+    if cfg!(target_os = "macos") && path == Path::new("/") {
+        let boot_volume = Path::new("/Volumes/Macintosh HD");
+        if boot_volume.exists() {
+            return ("macintosh-hd".to_string(), "Macintosh HD".to_string());
+        }
+    }
+
+    let name = path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| path.to_str().unwrap_or("/"))
+        .to_string();
+    let id = if path == Path::new("/") {
+        "root".to_string()
+    } else {
+        name.to_ascii_lowercase().replace(' ', "-")
+    };
+
+    (id, name)
 }
 
 fn should_skip_volume_path(path: &Path) -> bool {

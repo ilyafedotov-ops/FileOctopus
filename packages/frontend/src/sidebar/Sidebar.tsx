@@ -7,6 +7,12 @@ import type {
 import { Button, cx, Icons } from "@fileoctopus/ui";
 import { useState, type MouseEvent, type ReactNode } from "react";
 
+const STANDARD_SECTION_ORDER = [
+  "Favorites",
+  "User folders",
+  "Devices/Volumes",
+] as const;
+
 interface SidebarProps {
   locations: StandardLocationDto[];
   favorites: FavoriteEntryDto[];
@@ -61,19 +67,27 @@ export function Sidebar({
         }
       }}
     >
-      {Object.entries(grouped).map(([section, items]) => (
-        <SidebarSection key={section} title={section}>
-          {items.map((item) => (
-            <SidebarItem
-              key={item.uri}
-              icon={locationIcon(item.id)}
-              label={item.name}
-              active={item.uri === activeUri}
-              onClick={() => onNavigate(item.uri)}
-            />
-          ))}
-        </SidebarSection>
-      ))}
+      {STANDARD_SECTION_ORDER.map((section) => {
+        const items = grouped[section] ?? [];
+
+        return (
+          <SidebarSection key={section} title={sidebarSectionTitle(section)}>
+            {items.length === 0 ? (
+              <SidebarEmptyHint>{emptySectionHint(section)}</SidebarEmptyHint>
+            ) : (
+              items.map((item) => (
+                <SidebarItem
+                  key={item.uri}
+                  icon={locationIcon(item.id)}
+                  label={item.name}
+                  active={item.uri === activeUri}
+                  onClick={() => onNavigate(item.uri)}
+                />
+              ))
+            )}
+          </SidebarSection>
+        );
+      })}
 
       {favorites.length > 0 ? (
         <SidebarSection title="Pinned">
@@ -250,6 +264,27 @@ function SidebarItem({
       <span className="fo-sidebar-label">{label}</span>
     </Button>
   );
+}
+
+function sidebarSectionTitle(section: string): string {
+  if (section === "Devices/Volumes") {
+    return "Devices / Volumes";
+  }
+
+  return section;
+}
+
+function emptySectionHint(section: string): string {
+  switch (section) {
+    case "Favorites":
+      return "No favorite locations";
+    case "User folders":
+      return "No user folders found";
+    case "Devices/Volumes":
+      return "No mounted volumes";
+    default:
+      return "Nothing here yet";
+  }
 }
 
 function locationIcon(id: string): ReactNode {

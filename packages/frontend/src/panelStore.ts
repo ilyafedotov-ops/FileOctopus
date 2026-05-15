@@ -52,7 +52,13 @@ export interface FileOctopusState {
 
 export type PanelAction =
   | { type: "setActivePanel"; panelId: PanelId }
-  | { type: "navigate"; panelId: PanelId; uri: string; replace?: boolean }
+  | {
+      type: "navigate";
+      panelId: PanelId;
+      uri: string;
+      replace?: boolean;
+      softRefresh?: boolean;
+    }
   | { type: "goBack"; panelId: PanelId }
   | { type: "goForward"; panelId: PanelId }
   | {
@@ -116,6 +122,7 @@ export function panelReducer(
       return updatePanel(state, action.panelId, (tab) =>
         applyNavigation(tab, normalizeLocalInput(action.uri), {
           replace: action.replace,
+          softRefresh: action.softRefresh,
         }),
       );
     case "goBack":
@@ -361,11 +368,21 @@ function applyNavigation(
   uri: string,
   options: {
     replace?: boolean;
+    softRefresh?: boolean;
     backStack?: string[];
     forwardStack?: string[];
   } = {},
 ): PanelTabState {
   const changed = uri !== tab.uri;
+
+  if (options.softRefresh && !changed && tab.loadState !== "error") {
+    return {
+      ...tab,
+      sessionId: null,
+      activeRequestId: null,
+    };
+  }
+
   const backStack =
     options.backStack ??
     (!options.replace && changed ? [...tab.backStack, tab.uri] : tab.backStack);
