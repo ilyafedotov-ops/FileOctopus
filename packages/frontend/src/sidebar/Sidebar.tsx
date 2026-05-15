@@ -17,6 +17,7 @@ interface SidebarProps {
   locations: StandardLocationDto[];
   favorites: FavoriteEntryDto[];
   recentToday: RecentEntryDto[];
+  recentWeek: RecentEntryDto[];
   starred: StarredEntryDto[];
   activeUri: string;
   onNavigate: (uri: string) => void;
