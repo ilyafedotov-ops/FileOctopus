@@ -11,7 +11,7 @@ pub use navigation::{
     FavoriteEntry, NavigationError, NavigationRepository, RecentBucket, RecentEntry, StarredEntry,
 };
 
-pub const SCHEMA_VERSION: u32 = 3;
+pub const SCHEMA_VERSION: u32 = 4;
 
 #[derive(Debug, Error)]
 pub enum PreferencesError {
@@ -34,6 +34,10 @@ pub struct UserPreferences {
     pub split_ratio: f64,
     pub activity_panel_visible: bool,
     pub activity_panel_width: u32,
+    pub confirm_delete: bool,
+    pub confirm_permanent_delete: bool,
+    pub use_trash_by_default: bool,
+    pub default_conflict_policy: String,
 }
 
 impl Default for UserPreferences {
@@ -47,6 +51,10 @@ impl Default for UserPreferences {
             split_ratio: 0.5,
             activity_panel_visible: true,
             activity_panel_width: 288,
+            confirm_delete: true,
+            confirm_permanent_delete: true,
+            use_trash_by_default: true,
+            default_conflict_policy: "fail".to_string(),
         }
     }
 }
@@ -127,6 +135,11 @@ impl PreferencesRepository {
             connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         }
 
+        if user_version < 4 {
+            self.backfill_v4_keys(&connection)?;
+            connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
         Ok(())
     }
 
@@ -141,6 +154,36 @@ impl PreferencesRepository {
             (
                 "activityPanelWidth",
                 defaults.activity_panel_width.to_string(),
+            ),
+        ];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
+        }
+
+        Ok(())
+    }
+
+    fn backfill_v4_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [
+            ("confirmDelete", defaults.confirm_delete.to_string()),
+            (
+                "confirmPermanentDelete",
+                defaults.confirm_permanent_delete.to_string(),
+            ),
+            (
+                "useTrashByDefault",
+                defaults.use_trash_by_default.to_string(),
+            ),
+            (
+                "defaultConflictPolicy",
+                defaults.default_conflict_policy.to_string(),
             ),
         ];
 
@@ -228,6 +271,13 @@ impl UserPreferences {
                 self.activity_panel_visible.to_string(),
             ),
             ("activityPanelWidth", self.activity_panel_width.to_string()),
+            ("confirmDelete", self.confirm_delete.to_string()),
+            (
+                "confirmPermanentDelete",
+                self.confirm_permanent_delete.to_string(),
+            ),
+            ("useTrashByDefault", self.use_trash_by_default.to_string()),
+            ("defaultConflictPolicy", self.default_conflict_policy.clone()),
         ]
     }
 }
@@ -271,6 +321,18 @@ fn apply_value(
                 .map_err(|error| invalid_value(key, error.to_string()))?
                 .clamp(200, 480);
         }
+        "confirmDelete" => {
+            preferences.confirm_delete = parse_bool(value)?;
+        }
+        "confirmPermanentDelete" => {
+            preferences.confirm_permanent_delete = parse_bool(value)?;
+        }
+        "useTrashByDefault" => {
+            preferences.use_trash_by_default = parse_bool(value)?;
+        }
+        "defaultConflictPolicy" => {
+            preferences.default_conflict_policy = parse_conflict_policy(value)?;
+        }
         _ => {}
     }
 
@@ -302,6 +364,16 @@ fn parse_view_mode(value: &str) -> Result<String, PreferencesError> {
         "details" | "list" | "icons" | "columns" => Ok(value.to_string()),
         other => Err(invalid_value(
             "defaultViewMode",
+            format!("unsupported value `{other}`"),
+        )),
+    }
+}
+
+fn parse_conflict_policy(value: &str) -> Result<String, PreferencesError> {
+    match value {
+        "fail" | "skip" | "overwrite" | "renameNew" | "renameExisting" => Ok(value.to_string()),
+        other => Err(invalid_value(
+            "defaultConflictPolicy",
             format!("unsupported value `{other}`"),
         )),
     }
