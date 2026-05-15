@@ -39,6 +39,10 @@ pub struct UserPreferencesDto {
     pub split_ratio: f64,
     pub activity_panel_visible: bool,
     pub activity_panel_width: u32,
+    pub confirm_delete: bool,
+    pub confirm_permanent_delete: bool,
+    pub use_trash_by_default: bool,
+    pub default_conflict_policy: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -624,6 +628,10 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             split_ratio: value.split_ratio,
             activity_panel_visible: value.activity_panel_visible,
             activity_panel_width: value.activity_panel_width,
+            confirm_delete: value.confirm_delete,
+            confirm_permanent_delete: value.confirm_permanent_delete,
+            use_trash_by_default: value.use_trash_by_default,
+            default_conflict_policy: value.default_conflict_policy,
         }
     }
 }
