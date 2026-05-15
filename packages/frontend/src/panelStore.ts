@@ -423,12 +423,27 @@ function applyBatch(
   const target = findPanelBySession(state, batch.sessionId);
 
   if (!target) {
+    // eslint-disable-next-line no-console
+    console.log("[FO][batch-drop] no panel for sessionId", {
+      batchSessionId: batch.sessionId,
+      batchRequestId: batch.requestId,
+      leftSessionId: activeTab(state.panels.left).sessionId,
+      leftRequestId: activeTab(state.panels.left).activeRequestId,
+      rightSessionId: activeTab(state.panels.right).sessionId,
+      rightRequestId: activeTab(state.panels.right).activeRequestId,
+    });
     return state;
   }
 
   const tab = activeTab(state.panels[target]);
 
   if (!shouldApplyBatch(tab.activeRequestId, batch)) {
+    // eslint-disable-next-line no-console
+    console.log("[FO][batch-drop] requestId mismatch", {
+      target,
+      tabRequestId: tab.activeRequestId,
+      batchRequestId: batch.requestId,
+    });
     return state;
   }
 

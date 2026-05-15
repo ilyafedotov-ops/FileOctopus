@@ -172,6 +172,7 @@ type OperationDialog =
 
 export function FileOctopusShell() {
   const client = useMemo(() => createFileOctopusClient(), []);
+  const hasInitializedRef = useRef(false);
   const [state, dispatch] = useReducer(panelReducer, undefined, () =>
     createInitialState(),
   );
@@ -253,10 +254,29 @@ export function FileOctopusShell() {
   );
 
   useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    let disposed = false;
     client.fs
-      .onDirectoryBatch((event) =>
-        dispatch({ type: "applyBatch", batch: event }),
-      )
+      .onDirectoryBatch((event) => {
+        // eslint-disable-next-line no-console
+        console.log("[FO][batch]", {
+          sessionId: event.sessionId,
+          requestId: event.requestId,
+          uri: event.uri,
+          batchIndex: event.batchIndex,
+          isComplete: event.isComplete,
+          entries: event.entries.length,
+          error: event.error ?? null,
+        });
+        dispatch({ type: "applyBatch", batch: event });
+      })
+      .then((value) => {
+        if (disposed) {
+          value();
+          return;
+        }
+        unlisten = value;
+      })
       .catch((error) => {
         const normalized = normalizeIpcError(error);
         dispatch({
@@ -267,6 +287,11 @@ export function FileOctopusShell() {
           loadState: "error",
         });
       });
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
   }, [client]);
 
   useEffect(() => {
@@ -441,6 +466,11 @@ export function FileOctopusShell() {
   }, [client]);
 
   useEffect(() => {
+    if (hasInitializedRef.current) {
+      return;
+    }
+    hasInitializedRef.current = true;
+
     void (async () => {
       let showHidden = false;
 
@@ -572,6 +602,9 @@ export function FileOctopusShell() {
   ) {
     const requestId = createRequestId();
 
+    // eslint-disable-next-line no-console
+    console.log("[FO][listStart→]", { panelId, uri, requestId, includeHidden });
+
     try {
       const response = await client.fs.listStart({
         uri,
@@ -579,6 +612,12 @@ export function FileOctopusShell() {
         panelId,
         batchSize: 256,
         includeHidden,
+      });
+      // eslint-disable-next-line no-console
+      console.log("[FO][listStart←]", {
+        panelId,
+        sessionId: response.sessionId,
+        requestId: response.requestId,
       });
       dispatch({
         type: "startSession",
