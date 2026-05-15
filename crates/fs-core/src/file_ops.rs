@@ -30,6 +30,11 @@ pub fn plan_file_operation(
         FileOperationKind::Rename => vec![plan_rename_item(&request)?],
         FileOperationKind::CreateDirectory => vec![plan_create_directory_item(&request)?],
         FileOperationKind::DeleteToTrash => plan_trash_items(&request)?,
+        FileOperationKind::FolderSize | FileOperationKind::RecursiveSearch => {
+            return Err(FileOperationError::InvalidRequest {
+                message: "metadata jobs are started through filesystem commands".to_string(),
+            });
+        }
     };
 
     items.sort_by(|left, right| {
@@ -87,6 +92,11 @@ pub fn execute_file_operation(
         FileOperationKind::Rename => execute_rename(plan),
         FileOperationKind::CreateDirectory => execute_create_directory(plan),
         FileOperationKind::DeleteToTrash => execute_trash(plan),
+        FileOperationKind::FolderSize | FileOperationKind::RecursiveSearch => {
+            Err(FileOperationError::InvalidRequest {
+                message: "metadata jobs are started through filesystem commands".to_string(),
+            })
+        }
     }
 }
 
@@ -135,6 +145,11 @@ fn validate_request_shape(request: &FileOperationRequest) -> Result<(), FileOper
                     message: "trash operation requires at least one source".to_string(),
                 });
             }
+        }
+        FileOperationKind::FolderSize | FileOperationKind::RecursiveSearch => {
+            return Err(FileOperationError::InvalidRequest {
+                message: "metadata jobs are started through filesystem commands".to_string(),
+            });
         }
     }
 

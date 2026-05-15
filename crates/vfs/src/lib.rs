@@ -214,6 +214,8 @@ pub enum FileOperationKind {
     Rename,
     DeleteToTrash,
     CreateDirectory,
+    FolderSize,
+    RecursiveSearch,
 }
 
 /// Conflict behavior selected before an operation mutates the filesystem.
