@@ -611,6 +611,10 @@ export function createPreviewTransport(): IpcTransport {
     splitRatio: 0.5,
     activityPanelVisible: true,
     activityPanelWidth: 288,
+    confirmDelete: true,
+    confirmPermanentDelete: true,
+    useTrashByDefault: true,
+    defaultConflictPolicy: "fail",
   };
   const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
   const folderSizeHandlers = new Set<
@@ -969,7 +973,10 @@ function preferenceValue(
 ): string | number | boolean {
   if (
     key === "showHiddenFiles" ||
-    key === "activityPanelVisible"
+    key === "activityPanelVisible" ||
+    key === "confirmDelete" ||
+    key === "confirmPermanentDelete" ||
+    key === "useTrashByDefault"
   ) {
     return value === "true";
   }

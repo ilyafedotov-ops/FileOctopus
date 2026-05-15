@@ -86,6 +86,10 @@ export interface UserPreferencesDto {
   splitRatio: number;
   activityPanelVisible: boolean;
   activityPanelWidth: number;
+  confirmDelete: boolean;
+  confirmPermanentDelete: boolean;
+  useTrashByDefault: boolean;
+  defaultConflictPolicy: string;
 }
 
 export interface FavoriteEntryDto {
