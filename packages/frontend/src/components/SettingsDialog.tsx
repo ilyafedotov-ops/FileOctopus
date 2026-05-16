@@ -1,5 +1,8 @@
 import { useState } from "react";
-import type { AutostartStatusDto, UserPreferencesDto } from "@fileoctopus/ts-api";
+import type {
+  AutostartStatusDto,
+  UserPreferencesDto,
+} from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
 
@@ -102,7 +105,9 @@ export function SettingsDialog({
                     type="checkbox"
                     checked={autostart?.enabled === true}
                     disabled={!autostart || autostart.supported === false}
-                    onChange={(event) => void onSetAutostart(event.target.checked)}
+                    onChange={(event) =>
+                      void onSetAutostart(event.target.checked)
+                    }
                   />
                   <span>Start automatically at login</span>
                 </label>
@@ -142,7 +147,11 @@ export function SettingsDialog({
                 </label>
                 <fieldset className="fo-settings-fieldset">
                   <legend>Accent color</legend>
-                  <div className="fo-accent-swatches" role="radiogroup" aria-label="Accent color">
+                  <div
+                    className="fo-accent-swatches"
+                    role="radiogroup"
+                    aria-label="Accent color"
+                  >
                     {(
                       [
                         ["blue", "Accent blue"],
