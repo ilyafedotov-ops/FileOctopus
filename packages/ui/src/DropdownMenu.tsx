@@ -180,7 +180,7 @@ export function DropdownMenu({
     setMenuStyle({
       top: trigger.bottom + 4,
       left: Math.max(8, left),
-      minWidth: trigger.width,
+      minWidth: trigger.width || 208,
     });
   }, [align, open, items.length]);
 

@@ -17,7 +17,7 @@ fn temp_dir(prefix: &str) -> PathBuf {
     dir
 }
 
-fn local_uri(path: &Path) -> String {
+fn _local_uri(path: &Path) -> String {
     format!("local://{}", path.display())
 }
 

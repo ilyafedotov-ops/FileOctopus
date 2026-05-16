@@ -683,8 +683,11 @@ describe("FileOctopusShell", () => {
   it("shows app diagnostics and exports a bundle", async () => {
     render(<FileOctopusShell />);
 
-    fireEvent.click(screen.getByText("Help"));
-    fireEvent.click(screen.getByText("Diagnostics"));
+    const helpTrigger = screen
+      .getAllByRole("menuitem")
+      .find((el) => el.textContent?.includes("Help"));
+    fireEvent.click(helpTrigger!);
+    fireEvent.click(await screen.findByText("Diagnostics…"));
     expect(await screen.findByText("0.1.0")).toBeTruthy();
     fireEvent.click(screen.getByText("Export bundle"));
 
