@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 
-export const iconSize = 16;
+export const iconSize: string | number = "var(--fo-icon-size)";
 
 export function renderIcon(Icon: LucideIcon, className?: string): ReactNode {
   return (
