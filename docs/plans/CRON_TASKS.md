@@ -4,34 +4,43 @@ Tasks are picked up by the next cron run. Mark status as `pending`, `in_progress
 
 ## Active Tasks
 
-### 1. Compare UI against reference images
+### 1. Visual comparison against reference images
 
 - **Status:** pending
 - **Priority:** P1
 - **Description:** Start Vite dev server, take Playwright screenshots of main app, compare against `docs/Images/MainApp/` (11 reference PNGs). Check: dual-pane layout, toolbar, sidebar, file table columns, status bar, breadcrumb navigation.
 - **Files:** `docs/Images/MainApp/*.png`, `packages/frontend/src/index.tsx`
 
-### 2. Compare menus against menu spec
-
-- **Status:** pending
-- **Priority:** P1
-- **Description:** Verify all context menu items match `docs/plans/FileOctopus_Menu_and_Modal_Specification.md`. Check: toolbar menus, item context menu, empty-space context menu, sidebar context menu. Verify enablement rules.
-- **Files:** `packages/frontend/src/components/ContextMenu.tsx`, `packages/frontend/src/pane/OperationToolbar.tsx`
-
-### 3. Compare features against UI Feature Inventory
+### 2. Implement Compress (Archive) — Rust backend
 
 - **Status:** pending
 - **Priority:** P2
-- **Description:** Cross-reference `docs/planning/UI_FEATURE_INVENTORY.md` with actual implementation. Mark each item as ✅ implemented, ⚠️ partial, or ❌ missing.
-- **Files:** `docs/planning/UI_FEATURE_INVENTORY.md`
+- **Description:** Replace "coming soon" toast with real IPC. Rust: add `fs_compress` command using `zip` crate. TS: add `compress()` to FsClient. Wire in toolbar + context menu.
+- **Files:** `apps/desktop-tauri/src-tauri/src/lib.rs`, `packages/ts-api/src/client.ts`, `packages/frontend/src/index.tsx`
 
-### 4. Remaining gap analysis items
+### 3. Implement Extract (Unarchive) — Rust backend
 
 - **Status:** pending
 - **Priority:** P2
-- **Description:** From gap analysis: Compress/Extract (toolbar placeholders), Settings Shortcuts tab. Evaluate if any can be implemented this cycle.
-- **Files:** `packages/frontend/src/index.tsx`
+- **Description:** Replace "coming soon" toast with real IPC. Rust: add `fs_extract` command. TS: add `extract()` to FsClient. Wire in toolbar + context menu.
+- **Files:** `apps/desktop-tauri/src-tauri/src/lib.rs`, `packages/ts-api/src/client.ts`, `packages/frontend/src/index.tsx`
+
+### 4. Implement Checksum verification — Rust backend
+
+- **Status:** pending
+- **Priority:** P2
+- **Description:** Replace "coming soon" toast with real IPC. Rust: add `fs_verify_checksum` command (MD5/SHA256). TS: add method to FsClient. Show result in dialog or toast.
+- **Files:** `apps/desktop-tauri/src-tauri/src/lib.rs`, `packages/ts-api/src/client.ts`, `packages/frontend/src/index.tsx`
+
+### 5. Settings: Shortcuts tab
+
+- **Status:** pending
+- **Priority:** P3
+- **Description:** Add keyboard shortcut customization tab to SettingsDialog. Allow re-binding shortcuts from shortcuts.ts.
+- **Files:** `packages/frontend/src/components/SettingsDialog.tsx`, `packages/frontend/src/shortcuts.ts`
 
 ## Completed Tasks
 
-(none yet)
+- ✅ **Menu spec comparison** — ContextMenu fully matches spec (2026-05-16)
+- ✅ **Feature inventory cross-reference** — All specified items accounted for (2026-05-16)
+- ✅ **Fix deprecated sha256::digest_file** → replaced with `try_digest` (2026-05-16, `5ea036b`)
