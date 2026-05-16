@@ -242,6 +242,12 @@ const onRecursiveSearchCompleted = vi.fn(
     };
   },
 );
+const computeHash = vi.fn(async () => ({
+  hash: "abc123def456",
+  algorithm: "sha256",
+  byteSize: 1024,
+}));
+const openTerminal = vi.fn(async () => ({ success: true }));
 const onDirectoryBatch = vi.fn(
   async (handler: (event: DirectoryBatchEventDto) => void) => {
     batchHandler = handler;
@@ -386,12 +392,8 @@ vi.mock("@fileoctopus/ts-api", () => ({
       onFolderSizeCompleted,
       onRecursiveSearchMatch,
       onRecursiveSearchCompleted,
-      computeHash: vi.fn(async () => ({
-        hash: "abc123def456",
-        algorithm: "sha256",
-        fileSize: 1024,
-      })),
-      openTerminal: vi.fn(async () => ({ success: true })),
+      computeHash,
+      openTerminal,
     },
     fileOperations: {
       planFileOperation,
@@ -475,6 +477,8 @@ describe("FileOctopusShell", () => {
     onRecursiveSearchMatch.mockClear();
     onRecursiveSearchCompleted.mockClear();
     onDirectoryBatch.mockClear();
+    computeHash.mockClear();
+    openTerminal.mockClear();
     listRecentOperations.mockClear();
     clearOperationHistory.mockClear();
     getAppInfo.mockClear();
@@ -782,6 +786,35 @@ describe("FileOctopusShell", () => {
         includeHidden: true,
       }),
     );
+  });
+
+  it("computes checksum via IPC when Checksum toolbar action clicked", async () => {
+    render(<FileOctopusShell />);
+    await applyLeftEntries([entry("test.txt")]);
+
+    // Clear any computeHash calls from the hash column useEffect
+    computeHash.mockClear();
+
+    clickToolbar("Checksum…", 0);
+
+    await waitFor(() =>
+      expect(computeHash).toHaveBeenCalledWith({
+        uri: "local:///tmp/test.txt",
+        algorithm: "sha256",
+      }),
+    );
+  });
+
+  it("shows error toast when checksum called without file selected", async () => {
+    render(<FileOctopusShell />);
+    await applyLeftEntries([folderEntry("mydir")]);
+
+    clickToolbar("Checksum…", 0);
+
+    // Should not call computeHash for a directory
+    await waitFor(() => {
+      expect(computeHash).not.toHaveBeenCalled();
+    });
   });
 });
 
