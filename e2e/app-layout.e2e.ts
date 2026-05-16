@@ -10,6 +10,11 @@ test.describe("FileOctopus main layout", () => {
     await expect(shell).toBeVisible();
   });
 
+  test("shell has tabIndex for keyboard event routing", async ({ page }) => {
+    const shell = page.locator("main.fo-shell");
+    await expect(shell).toHaveAttribute("tabIndex", "-1");
+  });
+
   test("renders the top bar / title bar", async ({ page }) => {
     const topbar = page.locator("header.fo-topbar");
     await expect(topbar).toBeVisible();

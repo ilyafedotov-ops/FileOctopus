@@ -1875,7 +1875,7 @@ export function FileOctopusShell() {
   ).length;
   return (
     <ErrorBoundary>
-      <main className="fo-shell" onKeyDown={handleShellKeyDown}>
+      <main className="fo-shell" tabIndex={-1} onKeyDown={handleShellKeyDown}>
         <div className="fo-shell-frame">
           <TitleBar
             helpOpen={helpOpen}
@@ -3386,7 +3386,7 @@ class ErrorBoundary extends Component<
   render() {
     if (this.state.error) {
       return (
-        <main className="fo-shell fo-fatal-error">
+        <main className="fo-shell fo-fatal-error" tabIndex={-1}>
           <h1>FileOctopus recovered from a UI error</h1>
           {!isProductionBuild ? <pre>{this.state.error.message}</pre> : null}
           <div className="fo-dialog-actions">

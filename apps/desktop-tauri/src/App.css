@@ -50,6 +50,7 @@ button:disabled {
   min-height: 100vh;
   padding: 10px;
   background: var(--fo-app-bg);
+  outline: none;
 }
 
 .fo-shell-frame {
