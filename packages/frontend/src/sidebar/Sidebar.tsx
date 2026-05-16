@@ -5,13 +5,28 @@ import type {
   StarredEntryDto,
 } from "@fileoctopus/ts-api";
 import { Button, cx, Icons } from "@fileoctopus/ui";
-import { useState, type MouseEvent, type ReactNode } from "react";
+import {
+  type ChangeEvent,
+  type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 const STANDARD_SECTION_ORDER = [
   "Favorites",
   "User folders",
   "Devices/Volumes",
 ] as const;
+
+interface SidebarContextMenuState {
+  x: number;
+  y: number;
+  favorite: FavoriteEntryDto;
+}
 
 interface SidebarProps {
   locations: StandardLocationDto[];
@@ -39,15 +54,48 @@ export function Sidebar({
   onRenameFavorite,
   onRevealFavorite,
 }: SidebarProps) {
-  const [favoriteMenu, setFavoriteMenu] = useState<FavoriteEntryDto | null>(
+  const [contextMenu, setContextMenu] =
+    useState<SidebarContextMenuState | null>(null);
+  const [renamingFavoriteId, setRenamingFavoriteId] = useState<number | null>(
     null,
   );
+  const [renameValue, setRenameValue] = useState("");
+  const renameInputRef = useRef<HTMLInputElement>(null);
   const grouped = locations.reduce<Record<string, StandardLocationDto[]>>(
     (groups, location) => ({
       ...groups,
       [location.section]: [...(groups[location.section] ?? []), location],
     }),
     {},
+  );
+
+  useEffect(() => {
+    if (renamingFavoriteId != null && renameInputRef.current) {
+      renameInputRef.current.focus();
+      renameInputRef.current.select();
+    }
+  }, [renamingFavoriteId]);
+
+  const handleRenameSubmit = useCallback(() => {
+    if (renamingFavoriteId != null && renameValue.trim()) {
+      onRenameFavorite(renamingFavoriteId, renameValue.trim());
+    }
+    setRenamingFavoriteId(null);
+    setRenameValue("");
+  }, [renamingFavoriteId, renameValue, onRenameFavorite]);
+
+  const handleRenameKeyDown = useCallback(
+    (e: KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleRenameSubmit();
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setRenamingFavoriteId(null);
+        setRenameValue("");
+      }
+    },
+    [handleRenameSubmit],
   );
 
   return (
@@ -96,19 +144,38 @@ export function Sidebar({
 
       {favorites.length > 0 ? (
         <SidebarSection title="Pinned">
-          {favorites.map((item) => (
-            <SidebarItem
-              key={item.id}
-              icon={Icons.pin()}
-              label={item.label}
-              active={item.uri === activeUri}
-              onClick={() => onNavigate(item.uri)}
-              onContextMenu={(event) => {
-                event.preventDefault();
-                setFavoriteMenu(item);
-              }}
-            />
-          ))}
+          {favorites.map((item) =>
+            renamingFavoriteId === item.id ? (
+              <input
+                key={item.id}
+                ref={renameInputRef}
+                className="fo-sidebar-rename-input"
+                type="text"
+                value={renameValue}
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setRenameValue(e.target.value)
+                }
+                onKeyDown={handleRenameKeyDown}
+                onBlur={handleRenameSubmit}
+              />
+            ) : (
+              <SidebarItem
+                key={item.id}
+                icon={Icons.pin()}
+                label={item.label}
+                active={item.uri === activeUri}
+                onClick={() => onNavigate(item.uri)}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  setContextMenu({
+                    x: event.clientX,
+                    y: event.clientY,
+                    favorite: item,
+                  });
+                }}
+              />
+            ),
+          )}
         </SidebarSection>
       ) : null}
 
@@ -143,58 +210,148 @@ export function Sidebar({
         </SidebarSection>
       ) : null}
 
-      {favoriteMenu ? (
-        <div className="fo-sidebar-menu" role="menu">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              const next = globalThis.prompt(
-                "Rename favorite",
-                favoriteMenu.label,
-              );
-              if (next) {
-                onRenameFavorite(favoriteMenu.id, next);
-              }
-              setFavoriteMenu(null);
-            }}
-          >
-            Rename
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              onRevealFavorite(favoriteMenu.uri);
-              setFavoriteMenu(null);
-            }}
-          >
-            Reveal
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              onRemoveFavorite(favoriteMenu.id);
-              setFavoriteMenu(null);
-            }}
-          >
-            Remove
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => setFavoriteMenu(null)}
-          >
-            Cancel
-          </Button>
-        </div>
+      {contextMenu ? (
+        <SidebarContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={() => setContextMenu(null)}
+          onRename={() => {
+            setRenamingFavoriteId(contextMenu.favorite.id);
+            setRenameValue(contextMenu.favorite.label);
+            setContextMenu(null);
+          }}
+          onRemove={() => {
+            onRemoveFavorite(contextMenu.favorite.id);
+            setContextMenu(null);
+          }}
+          onReveal={() => {
+            onRevealFavorite(contextMenu.favorite.uri);
+            setContextMenu(null);
+          }}
+        />
       ) : null}
     </aside>
+  );
+}
+
+function SidebarContextMenu({
+  x,
+  y,
+  onClose,
+  onRename,
+  onRemove,
+  onReveal,
+}: {
+  x: number;
+  y: number;
+  onClose: () => void;
+  onRename: () => void;
+  onRemove: () => void;
+  onReveal: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{
+    left: number;
+    top: number;
+    maxHeight?: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!menuRef.current) {
+      setPos(null);
+      return;
+    }
+    const el = menuRef.current;
+    const pad = 8;
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = x;
+    let top = y;
+    let maxHeight: number | undefined;
+
+    if (left + rect.width > vw - pad) {
+      left = Math.max(pad, vw - rect.width - pad);
+    }
+
+    const availableBelow = vh - top - pad;
+    if (rect.height > availableBelow) {
+      const availableAbove = top - pad;
+      if (availableAbove > availableBelow) {
+        top = Math.max(pad, vh - rect.height - pad);
+        maxHeight = vh - top - pad;
+      } else {
+        maxHeight = availableBelow;
+      }
+    }
+
+    setPos({ left, top, maxHeight });
+  }, [x, y]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    },
+    [onClose],
+  );
+
+  const run = (action: () => void) => {
+    action();
+    onClose();
+  };
+
+  return (
+    <div
+      className="fo-sidebar-menu-backdrop"
+      onClick={onClose}
+      onKeyDown={handleKeyDown}
+      role="presentation"
+    >
+      <div
+        ref={menuRef}
+        className="fo-sidebar-context-menu"
+        role="menu"
+        style={
+          pos
+            ? { left: pos.left, top: pos.top, maxHeight: pos.maxHeight }
+            : { left: x, top: y }
+        }
+        onClick={(event) => event.stopPropagation()}
+      >
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="fo-context-menu-item"
+          role="menuitem"
+          onClick={() => run(onRename)}
+        >
+          Rename Favorite
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="fo-context-menu-item"
+          role="menuitem"
+          onClick={() => run(onRemove)}
+        >
+          Remove Favorite
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="fo-context-menu-item"
+          role="menuitem"
+          onClick={() => run(onReveal)}
+        >
+          Reveal Path
+        </Button>
+      </div>
+    </div>
   );
 }
 
@@ -230,7 +387,7 @@ function SidebarItem({
   label: string;
   active: boolean;
   onClick: () => void;
-  onContextMenu?: (event: MouseEvent<HTMLButtonElement>) => void;
+  onContextMenu?: (event: ReactMouseEvent<HTMLButtonElement>) => void;
   indented?: boolean;
   subdued?: boolean;
 }) {
