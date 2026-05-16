@@ -22,6 +22,7 @@ jobs = { path = "../../../crates/jobs" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri = { version = "2", features = ["devtools"] }
+tauri-plugin-autostart = "2"
 telemetry = { path = "../../../crates/telemetry" }
 tokio = { version = "1", features = ["sync", "time"] }
 uuid = { version = "1", features = ["v4"] }

@@ -1002,12 +1002,16 @@ pub fn run() {
     let app_state = AppCore::boot().expect("failed to boot FileOctopus app core");
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .manage(app_state)
         .manage(WatchState::default())
         .manage(MetadataJobState::default())
         .manage(ListingRegistry::default())
         .setup(|_app| {
-            telemetry::info("FileOctopus Tauri shell started");
+            telemetry::info!("FileOctopus Tauri shell started");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
