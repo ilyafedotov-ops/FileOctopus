@@ -22,15 +22,16 @@ use app_ipc::{
     NavigationListRecentResponse, NavigationListStarredResponse, NavigationRecordVisitRequest,
     NavigationRemoveFavoriteRequest, NavigationRenameFavoriteRequest,
     NavigationToggleStarredRequest, NavigationToggleStarredResponse, OkResponse,
-    OperationHistoryRecordDto, PathPropertiesDto, PathPropertiesRequest, PathPropertiesResponse,
-    PathRequest, PlanFileOperationRequest, PlanFileOperationResponse, ReadTextFileRequest,
-    ReadTextFileResponse, RecursiveSearchCompletedEventDto, RecursiveSearchJobResponse,
-    RecursiveSearchMatchEventDto, RecursiveSearchRequest, RecursiveSearchResponse,
-    RecursiveSearchResultDto, SearchMatchDto, SetPreferenceRequest, SetPreferenceResponse,
-    StandardLocationDto, StandardLocationsResponse, StartFileOperationRequest,
-    StartFileOperationResponse, StatRequest, StatResponse, UserPreferencesDto, WatchEventDto,
-    WatchStartRequest, DIRECTORY_BATCH_EVENT, FOLDER_SIZE_COMPLETED_EVENT,
-    RECURSIVE_SEARCH_COMPLETED_EVENT, RECURSIVE_SEARCH_MATCH_EVENT, WATCH_CHANGED_EVENT,
+    OpenTerminalRequest, OpenTerminalResponse, OperationHistoryRecordDto, PathPropertiesDto,
+    PathPropertiesRequest, PathPropertiesResponse, PathRequest, PlanFileOperationRequest,
+    PlanFileOperationResponse, ReadTextFileRequest, ReadTextFileResponse,
+    RecursiveSearchCompletedEventDto, RecursiveSearchJobResponse, RecursiveSearchMatchEventDto,
+    RecursiveSearchRequest, RecursiveSearchResponse, RecursiveSearchResultDto, SearchMatchDto,
+    SetPreferenceRequest, SetPreferenceResponse, StandardLocationDto, StandardLocationsResponse,
+    StartFileOperationRequest, StartFileOperationResponse, StatRequest, StatResponse,
+    UserPreferencesDto, WatchEventDto, WatchStartRequest, DIRECTORY_BATCH_EVENT,
+    FOLDER_SIZE_COMPLETED_EVENT, RECURSIVE_SEARCH_COMPLETED_EVENT, RECURSIVE_SEARCH_MATCH_EVENT,
+    WATCH_CHANGED_EVENT,
 };
 use chrono::Utc;
 use config::RecentBucket;
@@ -280,6 +281,49 @@ async fn fs_compute_hash(
         algorithm: "sha256".to_string(),
         byte_size: file_size,
     })
+}
+
+#[tauri::command]
+async fn fs_open_terminal(
+    request: OpenTerminalRequest,
+    _state: State<'_, Arc<AppState>>,
+) -> Result<OpenTerminalResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let path = uri.to_local_path().map_err(IpcError::from)?;
+
+    if !path.exists() || !path.is_dir() {
+        return Err(IpcError {
+            code: "not_found".to_string(),
+            message: format!("directory not found: {}", path.display()),
+        });
+    }
+
+    let terminals = [
+        "gnome-terminal",
+        "konsole",
+        "xfce4-terminal",
+        "alacritty",
+        "kitty",
+        "xterm",
+    ];
+    let cmd = terminals.iter().find(|t| which::which(t).is_ok());
+
+    match cmd {
+        Some(term) => {
+            std::process::Command::new(*term)
+                .current_dir(&path)
+                .spawn()
+                .map_err(|e| IpcError {
+                    code: "spawn_error".to_string(),
+                    message: e.to_string(),
+                })?;
+            Ok(OpenTerminalResponse { success: true })
+        }
+        None => Err(IpcError {
+            code: "no_terminal".to_string(),
+            message: "no terminal emulator found".to_string(),
+        }),
+    }
 }
 
 #[tauri::command]
@@ -1169,6 +1213,7 @@ pub fn run() {
             fs_stat,
             fs_read_text_file,
             fs_compute_hash,
+            fs_open_terminal,
             fs_list_start,
             get_preferences,
             set_preference,

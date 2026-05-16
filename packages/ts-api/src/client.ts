@@ -64,6 +64,8 @@ import type {
   ReadTextFileResponse,
   ComputeHashRequest,
   ComputeHashResponse,
+  OpenTerminalRequest,
+  OpenTerminalResponse,
   StartFileOperationRequest,
   StartFileOperationResponse,
   StandardLocationsResponse,
@@ -87,6 +89,8 @@ const commandMap: Record<string, string> = {
   "app.get_info": "app_get_info",
   "fs.stat": "fs_stat",
   "fs.read_text_file": "fs_read_text_file",
+  "fs.compute_hash": "fs_compute_hash",
+  "fs.open_terminal": "fs_open_terminal",
   "fs.list_start": "fs_list_start",
   "fs.standard_locations": "fs_standard_locations",
   "fs.open_default": "fs_open_default",
@@ -456,6 +460,19 @@ export class FsClient {
     try {
       return await this.transport.invoke<ComputeHashResponse>(
         "fs.compute_hash",
+        { request },
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async openTerminal(
+    request: OpenTerminalRequest,
+  ): Promise<OpenTerminalResponse> {
+    try {
+      return await this.transport.invoke<OpenTerminalResponse>(
+        "fs.open_terminal",
         { request },
       );
     } catch (error) {

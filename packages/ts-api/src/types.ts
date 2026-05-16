@@ -86,6 +86,14 @@ export interface ComputeHashResponse {
   byteSize: number;
 }
 
+export interface OpenTerminalRequest {
+  uri: string;
+}
+
+export interface OpenTerminalResponse {
+  success: boolean;
+}
+
 export interface ListStartRequest {
   uri: string;
   requestId: string;

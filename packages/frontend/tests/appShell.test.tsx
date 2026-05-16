@@ -391,6 +391,7 @@ vi.mock("@fileoctopus/ts-api", () => ({
         algorithm: "sha256",
         fileSize: 1024,
       })),
+      openTerminal: vi.fn(async () => ({ success: true })),
     },
     fileOperations: {
       planFileOperation,

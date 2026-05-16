@@ -1478,6 +1478,18 @@ export function FileOctopusShell() {
     });
   }
 
+  async function openTerminal(uri: string) {
+    try {
+      await client.fs.openTerminal({ uri });
+    } catch (error) {
+      const normalized = normalizeIpcError(error);
+      pushToast({
+        tone: "error",
+        title: `Failed to open terminal: ${normalized.message}`,
+      });
+    }
+  }
+
   async function submitCreateFolder(
     current: Extract<OperationDialog, { type: "createFolder" }>,
   ) {
@@ -1952,12 +1964,7 @@ export function FileOctopusShell() {
                 onExtract={() =>
                   pushToast({ tone: "info", title: "Extract coming soon" })
                 }
-                onOpenTerminal={() =>
-                  pushToast({
-                    tone: "info",
-                    title: "Open Terminal coming soon",
-                  })
-                }
+                onOpenTerminal={() => openTerminal(left.uri)}
                 onChecksum={() =>
                   pushToast({ tone: "info", title: "Checksum coming soon" })
                 }
@@ -2044,12 +2051,7 @@ export function FileOctopusShell() {
                 onExtract={() =>
                   pushToast({ tone: "info", title: "Extract coming soon" })
                 }
-                onOpenTerminal={() =>
-                  pushToast({
-                    tone: "info",
-                    title: "Open Terminal coming soon",
-                  })
-                }
+                onOpenTerminal={() => openTerminal(left.uri)}
                 onChecksum={() =>
                   pushToast({ tone: "info", title: "Checksum coming soon" })
                 }
@@ -2210,8 +2212,8 @@ export function FileOctopusShell() {
             onExtract={() =>
               pushToast({ tone: "info", title: "Extract coming soon" })
             }
-            onOpenTerminal={() =>
-              pushToast({ tone: "info", title: "Open Terminal coming soon" })
+            onOpenTerminal={(panelId) =>
+              openTerminal(activeTab(state.panels[panelId]).uri)
             }
             onChecksum={() =>
               pushToast({ tone: "info", title: "Checksum coming soon" })
