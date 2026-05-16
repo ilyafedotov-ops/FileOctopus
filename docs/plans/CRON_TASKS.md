@@ -141,6 +141,60 @@
 
 ---
 
+### 6. Tauri IPC integration tests
+
+| Field          | Value                                                                  |
+| -------------- | ---------------------------------------------------------------------- |
+| **Status**     | `pending`                                                              |
+| **Priority**   | P1                                                                     |
+| **Spec**       | `docs/architecture/api-reference.md` (IPC contract); MVP §13           |
+| **Acceptance** | MVP-REL-005 (reliability); all 39 `#[tauri::command]` handlers covered |
+| **Micro-spec** | _not written_                                                          |
+
+**Description:** Add integration tests for Tauri command handlers. Currently only 2 unit tests exist in `lib.rs` — the remaining 37 commands (`fs_stat`, `fs_list_directory`, `fs_copy`, `fs_move`, `fs_trash`, `fs_delete_permanent`, `fs_write_text_file`, checksum, compress/extract, terminal, preferences, etc.) have zero test coverage. Use `tauri::test` macro or `AppHandle` + `MockRuntime` to test through the actual IPC layer.
+
+**Test plan (TDD):**
+
+- Rust: `apps/desktop-tauri/src-tauri/tests/` (new directory) — test each command through `#[tauri::command]` invoke with `AppState` + temp dir
+- Rust: Error path tests — `IpcError` serialization, invalid URIs, permission denied scenarios
+- Rust: Async command tests — verify `fs_copy`, `fs_move` progress events
+- Rust: State management tests — `AppState` initialization, `Managed` injection
+
+**Files:** `apps/desktop-tauri/src-tauri/tests/` (new), `apps/desktop-tauri/src-tauri/src/lib.rs`, `apps/desktop-tauri/src-tauri/Cargo.toml`
+
+**IPC / boundary:**
+
+- [ ] Tests must exercise full IPC path: `invoke` → handler → `AppCore` → `Vfs` → filesystem
+- [ ] Cover error propagation: `VfsError` → `IpcError` → Tauri response
+- [ ] Verify `local://` URI handling at command boundary
+
+---
+
+### 7. Visual regression — pixel-level screenshot tests
+
+| Field          | Value                                                                          |
+| -------------- | ------------------------------------------------------------------------------ |
+| **Status**     | `pending`                                                                      |
+| **Priority**   | P1                                                                             |
+| **Spec**       | `docs/FileOctopus_UI_Design_Spec.md`; reference PNGs in `docs/Images/MainApp/` |
+| **Acceptance** | UI inventory / visual parity (MVP-UI-001)                                      |
+| **Micro-spec** | _not written_                                                                  |
+
+**Description:** Add Playwright `toHaveScreenshot()` pixel-level comparison tests against baseline images. Currently only 2 DOM-structure snapshot tests exist (`visualSnapshots.test.tsx`) — no visual regression. Capture screenshots of main shell, dual-pane layout, toolbar, sidebar, file table, status bar in both light/dark themes and all density modes (compact/comfortable/spacious).
+
+**Test plan (TDD):**
+
+- Playwright: `e2e/visual-regression.e2e.ts` (new) — `expect(page).toHaveScreenshot()` for each layout region
+- Playwright: Multi-theme: light + dark baselines
+- Playwright: Multi-density: compact + comfortable + spacious
+- Generate baselines on first run, store in `e2e/baselines/`
+
+**Files:** `e2e/visual-regression.e2e.ts` (new), `e2e/baselines/` (new), `playwright.config.ts`, `docs/Images/MainApp/*.png`
+
+**IPC / boundary:** N/A
+
+---
+
 ## Backlog (not yet prioritized for next cycle)
 
 | Feature                                    | Priority | Acceptance      | Spec                   |
