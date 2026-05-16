@@ -81,6 +81,7 @@ import { useWorkspaceLayout } from "./hooks/useWorkspaceLayout";
 import { SidebarResizer, SplitResizer } from "./shell/LayoutResizers";
 import { StatusBar } from "./shell/StatusBar";
 import { TitleBar } from "./shell/TitleBar";
+import type { MenuBarProps } from "./shell/MenuBar";
 import { Sidebar } from "./sidebar/Sidebar";
 import { DiagnosticsDialog } from "./components/DiagnosticsDialog";
 import { ContextMenu, type ContextMenuState } from "./components/ContextMenu";
@@ -1882,6 +1883,167 @@ export function FileOctopusShell() {
   const activeJobCount = Object.values(jobs).filter(
     (job) => job.status === "queued" || job.status === "running",
   ).length;
+
+  const menuBarProps: MenuBarProps = {
+    activePanelId: state.activePanelId,
+    onBack: () => void goHistory(state.activePanelId, "back"),
+    onForward: () => void goHistory(state.activePanelId, "forward"),
+    onUp: () => {
+      const upUri = parentUri(activeTab(state.panels[state.activePanelId]).uri);
+      if (upUri) void navigatePanel(state.activePanelId, upUri);
+    },
+    onHome: () => void navigatePanel(state.activePanelId, homeUri()),
+    onGoToLocation: () => setPathFocusToken((v) => v + 1),
+    goStandardLocation: (loc: string) => {
+      const match = locations.find(
+        (l) => l.id.toLowerCase() === loc.toLowerCase(),
+      );
+      if (match) void navigatePanel(state.activePanelId, match.uri);
+    },
+    onNewFolder: () => handleCreateFolder(state.activePanelId),
+    onNewFile: () => handleCreateFile(state.activePanelId),
+    onOpenSelected: () => {
+      const entry = selectedEntries(state.activePanelId)[0];
+      if (entry) activateEntry(state.activePanelId, entry);
+    },
+    onOpenWithDefaultApp: () => {
+      const entry = selectedEntries(state.activePanelId)[0];
+      if (entry) void openExternal(entry);
+    },
+    onRevealInFileManager: () => {
+      const entry = selectedEntries(state.activePanelId)[0];
+      if (entry) void revealEntry(state.activePanelId, entry);
+    },
+    onRename: () => handleRename(state.activePanelId),
+    onCopyTo: () => pushToast({ tone: "info", title: "Copy To… coming soon" }),
+    onMoveTo: () => pushToast({ tone: "info", title: "Move To… coming soon" }),
+    onTrash: () => handleTrash(state.activePanelId),
+    onDeletePermanently: () => handlePermanentDelete(state.activePanelId),
+    onProperties: () => void handleProperties(state.activePanelId, null),
+    onCut: () => copySelectionToFileClipboard(state.activePanelId, "move"),
+    onCopy: () => copySelectionToFileClipboard(state.activePanelId, "copy"),
+    onPaste: () => void pasteClipboard(state.activePanelId),
+    onClearClipboard: () => setClipboard(null),
+    onSelectAll: () =>
+      dispatch({ type: "selectAll", panelId: state.activePanelId }),
+    onClearSelection: () =>
+      dispatch({ type: "clearSelection", panelId: state.activePanelId }),
+    onInvertSelection: () =>
+      pushToast({ tone: "info", title: "Invert Selection coming soon" }),
+    onCopyPath: () => void copyTextFromSelection(state.activePanelId, "path"),
+    onCopyName: () => void copyTextFromSelection(state.activePanelId, "name"),
+    onCopyParentPath: () =>
+      void copyTextFromSelection(state.activePanelId, "parentPath"),
+    onCopyResourceUri: () =>
+      void copyTextFromSelection(state.activePanelId, "uri"),
+    onViewMode: (mode: string) => {
+      const panelId = state.activePanelId;
+      dispatch({
+        type: "setViewMode",
+        panelId,
+        viewMode: mode as import("./panelStore").ViewMode,
+      });
+    },
+    onSortBy: (field: string) => {
+      dispatch({
+        type: "setSort",
+        panelId: state.activePanelId,
+        field: field as import("./panelStore").SortField,
+      });
+    },
+    onSortDirection: (dir: string) => {
+      const tab = activeTab(state.panels[state.activePanelId]);
+      const ascending = dir === "ascending";
+      if ((tab.sort.direction === "asc") !== ascending) {
+        dispatch({
+          type: "setSort",
+          panelId: state.activePanelId,
+          field: tab.sort.field,
+        });
+      }
+    },
+    onTheme: (theme: string) => {
+      void updatePreference("theme", theme);
+    },
+    onDensity: (density: string) => {
+      const d = density as DensityPreference;
+      setDensity(d);
+      applyDensityPreference(d);
+      void updatePreference("density", density);
+    },
+    onToggleSidebar: () => {
+      void updatePreference(
+        "sidebarVisible",
+        String(preferences?.sidebarVisible === false),
+      );
+    },
+    onToggleToolbar: () =>
+      pushToast({ tone: "info", title: "Toggle Toolbar coming soon" }),
+    onToggleStatusBar: () =>
+      pushToast({ tone: "info", title: "Toggle Status Bar coming soon" }),
+    onToggleDualPane: () => {
+      pushToast({ tone: "info", title: "Dual Pane coming soon" });
+    },
+    onToggleHidden: () => toggleHidden(state.activePanelId),
+    onRefresh: () => refreshPanel(state.activePanelId),
+    onAddFavorite: () => {
+      const uri = activeTab(state.panels[state.activePanelId]).uri;
+      const name = uri.split("/").filter(Boolean).pop() ?? "Untitled";
+      void client.navigation
+        .addFavorite({ uri, label: name })
+        .then(() => refreshNavigation())
+        .catch((error) =>
+          pushToast({ tone: "error", title: normalizeIpcError(error).message }),
+        );
+    },
+    onManageFavorites: () => setSettingsOpen(true),
+    onFilter: () => setFilterFocusToken((v) => v + 1),
+    onSearchRecursive: () => setRecursiveSearchFocusToken((v) => v + 1),
+    onJobActivity: () =>
+      pushToast({ tone: "info", title: "Job Activity coming soon" }),
+    onDiagnostics: () => setDiagnosticsOpen(true),
+    onExportDiagnostics: () =>
+      pushToast({ tone: "info", title: "Export Diagnostics coming soon" }),
+    onSwitchPane: () =>
+      dispatch({
+        type: "setActivePanel",
+        panelId: state.activePanelId === "left" ? "right" : "left",
+      }),
+    onSwapPanes: () =>
+      pushToast({ tone: "info", title: "Swap Panes coming soon" }),
+    onEqualizePanes: () =>
+      pushToast({ tone: "info", title: "Equalize Panes coming soon" }),
+    onShortcuts: () => setShortcutsOpen(true),
+    onDocumentation: () => {
+      void globalThis.open(
+        "https://github.com/nous-research/fileoctopus",
+        "_blank",
+      );
+    },
+    onReportIssue: () => {
+      void globalThis.open(
+        "https://github.com/nous-research/fileoctopus/issues",
+        "_blank",
+      );
+    },
+    onAbout: () =>
+      pushToast({ tone: "info", title: "About FileOctopus coming soon" }),
+    onSettings: () => setSettingsOpen(true),
+    onExit: () => pushToast({ tone: "info", title: "Exit coming soon" }),
+    canGoBack:
+      activeTab(state.panels[state.activePanelId]).backStack.length > 0,
+    canGoForward:
+      activeTab(state.panels[state.activePanelId]).forwardStack.length > 0,
+    hasSelection:
+      activeTab(state.panels[state.activePanelId]).selectedIds.length > 0,
+    hasClipboard: clipboard !== null,
+    sidebarVisible: preferences?.sidebarVisible !== false,
+    toolbarVisible: true,
+    statusBarVisible: true,
+    dualPane: false,
+    showHidden: activeTab(state.panels[state.activePanelId]).showHidden,
+  };
+
   return (
     <ErrorBoundary>
       <main className="fo-shell" tabIndex={-1} onKeyDown={handleShellKeyDown}>
@@ -1898,6 +2060,7 @@ export function FileOctopusShell() {
               setHelpOpen(false);
               setDiagnosticsOpen(true);
             }}
+            menuBarProps={menuBarProps}
           />
           <section
             ref={workspaceRef}

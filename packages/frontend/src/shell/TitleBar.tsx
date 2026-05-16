@@ -1,4 +1,5 @@
 import { Badge, Button, DropdownMenu } from "@fileoctopus/ui";
+import { MenuBar, type MenuBarProps } from "./MenuBar";
 
 interface TitleBarProps {
   helpOpen: boolean;
@@ -6,6 +7,7 @@ interface TitleBarProps {
   onSettings: () => void;
   onShortcuts: () => void;
   onDiagnostics: () => void;
+  menuBarProps: MenuBarProps;
 }
 
 export function TitleBar({
@@ -14,6 +16,7 @@ export function TitleBar({
   onSettings,
   onShortcuts,
   onDiagnostics,
+  menuBarProps,
 }: TitleBarProps) {
   return (
     <header className="fo-topbar">
@@ -24,6 +27,7 @@ export function TitleBar({
         <h1>FileOctopus</h1>
         <Badge tone="default">Rust-powered</Badge>
       </div>
+      <MenuBar {...menuBarProps} />
       <div className="fo-topbar-actions">
         <Button type="button" variant="ghost" size="sm" onClick={onSettings}>
           Settings

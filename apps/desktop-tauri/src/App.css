@@ -152,7 +152,7 @@ button:disabled {
   align-items: center;
   gap: 8px;
   min-width: 0;
-  flex: 1;
+  flex-shrink: 0;
 }
 
 .fo-brand-mark {
@@ -190,6 +190,38 @@ button:disabled {
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.fo-menubar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 8px;
+  height: 100%;
+  flex: 1;
+  min-width: 0;
+}
+
+.fo-menubar-trigger {
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--fo-text-secondary);
+  user-select: none;
+}
+
+.fo-menubar-trigger-inner {
+  u {
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+}
+
+.fo-menubar-trigger:hover,
+.fo-menubar-trigger[data-state="open"] {
+  background: var(--fo-bg-hover);
+  color: var(--fo-text-primary);
 }
 
 .fo-help-menu {

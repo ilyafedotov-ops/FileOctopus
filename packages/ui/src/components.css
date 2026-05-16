@@ -190,7 +190,7 @@
   z-index: 80;
   display: grid;
   gap: 2px;
-  min-width: 13rem;
+  min-width: 18rem;
   padding: 6px;
   border: 1px solid var(--fo-border);
   border-radius: 8px;
