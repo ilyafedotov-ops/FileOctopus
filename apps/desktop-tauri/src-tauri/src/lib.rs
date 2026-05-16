@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use tauri::Manager;
+use tauri_plugin_autostart::ManagerExt;
 
 use app_core::{AppCore, AppState, OperationHistoryRecord};
 use app_ipc::{
@@ -13,7 +14,7 @@ use app_ipc::{
     ClearOperationHistoryResponse, CreateFileRequest, CreateFileResponse, DeletePermanentlyRequest,
     DirectoryBatchEventDto, ExportDiagnosticsBundleRequest, ExportDiagnosticsBundleResponse,
     FolderSizeCompletedEventDto, FolderSizeJobResponse, FolderSizeRequest, FolderSizeResponse,
-    FolderSizeSummaryDto, GetPreferencesResponse, IpcError, JobStatusRequest, JobStatusResponse,
+    FolderSizeSummaryDto,    GetPreferencesResponse, IpcError, AutostartStatusDto, JobStatusRequest, JobStatusResponse,
     ListRecentOperationsRequest, ListRecentOperationsResponse, ListStartRequest, ListStartResponse,
     NavigationAddFavoriteRequest, NavigationFavoriteResponse, NavigationIsStarredRequest,
     NavigationIsStarredResponse, NavigationListFavoritesResponse, NavigationListRecentRequest,
@@ -296,6 +297,54 @@ fn set_preference(
     Ok(SetPreferenceResponse {
         preferences: UserPreferencesDto::from(preferences),
     })
+}
+
+#[tauri::command]
+async fn get_autostart(app: tauri::AppHandle) -> Result<AutostartStatusDto, IpcError> {
+    let manager = app.autolaunch();
+    match manager.is_enabled() {
+        Ok(enabled) => Ok(AutostartStatusDto {
+            enabled,
+            supported: true,
+        }),
+        Err(error) => {
+            telemetry::error(&format!("autostart_unavailable: {}", error));
+            Ok(AutostartStatusDto {
+                enabled: false,
+                supported: false,
+            })
+        }
+    }
+}
+
+#[tauri::command]
+async fn set_autostart(
+    app: tauri::AppHandle,
+    enabled: bool,
+) -> Result<AutostartStatusDto, IpcError> {
+    let manager = app.autolaunch();
+    let result = if enabled {
+        manager.enable()
+    } else {
+        manager.disable()
+    };
+
+    match result {
+        Ok(()) => match manager.is_enabled() {
+            Ok(state) => Ok(AutostartStatusDto {
+                enabled: state,
+                supported: true,
+            }),
+            Err(error) => Err(IpcError {
+                code: "autostart_unavailable".to_string(),
+                message: error.to_string(),
+            }),
+        },
+        Err(error) => Err(IpcError {
+            code: "autostart_unavailable".to_string(),
+            message: error.to_string(),
+        }),
+    }
 }
 
 fn navigation_error(error: config::NavigationError) -> IpcError {
@@ -1011,7 +1060,7 @@ pub fn run() {
         .manage(MetadataJobState::default())
         .manage(ListingRegistry::default())
         .setup(|_app| {
-            telemetry::info!("FileOctopus Tauri shell started");
+            telemetry::info("FileOctopus Tauri shell started");
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -1048,7 +1097,9 @@ pub fn run() {
             list_recent_operations,
             clear_operation_history,
             diagnostics_app_data_health,
-            export_diagnostics_bundle
+            export_diagnostics_bundle,
+            get_autostart,
+            set_autostart
         ])
         .run(tauri::generate_context!())
         .expect("failed to run FileOctopus");
