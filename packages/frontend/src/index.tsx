@@ -15,6 +15,7 @@ import {
 import type {
   AppDataHealthResponse,
   AppInfoResponse,
+  AutostartStatusDto,
   ConflictPolicy,
   FileEntryDto,
   FileOperationPlanDto,
@@ -208,6 +209,13 @@ export function FileOctopusShell() {
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [autostart, setAutostart] = useState<AutostartStatusDto | null>(null);
+
+  // ── Autostart: fetch when settings dialog opens ─────────────────
+  useEffect(() => {
+    if (!settingsOpen) return;
+    void client.autostart.get().then(setAutostart).catch(() => setAutostart(null));
+  }, [settingsOpen]);
 
   // ── E2E test bridge ──────────────────────────────────────────────
   useEffect(() => {
@@ -580,6 +588,15 @@ export function FileOctopusShell() {
       }
     } catch (error) {
       setOperationError(normalizeIpcError(error).message);
+    }
+  }
+
+  async function handleSetAutostart(enabled: boolean) {
+    try {
+      const status = await client.autostart.set(enabled);
+      setAutostart(status);
+    } catch {
+      // ignore — checkbox stays in previous state
     }
   }
 
@@ -1867,8 +1884,10 @@ export function FileOctopusShell() {
             <SettingsDialog
               open={settingsOpen}
               preferences={preferences}
+              autostart={autostart}
               onClose={() => setSettingsOpen(false)}
               onChange={(key, value) => void updatePreference(key, value)}
+              onSetAutostart={handleSetAutostart}
             />
           ) : null}
           <ShortcutsDialog
