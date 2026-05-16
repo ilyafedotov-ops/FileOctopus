@@ -3,6 +3,7 @@ import { listen as tauriListen } from "@tauri-apps/api/event";
 import type {
   AppInfoResponse,
   AppDataHealthResponse,
+  AutostartStatusDto,
   CancelJobRequest,
   ClearOperationHistoryResponse,
   DirectoryBatchEventDto,
@@ -104,6 +105,8 @@ const commandMap: Record<string, string> = {
   "diagnostics.exportBundle": "export_diagnostics_bundle",
   "preferences.get": "get_preferences",
   "preferences.set": "set_preference",
+  "autostart.get": "get_autostart",
+  "autostart.set": "set_autostart",
   "navigation.recordVisit": "navigation_record_visit",
   "navigation.listFavorites": "navigation_list_favorites",
   "navigation.addFavorite": "navigation_add_favorite",
@@ -123,6 +126,7 @@ export class FileOctopusClient {
   readonly diagnostics: DiagnosticsClient;
   readonly preferences: PreferencesClient;
   readonly navigation: NavigationClient;
+  readonly autostart: AutostartClient;
 
   constructor(private readonly transport: IpcTransport) {
     this.fs = new FsClient(transport);
@@ -132,6 +136,7 @@ export class FileOctopusClient {
     this.diagnostics = new DiagnosticsClient(transport);
     this.preferences = new PreferencesClient(transport);
     this.navigation = new NavigationClient(transport);
+    this.autostart = new AutostartClient(transport);
   }
 
   getAppInfo(): Promise<AppInfoResponse> {
@@ -294,6 +299,28 @@ export class PreferencesClient {
           request,
         },
       );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+}
+
+export class AutostartClient {
+  constructor(private readonly transport: IpcTransport) {}
+
+  async get(): Promise<AutostartStatusDto> {
+    try {
+      return await this.transport.invoke<AutostartStatusDto>("autostart.get");
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async set(enabled: boolean): Promise<AutostartStatusDto> {
+    try {
+      return await this.transport.invoke<AutostartStatusDto>("autostart.set", {
+        enabled,
+      });
     } catch (error) {
       throw normalizeIpcError(error);
     }
@@ -663,7 +690,7 @@ export function createPreviewTransport(): IpcTransport {
     density: "comfortable",
     defaultViewMode: "details",
     showHiddenFiles: false,
-    sidebarWidth: 224,
+    sidebarWidth: 240,
     splitRatio: 0.5,
     activityPanelVisible: true,
     activityPanelWidth: 288,
@@ -671,6 +698,11 @@ export function createPreviewTransport(): IpcTransport {
     confirmPermanentDelete: true,
     useTrashByDefault: true,
     defaultConflictPolicy: "fail",
+    accentColor: "blue",
+    fontScale: "medium",
+    iconScale: "medium",
+    confirmOverwrite: true,
+    sidebarVisible: true,
   };
   const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
   const folderSizeHandlers = new Set<
@@ -729,6 +761,10 @@ export function createPreviewTransport(): IpcTransport {
         };
 
         return { preferences: previewPreferences } as TResponse;
+      }
+
+      if (command === "autostart.get" || command === "autostart.set") {
+        return { enabled: false, supported: false } as TResponse;
       }
 
       if (command === "navigation.listFavorites") {
