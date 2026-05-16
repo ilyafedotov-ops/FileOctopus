@@ -11,7 +11,6 @@ import {
 import { isPaneLoading, type PaneLoadState } from "../paneTypes";
 import type { SortField, ViewMode } from "../panelStore";
 import { FileRow } from "./FileRow";
-import type { HashState } from "./hashUtils";
 
 const overscan = 8;
 
@@ -25,7 +24,6 @@ export interface FileTableProps {
   sortField: SortField;
   sortDirection: string;
   viewMode: ViewMode;
-  hashMap: Record<string, HashState>;
   onSelect: (entryId: string | null) => void;
   onEntrySelect: (entryId: string, mode: "single" | "toggle" | "range") => void;
   onMove: (delta: number) => void;
@@ -48,7 +46,6 @@ export function FileTable({
   sortField,
   sortDirection,
   viewMode,
-  hashMap,
   onSelect,
   onEntrySelect,
   onMove,
@@ -152,22 +149,6 @@ export function FileTable({
             Size
           </ColumnHeader>
           <ColumnHeader
-            field="modified"
-            active={sortField === "modified"}
-            direction={sortDirection}
-            onSort={onSort}
-          >
-            Modified
-          </ColumnHeader>
-          <ColumnHeader
-            field="created"
-            active={sortField === "created"}
-            direction={sortDirection}
-            onSort={onSort}
-          >
-            Created
-          </ColumnHeader>
-          <ColumnHeader
             field="type"
             active={sortField === "type"}
             direction={sortDirection}
@@ -176,41 +157,13 @@ export function FileTable({
             Type
           </ColumnHeader>
           <ColumnHeader
-            field="extension"
-            active={sortField === "extension"}
+            field="modified"
+            active={sortField === "modified"}
             direction={sortDirection}
             onSort={onSort}
           >
-            Extension
+            Modified
           </ColumnHeader>
-          <ColumnHeader
-            field="permissions"
-            active={sortField === "permissions"}
-            direction={sortDirection}
-            onSort={onSort}
-          >
-            Permissions
-          </ColumnHeader>
-          <ColumnHeader
-            field="owner"
-            active={sortField === "owner"}
-            direction={sortDirection}
-            onSort={onSort}
-          >
-            Owner
-          </ColumnHeader>
-          <span
-            className="fo-column-button fo-column-label"
-            role="columnheader"
-          >
-            Hash
-          </span>
-          <span
-            className="fo-column-button fo-column-label"
-            role="columnheader"
-          >
-            Perms
-          </span>
         </div>
       ) : null}
       <div
@@ -243,7 +196,6 @@ export function FileTable({
                 selected={entry.uri === selectedId}
                 multiSelected={selectedIds.includes(entry.uri)}
                 focused={entry.uri === focusedId}
-                hashState={hashMap[entry.uri]}
                 onSelect={onSelect}
                 onEntrySelect={onEntrySelect}
                 onEntryActivate={onEntryActivate}

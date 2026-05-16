@@ -576,7 +576,7 @@ button:disabled {
 .fo-table-header,
 .fo-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) 96px 160px 110px;
+  grid-template-columns: minmax(220px, 1fr) 96px 90px 160px;
   min-width: 0;
 }
 
