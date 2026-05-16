@@ -2285,3 +2285,62 @@ button:disabled {
     minmax(12rem, 1fr) minmax(5rem, 8rem) minmax(8rem, 12rem)
     minmax(4rem, 6rem);
 }
+
+/* ─── Command Palette ─── */
+.fo-command-palette {
+  max-width: 520px;
+  width: 90vw;
+  padding: 0;
+  border-radius: 8px;
+  top: 15vh;
+}
+
+.fo-command-palette-input {
+  padding: 12px;
+  border-bottom: 1px solid var(--fo-subtle-border);
+}
+
+.fo-command-palette-input input {
+  width: 100%;
+  font-size: 14px;
+  padding: 8px;
+}
+
+.fo-command-palette-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.fo-command-palette-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  gap: 12px;
+}
+
+.fo-command-palette-item:hover,
+.fo-command-palette-item-active {
+  background: var(--fo-selection-bg, rgba(255, 255, 255, 0.08));
+}
+
+.fo-command-palette-label {
+  font-size: 13px;
+}
+
+.fo-command-palette-shortcut {
+  font-size: 11px;
+  opacity: 0.5;
+  font-family: var(--fo-mono, monospace);
+}
+
+.fo-command-palette-empty {
+  padding: 16px;
+  text-align: center;
+  opacity: 0.5;
+  font-size: 13px;
+}
