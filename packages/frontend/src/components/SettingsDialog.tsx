@@ -5,8 +5,14 @@ import type {
 } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
+import { formatShortcut, shortcutGroups } from "../shortcuts";
 
-type SettingsSection = "general" | "appearance" | "files" | "layout";
+type SettingsSection =
+  | "general"
+  | "appearance"
+  | "files"
+  | "layout"
+  | "shortcuts";
 
 interface SettingsDialogProps {
   open: boolean;
@@ -95,6 +101,17 @@ export function SettingsDialog({
               onClick={() => setActiveSection("layout")}
             >
               Layout
+            </button>
+            <button
+              type="button"
+              className={
+                activeSection === "shortcuts"
+                  ? "fo-settings-nav-active"
+                  : undefined
+              }
+              onClick={() => setActiveSection("shortcuts")}
+            >
+              Shortcuts
             </button>
           </nav>
           <div className="fo-settings-content">
@@ -375,6 +392,36 @@ export function SettingsDialog({
                   />
                   <span>Show activity panel</span>
                 </label>
+              </section>
+            )}
+            {activeSection === "shortcuts" && (
+              <section
+                className="fo-settings-section"
+                role="region"
+                aria-label="Shortcuts settings"
+              >
+                <h3>Keyboard Shortcuts</h3>
+                <div className="fo-shortcuts-groups">
+                  {shortcutGroups.map((group) => (
+                    <div key={group.title} className="fo-shortcuts-group">
+                      <h4>{group.title}</h4>
+                      <table className="fo-shortcuts-table">
+                        <tbody>
+                          {group.entries.map((entry) => (
+                            <tr key={entry.id}>
+                              <td>{entry.label}</td>
+                              <td>
+                                <kbd role="presentation">
+                                  {formatShortcut(entry)}
+                                </kbd>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ))}
+                </div>
               </section>
             )}
           </div>

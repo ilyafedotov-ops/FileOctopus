@@ -158,4 +158,59 @@ describe("SettingsDialog", () => {
     fireEvent.click(screen.getByLabelText("Start automatically at login"));
     expect(onSetAutostart).toHaveBeenCalledWith(true);
   });
+
+  describe("Shortcuts tab", () => {
+    it("shows Shortcuts nav button", () => {
+      render(
+        <SettingsDialog
+          open
+          preferences={makePreferences()}
+          autostart={null}
+          onClose={() => {}}
+          onChange={() => {}}
+          onSetAutostart={async () => {}}
+        />,
+      );
+      expect(navButton("Shortcuts")).toBeTruthy();
+    });
+
+    it("displays shortcut groups with headings when Shortcuts tab is active", () => {
+      render(
+        <SettingsDialog
+          open
+          preferences={makePreferences()}
+          autostart={null}
+          onClose={() => {}}
+          onChange={() => {}}
+          onSetAutostart={async () => {}}
+        />,
+      );
+      fireEvent.click(navButton("Shortcuts"));
+      const content = screen.getByRole("region", {
+        name: "Shortcuts settings",
+      });
+      expect(within(content).getByText("Navigation")).toBeTruthy();
+      expect(within(content).getByText("View")).toBeTruthy();
+      expect(within(content).getByText("File operations")).toBeTruthy();
+    });
+
+    it("displays shortcut entries with labels and keyboard bindings", () => {
+      render(
+        <SettingsDialog
+          open
+          preferences={makePreferences()}
+          autostart={null}
+          onClose={() => {}}
+          onChange={() => {}}
+          onSetAutostart={async () => {}}
+        />,
+      );
+      fireEvent.click(navButton("Shortcuts"));
+      expect(screen.getByText("Switch active pane")).toBeTruthy();
+      expect(screen.getByText("Copy selection")).toBeTruthy();
+      expect(screen.getByText("Toggle hidden files")).toBeTruthy();
+      const kbds = screen.getAllByRole("presentation");
+      expect(kbds.length).toBeGreaterThan(0);
+    });
+  });
 });
