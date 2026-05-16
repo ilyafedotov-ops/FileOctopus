@@ -20,6 +20,64 @@ export function applyDensityPreference(density: string): DensityPreference {
   return resolved;
 }
 
+export type AccentPreference =
+  | "blue"
+  | "indigo"
+  | "violet"
+  | "pink"
+  | "red"
+  | "orange"
+  | "amber"
+  | "green";
+export type ScalePreference = "small" | "medium" | "large";
+
+const ACCENT_VALUES: ReadonlyArray<AccentPreference> = [
+  "blue",
+  "indigo",
+  "violet",
+  "pink",
+  "red",
+  "orange",
+  "amber",
+  "green",
+];
+const SCALE_VALUES: ReadonlyArray<ScalePreference> = [
+  "small",
+  "medium",
+  "large",
+];
+
+function includes<T>(arr: ReadonlyArray<T>, v: T): boolean {
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] === v) return true;
+  }
+  return false;
+}
+
+export function applyAccentPreference(value: string): AccentPreference {
+  const resolved = includes(ACCENT_VALUES, value as AccentPreference)
+    ? (value as AccentPreference)
+    : "blue";
+  document.documentElement.dataset.accent = resolved;
+  return resolved;
+}
+
+export function applyFontScalePreference(value: string): ScalePreference {
+  const resolved = includes(SCALE_VALUES, value as ScalePreference)
+    ? (value as ScalePreference)
+    : "medium";
+  document.documentElement.dataset.fontScale = resolved;
+  return resolved;
+}
+
+export function applyIconScalePreference(value: string): ScalePreference {
+  const resolved = includes(SCALE_VALUES, value as ScalePreference)
+    ? (value as ScalePreference)
+    : "medium";
+  document.documentElement.dataset.iconScale = resolved;
+  return resolved;
+}
+
 export function applySplitRatio(ratio: number) {
   const root = document.documentElement;
   const resolved = Math.min(0.75, Math.max(0.25, Number(ratio) || 0.5));
@@ -67,4 +125,7 @@ export function applyAllPreferences(preferences: UserPreferencesDto) {
   applyThemePreference(preferences.theme);
   applyDensityPreference(preferences.density);
   applyLayoutPreferences(preferences);
+  applyAccentPreference(preferences.accentColor);
+  applyFontScalePreference(preferences.fontScale);
+  applyIconScalePreference(preferences.iconScale);
 }
