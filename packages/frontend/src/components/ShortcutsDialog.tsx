@@ -18,6 +18,7 @@ export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
     <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
       <dialog
         open
+        role="dialog"
         className="fo-dialog fo-shortcuts-dialog"
         aria-labelledby="shortcuts-title"
         onClick={(event) => event.stopPropagation()}

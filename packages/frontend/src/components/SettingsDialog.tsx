@@ -38,6 +38,7 @@ export function SettingsDialog({
     <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
       <dialog
         open
+        role="dialog"
         className="fo-dialog fo-settings-dialog"
         aria-labelledby="settings-title"
         onClick={(event) => event.stopPropagation()}
