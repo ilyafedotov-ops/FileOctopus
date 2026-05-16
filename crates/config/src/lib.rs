@@ -38,6 +38,11 @@ pub struct UserPreferences {
     pub confirm_permanent_delete: bool,
     pub use_trash_by_default: bool,
     pub default_conflict_policy: String,
+    pub accent_color: String,
+    pub font_scale: String,
+    pub icon_scale: String,
+    pub confirm_overwrite: bool,
+    pub sidebar_visible: bool,
 }
 
 impl Default for UserPreferences {
@@ -55,6 +60,11 @@ impl Default for UserPreferences {
             confirm_permanent_delete: true,
             use_trash_by_default: true,
             default_conflict_policy: "fail".to_string(),
+            accent_color: "blue".to_string(),
+            font_scale: "medium".to_string(),
+            icon_scale: "medium".to_string(),
+            confirm_overwrite: true,
+            sidebar_visible: true,
         }
     }
 }
@@ -281,6 +291,11 @@ impl UserPreferences {
                 "defaultConflictPolicy",
                 self.default_conflict_policy.clone(),
             ),
+            ("accentColor", self.accent_color.clone()),
+            ("fontScale", self.font_scale.clone()),
+            ("iconScale", self.icon_scale.clone()),
+            ("confirmOverwrite", self.confirm_overwrite.to_string()),
+            ("sidebarVisible", self.sidebar_visible.to_string()),
         ]
     }
 }
@@ -438,5 +453,26 @@ mod tests {
 
         let error = repository.set("theme", "neon").unwrap_err();
         assert!(matches!(error, PreferencesError::InvalidValue { .. }));
+    }
+
+    #[test]
+    fn defaults_include_new_v5_fields() {
+        let defaults = UserPreferences::default();
+        assert_eq!(defaults.accent_color, "blue");
+        assert_eq!(defaults.font_scale, "medium");
+        assert_eq!(defaults.icon_scale, "medium");
+        assert!(defaults.confirm_overwrite);
+        assert!(defaults.sidebar_visible);
+    }
+
+    #[test]
+    fn as_rows_serializes_new_fields() {
+        let prefs = UserPreferences::default();
+        let rows: std::collections::HashMap<&str, String> = prefs.as_rows().into_iter().collect();
+        assert_eq!(rows["accentColor"], "blue");
+        assert_eq!(rows["fontScale"], "medium");
+        assert_eq!(rows["iconScale"], "medium");
+        assert_eq!(rows["confirmOverwrite"], "true");
+        assert_eq!(rows["sidebarVisible"], "true");
     }
 }
