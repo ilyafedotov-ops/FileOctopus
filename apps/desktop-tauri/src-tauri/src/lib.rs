@@ -1631,6 +1631,7 @@ fn home_dir() -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use vfs::FileKind;
 
     #[test]
     fn app_info_response_has_stable_metadata_fields() {
