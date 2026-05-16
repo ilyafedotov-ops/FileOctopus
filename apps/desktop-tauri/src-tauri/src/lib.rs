@@ -22,14 +22,14 @@ use app_ipc::{
     NavigationRecordVisitRequest, NavigationRemoveFavoriteRequest, NavigationRenameFavoriteRequest,
     NavigationToggleStarredRequest, NavigationToggleStarredResponse, OkResponse,
     OperationHistoryRecordDto, PathPropertiesDto, PathPropertiesRequest, PathPropertiesResponse,
-    PathRequest, PlanFileOperationRequest, PlanFileOperationResponse,
-    RecursiveSearchCompletedEventDto, RecursiveSearchJobResponse, RecursiveSearchMatchEventDto,
-    RecursiveSearchRequest, RecursiveSearchResponse, RecursiveSearchResultDto, SearchMatchDto,
-    SetPreferenceRequest, SetPreferenceResponse, StandardLocationDto, StandardLocationsResponse,
-    StartFileOperationRequest, StartFileOperationResponse, StatRequest, StatResponse,
-    UserPreferencesDto, WatchEventDto, WatchStartRequest, DIRECTORY_BATCH_EVENT,
-    FOLDER_SIZE_COMPLETED_EVENT, RECURSIVE_SEARCH_COMPLETED_EVENT, RECURSIVE_SEARCH_MATCH_EVENT,
-    WATCH_CHANGED_EVENT,
+    PathRequest, PlanFileOperationRequest, PlanFileOperationResponse, ReadTextFileRequest,
+    ReadTextFileResponse, RecursiveSearchCompletedEventDto, RecursiveSearchJobResponse,
+    RecursiveSearchMatchEventDto, RecursiveSearchRequest, RecursiveSearchResponse,
+    RecursiveSearchResultDto, SearchMatchDto, SetPreferenceRequest, SetPreferenceResponse,
+    StandardLocationDto, StandardLocationsResponse, StartFileOperationRequest,
+    StartFileOperationResponse, StatRequest, StatResponse, UserPreferencesDto, WatchEventDto,
+    WatchStartRequest, DIRECTORY_BATCH_EVENT, FOLDER_SIZE_COMPLETED_EVENT,
+    RECURSIVE_SEARCH_COMPLETED_EVENT, RECURSIVE_SEARCH_MATCH_EVENT, WATCH_CHANGED_EVENT,
 };
 use chrono::Utc;
 use config::RecentBucket;
@@ -178,6 +178,53 @@ async fn fs_stat(
 
     Ok(StatResponse {
         entry: entry.into(),
+    })
+}
+
+#[tauri::command]
+async fn fs_read_text_file(
+    request: ReadTextFileRequest,
+    _state: State<'_, Arc<AppState>>,
+) -> Result<ReadTextFileResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let path = uri.to_local_path().map_err(IpcError::from)?;
+
+    let metadata = std::fs::metadata(&path).map_err(|e| IpcError {
+        code: "io_error".to_string(),
+        message: e.to_string(),
+    })?;
+
+    if metadata.is_dir() {
+        return Err(IpcError {
+            code: "is_directory".to_string(),
+            message: "cannot read a directory as text".to_string(),
+        });
+    }
+
+    let file_size = metadata.len();
+    let max_bytes = request.max_bytes.unwrap_or(1_048_576); // 1 MB default
+    let read_len = if file_size > max_bytes {
+        max_bytes
+    } else {
+        file_size
+    };
+
+    let mut buf = vec![0u8; read_len as usize];
+    let mut f = File::open(&path).map_err(|e| IpcError {
+        code: "io_error".to_string(),
+        message: e.to_string(),
+    })?;
+    f.read_exact(&mut buf).map_err(|e| IpcError {
+        code: "io_error".to_string(),
+        message: e.to_string(),
+    })?;
+
+    let content = String::from_utf8_lossy(&buf).to_string();
+
+    Ok(ReadTextFileResponse {
+        content,
+        truncated: file_size > max_bytes,
+        byte_size: file_size,
     })
 }
 
@@ -1066,6 +1113,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app_get_info,
             fs_stat,
+            fs_read_text_file,
             fs_list_start,
             get_preferences,
             set_preference,
