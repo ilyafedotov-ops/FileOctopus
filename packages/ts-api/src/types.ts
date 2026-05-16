@@ -64,6 +64,17 @@ export interface StatResponse {
   entry: FileEntryDto;
 }
 
+export interface ReadTextFileRequest {
+  uri: string;
+  maxBytes?: number;
+}
+
+export interface ReadTextFileResponse {
+  content: string;
+  truncated: boolean;
+  byteSize: number;
+}
+
 export interface ListStartRequest {
   uri: string;
   requestId: string;

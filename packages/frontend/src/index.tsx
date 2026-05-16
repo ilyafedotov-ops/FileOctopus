@@ -88,6 +88,7 @@ import { PaneStateView } from "./components/PaneStateView";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { CommandPalette, type CommandEntry } from "./components/CommandPalette";
+import { PreviewPanel, isTextPreviewable } from "./components/PreviewPanel";
 import { ToastStack, type ToastMessage } from "./components/ToastStack";
 import { mergeToast } from "./toastNotifications";
 import { useDialogEscape } from "./hooks/useDialogEscape";
@@ -208,6 +209,7 @@ export function FileOctopusShell() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [helpOpen, setHelpOpen] = useState(false);
@@ -282,6 +284,13 @@ export function FileOctopusShell() {
   const statusUnknownSizes = statusSelection.some(
     (entry) => entry.size == null,
   );
+
+  const previewEntry = useMemo(() => {
+    const tab = activeTab(state.panels[state.activePanelId]);
+    return (
+      selectVisibleEntries(tab).find((e) => e.uri === tab.selectedId) ?? null
+    );
+  }, [state]);
 
   useEffect(() => {
     let unlisten: (() => void) | null = null;
@@ -1557,6 +1566,11 @@ export function FileOctopusShell() {
         setCommandPaletteOpen(false);
         return;
       }
+      if (previewOpen) {
+        event.preventDefault();
+        setPreviewOpen(false);
+        return;
+      }
       if (dialog) {
         event.preventDefault();
         setDialog(null);
@@ -1605,15 +1619,28 @@ export function FileOctopusShell() {
       return;
     }
 
-    if (dialog) {
-      return;
-    }
-
     const panelId = state.activePanelId;
     const tab = activeTab(state.panels[panelId]);
     const selectedEntry =
       selectVisibleEntries(tab).find((entry) => entry.uri === tab.selectedId) ??
       null;
+
+    if (event.key === " " && !event.metaKey && !event.ctrlKey) {
+      if (!previewOpen && selectedEntry && isTextPreviewable(selectedEntry)) {
+        event.preventDefault();
+        setPreviewOpen(true);
+        return;
+      }
+      if (previewOpen) {
+        event.preventDefault();
+        setPreviewOpen(false);
+        return;
+      }
+    }
+
+    if (dialog) {
+      return;
+    }
 
     if (event.key === "Enter") {
       event.preventDefault();
@@ -2042,6 +2069,13 @@ export function FileOctopusShell() {
             onSelect={handleCommandSelect}
             onClose={() => setCommandPaletteOpen(false)}
           />
+          {previewOpen && (
+            <PreviewPanel
+              entry={previewEntry}
+              fs={client.fs}
+              onClose={() => setPreviewOpen(false)}
+            />
+          )}
           <DiagnosticsDialog
             open={diagnosticsOpen}
             appInfo={appInfo}
