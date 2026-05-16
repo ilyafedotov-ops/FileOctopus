@@ -42,7 +42,7 @@ use jobs::{
 };
 use tauri::{AppHandle, Emitter, State};
 use vfs::{
-    DirectoryBatch, FileKind, FileOperationError, FileOperationKind, ListCancellation, ListOptions,
+    DirectoryBatch, FileOperationError, FileOperationKind, ListCancellation, ListOptions,
     ListSessionId, ResourceUri, VfsError,
 };
 use zip::write::FileOptions;
