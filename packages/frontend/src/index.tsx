@@ -52,19 +52,33 @@ import type { SearchState } from "./pane/PaneFilterBar";
 import { formatSize } from "./pane/fileTableUtils";
 import { useWorkspaceLayout } from "./hooks/useWorkspaceLayout";
 import { SidebarResizer, SplitResizer } from "./shell/LayoutResizers";
-import { StatusBar } from "./shell/StatusBar";
 import { TitleBar } from "./shell/TitleBar";
 import type { MenuBarProps } from "./shell/MenuBar";
 import { Sidebar } from "./sidebar/Sidebar";
-import { DiagnosticsDialog } from "./components/DiagnosticsDialog";
-import { ContextMenu, type ContextMenuState } from "./components/ContextMenu";
-import { SettingsDialog } from "./components/SettingsDialog";
-import { ShortcutsDialog } from "./components/ShortcutsDialog";
-import { CommandPalette, type CommandEntry } from "./components/CommandPalette";
-import { PreviewPanel, isTextPreviewable } from "./components/PreviewPanel";
+import { type ContextMenuState } from "./components/ContextMenu";
+import { ContextMenuOverlay } from "./components/ContextMenuOverlay";
+import type { CommandEntry } from "./components/CommandPalette";
+import { isTextPreviewable } from "./components/PreviewPanel";
 import { ToastStack, type ToastMessage } from "./components/ToastStack";
+import { DialogOverlayGroup } from "./components/DialogOverlayGroup";
 import { mergeToast } from "./toastNotifications";
 
+import { FilePanel, type FilePanelProps } from "./pane/FilePanel";
+import { localPathFromUri } from "./utils/paneUtils";
+import {
+  type OperationDialog,
+  jobIdValue,
+  snapshotFromStarted,
+  mergeProgress,
+  mergeCompleted,
+  mergeFailed,
+  mergeCancelled,
+  joinLocalUri,
+  isValidName,
+  operationErrorMessage,
+} from "./dialogs/OperationDialogView";
+import { ErrorBoundary } from "./components/ErrorBoundary";
+import { StatusBarSection } from "./components/StatusBarSection";
 import { createRequestId } from "./paneTypes";
 import { isEditableTarget, shortcutEntries } from "./shortcuts";
 import type { UserPreferencesDto } from "@fileoctopus/ts-api";
@@ -182,17 +196,6 @@ export function FileOctopusShell() {
   );
   const left = activeTab(state.panels.left);
   const right = activeTab(state.panels.right);
-  const statusTab = activeTab(state.panels[state.activePanelId]);
-  const statusSelection = statusTab.selectedIds
-    .map((id) => statusTab.entriesById[id])
-    .filter((entry): entry is FileEntryDto => Boolean(entry));
-  const statusKnownBytes = statusSelection.reduce(
-    (total, entry) => total + (entry.size ?? 0),
-    0,
-  );
-  const statusUnknownSizes = statusSelection.some(
-    (entry) => entry.size == null,
-  );
 
   const previewEntry = useMemo(() => {
     const tab = activeTab(state.panels[state.activePanelId]);
@@ -1788,10 +1791,6 @@ export function FileOctopusShell() {
     }
   }
 
-  const activeJobCount = Object.values(jobs).filter(
-    (job) => job.status === "queued" || job.status === "running",
-  ).length;
-
   const menuBarProps: MenuBarProps = {
     activePanelId: state.activePanelId,
     onBack: () => void goHistory(state.activePanelId, "back"),
@@ -1952,6 +1951,66 @@ export function FileOctopusShell() {
     showHidden: activeTab(state.panels[state.activePanelId]).showHidden,
   };
 
+  function makeFilePanelProps(pid: "left" | "right"): FilePanelProps {
+    const tab = activeTab(state.panels[pid]);
+    return {
+      panelId: pid,
+      title: pid === "left" ? "Left" : "Right",
+      tab,
+      active: state.activePanelId === pid,
+      onActivate: () => dispatch({ type: "setActivePanel", panelId: pid }),
+      onNavigate: (uri) => navigatePanel(pid, uri),
+      onBack: () => void goHistory(pid, "back"),
+      onForward: () => void goHistory(pid, "forward"),
+      onSelect: (entryId) =>
+        dispatch({ type: "setSelection", panelId: pid, entryId }),
+      onEntrySelect: (entryId, mode) =>
+        dispatch({ type: "selectEntry", panelId: pid, entryId, mode }),
+      onCreateFolder: () => handleCreateFolder(pid),
+      onCreateFile: () => handleCreateFile(pid),
+      onRename: () => handleRename(pid),
+      onCopy: () => copySelectionToFileClipboard(pid, "copy"),
+      onCut: () => copySelectionToFileClipboard(pid, "move"),
+      onCopyOperation: () => handleCopyOrMove(pid, "copy"),
+      onMoveOperation: () => handleCopyOrMove(pid, "move"),
+      onPaste: () => void pasteClipboard(pid),
+      onTrash: () => handleTrash(pid),
+      onPermanentDelete: () => handlePermanentDelete(pid),
+      onCopyPath: () => void copyTextFromSelection(pid, "path"),
+      onCopyName: () => void copyTextFromSelection(pid, "name"),
+      onProperties: (entry) => void handleProperties(pid, entry),
+      onReveal: (entry) => void revealEntry(pid, entry),
+      onCalculateSize: (entry) => void calculateSize(pid, entry),
+      onCompress: () =>
+        pushToast({ tone: "info", title: "Compress coming soon" }),
+      onExtract: () =>
+        pushToast({ tone: "info", title: "Extract coming soon" }),
+      onOpenTerminal: () => openTerminal(tab.uri),
+      onChecksum: () => void handleChecksum(pid),
+      onRefresh: () => refreshPanel(pid),
+      onToggleHidden: () => toggleHidden(pid),
+      onSelectAll: () => dispatch({ type: "selectAll", panelId: pid }),
+      onMove: (delta) =>
+        dispatch({ type: "moveSelection", panelId: pid, delta }),
+      onSort: (field) => dispatch({ type: "setSort", panelId: pid, field }),
+      onFilter: (filter) =>
+        dispatch({ type: "setFilter", panelId: pid, filter }),
+      onRecursiveQuery: (query) =>
+        dispatch({ type: "setRecursiveQuery", panelId: pid, query }),
+      onRecursiveSearch: () => void runRecursiveSearch(pid),
+      onViewMode: (viewMode) =>
+        dispatch({ type: "setViewMode", panelId: pid, viewMode }),
+      canPaste: Boolean(clipboard),
+      pathFocusToken,
+      filterFocusToken,
+      recursiveSearchFocusToken,
+      rowHeight,
+      search: search?.panelId === pid ? search : null,
+      onContextMenu: setContextMenu,
+      onEntryActivate: (entry) => activateEntry(pid, entry),
+    };
+  }
+
   return (
     <ErrorBoundary>
       <main className="fo-shell" tabIndex={-1} onKeyDown={handleShellKeyDown}>
@@ -2019,170 +2078,14 @@ export function FileOctopusShell() {
               </>
             ) : null}
             <div className="fo-dual-pane" aria-label="File panels">
-              <FilePanel
-                panelId="left"
-                title="Left"
-                tab={left}
-                active={state.activePanelId === "left"}
-                onActivate={() =>
-                  dispatch({ type: "setActivePanel", panelId: "left" })
-                }
-                onNavigate={(uri) => navigatePanel("left", uri)}
-                onBack={() => void goHistory("left", "back")}
-                onForward={() => void goHistory("left", "forward")}
-                onSelect={(entryId) =>
-                  dispatch({ type: "setSelection", panelId: "left", entryId })
-                }
-                onEntrySelect={(entryId, mode) =>
-                  dispatch({
-                    type: "selectEntry",
-                    panelId: "left",
-                    entryId,
-                    mode,
-                  })
-                }
-                onCreateFolder={() => handleCreateFolder("left")}
-                onCreateFile={() => handleCreateFile("left")}
-                onRename={() => handleRename("left")}
-                onCopy={() => copySelectionToFileClipboard("left", "copy")}
-                onCut={() => copySelectionToFileClipboard("left", "move")}
-                onCopyOperation={() => handleCopyOrMove("left", "copy")}
-                onMoveOperation={() => handleCopyOrMove("left", "move")}
-                onPaste={() => void pasteClipboard("left")}
-                onTrash={() => handleTrash("left")}
-                onPermanentDelete={() => handlePermanentDelete("left")}
-                onCopyPath={() => void copyTextFromSelection("left", "path")}
-                onCopyName={() => void copyTextFromSelection("left", "name")}
-                onProperties={(entry) => void handleProperties("left", entry)}
-                onReveal={(entry) => void revealEntry("left", entry)}
-                onCalculateSize={(entry) => void calculateSize("left", entry)}
-                onCompress={() =>
-                  pushToast({ tone: "info", title: "Compress coming soon" })
-                }
-                onExtract={() =>
-                  pushToast({ tone: "info", title: "Extract coming soon" })
-                }
-                onOpenTerminal={() => openTerminal(left.uri)}
-                onChecksum={() => void handleChecksum("left")}
-                onRefresh={() => refreshPanel("left")}
-                onToggleHidden={() => toggleHidden("left")}
-                onSelectAll={() =>
-                  dispatch({ type: "selectAll", panelId: "left" })
-                }
-                onMove={(delta) =>
-                  dispatch({ type: "moveSelection", panelId: "left", delta })
-                }
-                onSort={(field) =>
-                  dispatch({ type: "setSort", panelId: "left", field })
-                }
-                onFilter={(filter) =>
-                  dispatch({ type: "setFilter", panelId: "left", filter })
-                }
-                onRecursiveQuery={(query) =>
-                  dispatch({
-                    type: "setRecursiveQuery",
-                    panelId: "left",
-                    query,
-                  })
-                }
-                onRecursiveSearch={() => void runRecursiveSearch("left")}
-                onViewMode={(viewMode) =>
-                  dispatch({ type: "setViewMode", panelId: "left", viewMode })
-                }
-                canPaste={Boolean(clipboard)}
-                pathFocusToken={pathFocusToken}
-                filterFocusToken={filterFocusToken}
-                recursiveSearchFocusToken={recursiveSearchFocusToken}
-                rowHeight={rowHeight}
-                search={search?.panelId === "left" ? search : null}
-                onContextMenu={setContextMenu}
-                onEntryActivate={(entry) => activateEntry("left", entry)}
-              />
+              <FilePanel {...makeFilePanelProps("left")} />
               <SplitResizer
                 onSplitResize={(ratio) => {
                   const nextRatio = applySplitRatio(ratio);
                   void updatePreference("splitRatio", String(nextRatio));
                 }}
               />
-              <FilePanel
-                panelId="right"
-                title="Right"
-                tab={right}
-                active={state.activePanelId === "right"}
-                onActivate={() =>
-                  dispatch({ type: "setActivePanel", panelId: "right" })
-                }
-                onNavigate={(uri) => navigatePanel("right", uri)}
-                onBack={() => void goHistory("right", "back")}
-                onForward={() => void goHistory("right", "forward")}
-                onSelect={(entryId) =>
-                  dispatch({ type: "setSelection", panelId: "right", entryId })
-                }
-                onEntrySelect={(entryId, mode) =>
-                  dispatch({
-                    type: "selectEntry",
-                    panelId: "right",
-                    entryId,
-                    mode,
-                  })
-                }
-                onCreateFolder={() => handleCreateFolder("right")}
-                onCreateFile={() => handleCreateFile("right")}
-                onRename={() => handleRename("right")}
-                onCopy={() => copySelectionToFileClipboard("right", "copy")}
-                onCut={() => copySelectionToFileClipboard("right", "move")}
-                onCopyOperation={() => handleCopyOrMove("right", "copy")}
-                onMoveOperation={() => handleCopyOrMove("right", "move")}
-                onPaste={() => void pasteClipboard("right")}
-                onTrash={() => handleTrash("right")}
-                onPermanentDelete={() => handlePermanentDelete("right")}
-                onCopyPath={() => void copyTextFromSelection("right", "path")}
-                onCopyName={() => void copyTextFromSelection("right", "name")}
-                onProperties={(entry) => void handleProperties("right", entry)}
-                onReveal={(entry) => void revealEntry("right", entry)}
-                onCalculateSize={(entry) => void calculateSize("right", entry)}
-                onCompress={() =>
-                  pushToast({ tone: "info", title: "Compress coming soon" })
-                }
-                onExtract={() =>
-                  pushToast({ tone: "info", title: "Extract coming soon" })
-                }
-                onOpenTerminal={() => openTerminal(right.uri)}
-                onChecksum={() => void handleChecksum("right")}
-                onRefresh={() => refreshPanel("right")}
-                onToggleHidden={() => toggleHidden("right")}
-                onSelectAll={() =>
-                  dispatch({ type: "selectAll", panelId: "right" })
-                }
-                onMove={(delta) =>
-                  dispatch({ type: "moveSelection", panelId: "right", delta })
-                }
-                onSort={(field) =>
-                  dispatch({ type: "setSort", panelId: "right", field })
-                }
-                onFilter={(filter) =>
-                  dispatch({ type: "setFilter", panelId: "right", filter })
-                }
-                onRecursiveQuery={(query) =>
-                  dispatch({
-                    type: "setRecursiveQuery",
-                    panelId: "right",
-                    query,
-                  })
-                }
-                onRecursiveSearch={() => void runRecursiveSearch("right")}
-                onViewMode={(viewMode) =>
-                  dispatch({ type: "setViewMode", panelId: "right", viewMode })
-                }
-                canPaste={Boolean(clipboard)}
-                pathFocusToken={pathFocusToken}
-                filterFocusToken={filterFocusToken}
-                recursiveSearchFocusToken={recursiveSearchFocusToken}
-                rowHeight={rowHeight}
-                search={search?.panelId === "right" ? search : null}
-                onContextMenu={setContextMenu}
-                onEntryActivate={(entry) => activateEntry("right", entry)}
-              />
+              <FilePanel {...makeFilePanelProps("right")} />
             </div>
             <ActivityPanel
               jobs={Object.values(jobs)}
@@ -2209,175 +2112,82 @@ export function FileOctopusShell() {
               setToasts((current) => current.filter((toast) => toast.id !== id))
             }
           />
-          {preferences ? (
-            <SettingsDialog
-              open={settingsOpen}
-              preferences={preferences}
-              autostart={autostart}
-              onClose={() => setSettingsOpen(false)}
-              onChange={(key, value) => void updatePreference(key, value)}
-              onSetAutostart={handleSetAutostart}
-            />
-          ) : null}
-          <ShortcutsDialog
-            open={shortcutsOpen}
-            onClose={() => setShortcutsOpen(false)}
-          />
-          <CommandPalette
-            open={commandPaletteOpen}
-            commands={commandEntries}
-            onSelect={handleCommandSelect}
-            onClose={() => setCommandPaletteOpen(false)}
-          />
-          {previewOpen && (
-            <PreviewPanel
-              entry={previewEntry}
-              fs={client.fs}
-              onClose={() => setPreviewOpen(false)}
-            />
-          )}
-          <DiagnosticsDialog
-            open={diagnosticsOpen}
+          <DialogOverlayGroup
+            preferences={preferences}
+            settingsOpen={settingsOpen}
+            shortcutsOpen={shortcutsOpen}
+            commandPaletteOpen={commandPaletteOpen}
+            previewOpen={previewOpen}
+            diagnosticsOpen={diagnosticsOpen}
+            dialog={dialog}
+            autostart={autostart}
+            commandEntries={commandEntries}
+            previewEntry={previewEntry}
             appInfo={appInfo}
             appHealth={appHealth}
-            destination={diagnosticsDestination}
-            message={diagnosticsMessage}
-            exporting={exportingDiagnostics}
-            showDeveloperFields={!isProductionBuild}
-            onClose={() => setDiagnosticsOpen(false)}
-            onDestinationChange={setDiagnosticsDestination}
-            onRefresh={() => void refreshDiagnostics()}
-            onExport={() => void exportDiagnostics()}
+            diagnosticsDestination={diagnosticsDestination}
+            diagnosticsMessage={diagnosticsMessage}
+            exportingDiagnostics={exportingDiagnostics}
+            isProductionBuild={isProductionBuild}
+            fs={client.fs}
+            updatePreference={updatePreference}
+            handleSetAutostart={handleSetAutostart}
+            handleCommandSelect={handleCommandSelect}
+            setSettingsOpen={setSettingsOpen}
+            setShortcutsOpen={setShortcutsOpen}
+            setCommandPaletteOpen={setCommandPaletteOpen}
+            setDiagnosticsOpen={setDiagnosticsOpen}
+            setPreviewOpen={setPreviewOpen}
+            setDialog={setDialog}
+            setDiagnosticsDestination={setDiagnosticsDestination}
+            refreshDiagnostics={refreshDiagnostics}
+            exportDiagnostics={exportDiagnostics}
+            reviewCopyMoveDialog={reviewCopyMoveDialog}
+            submitCreateFolder={submitCreateFolder}
+            submitCreateFile={submitCreateFile}
+            submitRename={submitRename}
+            submitCopyMove={submitCopyMove}
+            submitTrash={submitTrash}
+            submitPermanentDelete={submitPermanentDelete}
+            copyTextFromSelection={copyTextFromSelection}
+            revealEntry={revealEntry}
           />
-          <OperationDialogView
-            dialog={dialog}
-            onClose={() => setDialog(null)}
-            onUpdate={(next) => setDialog(next)}
-            onReviewCopyMove={(current) => void reviewCopyMoveDialog(current)}
-            onSubmitCreateFolder={(current) => void submitCreateFolder(current)}
-            onSubmitCreateFile={(current) => void submitCreateFile(current)}
-            onSubmitRename={(current) => void submitRename(current)}
-            onSubmitCopyMove={(current) => void submitCopyMove(current)}
-            onSubmitTrash={(current) => void submitTrash(current)}
-            onSubmitPermanentDelete={(current) =>
-              void submitPermanentDelete(current)
-            }
-            onCopyPath={(panelId) =>
-              void copyTextFromSelection(panelId, "path")
-            }
-            onReveal={(panelId, entry) => void revealEntry(panelId, entry)}
-          />
-          <ContextMenu
+          <ContextMenuOverlay
             menu={contextMenu}
-            canPaste={Boolean(clipboard)}
-            isStarred={
-              contextMenu?.entry
-                ? starredUriSet.has(contextMenu.entry.uri)
-                : false
-            }
-            showHidden={
-              contextMenu?.panelId
-                ? activeTab(state.panels[contextMenu.panelId]).showHidden
-                : false
-            }
+            state={state}
+            clipboard={clipboard}
+            starredUriSet={starredUriSet}
+            dispatch={dispatch}
             onClose={() => setContextMenu(null)}
-            onToggleHidden={(panelId) => toggleHidden(panelId)}
-            onOpen={(panelId, entry) => activateEntry(panelId, entry)}
-            onRename={handleRename}
-            onCopy={(panelId) => copySelectionToFileClipboard(panelId, "copy")}
-            onCut={(panelId) => copySelectionToFileClipboard(panelId, "move")}
-            onPaste={(panelId) => void pasteClipboard(panelId)}
-            onTrash={handleTrash}
-            onToggleStarred={(_, entry) => void toggleStarredForEntry(entry)}
-            onPermanentDelete={handlePermanentDelete}
-            onCopyPath={(panelId) =>
-              void copyTextFromSelection(panelId, "path")
-            }
-            onCopyName={(panelId) =>
-              void copyTextFromSelection(panelId, "name")
-            }
-            onProperties={(panelId, entry) =>
-              void handleProperties(panelId, entry)
-            }
-            onReveal={(panelId, entry) => void revealEntry(panelId, entry)}
-            onCompress={() =>
-              pushToast({ tone: "info", title: "Compress coming soon" })
-            }
-            onExtract={() =>
-              pushToast({ tone: "info", title: "Extract coming soon" })
-            }
-            onOpenTerminal={(panelId) =>
-              openTerminal(activeTab(state.panels[panelId]).uri)
-            }
-            onChecksum={(panelId) => void handleChecksum(panelId)}
-            onCreateFolder={handleCreateFolder}
-            onCreateFile={handleCreateFile}
-            onRefresh={refreshPanel}
-            onSelectAll={(panelId) => dispatch({ type: "selectAll", panelId })}
-            onViewMode={(panelId, viewMode) =>
-              dispatch({ type: "setViewMode", panelId, viewMode })
-            }
-            onSort={(panelId, field) =>
-              dispatch({ type: "setSort", panelId, field })
-            }
-            onOpenWithDefaultApp={(panelId) => {
-              if (contextMenu?.panelId !== panelId) return;
-              const entry = contextMenu?.entry;
-              if (entry && entry.kind !== "directory") void openExternal(entry);
-            }}
-            onCopyTo={(panelId) => handleCopyOrMove(panelId, "copy")}
-            onMoveTo={(panelId) => handleCopyOrMove(panelId, "move")}
-            onCopyParentPath={(panelId) =>
-              void copyTextFromSelection(panelId, "parentPath")
-            }
-            onCopyResourceUri={(panelId) =>
-              void copyTextFromSelection(panelId, "uri")
-            }
-            onClearSelection={(panelId) =>
-              dispatch({ type: "clearSelection", panelId })
-            }
+            activateEntry={activateEntry}
+            handleRename={handleRename}
+            copySelectionToFileClipboard={copySelectionToFileClipboard}
+            pasteClipboard={pasteClipboard}
+            handleTrash={handleTrash}
+            toggleStarredForEntry={toggleStarredForEntry}
+            handlePermanentDelete={handlePermanentDelete}
+            copyTextFromSelection={copyTextFromSelection}
+            handleProperties={handleProperties}
+            revealEntry={revealEntry}
+            pushToast={pushToast}
+            openTerminal={openTerminal}
+            handleChecksum={handleChecksum}
+            handleCreateFolder={handleCreateFolder}
+            handleCreateFile={handleCreateFile}
+            refreshPanel={refreshPanel}
+            handleCopyOrMove={handleCopyOrMove}
+            openExternal={openExternal}
+            toggleHidden={toggleHidden}
           />
-          <StatusBar
-            activePanelLabel={
-              state.activePanelId === "left" ? "Left pane" : "Right pane"
-            }
-            pathLabel={localPathFromUri(statusTab.uri)}
-            loadState={statusTab.loadState}
-            selectedCount={statusSelection.length}
-            entryCount={statusTab.orderedEntryIds.length}
-            filterActive={statusTab.filter.trim().length > 0}
-            selectedSizeLabel={
-              statusSelection.length > 0
-                ? `${formatSize(statusKnownBytes)}${statusUnknownSizes ? " plus unknown sizes" : ""}`
-                : null
-            }
-            activeJobCount={activeJobCount}
+          <StatusBarSection
+            state={state}
+            jobs={jobs}
             operationError={operationError}
-            logPath={appHealth?.logDir ?? null}
-            showLogPath={diagnosticsOpen}
+            appHealth={appHealth}
+            diagnosticsOpen={diagnosticsOpen}
           />
         </div>
       </main>
     </ErrorBoundary>
   );
 }
-
-import { FilePanel } from "./pane/FilePanel";
-
-import { localPathFromUri } from "./utils/paneUtils";
-
-import {
-  OperationDialogView,
-  type OperationDialog,
-  jobIdValue,
-  snapshotFromStarted,
-  mergeProgress,
-  mergeCompleted,
-  mergeFailed,
-  mergeCancelled,
-  joinLocalUri,
-  isValidName,
-  operationErrorMessage,
-} from "./dialogs/OperationDialogView";
-
-import { ErrorBoundary } from "./components/ErrorBoundary";
