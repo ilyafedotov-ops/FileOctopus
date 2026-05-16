@@ -3212,11 +3212,11 @@ function OperationDialogView({
                     {dialog.properties.itemCount != null
                       ? [
                           dialog.properties.itemCount != null &&
-                          `${dialog.properties.itemCount} item(s)`,
+                            `${dialog.properties.itemCount} item(s)`,
                           dialog.properties.directoryCount != null &&
-                          `${dialog.properties.directoryCount} folder(s)`,
+                            `${dialog.properties.directoryCount} folder(s)`,
                           dialog.properties.fileCount != null &&
-                          `${dialog.properties.fileCount} file(s)`,
+                            `${dialog.properties.fileCount} file(s)`,
                         ]
                           .filter(Boolean)
                           .join(", ")
@@ -3265,7 +3265,9 @@ function OperationDialogView({
                     variant="ghost"
                     size="sm"
                     onClick={() => {
-                      void navigator.clipboard.writeText(dialog.properties!.uri);
+                      void navigator.clipboard.writeText(
+                        dialog.properties!.uri,
+                      );
                     }}
                   >
                     Copy Resource URI
