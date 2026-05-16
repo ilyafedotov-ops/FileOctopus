@@ -132,9 +132,10 @@ export interface ShellLayoutProps {
     panelId: PanelId,
     entry: FileEntryDto | null,
   ) => Promise<void>;
-  pushToast: (toast: Omit<ToastMessage, "id">) => void;
   openTerminal: (uri: string) => void;
   handleChecksum: (panelId: PanelId) => Promise<void>;
+  handleCompress: (panelId: PanelId) => Promise<void>;
+  handleExtract: (panelId: PanelId) => Promise<void>;
   handleCreateFolder: (panelId: PanelId) => void;
   handleCreateFile: (panelId: PanelId) => void;
   refreshPanel: (panelId: PanelId) => void;
@@ -221,9 +222,10 @@ export function ShellLayout({
   toggleStarredForEntry,
   handlePermanentDelete,
   handleProperties,
-  pushToast,
   openTerminal,
   handleChecksum,
+  handleCompress,
+  handleExtract,
   handleCreateFolder,
   handleCreateFile,
   refreshPanel,
@@ -393,9 +395,10 @@ export function ShellLayout({
             copyTextFromSelection={copyTextFromSelection}
             handleProperties={handleProperties}
             revealEntry={revealEntry}
-            pushToast={pushToast}
             openTerminal={openTerminal}
             handleChecksum={handleChecksum}
+            handleCompress={handleCompress}
+            handleExtract={handleExtract}
             handleCreateFolder={handleCreateFolder}
             handleCreateFile={handleCreateFile}
             refreshPanel={refreshPanel}

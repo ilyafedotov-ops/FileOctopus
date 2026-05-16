@@ -233,6 +233,8 @@ export function FileOctopusShell() {
     toggleHidden,
     openTerminal,
     handleChecksum,
+    handleCompress,
+    handleExtract,
     submitCreateFolder,
     submitCreateFile,
     submitRename,
@@ -392,10 +394,8 @@ export function FileOctopusShell() {
       onProperties: (entry) => void handleProperties(pid, entry),
       onReveal: (entry) => void revealEntry(pid, entry),
       onCalculateSize: (entry) => void calculateSize(pid, entry),
-      onCompress: () =>
-        pushToast({ tone: "info", title: "Compress coming soon" }),
-      onExtract: () =>
-        pushToast({ tone: "info", title: "Extract coming soon" }),
+      onCompress: () => void handleCompress(pid),
+      onExtract: () => void handleExtract(pid),
       onOpenTerminal: () => openTerminal(tab.uri),
       onChecksum: () => void handleChecksum(pid),
       onRefresh: () => refreshPanel(pid),
@@ -497,9 +497,10 @@ export function FileOctopusShell() {
       toggleStarredForEntry={toggleStarredForEntry}
       handlePermanentDelete={handlePermanentDelete}
       handleProperties={handleProperties}
-      pushToast={pushToast}
       openTerminal={openTerminal}
       handleChecksum={handleChecksum}
+      handleCompress={handleCompress}
+      handleExtract={handleExtract}
       handleCreateFolder={handleCreateFolder}
       handleCreateFile={handleCreateFile}
       refreshPanel={refreshPanel}

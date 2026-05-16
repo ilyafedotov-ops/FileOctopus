@@ -2,7 +2,6 @@ import type { FileEntryDto } from "@fileoctopus/ts-api";
 import type { PanelId, FileOctopusState } from "../panelStore";
 import { activeTab } from "../panelStore";
 import { ContextMenu, type ContextMenuState } from "./ContextMenu";
-import type { ToastMessage } from "./ToastStack";
 
 interface FileClipboardState {
   kind: "copy" | "move";
@@ -37,9 +36,10 @@ export interface ContextMenuOverlayProps {
     entry: FileEntryDto | null,
   ) => Promise<void>;
   revealEntry: (panelId: PanelId, entry: FileEntryDto | null) => Promise<void>;
-  pushToast: (toast: Omit<ToastMessage, "id">) => void;
   openTerminal: (uri: string) => void;
   handleChecksum: (panelId: PanelId) => Promise<void>;
+  handleCompress: (panelId: PanelId) => Promise<void>;
+  handleExtract: (panelId: PanelId) => Promise<void>;
   handleCreateFolder: (panelId: PanelId) => void;
   handleCreateFile: (panelId: PanelId) => void;
   refreshPanel: (panelId: PanelId) => void;
@@ -65,9 +65,10 @@ export function ContextMenuOverlay({
   copyTextFromSelection,
   handleProperties,
   revealEntry,
-  pushToast,
   openTerminal,
   handleChecksum,
+  handleCompress,
+  handleExtract,
   handleCreateFolder,
   handleCreateFile,
   refreshPanel,
@@ -97,12 +98,8 @@ export function ContextMenuOverlay({
       onCopyName={(panelId) => void copyTextFromSelection(panelId, "name")}
       onProperties={(panelId, entry) => void handleProperties(panelId, entry)}
       onReveal={(panelId, entry) => void revealEntry(panelId, entry)}
-      onCompress={() =>
-        pushToast({ tone: "info", title: "Compress coming soon" })
-      }
-      onExtract={() =>
-        pushToast({ tone: "info", title: "Extract coming soon" })
-      }
+      onCompress={(panelId) => void handleCompress(panelId)}
+      onExtract={(panelId) => void handleExtract(panelId)}
       onOpenTerminal={(panelId) =>
         openTerminal(activeTab(state.panels[panelId]).uri)
       }

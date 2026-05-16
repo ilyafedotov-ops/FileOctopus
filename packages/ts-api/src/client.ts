@@ -66,6 +66,10 @@ import type {
   ComputeHashResponse,
   OpenTerminalRequest,
   OpenTerminalResponse,
+  CreateArchiveRequest,
+  CreateArchiveResponse,
+  ExtractArchiveRequest,
+  ExtractArchiveResponse,
   StartFileOperationRequest,
   StartFileOperationResponse,
   StandardLocationsResponse,
@@ -91,6 +95,8 @@ const commandMap: Record<string, string> = {
   "fs.read_text_file": "fs_read_text_file",
   "fs.compute_hash": "fs_compute_hash",
   "fs.open_terminal": "fs_open_terminal",
+  "fs.create_archive": "fs_create_archive",
+  "fs.extract_archive": "fs_extract_archive",
   "fs.list_start": "fs_list_start",
   "fs.standard_locations": "fs_standard_locations",
   "fs.open_default": "fs_open_default",
@@ -473,6 +479,32 @@ export class FsClient {
     try {
       return await this.transport.invoke<OpenTerminalResponse>(
         "fs.open_terminal",
+        { request },
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async createArchive(
+    request: CreateArchiveRequest,
+  ): Promise<CreateArchiveResponse> {
+    try {
+      return await this.transport.invoke<CreateArchiveResponse>(
+        "fs.create_archive",
+        { request },
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async extractArchive(
+    request: ExtractArchiveRequest,
+  ): Promise<ExtractArchiveResponse> {
+    try {
+      return await this.transport.invoke<ExtractArchiveResponse>(
+        "fs.extract_archive",
         { request },
       );
     } catch (error) {

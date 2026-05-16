@@ -19,6 +19,7 @@ import {
   selectVisibleEntries,
 } from "../panelStore";
 import { localPathFromUri } from "../utils/paneUtils";
+import { formatSize } from "../pane/fileTableUtils";
 import {
   type OperationDialog,
   jobIdValue,
@@ -569,6 +570,90 @@ export function useFileOpHandlers(deps: UseFileOpHandlersDeps) {
     }
   }
 
+  async function handleCompress(panelId: PanelId) {
+    const tab = activeTab(state.panels[panelId]);
+    const selectedUris: string[] = [];
+    if (tab.selectedId) {
+      const entry = selectVisibleEntries(tab).find(
+        (e) => e.uri === tab.selectedId,
+      );
+      if (entry) selectedUris.push(entry.uri);
+    }
+    if (selectedUris.length === 0) {
+      pushToast({
+        tone: "error",
+        title: "Select files or folders to compress",
+      });
+      return;
+    }
+
+    const parentUri = tab.uri;
+    const firstEntry = selectVisibleEntries(tab).find(
+      (e) => e.uri === tab.selectedId,
+    );
+    const baseName = firstEntry
+      ? firstEntry.name.indexOf(".") !== -1
+        ? firstEntry.name.split(".")[0]
+        : firstEntry.name
+      : "archive";
+    const destinationUri = joinLocalUri(parentUri, baseName + ".zip");
+
+    try {
+      const result = await client.fs.createArchive({
+        sourceUris: selectedUris,
+        destinationUri,
+      });
+      pushToast({
+        tone: "success",
+        title: `Compressed ${result.entryCount} entr${result.entryCount === 1 ? "y" : "ies"} (${formatSize(result.byteSize)})`,
+      });
+      void refreshPanel(panelId);
+    } catch (error) {
+      const normalized = normalizeIpcError(error);
+      pushToast({
+        tone: "error",
+        title: `Compress failed: ${normalized.message}`,
+      });
+    }
+  }
+
+  async function handleExtract(panelId: PanelId) {
+    const tab = activeTab(state.panels[panelId]);
+    const selectedEntry =
+      selectVisibleEntries(tab).find((e) => e.uri === tab.selectedId) ?? null;
+
+    if (!selectedEntry || selectedEntry.kind === "directory") {
+      pushToast({ tone: "error", title: "Select an archive to extract" });
+      return;
+    }
+
+    const archiveName = selectedEntry.name;
+    const dotIndex = archiveName.lastIndexOf(".");
+    const dirName =
+      dotIndex > 0
+        ? archiveName.substring(0, dotIndex)
+        : archiveName + "_extracted";
+    const destinationUri = joinLocalUri(tab.uri, dirName);
+
+    try {
+      const result = await client.fs.extractArchive({
+        archiveUri: selectedEntry.uri,
+        destinationUri,
+      });
+      pushToast({
+        tone: "success",
+        title: `Extracted ${result.entryCount} file${result.entryCount === 1 ? "" : "s"}`,
+      });
+      void refreshPanel(panelId);
+    } catch (error) {
+      const normalized = normalizeIpcError(error);
+      pushToast({
+        tone: "error",
+        title: `Extract failed: ${normalized.message}`,
+      });
+    }
+  }
+
   async function submitCreateFolder(
     current: Extract<OperationDialog, { type: "createFolder" }>,
   ) {
@@ -738,6 +823,8 @@ export function useFileOpHandlers(deps: UseFileOpHandlersDeps) {
     toggleHidden,
     openTerminal,
     handleChecksum,
+    handleCompress,
+    handleExtract,
     submitCreateFolder,
     submitCreateFile,
     submitRename,

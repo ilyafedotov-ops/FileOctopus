@@ -270,6 +270,33 @@ pub struct OpenTerminalResponse {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct CreateArchiveRequest {
+    pub source_uris: Vec<String>,
+    pub destination_uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CreateArchiveResponse {
+    pub entry_count: usize,
+    pub byte_size: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtractArchiveRequest {
+    pub archive_uri: String,
+    pub destination_uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExtractArchiveResponse {
+    pub entry_count: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ListStartRequest {
     pub uri: String,
     pub request_id: String,

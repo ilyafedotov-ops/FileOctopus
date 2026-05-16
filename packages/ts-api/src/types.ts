@@ -94,6 +94,25 @@ export interface OpenTerminalResponse {
   success: boolean;
 }
 
+export interface CreateArchiveRequest {
+  sourceUris: string[];
+  destinationUri: string;
+}
+
+export interface CreateArchiveResponse {
+  entryCount: number;
+  byteSize: number;
+}
+
+export interface ExtractArchiveRequest {
+  archiveUri: string;
+  destinationUri: string;
+}
+
+export interface ExtractArchiveResponse {
+  entryCount: number;
+}
+
 export interface ListStartRequest {
   uri: string;
   requestId: string;
