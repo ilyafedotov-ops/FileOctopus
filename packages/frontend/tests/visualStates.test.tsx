@@ -30,7 +30,7 @@ describe("visual state fixtures", () => {
     document.documentElement.removeAttribute("data-density");
   });
 
-  it("renders empty pane state", () => {
+  it("renders empty pane state with action buttons", () => {
     const view = renderVisualState(
       <PaneStateView
         loadState="empty"
@@ -43,6 +43,51 @@ describe("visual state fixtures", () => {
     );
 
     expect(screen.getByText("This folder is empty")).toBeTruthy();
+    expect(screen.getByText("New Folder")).toBeTruthy();
+    expect(screen.getByText("Refresh")).toBeTruthy();
+    expect(screen.getByText("/Users/ilya/Documents")).toBeTruthy();
+    view.restore();
+  });
+
+  it("empty pane state fires onCreateFolder when New Folder clicked", () => {
+    let called = false;
+    const handleCreateFolder = () => {
+      called = true;
+    };
+    const view = renderVisualState(
+      <PaneStateView
+        loadState="empty"
+        uri="local:///tmp/empty"
+        message={null}
+        onRetry={noop}
+        onRefresh={noop}
+        onCreateFolder={handleCreateFolder}
+      />,
+    );
+
+    screen.getByText("New Folder").click();
+    expect(called).toBe(true);
+    view.restore();
+  });
+
+  it("empty pane state fires onRefresh when Refresh clicked", () => {
+    let called = false;
+    const handleRefresh = () => {
+      called = true;
+    };
+    const view = renderVisualState(
+      <PaneStateView
+        loadState="empty"
+        uri="local:///tmp/empty"
+        message={null}
+        onRetry={noop}
+        onRefresh={handleRefresh}
+        onCreateFolder={noop}
+      />,
+    );
+
+    screen.getByText("Refresh").click();
+    expect(called).toBe(true);
     view.restore();
   });
 
