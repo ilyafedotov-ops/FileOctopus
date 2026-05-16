@@ -316,7 +316,7 @@ fn apply_value(
             preferences.default_view_mode = parse_view_mode(value)?;
         }
         "showHiddenFiles" => {
-            preferences.show_hidden_files = parse_bool(value)?;
+            preferences.show_hidden_files = parse_bool(value, key)?;
         }
         "sidebarWidth" => {
             preferences.sidebar_width = value
@@ -331,7 +331,7 @@ fn apply_value(
                 .clamp(0.2, 0.8);
         }
         "activityPanelVisible" => {
-            preferences.activity_panel_visible = parse_bool(value)?;
+            preferences.activity_panel_visible = parse_bool(value, key)?;
         }
         "activityPanelWidth" => {
             preferences.activity_panel_width = value
@@ -340,16 +340,31 @@ fn apply_value(
                 .clamp(200, 480);
         }
         "confirmDelete" => {
-            preferences.confirm_delete = parse_bool(value)?;
+            preferences.confirm_delete = parse_bool(value, key)?;
         }
         "confirmPermanentDelete" => {
-            preferences.confirm_permanent_delete = parse_bool(value)?;
+            preferences.confirm_permanent_delete = parse_bool(value, key)?;
         }
         "useTrashByDefault" => {
-            preferences.use_trash_by_default = parse_bool(value)?;
+            preferences.use_trash_by_default = parse_bool(value, key)?;
         }
         "defaultConflictPolicy" => {
             preferences.default_conflict_policy = parse_conflict_policy(value)?;
+        }
+        "accentColor" => {
+            preferences.accent_color = parse_accent_color(value)?;
+        }
+        "fontScale" => {
+            preferences.font_scale = parse_scale("fontScale", value)?;
+        }
+        "iconScale" => {
+            preferences.icon_scale = parse_scale("iconScale", value)?;
+        }
+        "confirmOverwrite" => {
+            preferences.confirm_overwrite = parse_bool(value, key)?;
+        }
+        "sidebarVisible" => {
+            preferences.sidebar_visible = parse_bool(value, key)?;
         }
         _ => {}
     }
@@ -397,14 +412,30 @@ fn parse_conflict_policy(value: &str) -> Result<String, PreferencesError> {
     }
 }
 
-fn parse_bool(value: &str) -> Result<bool, PreferencesError> {
+fn parse_bool(value: &str, key: &str) -> Result<bool, PreferencesError> {
     match value {
         "true" | "1" => Ok(true),
         "false" | "0" => Ok(false),
+        other => Err(invalid_value(key, format!("unsupported value `{other}`"))),
+    }
+}
+
+fn parse_accent_color(value: &str) -> Result<String, PreferencesError> {
+    match value {
+        "blue" | "indigo" | "violet" | "pink" | "red" | "orange" | "amber" | "green" => {
+            Ok(value.to_string())
+        }
         other => Err(invalid_value(
-            "showHiddenFiles",
+            "accentColor",
             format!("unsupported value `{other}`"),
         )),
+    }
+}
+
+fn parse_scale(key: &'static str, value: &str) -> Result<String, PreferencesError> {
+    match value {
+        "small" | "medium" | "large" => Ok(value.to_string()),
+        other => Err(invalid_value(key, format!("unsupported value `{other}`"))),
     }
 }
 
@@ -474,5 +505,61 @@ mod tests {
         assert_eq!(rows["iconScale"], "medium");
         assert_eq!(rows["confirmOverwrite"], "true");
         assert_eq!(rows["sidebarVisible"], "true");
+    }
+
+    #[test]
+    fn accepts_valid_accent_colors() {
+        let dir = tempdir().unwrap();
+        let repository =
+            PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
+        for name in [
+            "blue", "indigo", "violet", "pink", "red", "orange", "amber", "green",
+        ] {
+            assert!(repository.set("accentColor", name).is_ok(), "accept {name}");
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_accent_color() {
+        let dir = tempdir().unwrap();
+        let repository =
+            PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
+        let err = repository.set("accentColor", "chartreuse").unwrap_err();
+        assert!(matches!(err, PreferencesError::InvalidValue { .. }));
+    }
+
+    #[test]
+    fn accepts_valid_scales() {
+        let dir = tempdir().unwrap();
+        let repository =
+            PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
+        for key in ["fontScale", "iconScale"] {
+            for value in ["small", "medium", "large"] {
+                assert!(repository.set(key, value).is_ok(), "accept {key}={value}");
+            }
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_scale() {
+        let dir = tempdir().unwrap();
+        let repository =
+            PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
+        assert!(matches!(
+            repository.set("fontScale", "gigantic").unwrap_err(),
+            PreferencesError::InvalidValue { .. }
+        ));
+    }
+
+    #[test]
+    fn round_trips_overwrite_and_sidebar_booleans() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("preferences.sqlite");
+        let repository = PreferencesRepository::new(path.clone()).unwrap();
+        repository.set("confirmOverwrite", "false").unwrap();
+        repository.set("sidebarVisible", "false").unwrap();
+        let reloaded = PreferencesRepository::new(path).unwrap().get_all().unwrap();
+        assert!(!reloaded.confirm_overwrite);
+        assert!(!reloaded.sidebar_visible);
     }
 }
