@@ -18,14 +18,12 @@ export interface UseKeyboardShortcutsDeps {
   previewOpen: boolean;
   setPreviewOpen: (open: boolean) => void;
   dialog: unknown;
-  setDialog: (dialog: unknown) => void;
+  setDialog: (dialog: null) => void;
   contextMenu: unknown;
-  setContextMenu: (menu: unknown) => void;
+  setContextMenu: (menu: null) => void;
   helpOpen: boolean;
   setHelpOpen: (open: boolean) => void;
-  settingsOpen: boolean;
   setSettingsOpen: (open: boolean) => void;
-  shortcutsOpen: boolean;
   setShortcutsOpen: (open: boolean) => void;
   setPathFocusToken: (updater: (v: number) => number) => void;
   setFilterFocusToken: (updater: (v: number) => number) => void;
@@ -34,10 +32,21 @@ export interface UseKeyboardShortcutsDeps {
   navigatePanel: (
     panelId: PanelId,
     uri: string,
-    options?: { replace?: boolean },
+    options?: {
+      replace?: boolean;
+      includeHidden?: boolean;
+      softRefresh?: boolean;
+    },
   ) => Promise<void>;
   goHistory: (panelId: PanelId, direction: "back" | "forward") => Promise<void>;
-  refreshPanel: (panelId: PanelId, options?: { soft?: boolean }) => void;
+  refreshPanel: (
+    panelId: PanelId,
+    options?: {
+      replace?: boolean;
+      includeHidden?: boolean;
+      softRefresh?: boolean;
+    },
+  ) => void;
   toggleHidden: (panelId: PanelId) => void;
   handleProperties: (
     panelId: PanelId,
@@ -52,7 +61,7 @@ export interface UseKeyboardShortcutsDeps {
     kind: "copy" | "move",
   ) => void;
   pasteClipboard: (panelId: PanelId) => Promise<void>;
-  isTextPreviewable: (entry: FileEntryDto) => boolean;
+  isTextPreviewable: (entry: FileEntryDto | null) => boolean;
 }
 
 export function createKeyboardShortcutsHandler(
