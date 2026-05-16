@@ -1348,6 +1348,38 @@ button:disabled {
   background: var(--fo-border);
 }
 
+/* Submenu */
+.fo-context-menu-item--submenu {
+  position: relative;
+}
+
+.fo-context-menu-item--submenu::after {
+  content: "▸";
+  margin-left: auto;
+  padding-left: 1rem;
+  font-size: 10px;
+  color: var(--fo-muted-text);
+}
+
+.fo-context-menu-item--submenu:hover > .fo-context-submenu,
+.fo-context-menu-item--submenu:focus-within > .fo-context-submenu {
+  display: grid;
+}
+
+.fo-context-submenu {
+  display: none;
+  position: absolute;
+  left: 100%;
+  top: -4px;
+  min-width: 160px;
+  gap: 2px;
+  border: 1px solid var(--fo-dialog-border);
+  background: var(--fo-surface);
+  padding: 4px;
+  box-shadow: 0 12px 28px var(--fo-menu-shadow);
+  z-index: 40;
+}
+
 .fo-properties dl {
   display: grid;
   grid-template-columns: 90px minmax(0, 1fr);

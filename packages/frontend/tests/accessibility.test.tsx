@@ -91,7 +91,7 @@ describe("accessibility basics", () => {
       />,
     );
 
-    expect(screen.getByRole("menu")).toBeTruthy();
+    expect(screen.getAllByRole("menu").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByRole("menuitem").length).toBeGreaterThan(10);
   });
 
