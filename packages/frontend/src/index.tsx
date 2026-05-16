@@ -14,13 +14,6 @@ import type {
   AppDataHealthResponse,
   AppInfoResponse,
   AutostartStatusDto,
-  ConflictPolicy,
-  FileEntryDto,
-  FileOperationPlanDto,
-  FileOperationKind,
-  FolderSizeCompletedEventDto,
-  RecursiveSearchCompletedEventDto,
-  RecursiveSearchMatchEventDto,
   StandardLocationDto,
   FavoriteEntryDto,
   RecentEntryDto,
@@ -31,12 +24,9 @@ import type {
 import {
   activeTab,
   createInitialState,
-  normalizeLocalInput,
   panelReducer,
-  homeUri,
   parentUri,
   selectVisibleEntries,
-  type PanelId,
 } from "./panelStore";
 import {
   applyAllPreferences,
@@ -51,9 +41,14 @@ import { ActivityPanel } from "./activity/ActivityPanel";
 import type { SearchState } from "./pane/PaneFilterBar";
 import { formatSize } from "./pane/fileTableUtils";
 import { useWorkspaceLayout } from "./hooks/useWorkspaceLayout";
+import { useMenuBarProps } from "./hooks/useMenuBarProps";
+import { useEventHandlers } from "./hooks/useEventHandlers";
+import {
+  useFileOpHandlers,
+  type FileClipboardState,
+} from "./hooks/useFileOpHandlers";
 import { SidebarResizer, SplitResizer } from "./shell/LayoutResizers";
 import { TitleBar } from "./shell/TitleBar";
-import type { MenuBarProps } from "./shell/MenuBar";
 import { Sidebar } from "./sidebar/Sidebar";
 import { type ContextMenuState } from "./components/ContextMenu";
 import { ContextMenuOverlay } from "./components/ContextMenuOverlay";
@@ -61,10 +56,8 @@ import type { CommandEntry } from "./components/CommandPalette";
 import { isTextPreviewable } from "./components/PreviewPanel";
 import { ToastStack, type ToastMessage } from "./components/ToastStack";
 import { DialogOverlayGroup } from "./components/DialogOverlayGroup";
-import { mergeToast } from "./toastNotifications";
 
 import { FilePanel, type FilePanelProps } from "./pane/FilePanel";
-import { localPathFromUri } from "./utils/paneUtils";
 import {
   type OperationDialog,
   jobIdValue,
@@ -73,29 +66,15 @@ import {
   mergeCompleted,
   mergeFailed,
   mergeCancelled,
-  joinLocalUri,
-  isValidName,
-  operationErrorMessage,
 } from "./dialogs/OperationDialogView";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { StatusBarSection } from "./components/StatusBarSection";
-import { createRequestId } from "./paneTypes";
 import { isEditableTarget, shortcutEntries } from "./shortcuts";
 import type { UserPreferencesDto } from "@fileoctopus/ts-api";
 
-const SKIP_TRASH_CONFIRM_KEY = "fileoctopus.skipTrashConfirm";
 const isProductionBuild = Boolean(
   (import.meta as ImportMeta & { env?: { PROD?: boolean } }).env?.PROD,
 );
-
-type CopyMoveKind = Extract<FileOperationKind, "copy" | "move">;
-
-interface FileClipboardState {
-  kind: CopyMoveKind;
-  uris: string[];
-  providerId: string;
-  timestamp: number;
-}
 
 export function FileOctopusShell() {
   const client = useMemo(() => createFileOctopusClient(), []);
@@ -167,6 +146,57 @@ export function FileOctopusShell() {
   const [recentWeek, setRecentWeek] = useState<RecentEntryDto[]>([]);
   const [starred, setStarred] = useState<StarredEntryDto[]>([]);
   const [activityCollapsed, setActivityCollapsed] = useState(false);
+
+  const {
+    pushToast,
+    updatePreference,
+    handleCommandSelect,
+    handleSetAutostart,
+    navigatePanel,
+    refreshNavigation,
+    goHistory,
+    refreshPanel,
+    refreshLocations,
+    activateEntry,
+    refreshVisiblePanels,
+    refreshHistory,
+    refreshDiagnostics,
+    applyFolderSizeCompleted,
+    applyRecursiveSearchMatch,
+    applyRecursiveSearchCompleted,
+    clearHistory,
+    exportDiagnostics,
+  } = useEventHandlers({
+    client,
+    state,
+    dispatch,
+    preferences,
+    diagnosticsDestination,
+    setToasts,
+    setPreferences,
+    setDensity,
+    setActivityCollapsed,
+    setOperationError,
+    setSearch,
+    setCommandPaletteOpen,
+    setSettingsOpen,
+    setShortcutsOpen,
+    setDiagnosticsOpen,
+    setFilterFocusToken,
+    setAutostart,
+    setFavorites,
+    setRecentToday,
+    setRecentWeek,
+    setStarred,
+    setLocations,
+    setDialog,
+    setHistory,
+    setAppInfo,
+    setAppHealth,
+    setDiagnosticsMessage,
+    setExportingDiagnostics,
+  });
+
   const workspaceRef = useRef<HTMLElement | null>(null);
   const { markActivityPinnedOpen } = useWorkspaceLayout({
     workspaceRef,
@@ -550,36 +580,6 @@ export function FileOctopusShell() {
     })();
   }, []);
 
-  function pushToast(toast: Omit<ToastMessage, "id">) {
-    let toastId = createRequestId();
-    setToasts((current) => {
-      const merged = mergeToast(current, toast, createRequestId);
-      toastId = merged.toastId;
-      return merged.toasts;
-    });
-    globalThis.setTimeout(() => {
-      setToasts((current) => current.filter((item) => item.id !== toastId));
-    }, 6000);
-  }
-
-  async function updatePreference(key: string, value: string) {
-    try {
-      const response = await client.preferences.set({ key, value });
-      setPreferences(response.preferences);
-      applyAllPreferences(response.preferences);
-      applyLayoutPreferences(response.preferences);
-      setDensity(applyDensityPreference(response.preferences.density));
-      if (key === "activityPanelVisible") {
-        setActivityCollapsed(!response.preferences.activityPanelVisible);
-      }
-      if (key === "showHiddenFiles") {
-        refreshVisiblePanels();
-      }
-    } catch (error) {
-      setOperationError(normalizeIpcError(error).message);
-    }
-  }
-
   // ── Command Palette entries ──────────────────────────────────────
   const commandEntries: CommandEntry[] = useMemo(
     () => [
@@ -607,982 +607,50 @@ export function FileOctopusShell() {
     [],
   );
 
-  function handleCommandSelect(id: string) {
-    setCommandPaletteOpen(false);
-    const panelId = state.activePanelId;
-    const tab = activeTab(state.panels[panelId]);
-    switch (id) {
-      case "settings":
-        setSettingsOpen(true);
-        break;
-      case "shortcuts":
-        setShortcutsOpen(true);
-        break;
-      case "diagnostics":
-        setDiagnosticsOpen(true);
-        break;
-      case "toggle-sidebar":
-        void updatePreference(
-          "sidebarVisible",
-          String(preferences?.sidebarVisible === false),
-        );
-        break;
-      case "switch-pane":
-        dispatch({
-          type: "setActivePanel",
-          panelId: panelId === "left" ? "right" : "left",
-        });
-        break;
-      case "up": {
-        const upUri = parentUri(tab.uri);
-        if (upUri) void navigatePanel(panelId, upUri);
-        break;
-      }
-      case "refresh":
-        refreshPanel(panelId);
-        break;
-      case "filter":
-        setFilterFocusToken((v) => v + 1);
-        break;
-      case "toggle-hidden":
-        dispatch({ type: "toggleHidden", panelId });
-        break;
-      default:
-        break;
-    }
-  }
-
-  async function handleSetAutostart(enabled: boolean) {
-    try {
-      const status = await client.autostart.set(enabled);
-      setAutostart(status);
-    } catch {
-      // ignore — checkbox stays in previous state
-    }
-  }
-
-  useEffect(() => {
-    const tab = activeTab(state.panels[state.activePanelId]);
-
-    void client.fs.startWatching({ uri: tab.uri }).catch(() => undefined);
-
-    return () => {
-      void client.fs.stopWatching().catch(() => undefined);
-    };
-  }, [client, state.activePanelId, left.uri, right.uri]);
-
-  async function navigatePanel(
-    panelId: PanelId,
-    input: string,
-    options: {
-      replace?: boolean;
-      includeHidden?: boolean;
-      softRefresh?: boolean;
-    } = {},
-  ) {
-    const uri = normalizeLocalInput(input);
-    const tab = activeTab(state.panels[panelId]);
-
-    if (!uri.startsWith("local://")) {
-      dispatch({
-        type: "setPaneError",
-        panelId,
-        error: "Enter a local:// URI or absolute path",
-        errorCode: "invalid_uri",
-        loadState: "error",
-      });
-      return;
-    }
-
-    dispatch({
-      type: "navigate",
-      panelId,
-      uri,
-      replace: options.replace,
-      softRefresh: options.softRefresh,
-    });
-    if (!options.softRefresh) {
-      setSearch((current) =>
-        current?.panelId === panelId ? { ...current, result: null } : current,
-      );
-    }
-
-    await startListing(panelId, uri, options.includeHidden ?? tab.showHidden);
-    if (!options.softRefresh) {
-      void client.navigation
-        .recordVisit({ uri, label: localPathFromUri(uri) })
-        .then(() => refreshNavigation())
-        .catch(() => undefined);
-    }
-  }
-
-  async function refreshNavigation() {
-    try {
-      const [favoriteResponse, todayResponse, weekResponse, starredResponse] =
-        await Promise.all([
-          client.navigation.listFavorites(),
-          client.navigation.listRecent({ bucket: "today" }),
-          client.navigation.listRecent({ bucket: "thisWeek" }),
-          client.navigation.listStarred(),
-        ]);
-      setFavorites(favoriteResponse.favorites);
-      setRecentToday(todayResponse.entries);
-      setRecentWeek(weekResponse.entries);
-      setStarred(starredResponse.entries);
-    } catch (error) {
-      setOperationError(normalizeIpcError(error).message);
-    }
-  }
-
-  async function startListing(
-    panelId: PanelId,
-    uri: string,
-    includeHidden: boolean,
-  ) {
-    const requestId = createRequestId();
-
-    console.log("[FO][listStart→]", { panelId, uri, requestId, includeHidden });
-
-    try {
-      const response = await client.fs.listStart({
-        uri,
-        requestId,
-        panelId,
-        batchSize: 256,
-        includeHidden,
-      });
-
-      console.log("[FO][listStart←]", {
-        panelId,
-        sessionId: response.sessionId,
-        requestId: response.requestId,
-      });
-      dispatch({
-        type: "startSession",
-        panelId,
-        sessionId: response.sessionId,
-        requestId: response.requestId,
-      });
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      dispatch({
-        type: "setPaneError",
-        panelId,
-        error: normalized.message,
-        errorCode: normalized.code,
-        loadState:
-          normalized.code === "permission_denied"
-            ? "permissionDenied"
-            : normalized.code === "timeout"
-              ? "timeout"
-              : "error",
-      });
-    }
-  }
-
-  async function goHistory(panelId: PanelId, direction: "back" | "forward") {
-    const tab = activeTab(state.panels[panelId]);
-    const uri =
-      direction === "back"
-        ? tab.backStack[tab.backStack.length - 1]
-        : tab.forwardStack[0];
-
-    if (!uri) {
-      return;
-    }
-
-    dispatch({ type: direction === "back" ? "goBack" : "goForward", panelId });
-    await startListing(panelId, uri, tab.showHidden);
-  }
-
-  function refreshPanel(
-    panelId: PanelId,
-    options: {
-      replace?: boolean;
-      includeHidden?: boolean;
-      softRefresh?: boolean;
-    } = {},
-  ) {
-    const tab = activeTab(state.panels[panelId]);
-
-    void navigatePanel(panelId, tab.uri, {
-      replace: options.replace ?? true,
-      includeHidden: options.includeHidden ?? tab.showHidden,
-      softRefresh: options.softRefresh ?? false,
-    });
-  }
-
-  async function refreshLocations() {
-    try {
-      const response = await client.fs.standardLocations();
-      setLocations(response.locations);
-    } catch (error) {
-      setOperationError(normalizeIpcError(error).message);
-    }
-  }
-
-  function activateEntry(panelId: PanelId, entry: FileEntryDto | null) {
-    if (!entry) {
-      return;
-    }
-
-    if (entry.kind === "directory") {
-      void navigatePanel(panelId, entry.uri);
-      return;
-    }
-
-    void openExternal(entry);
-  }
-
-  function refreshVisiblePanels() {
-    refreshPanel("left");
-    refreshPanel("right");
-  }
-
-  async function refreshHistory() {
-    try {
-      const response = await client.operationHistory.listRecentOperations({
-        limit: 20,
-      });
-      setHistory(response.operations);
-    } catch (error) {
-      setOperationError(normalizeIpcError(error).message);
-    }
-  }
-
-  async function refreshDiagnostics() {
-    try {
-      const [info, health] = await Promise.all([
-        client.getAppInfo(),
-        client.diagnostics.appDataHealth(),
-      ]);
-
-      setAppInfo(info);
-      setAppHealth(health);
-    } catch (error) {
-      setOperationError(normalizeIpcError(error).message);
-    }
-  }
-
-  function applyFolderSizeCompleted(event: FolderSizeCompletedEventDto) {
-    setDialog((current) => {
-      if (
-        current?.type !== "properties" ||
-        current.folderSizeJobId !== event.jobId ||
-        !current.properties
-      ) {
-        return current;
-      }
-
-      return {
-        ...current,
-        loading: false,
-        properties: {
-          ...current.properties,
-          totalSize: event.summary.totalSize,
-          itemCount: event.summary.itemCount,
-          fileCount: event.summary.fileCount,
-          directoryCount: event.summary.directoryCount,
-          warnings: event.summary.warnings,
-        },
-      };
-    });
-  }
-
-  function applyRecursiveSearchMatch(event: RecursiveSearchMatchEventDto) {
-    setSearch((current) => {
-      if (!current || current.jobId !== event.jobId) {
-        return current;
-      }
-
-      const matches = current.result?.matches ?? [];
-
-      if (matches.some((item) => item.uri === event.item.uri)) {
-        return current;
-      }
-
-      return {
-        ...current,
-        result: {
-          matches: [...matches, event.item],
-          warnings: current.result?.warnings ?? [],
-          incomplete: current.result?.incomplete ?? false,
-        },
-      };
-    });
-  }
-
-  function applyRecursiveSearchCompleted(
-    event: RecursiveSearchCompletedEventDto,
-  ) {
-    setSearch((current) => {
-      if (!current || current.jobId !== event.jobId) {
-        return current;
-      }
-
-      return {
-        ...current,
-        running: false,
-        result: event.result,
-        error: null,
-      };
-    });
-  }
-
-  async function clearHistory() {
-    try {
-      await client.operationHistory.clearOperationHistory();
-      await refreshHistory();
-    } catch (error) {
-      setOperationError(normalizeIpcError(error).message);
-    }
-  }
-
-  async function exportDiagnostics() {
-    if (!diagnosticsDestination.trim()) {
-      setDiagnosticsMessage("Enter a diagnostics bundle destination.");
-      return;
-    }
-
-    setExportingDiagnostics(true);
-    setDiagnosticsMessage(null);
-
-    try {
-      const response = await client.diagnostics.exportBundle({
-        destination: diagnosticsDestination.trim(),
-      });
-
-      setDiagnosticsMessage(`Exported ${response.files.length} file(s).`);
-    } catch (error) {
-      setDiagnosticsMessage(normalizeIpcError(error).message);
-    } finally {
-      setExportingDiagnostics(false);
-    }
-  }
-
-  async function planOperation(
-    kind: FileOperationKind,
-    sources: string[],
-    destination?: string,
-    newName?: string,
-    conflictPolicy: ConflictPolicy = "fail",
-  ) {
-    return client.fileOperations.planFileOperation({
-      operation: {
-        kind,
-        sources,
-        destination,
-        newName,
-        conflictPolicy,
-      },
-    });
-  }
-
-  async function startPlannedOperation(
-    plan: FileOperationPlanDto,
-  ): Promise<boolean> {
-    try {
-      const started = await client.fileOperations.startFileOperation({ plan });
-
-      setJobs((current) => ({
-        ...current,
-        [jobIdValue(started.job.jobId)]: started.job,
-      }));
-      return true;
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      setOperationError(
-        operationErrorMessage(normalized.code, normalized.message),
-      );
-      return false;
-    }
-  }
-
-  async function startOperation(
-    kind: FileOperationKind,
-    sources: string[],
-    destination?: string,
-    newName?: string,
-    conflictPolicy: ConflictPolicy = "fail",
-  ): Promise<boolean> {
-    setOperationError(null);
-
-    try {
-      const planResponse = await planOperation(
-        kind,
-        sources,
-        destination,
-        newName,
-        conflictPolicy,
-      );
-
-      return startPlannedOperation(planResponse.plan);
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      setOperationError(
-        operationErrorMessage(normalized.code, normalized.message),
-      );
-      return false;
-    }
-  }
-
-  async function reviewCopyMoveDialog(
-    current: Extract<OperationDialog, { type: "copyMove" }>,
-  ) {
-    setOperationError(null);
-    setDialog({ ...current, planning: true, error: null });
-
-    try {
-      const planResponse = await planOperation(
-        current.kind,
-        current.entries.map((entry) => entry.uri),
-        normalizeLocalInput(current.destination),
-        undefined,
-        current.conflictPolicy,
-      );
-
-      setDialog({ ...current, plan: planResponse.plan, planning: false });
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      setDialog({
-        ...current,
-        planning: false,
-        error: operationErrorMessage(normalized.code, normalized.message),
-      });
-    }
-  }
-
-  function selectedEntries(panelId: PanelId): FileEntryDto[] {
-    const tab = activeTab(state.panels[panelId]);
-
-    return tab.selectedIds
-      .map((id) => tab.entriesById[id])
-      .filter((entry): entry is FileEntryDto => Boolean(entry));
-  }
-
-  async function openExternal(entry: FileEntryDto) {
-    setOperationError(null);
-
-    try {
-      await client.fs.openPathWithDefaultApp({ uri: entry.uri });
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      setOperationError(
-        operationErrorMessage(normalized.code, normalized.message),
-      );
-    }
-  }
-
-  async function revealEntry(panelId: PanelId, entry: FileEntryDto | null) {
-    if (!entry) {
-      return;
-    }
-
-    try {
-      await client.fs.revealPathInFileManager({ uri: entry.uri });
-    } catch {
-      const parent = parentUri(entry.uri);
-
-      if (parent) {
-        await navigatePanel(panelId, parent);
-        dispatch({ type: "setSelection", panelId, entryId: entry.uri });
-      }
-    }
-  }
-
-  async function calculateSize(panelId: PanelId, entry: FileEntryDto | null) {
-    if (!entry || entry.kind !== "directory") {
-      return;
-    }
-
-    try {
-      const result = await client.fs.startFolderSizeJob({ uri: entry.uri });
-      setDialog({
-        type: "properties",
-        panelId,
-        entry,
-        properties: null,
-        loading: true,
-        folderSizeJobId: jobIdValue(result.job.jobId),
-        error: null,
-      });
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      setOperationError(
-        operationErrorMessage(normalized.code, normalized.message),
-      );
-    }
-  }
-
-  function copySelectionToFileClipboard(panelId: PanelId, kind: CopyMoveKind) {
-    const entries = selectedEntries(panelId);
-
-    if (entries.length === 0) {
-      return;
-    }
-
-    setClipboard({
-      kind,
-      uris: entries.map((entry) => entry.uri),
-      providerId: entries[0].providerId,
-      timestamp: Date.now(),
-    });
-  }
-
-  async function pasteClipboard(panelId: PanelId) {
-    if (!clipboard) {
-      return;
-    }
-
-    const tab = activeTab(state.panels[panelId]);
-    const ok = await startOperation(
-      clipboard.kind,
-      clipboard.uris,
-      tab.uri,
-      undefined,
-      "renameNew",
-    );
-
-    if (ok && clipboard.kind === "move") {
-      setClipboard(null);
-    }
-  }
-
-  async function copyTextFromSelection(
-    panelId: PanelId,
-    mode: "path" | "name" | "parentPath" | "uri",
-  ) {
-    const entries = selectedEntries(panelId);
-
-    if (entries.length === 0) {
-      return;
-    }
-
-    const text = entries
-      .map((entry) => {
-        switch (mode) {
-          case "path":
-            return localPathFromUri(entry.uri);
-          case "name":
-            return entry.name;
-          case "parentPath":
-            return localPathFromUri(parentUri(entry.uri) ?? "");
-          case "uri":
-            return entry.uri;
-        }
-      })
-      .join("\n");
-
-    await globalThis.navigator.clipboard?.writeText(text);
-  }
-
-  function handleCreateFolder(panelId: PanelId) {
-    setDialog({
-      type: "createFolder",
-      panelId,
-      name: "New Folder",
-      error: null,
-    });
-  }
-
-  function handleCreateFile(panelId: PanelId) {
-    setDialog({
-      type: "createFile",
-      panelId,
-      name: "New File.txt",
-      error: null,
-    });
-  }
-
-  function handleRename(panelId: PanelId) {
-    const entries = selectedEntries(panelId);
-    const entry = entries[0];
-
-    if (entries.length !== 1 || !entry) {
-      return;
-    }
-
-    setDialog({
-      type: "rename",
-      panelId,
-      entry,
-      name: entry.name,
-      error: null,
-    });
-  }
-
-  function handleCopyOrMove(panelId: PanelId, kind: CopyMoveKind) {
-    const entries = selectedEntries(panelId);
-    const otherPanel = panelId === "left" ? "right" : "left";
-    const defaultDestination = activeTab(state.panels[otherPanel]).uri;
-
-    if (entries.length === 0) {
-      return;
-    }
-
-    setDialog({
-      type: "copyMove",
-      panelId,
-      kind,
-      entries,
-      destination: defaultDestination,
-      conflictPolicy: "fail",
-      plan: null,
-      planning: false,
-      step: "review",
-      error: null,
-    });
-  }
-
-  async function executeTrash(_panelId: PanelId, entries: FileEntryDto[]) {
-    const ok = await startOperation(
-      "deleteToTrash",
-      entries.map((entry) => entry.uri),
-    );
-
-    if (ok) {
-      setDialog(null);
-    }
-  }
-
-  function handleTrash(panelId: PanelId) {
-    const entries = selectedEntries(panelId);
-
-    if (entries.length === 0) {
-      return;
-    }
-
-    if (
-      typeof sessionStorage !== "undefined" &&
-      sessionStorage.getItem(SKIP_TRASH_CONFIRM_KEY) === "true"
-    ) {
-      void executeTrash(panelId, entries);
-      return;
-    }
-
-    setDialog({
-      type: "trash",
-      panelId,
-      entries,
-      dontAskAgain: false,
-      error: null,
-    });
-  }
-
-  async function toggleStarredForEntry(entry: FileEntryDto) {
-    try {
-      await client.navigation.toggleStarred({
-        uri: entry.uri,
-        label: entry.name,
-      });
-      await refreshNavigation();
-    } catch (error) {
-      setOperationError(normalizeIpcError(error).message);
-    }
-  }
-
-  function handlePermanentDelete(panelId: PanelId) {
-    const entries = selectedEntries(panelId);
-
-    if (entries.length === 0) {
-      return;
-    }
-
-    setDialog({ type: "permanentDelete", panelId, entries, error: null });
-  }
-
-  async function handleProperties(
-    panelId: PanelId,
-    entry: FileEntryDto | null,
-  ) {
-    const tab = activeTab(state.panels[panelId]);
-    const target = entry ?? selectedEntries(panelId)[0] ?? null;
-    const uri = target?.uri ?? tab.uri;
-
-    setDialog({
-      type: "properties",
-      panelId,
-      entry: target,
-      properties: null,
-      loading: true,
-      folderSizeJobId: null,
-      error: null,
-    });
-
-    try {
-      const response = await client.fs.properties({
-        uri,
-        includeFolderSummary: false,
-      });
-      const properties = response.properties;
-      let folderSizeJobId: string | null = null;
-
-      if (properties.kind === "directory") {
-        const sizeJob = await client.fs.startFolderSizeJob({ uri });
-        folderSizeJobId = jobIdValue(sizeJob.job.jobId);
-      }
-
-      setDialog({
-        type: "properties",
-        panelId,
-        entry: target,
-        properties,
-        loading: Boolean(folderSizeJobId),
-        folderSizeJobId,
-        error: null,
-      });
-    } catch (error) {
-      setDialog({
-        type: "properties",
-        panelId,
-        entry: target,
-        properties: null,
-        loading: false,
-        folderSizeJobId: null,
-        error: normalizeIpcError(error).message,
-      });
-    }
-  }
-
-  async function runRecursiveSearch(panelId: PanelId) {
-    const tab = activeTab(state.panels[panelId]);
-    const query = tab.recursiveQuery.trim();
-
-    if (!query) {
-      setSearch(null);
-      return;
-    }
-
-    setSearch({
-      panelId,
-      query,
-      running: true,
-      jobId: null,
-      result: { matches: [], warnings: [], incomplete: false },
-      error: null,
-    });
-
-    try {
-      const response = await client.fs.startRecursiveSearchJob({
-        uri: tab.uri,
-        query,
-        limit: 500,
-      });
-
-      setSearch({
-        panelId,
-        query,
-        running: true,
-        jobId: jobIdValue(response.job.jobId),
-        result: { matches: [], warnings: [], incomplete: false },
-        error: null,
-      });
-    } catch (error) {
-      setSearch({
-        panelId,
-        query,
-        running: false,
-        jobId: null,
-        result: null,
-        error: normalizeIpcError(error).message,
-      });
-    }
-  }
-
-  function toggleHidden(panelId: PanelId) {
-    const tab = activeTab(state.panels[panelId]);
-
-    dispatch({ type: "toggleHidden", panelId });
-    refreshPanel(panelId, {
-      replace: true,
-      includeHidden: !tab.showHidden,
-    });
-  }
-
-  async function openTerminal(uri: string) {
-    try {
-      await client.fs.openTerminal({ uri });
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      pushToast({
-        tone: "error",
-        title: `Failed to open terminal: ${normalized.message}`,
-      });
-    }
-  }
-
-  async function handleChecksum(panelId: PanelId) {
-    const tab = activeTab(state.panels[panelId]);
-    const selectedEntry =
-      selectVisibleEntries(tab).find((e) => e.uri === tab.selectedId) ?? null;
-
-    if (!selectedEntry || selectedEntry.kind === "directory") {
-      pushToast({ tone: "error", title: "Select a file to compute checksum" });
-      return;
-    }
-
-    try {
-      const result = await client.fs.computeHash({
-        uri: selectedEntry.uri,
-        algorithm: "sha256",
-      });
-      pushToast({
-        tone: "success",
-        title: `SHA-256: ${result.hash}`,
-      });
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      pushToast({
-        tone: "error",
-        title: `Checksum failed: ${normalized.message}`,
-      });
-    }
-  }
-
-  async function submitCreateFolder(
-    current: Extract<OperationDialog, { type: "createFolder" }>,
-  ) {
-    const name = current.name.trim();
-
-    if (!isValidName(name)) {
-      setDialog({
-        ...current,
-        error: "Enter a folder name without path separators.",
-      });
-      return;
-    }
-
-    const tab = activeTab(state.panels[current.panelId]);
-    const ok = await startOperation(
-      "createDirectory",
-      [],
-      joinLocalUri(tab.uri, name),
-    );
-
-    if (ok) {
-      setDialog(null);
-      refreshVisiblePanels();
-    }
-  }
-
-  async function submitCreateFile(
-    current: Extract<OperationDialog, { type: "createFile" }>,
-  ) {
-    const name = current.name.trim();
-
-    if (!isValidName(name)) {
-      setDialog({
-        ...current,
-        error: "Enter a file name without path separators.",
-      });
-      return;
-    }
-
-    const tab = activeTab(state.panels[current.panelId]);
-
-    try {
-      const response = await client.fs.createFile({
-        uri: joinLocalUri(tab.uri, name),
-      });
-
-      setDialog(null);
-      refreshPanel(current.panelId);
-      dispatch({
-        type: "setSelection",
-        panelId: current.panelId,
-        entryId: response.entry.uri,
-      });
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      setDialog({
-        ...current,
-        error: operationErrorMessage(normalized.code, normalized.message),
-      });
-    }
-  }
-
-  async function submitRename(
-    current: Extract<OperationDialog, { type: "rename" }>,
-  ) {
-    const name = current.name.trim();
-
-    if (!isValidName(name)) {
-      setDialog({ ...current, error: "Enter a name without path separators." });
-      return;
-    }
-
-    const ok = await startOperation(
-      "rename",
-      [current.entry.uri],
-      undefined,
-      name,
-    );
-
-    if (ok) {
-      setDialog(null);
-      refreshVisiblePanels();
-    }
-  }
-
-  async function submitCopyMove(
-    current: Extract<OperationDialog, { type: "copyMove" }>,
-  ) {
-    if (!current.destination.trim()) {
-      setDialog({ ...current, error: "Enter a destination local URI." });
-      return;
-    }
-
-    if (!current.plan) {
-      await reviewCopyMoveDialog(current);
-      return;
-    }
-
-    // Confirm-overwrite gate: if preference is on, conflicts exist, and policy is overwrite
-    if (
-      current.step !== "confirm-overwrite" &&
-      (preferences?.confirmOverwrite ?? false) &&
-      current.plan.conflicts.length > 0 &&
-      current.conflictPolicy === "overwrite"
-    ) {
-      setDialog({ ...current, step: "confirm-overwrite" });
-      return;
-    }
-
-    const ok = await startPlannedOperation(current.plan);
-
-    if (ok) {
-      setDialog(null);
-    }
-  }
-
-  async function submitTrash(
-    current: Extract<OperationDialog, { type: "trash" }>,
-  ) {
-    if (current.dontAskAgain && typeof sessionStorage !== "undefined") {
-      sessionStorage.setItem(SKIP_TRASH_CONFIRM_KEY, "true");
-    }
-
-    await executeTrash(current.panelId, current.entries);
-  }
-
-  async function submitPermanentDelete(
-    current: Extract<OperationDialog, { type: "permanentDelete" }>,
-  ) {
-    try {
-      await client.fs.deletePermanently({
-        uris: current.entries.map((entry) => entry.uri),
-      });
-
-      setDialog(null);
-      refreshPanel(current.panelId);
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      setDialog({
-        ...current,
-        error: operationErrorMessage(normalized.code, normalized.message),
-      });
-    }
-  }
+  const {
+    reviewCopyMoveDialog,
+    selectedEntries,
+    openExternal,
+    revealEntry,
+    calculateSize,
+    copySelectionToFileClipboard,
+    pasteClipboard,
+    copyTextFromSelection,
+    handleCreateFolder,
+    handleCreateFile,
+    handleRename,
+    handleCopyOrMove,
+    handleTrash,
+    toggleStarredForEntry,
+    handlePermanentDelete,
+    handleProperties,
+    runRecursiveSearch,
+    toggleHidden,
+    openTerminal,
+    handleChecksum,
+    submitCreateFolder,
+    submitCreateFile,
+    submitRename,
+    submitCopyMove,
+    submitTrash,
+    submitPermanentDelete,
+  } = useFileOpHandlers({
+    client,
+    state,
+    dispatch,
+    setSearch,
+    setDialog,
+    setClipboard,
+    clipboard,
+    setJobs,
+    setOperationError,
+    pushToast,
+    preferences,
+    refreshPanel,
+    refreshVisiblePanels,
+    refreshNavigation,
+    navigatePanel,
+  });
 
   function handleShellKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === "Escape") {
@@ -1791,165 +859,42 @@ export function FileOctopusShell() {
     }
   }
 
-  const menuBarProps: MenuBarProps = {
-    activePanelId: state.activePanelId,
-    onBack: () => void goHistory(state.activePanelId, "back"),
-    onForward: () => void goHistory(state.activePanelId, "forward"),
-    onUp: () => {
-      const upUri = parentUri(activeTab(state.panels[state.activePanelId]).uri);
-      if (upUri) void navigatePanel(state.activePanelId, upUri);
-    },
-    onHome: () => void navigatePanel(state.activePanelId, homeUri()),
-    onGoToLocation: () => setPathFocusToken((v) => v + 1),
-    goStandardLocation: (loc: string) => {
-      const match = locations.find(
-        (l) => l.id.toLowerCase() === loc.toLowerCase(),
-      );
-      if (match) void navigatePanel(state.activePanelId, match.uri);
-    },
-    onNewFolder: () => handleCreateFolder(state.activePanelId),
-    onNewFile: () => handleCreateFile(state.activePanelId),
-    onOpenSelected: () => {
-      const entry = selectedEntries(state.activePanelId)[0];
-      if (entry) activateEntry(state.activePanelId, entry);
-    },
-    onOpenWithDefaultApp: () => {
-      const entry = selectedEntries(state.activePanelId)[0];
-      if (entry) void openExternal(entry);
-    },
-    onRevealInFileManager: () => {
-      const entry = selectedEntries(state.activePanelId)[0];
-      if (entry) void revealEntry(state.activePanelId, entry);
-    },
-    onRename: () => handleRename(state.activePanelId),
-    onCopyTo: () => pushToast({ tone: "info", title: "Copy To… coming soon" }),
-    onMoveTo: () => pushToast({ tone: "info", title: "Move To… coming soon" }),
-    onTrash: () => handleTrash(state.activePanelId),
-    onDeletePermanently: () => handlePermanentDelete(state.activePanelId),
-    onProperties: () => void handleProperties(state.activePanelId, null),
-    onCut: () => copySelectionToFileClipboard(state.activePanelId, "move"),
-    onCopy: () => copySelectionToFileClipboard(state.activePanelId, "copy"),
-    onPaste: () => void pasteClipboard(state.activePanelId),
-    onClearClipboard: () => setClipboard(null),
-    onSelectAll: () =>
-      dispatch({ type: "selectAll", panelId: state.activePanelId }),
-    onClearSelection: () =>
-      dispatch({ type: "clearSelection", panelId: state.activePanelId }),
-    onInvertSelection: () =>
-      pushToast({ tone: "info", title: "Invert Selection coming soon" }),
-    onCopyPath: () => void copyTextFromSelection(state.activePanelId, "path"),
-    onCopyName: () => void copyTextFromSelection(state.activePanelId, "name"),
-    onCopyParentPath: () =>
-      void copyTextFromSelection(state.activePanelId, "parentPath"),
-    onCopyResourceUri: () =>
-      void copyTextFromSelection(state.activePanelId, "uri"),
-    onViewMode: (mode: string) => {
-      const panelId = state.activePanelId;
-      dispatch({
-        type: "setViewMode",
-        panelId,
-        viewMode: mode as import("./panelStore").ViewMode,
-      });
-    },
-    onSortBy: (field: string) => {
-      dispatch({
-        type: "setSort",
-        panelId: state.activePanelId,
-        field: field as import("./panelStore").SortField,
-      });
-    },
-    onSortDirection: (dir: string) => {
-      const tab = activeTab(state.panels[state.activePanelId]);
-      const ascending = dir === "ascending";
-      if ((tab.sort.direction === "asc") !== ascending) {
-        dispatch({
-          type: "setSort",
-          panelId: state.activePanelId,
-          field: tab.sort.field,
-        });
-      }
-    },
-    onTheme: (theme: string) => {
-      void updatePreference("theme", theme);
-    },
-    onDensity: (density: string) => {
-      const d = density as DensityPreference;
-      setDensity(d);
-      applyDensityPreference(d);
-      void updatePreference("density", density);
-    },
-    onToggleSidebar: () => {
-      void updatePreference(
-        "sidebarVisible",
-        String(preferences?.sidebarVisible === false),
-      );
-    },
-    onToggleToolbar: () =>
-      pushToast({ tone: "info", title: "Toggle Toolbar coming soon" }),
-    onToggleStatusBar: () =>
-      pushToast({ tone: "info", title: "Toggle Status Bar coming soon" }),
-    onToggleDualPane: () => {
-      pushToast({ tone: "info", title: "Dual Pane coming soon" });
-    },
-    onToggleHidden: () => toggleHidden(state.activePanelId),
-    onRefresh: () => refreshPanel(state.activePanelId),
-    onAddFavorite: () => {
-      const uri = activeTab(state.panels[state.activePanelId]).uri;
-      const name = uri.split("/").filter(Boolean).pop() ?? "Untitled";
-      void client.navigation
-        .addFavorite({ uri, label: name })
-        .then(() => refreshNavigation())
-        .catch((error) =>
-          pushToast({ tone: "error", title: normalizeIpcError(error).message }),
-        );
-    },
-    onManageFavorites: () => setSettingsOpen(true),
-    onFilter: () => setFilterFocusToken((v) => v + 1),
-    onSearchRecursive: () => setRecursiveSearchFocusToken((v) => v + 1),
-    onJobActivity: () =>
-      pushToast({ tone: "info", title: "Job Activity coming soon" }),
-    onDiagnostics: () => setDiagnosticsOpen(true),
-    onExportDiagnostics: () =>
-      pushToast({ tone: "info", title: "Export Diagnostics coming soon" }),
-    onSwitchPane: () =>
-      dispatch({
-        type: "setActivePanel",
-        panelId: state.activePanelId === "left" ? "right" : "left",
-      }),
-    onSwapPanes: () =>
-      pushToast({ tone: "info", title: "Swap Panes coming soon" }),
-    onEqualizePanes: () =>
-      pushToast({ tone: "info", title: "Equalize Panes coming soon" }),
-    onShortcuts: () => setShortcutsOpen(true),
-    onDocumentation: () => {
-      void globalThis.open(
-        "https://github.com/nous-research/fileoctopus",
-        "_blank",
-      );
-    },
-    onReportIssue: () => {
-      void globalThis.open(
-        "https://github.com/nous-research/fileoctopus/issues",
-        "_blank",
-      );
-    },
-    onAbout: () =>
-      pushToast({ tone: "info", title: "About FileOctopus coming soon" }),
-    onSettings: () => setSettingsOpen(true),
-    onExit: () => pushToast({ tone: "info", title: "Exit coming soon" }),
-    canGoBack:
-      activeTab(state.panels[state.activePanelId]).backStack.length > 0,
-    canGoForward:
-      activeTab(state.panels[state.activePanelId]).forwardStack.length > 0,
-    hasSelection:
-      activeTab(state.panels[state.activePanelId]).selectedIds.length > 0,
-    hasClipboard: clipboard !== null,
-    sidebarVisible: preferences?.sidebarVisible !== false,
-    toolbarVisible: true,
-    statusBarVisible: true,
-    dualPane: false,
-    showHidden: activeTab(state.panels[state.activePanelId]).showHidden,
-  };
+  const menuBarProps = useMenuBarProps({
+    state,
+    dispatch,
+    client,
+    locations,
+    clipboard,
+    setClipboard,
+    preferences,
+    setDensity,
+    goHistory,
+    navigatePanel,
+    refreshPanel,
+    refreshNavigation,
+    activateEntry,
+    selectedEntries,
+    openExternal,
+    revealEntry,
+    handleCreateFolder,
+    handleCreateFile,
+    handleRename,
+    handleTrash,
+    handlePermanentDelete,
+    handleProperties,
+    copySelectionToFileClipboard,
+    pasteClipboard,
+    copyTextFromSelection,
+    toggleHidden,
+    updatePreference,
+    pushToast,
+    setPathFocusToken,
+    setFilterFocusToken,
+    setRecursiveSearchFocusToken,
+    setSettingsOpen,
+    setShortcutsOpen,
+    setDiagnosticsOpen,
+  });
 
   function makeFilePanelProps(pid: "left" | "right"): FilePanelProps {
     const tab = activeTab(state.panels[pid]);
