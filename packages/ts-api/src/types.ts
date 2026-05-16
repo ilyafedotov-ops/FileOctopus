@@ -90,6 +90,16 @@ export interface UserPreferencesDto {
   confirmPermanentDelete: boolean;
   useTrashByDefault: boolean;
   defaultConflictPolicy: string;
+  accentColor: string;
+  fontScale: string;
+  iconScale: string;
+  confirmOverwrite: boolean;
+  sidebarVisible: boolean;
+}
+
+export interface AutostartStatusDto {
+  enabled: boolean;
+  supported: boolean;
 }
 
 export interface FavoriteEntryDto {
