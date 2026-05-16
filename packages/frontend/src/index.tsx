@@ -1490,6 +1490,34 @@ export function FileOctopusShell() {
     }
   }
 
+  async function handleChecksum(panelId: PanelId) {
+    const tab = activeTab(state.panels[panelId]);
+    const selectedEntry =
+      selectVisibleEntries(tab).find((e) => e.uri === tab.selectedId) ?? null;
+
+    if (!selectedEntry || selectedEntry.kind === "directory") {
+      pushToast({ tone: "error", title: "Select a file to compute checksum" });
+      return;
+    }
+
+    try {
+      const result = await client.fs.computeHash({
+        uri: selectedEntry.uri,
+        algorithm: "sha256",
+      });
+      pushToast({
+        tone: "success",
+        title: `SHA-256: ${result.hash}`,
+      });
+    } catch (error) {
+      const normalized = normalizeIpcError(error);
+      pushToast({
+        tone: "error",
+        title: `Checksum failed: ${normalized.message}`,
+      });
+    }
+  }
+
   async function submitCreateFolder(
     current: Extract<OperationDialog, { type: "createFolder" }>,
   ) {
@@ -1965,9 +1993,7 @@ export function FileOctopusShell() {
                   pushToast({ tone: "info", title: "Extract coming soon" })
                 }
                 onOpenTerminal={() => openTerminal(left.uri)}
-                onChecksum={() =>
-                  pushToast({ tone: "info", title: "Checksum coming soon" })
-                }
+                onChecksum={() => void handleChecksum("left")}
                 onRefresh={() => refreshPanel("left")}
                 onToggleHidden={() => toggleHidden("left")}
                 onSelectAll={() =>
@@ -2051,10 +2077,8 @@ export function FileOctopusShell() {
                 onExtract={() =>
                   pushToast({ tone: "info", title: "Extract coming soon" })
                 }
-                onOpenTerminal={() => openTerminal(left.uri)}
-                onChecksum={() =>
-                  pushToast({ tone: "info", title: "Checksum coming soon" })
-                }
+                onOpenTerminal={() => openTerminal(right.uri)}
+                onChecksum={() => void handleChecksum("right")}
                 onRefresh={() => refreshPanel("right")}
                 onToggleHidden={() => toggleHidden("right")}
                 onSelectAll={() =>
@@ -2215,9 +2239,7 @@ export function FileOctopusShell() {
             onOpenTerminal={(panelId) =>
               openTerminal(activeTab(state.panels[panelId]).uri)
             }
-            onChecksum={() =>
-              pushToast({ tone: "info", title: "Checksum coming soon" })
-            }
+            onChecksum={(panelId) => void handleChecksum(panelId)}
             onCreateFolder={handleCreateFolder}
             onCreateFile={handleCreateFile}
             onRefresh={refreshPanel}
