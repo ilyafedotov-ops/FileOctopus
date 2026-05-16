@@ -11,7 +11,7 @@ pub use navigation::{
     FavoriteEntry, NavigationError, NavigationRepository, RecentBucket, RecentEntry, StarredEntry,
 };
 
-pub const SCHEMA_VERSION: u32 = 4;
+pub const SCHEMA_VERSION: u32 = 5;
 
 #[derive(Debug, Error)]
 pub enum PreferencesError {
@@ -150,6 +150,11 @@ impl PreferencesRepository {
             connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         }
 
+        if user_version < 5 {
+            self.backfill_v5_keys(&connection)?;
+            connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
         Ok(())
     }
 
@@ -195,6 +200,28 @@ impl PreferencesRepository {
                 "defaultConflictPolicy",
                 defaults.default_conflict_policy.to_string(),
             ),
+        ];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
+        }
+
+        Ok(())
+    }
+
+    fn backfill_v5_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [
+            ("accentColor", defaults.accent_color.clone()),
+            ("fontScale", defaults.font_scale.clone()),
+            ("iconScale", defaults.icon_scale.clone()),
+            ("confirmOverwrite", defaults.confirm_overwrite.to_string()),
+            ("sidebarVisible", defaults.sidebar_visible.to_string()),
         ];
 
         for (key, value) in rows {
@@ -510,8 +537,7 @@ mod tests {
     #[test]
     fn accepts_valid_accent_colors() {
         let dir = tempdir().unwrap();
-        let repository =
-            PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
+        let repository = PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
         for name in [
             "blue", "indigo", "violet", "pink", "red", "orange", "amber", "green",
         ] {
@@ -522,8 +548,7 @@ mod tests {
     #[test]
     fn rejects_invalid_accent_color() {
         let dir = tempdir().unwrap();
-        let repository =
-            PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
+        let repository = PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
         let err = repository.set("accentColor", "chartreuse").unwrap_err();
         assert!(matches!(err, PreferencesError::InvalidValue { .. }));
     }
@@ -531,8 +556,7 @@ mod tests {
     #[test]
     fn accepts_valid_scales() {
         let dir = tempdir().unwrap();
-        let repository =
-            PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
+        let repository = PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
         for key in ["fontScale", "iconScale"] {
             for value in ["small", "medium", "large"] {
                 assert!(repository.set(key, value).is_ok(), "accept {key}={value}");
@@ -543,8 +567,7 @@ mod tests {
     #[test]
     fn rejects_invalid_scale() {
         let dir = tempdir().unwrap();
-        let repository =
-            PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
+        let repository = PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
         assert!(matches!(
             repository.set("fontScale", "gigantic").unwrap_err(),
             PreferencesError::InvalidValue { .. }
@@ -561,5 +584,58 @@ mod tests {
         let reloaded = PreferencesRepository::new(path).unwrap().get_all().unwrap();
         assert!(!reloaded.confirm_overwrite);
         assert!(!reloaded.sidebar_visible);
+    }
+
+    #[test]
+    fn migrates_v4_database_to_v5_with_new_defaults() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("preferences.sqlite");
+
+        // Simulate a v4 DB: open, set pragma user_version=4, seed only legacy keys.
+        {
+            let connection = Connection::open(&path).unwrap();
+            connection
+                .execute(
+                    "create table if not exists preferences (
+                        key text primary key,
+                        value text not null,
+                        updated_at text not null
+                    )",
+                    [],
+                )
+                .unwrap();
+            connection
+                .execute(
+                    "insert into preferences (key, value, updated_at) values
+                        ('theme', 'dark', '0'),
+                        ('density', 'compact', '0')",
+                    [],
+                )
+                .unwrap();
+            connection
+                .pragma_update(None, "user_version", 4u32)
+                .unwrap();
+        }
+
+        // Open via repository; migration should run.
+        let repository = PreferencesRepository::new(path.clone()).unwrap();
+        let prefs = repository.get_all().unwrap();
+
+        // Existing values preserved.
+        assert_eq!(prefs.theme, "dark");
+        assert_eq!(prefs.density, "compact");
+        // New v5 defaults applied.
+        assert_eq!(prefs.accent_color, "blue");
+        assert_eq!(prefs.font_scale, "medium");
+        assert_eq!(prefs.icon_scale, "medium");
+        assert!(prefs.confirm_overwrite);
+        assert!(prefs.sidebar_visible);
+
+        // user_version is now 5.
+        let connection = Connection::open(&path).unwrap();
+        let version: u32 = connection
+            .query_row("pragma user_version", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, 5);
     }
 }
