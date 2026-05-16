@@ -944,6 +944,8 @@ mod tests {
                 symlink_target: None,
                 provider_id: ProviderId::new("local"),
                 capabilities: EntryCapabilities::read_only_file(),
+                permissions: None,
+                owner: None,
             }),
         };
 
