@@ -101,9 +101,7 @@ export function applyLayoutPreferences(preferences: UserPreferencesDto) {
   root.dataset.activityPanel = preferences.activityPanelVisible
     ? "visible"
     : "hidden";
-  root.dataset.sidebarHidden = preferences.sidebarVisible
-    ? undefined
-    : "true";
+  root.dataset.sidebarHidden = preferences.sidebarVisible ? undefined : "true";
 }
 
 export function rowHeightForDensity(density: DensityPreference): number {

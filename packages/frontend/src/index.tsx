@@ -214,7 +214,10 @@ export function FileOctopusShell() {
   // ── Autostart: fetch when settings dialog opens ─────────────────
   useEffect(() => {
     if (!settingsOpen) return;
-    void client.autostart.get().then(setAutostart).catch(() => setAutostart(null));
+    void client.autostart
+      .get()
+      .then(setAutostart)
+      .catch(() => setAutostart(null));
   }, [settingsOpen]);
 
   // ── E2E test bridge ──────────────────────────────────────────────
@@ -2694,17 +2697,15 @@ function OperationDialogView({
             <section className="fo-dialog-section">
               <h3>Confirm overwrite</h3>
               <p>
-                The conflict policy is set to overwrite. Files at the destination
-                with the same name will be replaced. Continue?
+                The conflict policy is set to overwrite. Files at the
+                destination with the same name will be replaced. Continue?
               </p>
               <div className="fo-dialog-actions">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() =>
-                    onUpdate({ ...dialog, step: "review" })
-                  }
+                  onClick={() => onUpdate({ ...dialog, step: "review" })}
                 >
                   Back
                 </Button>
@@ -2719,94 +2720,94 @@ function OperationDialogView({
               </div>
             </section>
           ) : (
-          <form
-            onSubmit={(event) => {
-              event.preventDefault();
-              onSubmitCopyMove(dialog);
-            }}
-          >
-            <label>
-              Destination local URI
-              <input
-                aria-label="Destination local URI"
-                value={dialog.destination}
-                onChange={(event) =>
-                  onUpdate({
-                    ...dialog,
-                    destination: event.target.value,
-                    plan: null,
-                    error: null,
-                  })
-                }
-              />
-            </label>
-            <label>
-              Conflict policy
-              <select
-                aria-label="Conflict policy"
-                value={dialog.conflictPolicy}
-                onChange={(event) =>
-                  onUpdate({
-                    ...dialog,
-                    conflictPolicy: event.target.value as ConflictPolicy,
-                    plan: null,
-                    error: null,
-                  })
-                }
-              >
-                <option value="fail">Fail without changes</option>
-                <option value="skip">Skip existing destinations</option>
-                <option value="overwrite">
-                  Overwrite existing destinations
-                </option>
-                <option value="renameNew">Rename new items</option>
-                <option value="renameExisting">Rename existing items</option>
-              </select>
-            </label>
-            <div className="fo-dialog-summary">
-              {dialog.entries.length} item(s) selected
-            </div>
-            {dialog.plan ? (
+            <form
+              onSubmit={(event) => {
+                event.preventDefault();
+                onSubmitCopyMove(dialog);
+              }}
+            >
+              <label>
+                Destination local URI
+                <input
+                  aria-label="Destination local URI"
+                  value={dialog.destination}
+                  onChange={(event) =>
+                    onUpdate({
+                      ...dialog,
+                      destination: event.target.value,
+                      plan: null,
+                      error: null,
+                    })
+                  }
+                />
+              </label>
+              <label>
+                Conflict policy
+                <select
+                  aria-label="Conflict policy"
+                  value={dialog.conflictPolicy}
+                  onChange={(event) =>
+                    onUpdate({
+                      ...dialog,
+                      conflictPolicy: event.target.value as ConflictPolicy,
+                      plan: null,
+                      error: null,
+                    })
+                  }
+                >
+                  <option value="fail">Fail without changes</option>
+                  <option value="skip">Skip existing destinations</option>
+                  <option value="overwrite">
+                    Overwrite existing destinations
+                  </option>
+                  <option value="renameNew">Rename new items</option>
+                  <option value="renameExisting">Rename existing items</option>
+                </select>
+              </label>
               <div className="fo-dialog-summary">
-                <span>
-                  {dialog.plan.totalItems} planned item(s),{" "}
-                  {dialog.plan.conflicts.length} conflict(s)
-                </span>
-                {dialog.plan.conflicts.slice(0, 3).map((conflict) => (
-                  <span key={`${conflict.source}-${conflict.destination}`}>
-                    {conflict.destination}
-                  </span>
-                ))}
-                {dialog.plan.warnings.slice(0, 3).map((warning) => (
-                  <span key={`${warning.code}-${warning.uri ?? ""}`}>
-                    {warning.message}
-                  </span>
-                ))}
+                {dialog.entries.length} item(s) selected
               </div>
-            ) : null}
-            {dialog.error ? (
-              <div className="fo-operation-error">{dialog.error}</div>
-            ) : null}
-            <div className="fo-dialog-actions">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                disabled={dialog.planning}
-                onClick={() => onReviewCopyMove(dialog)}
-              >
-                {dialog.planning ? "Planning" : "Plan"}
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                size="sm"
-                disabled={dialog.planning || !dialog.plan}
-              >
-                Start
-              </Button>
-            </div>
-          </form>
+              {dialog.plan ? (
+                <div className="fo-dialog-summary">
+                  <span>
+                    {dialog.plan.totalItems} planned item(s),{" "}
+                    {dialog.plan.conflicts.length} conflict(s)
+                  </span>
+                  {dialog.plan.conflicts.slice(0, 3).map((conflict) => (
+                    <span key={`${conflict.source}-${conflict.destination}`}>
+                      {conflict.destination}
+                    </span>
+                  ))}
+                  {dialog.plan.warnings.slice(0, 3).map((warning) => (
+                    <span key={`${warning.code}-${warning.uri ?? ""}`}>
+                      {warning.message}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+              {dialog.error ? (
+                <div className="fo-operation-error">{dialog.error}</div>
+              ) : null}
+              <div className="fo-dialog-actions">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  disabled={dialog.planning}
+                  onClick={() => onReviewCopyMove(dialog)}
+                >
+                  {dialog.planning ? "Planning" : "Plan"}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="sm"
+                  disabled={dialog.planning || !dialog.plan}
+                >
+                  Start
+                </Button>
+              </div>
+            </form>
           )
         ) : null}
         {dialog.type === "trash" ? (
