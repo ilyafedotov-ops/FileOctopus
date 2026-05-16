@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { UserPreferencesDto } from "@fileoctopus/ts-api";
+import type { AutostartStatusDto, UserPreferencesDto } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
 
@@ -8,15 +8,19 @@ type SettingsSection = "general" | "appearance" | "files" | "layout";
 interface SettingsDialogProps {
   open: boolean;
   preferences: UserPreferencesDto;
+  autostart: AutostartStatusDto | null;
   onClose: () => void;
   onChange: (key: string, value: string) => void;
+  onSetAutostart: (enabled: boolean) => Promise<void>;
 }
 
 export function SettingsDialog({
   open,
   preferences,
+  autostart,
   onClose,
   onChange,
+  onSetAutostart,
 }: SettingsDialogProps) {
   useDialogEscape(open, onClose);
 
@@ -93,7 +97,20 @@ export function SettingsDialog({
             {activeSection === "general" && (
               <section className="fo-settings-section">
                 <h3>General</h3>
-                <p>Startup and system preferences will appear here.</p>
+                <label className="fo-settings-switch">
+                  <input
+                    type="checkbox"
+                    checked={autostart?.enabled === true}
+                    disabled={!autostart || autostart.supported === false}
+                    onChange={(event) => void onSetAutostart(event.target.checked)}
+                  />
+                  <span>Start automatically at login</span>
+                </label>
+                {autostart && !autostart.supported && (
+                  <p className="fo-settings-hint">
+                    Autostart is not supported on this platform.
+                  </p>
+                )}
               </section>
             )}
             {activeSection === "appearance" && (
