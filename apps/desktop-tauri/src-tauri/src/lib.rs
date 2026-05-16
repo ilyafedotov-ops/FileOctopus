@@ -271,7 +271,7 @@ async fn fs_compute_hash(
         });
     }
 
-    let hash = sha256::digest_file(&path).map_err(|e| IpcError {
+    let hash = sha256::try_digest(&path).map_err(|e| IpcError {
         code: "io_error".to_string(),
         message: e.to_string(),
     })?;
