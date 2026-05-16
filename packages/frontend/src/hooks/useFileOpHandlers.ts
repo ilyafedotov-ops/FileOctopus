@@ -38,7 +38,7 @@ export interface FileClipboardState {
   timestamp: number;
 }
 
-export interface UseFileOperationsDeps {
+export interface UseFileOpHandlersDeps {
   client: ReturnType<typeof createFileOctopusClient>;
   state: FileOctopusState;
   dispatch: Dispatch<PanelAction>;
@@ -71,7 +71,7 @@ export interface UseFileOperationsDeps {
   ) => Promise<void>;
 }
 
-export function useFileOperations(deps: UseFileOperationsDeps) {
+export function useFileOpHandlers(deps: UseFileOpHandlersDeps) {
   const {
     client,
     state,
