@@ -288,6 +288,19 @@ export function SettingsDialog({
                   />
                   <span>Use trash by default</span>
                 </label>
+                <label className="fo-settings-switch">
+                  <input
+                    type="checkbox"
+                    checked={preferences.confirmOverwrite}
+                    onChange={(event) =>
+                      onChange(
+                        "confirmOverwrite",
+                        event.target.checked ? "true" : "false",
+                      )
+                    }
+                  />
+                  <span>Confirm before overwrite</span>
+                </label>
                 <label className="fo-settings-field">
                   <span>Default conflict policy</span>
                   <select
@@ -308,6 +321,19 @@ export function SettingsDialog({
             {activeSection === "layout" && (
               <section className="fo-settings-section">
                 <h3>Layout</h3>
+                <label className="fo-settings-switch">
+                  <input
+                    type="checkbox"
+                    checked={preferences.sidebarVisible}
+                    onChange={(event) =>
+                      onChange(
+                        "sidebarVisible",
+                        event.target.checked ? "true" : "false",
+                      )
+                    }
+                  />
+                  <span>Show sidebar</span>
+                </label>
                 <label className="fo-settings-switch">
                   <input
                     type="checkbox"
