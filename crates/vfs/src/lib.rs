@@ -668,6 +668,8 @@ mod tests {
             symlink_target: None,
             provider_id: ProviderId::new("local"),
             capabilities: EntryCapabilities::read_only_file(),
+            permissions: None,
+            owner: None,
         };
 
         let encoded = serde_json::to_string(&entry).unwrap();
@@ -783,6 +785,8 @@ mod tests {
                 symlink_target: None,
                 provider_id: self.id(),
                 capabilities: EntryCapabilities::read_only_directory(),
+                permissions: None,
+                owner: None,
             })
         }
 
