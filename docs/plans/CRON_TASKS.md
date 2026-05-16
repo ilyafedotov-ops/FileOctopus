@@ -249,9 +249,25 @@
 - Frontend: Vitest — render tab, change binding, shortcut fires new action
 
 **Files:** `packages/frontend/src/components/SettingsDialog.tsx`, `packages/frontend/src/shortcuts.ts`
-|| ------------------------------------ | ------------ | ---------- | --------- | ------- |
-|| Menu spec comparison — context menu | Menu spec | 2026-05-16 | — | — |
-|| Feature inventory cross-reference | UI inventory | 2026-05-16 | — | — |
-|| Fix deprecated `sha256::digest_file` | — | 2026-05-16 | `5ea036b` | no |
-|| Wire Checksum toolbar (Task 4) | Toolbar hash | 2026-05-16 | `d8959dc` | no |
-|| Tauri IPC integration tests (Task 6) | 23 tests | 2026-05-16 | `eceb9de` | ✅ |
+
+---
+
+## Backlog (not yet prioritized for next cycle)
+
+- Application menu bar (File/Edit/View/Go/…) — P2, MVP-UI-001, Menu & Modal Spec §4
+- Git branch + file badges (`git-intel`) — P2, MVP-GIT-001–002, MVP M4
+- Embedded terminal panel — P3, MVP-TERM-001, MVP §Embedded Terminal
+- Remember last panes / boot restore — P3, UI Design Spec, FO-0243 / Sprint 5
+- Tabs per panel — P3, MVP §3.1, `PanelTabState` exists
+
+---
+
+## Completed Tasks
+
+|| Task | Acceptance | Date | Commit | TDD RED ||
+|| ------------------------------------ | ------------ | ---------- | --------- | ------- ||
+|| Menu spec comparison — context menu | Menu spec | 2026-05-16 | — | — ||
+|| Feature inventory cross-reference | UI inventory | 2026-05-16 | — | — ||
+|| Fix deprecated `sha256::digest_file` | — | 2026-05-16 | `5ea036b` | no ||
+|| Wire Checksum toolbar (Task 4) | Toolbar hash | 2026-05-16 | `d8959dc` | no ||
+|| Tauri IPC integration tests (Task 6) | 23 tests | 2026-05-16 | `eceb9de` | ✅ ||
