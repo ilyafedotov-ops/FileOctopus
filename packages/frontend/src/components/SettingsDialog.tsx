@@ -123,6 +123,100 @@ export function SettingsDialog({
                     <option value="spacious">Spacious</option>
                   </select>
                 </label>
+                <fieldset className="fo-settings-fieldset">
+                  <legend>Accent color</legend>
+                  <div className="fo-accent-swatches" role="radiogroup" aria-label="Accent color">
+                    {(
+                      [
+                        ["blue", "Accent blue"],
+                        ["indigo", "Accent indigo"],
+                        ["violet", "Accent violet"],
+                        ["pink", "Accent pink"],
+                        ["red", "Accent red"],
+                        ["orange", "Accent orange"],
+                        ["amber", "Accent amber"],
+                        ["green", "Accent green"],
+                      ] as const
+                    ).map(([color, label]) => (
+                      <label
+                        key={color}
+                        className={
+                          "fo-accent-swatch" +
+                          (preferences.accentColor === color
+                            ? " fo-accent-swatch-active"
+                            : "")
+                        }
+                        title={label}
+                      >
+                        <input
+                          type="radio"
+                          name="accentColor"
+                          value={color}
+                          checked={preferences.accentColor === color}
+                          onChange={() => onChange("accentColor", color)}
+                        />
+                        <span
+                          className="fo-accent-swatch-dot"
+                          data-accent={color}
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <fieldset className="fo-settings-fieldset">
+                  <legend>Font size</legend>
+                  <div
+                    className="fo-segmented"
+                    role="radiogroup"
+                    aria-label="Font size"
+                  >
+                    {(["small", "medium", "large"] as const).map((scale) => (
+                      <label key={scale}>
+                        <input
+                          type="radio"
+                          name="fontScale"
+                          value={scale}
+                          checked={preferences.fontScale === scale}
+                          onChange={() => onChange("fontScale", scale)}
+                        />
+                        <span>
+                          {scale === "small"
+                            ? "Small"
+                            : scale === "large"
+                              ? "Large"
+                              : "Medium"}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+                <fieldset className="fo-settings-fieldset">
+                  <legend>Icon size</legend>
+                  <div
+                    className="fo-segmented"
+                    role="radiogroup"
+                    aria-label="Icon size"
+                  >
+                    {(["small", "medium", "large"] as const).map((scale) => (
+                      <label key={scale}>
+                        <input
+                          type="radio"
+                          name="iconScale"
+                          value={scale}
+                          checked={preferences.iconScale === scale}
+                          onChange={() => onChange("iconScale", scale)}
+                        />
+                        <span>
+                          {scale === "small"
+                            ? "Small"
+                            : scale === "large"
+                              ? "Large"
+                              : "Medium"}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
               </section>
             )}
             {activeSection === "files" && (
