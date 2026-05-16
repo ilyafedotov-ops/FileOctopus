@@ -48,6 +48,8 @@
   --fo-dark-danger-border: #7a342f;
   --fo-dark-danger-text: #ffd1cc;
 
+  font-size: var(--fo-base-font-size);
+
   --color-text-primary: var(--fo-text);
   --color-text-muted: var(--fo-muted-text);
   --color-text-secondary: var(--fo-secondary-text);

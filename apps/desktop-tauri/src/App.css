@@ -81,6 +81,17 @@ button:disabled {
   grid-template-columns: var(--fo-sidebar-width) 4px minmax(0, 1fr) 44px;
 }
 
+:root[data-sidebar-hidden] .fo-workspace {
+  grid-template-columns: 0px 0px minmax(0, 1fr) minmax(
+      280px,
+      var(--fo-activity-width)
+    );
+}
+
+:root[data-sidebar-hidden][data-activity-panel="hidden"] .fo-workspace {
+  grid-template-columns: 0px 0px minmax(0, 1fr) 44px;
+}
+
 .fo-sidebar {
   grid-column: 1;
   grid-row: 1;

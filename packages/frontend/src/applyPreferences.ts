@@ -101,6 +101,9 @@ export function applyLayoutPreferences(preferences: UserPreferencesDto) {
   root.dataset.activityPanel = preferences.activityPanelVisible
     ? "visible"
     : "hidden";
+  root.dataset.sidebarHidden = preferences.sidebarVisible
+    ? undefined
+    : "true";
 }
 
 export function rowHeightForDensity(density: DensityPreference): number {
@@ -124,8 +127,8 @@ export function viewModeFromPreference(value: string): ViewMode {
 export function applyAllPreferences(preferences: UserPreferencesDto) {
   applyThemePreference(preferences.theme);
   applyDensityPreference(preferences.density);
-  applyLayoutPreferences(preferences);
   applyAccentPreference(preferences.accentColor);
   applyFontScalePreference(preferences.fontScale);
   applyIconScalePreference(preferences.iconScale);
+  applyLayoutPreferences(preferences);
 }

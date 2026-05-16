@@ -1637,55 +1637,59 @@ export function FileOctopusShell() {
             className="fo-workspace"
             aria-label="File workspace"
           >
-            <Sidebar
-              locations={locations}
-              favorites={favorites}
-              recentToday={recentToday}
-              recentWeek={recentWeek}
-              starred={starred}
-              activeUri={activeTab(state.panels[state.activePanelId]).uri}
-              onNavigate={(uri) => navigatePanel(state.activePanelId, uri)}
-              onAddFavorite={(uri, label) => {
-                void client.navigation
-                  .addFavorite({ uri, label })
-                  .then(() => refreshNavigation())
-                  .catch((error) =>
-                    setOperationError(normalizeIpcError(error).message),
-                  );
-              }}
-              onRemoveFavorite={(id) => {
-                void client.navigation
-                  .removeFavorite({ id })
-                  .then(() => refreshNavigation())
-                  .catch((error) =>
-                    setOperationError(normalizeIpcError(error).message),
-                  );
-              }}
-              onRenameFavorite={(id, label) => {
-                void client.navigation
-                  .renameFavorite({ id, label })
-                  .then(() => refreshNavigation())
-                  .catch((error) =>
-                    setOperationError(normalizeIpcError(error).message),
-                  );
-              }}
-              onRevealFavorite={(uri) => {
-                void client.fs
-                  .revealPathInFileManager({ uri })
-                  .catch((error: unknown) =>
-                    setOperationError(normalizeIpcError(error).message),
-                  );
-              }}
-            />
-            <SidebarResizer
-              onSidebarResize={(width) => {
-                document.documentElement.style.setProperty(
-                  "--fo-sidebar-width",
-                  `${width}px`,
-                );
-                void updatePreference("sidebarWidth", String(width));
-              }}
-            />
+            {preferences?.sidebarVisible !== false ? (
+              <>
+                <Sidebar
+                  locations={locations}
+                  favorites={favorites}
+                  recentToday={recentToday}
+                  recentWeek={recentWeek}
+                  starred={starred}
+                  activeUri={activeTab(state.panels[state.activePanelId]).uri}
+                  onNavigate={(uri) => navigatePanel(state.activePanelId, uri)}
+                  onAddFavorite={(uri, label) => {
+                    void client.navigation
+                      .addFavorite({ uri, label })
+                      .then(() => refreshNavigation())
+                      .catch((error) =>
+                        setOperationError(normalizeIpcError(error).message),
+                      );
+                  }}
+                  onRemoveFavorite={(id) => {
+                    void client.navigation
+                      .removeFavorite({ id })
+                      .then(() => refreshNavigation())
+                      .catch((error) =>
+                        setOperationError(normalizeIpcError(error).message),
+                      );
+                  }}
+                  onRenameFavorite={(id, label) => {
+                    void client.navigation
+                      .renameFavorite({ id, label })
+                      .then(() => refreshNavigation())
+                      .catch((error) =>
+                        setOperationError(normalizeIpcError(error).message),
+                      );
+                  }}
+                  onRevealFavorite={(uri) => {
+                    void client.fs
+                      .revealPathInFileManager({ uri })
+                      .catch((error: unknown) =>
+                        setOperationError(normalizeIpcError(error).message),
+                      );
+                  }}
+                />
+                <SidebarResizer
+                  onSidebarResize={(width) => {
+                    document.documentElement.style.setProperty(
+                      "--fo-sidebar-width",
+                      `${width}px`,
+                    );
+                    void updatePreference("sidebarWidth", String(width));
+                  }}
+                />
+              </>
+            ) : null}
             <div className="fo-dual-pane" aria-label="File panels">
               <FilePanel
                 panelId="left"
