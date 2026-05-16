@@ -342,37 +342,48 @@ export function ContextMenu({
 
         <ContextMenuSeparator />
 
-        {/* Sort */}
-        <ContextMenuItem
-          onClick={() => run(() => onSort(menu.panelId, "name"))}
+        {/* Sort submenu */}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="fo-context-menu-item fo-context-menu-item--submenu"
+          role="menuitem"
         >
-          Sort by Name
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => run(() => onSort(menu.panelId, "modified"))}
-        >
-          Sort by Modified
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => run(() => onSort(menu.panelId, "size"))}
-        >
-          Sort by Size
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => run(() => onSort(menu.panelId, "type"))}
-        >
-          Sort by Type
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => run(() => onSort(menu.panelId, "created"))}
-        >
-          Sort by Created
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => run(() => onSort(menu.panelId, "extension"))}
-        >
-          Sort by Extension
-        </ContextMenuItem>
+          Sort by…
+          <div className="fo-context-submenu" role="menu">
+            <ContextMenuItem
+              onClick={() => run(() => onSort(menu.panelId, "name"))}
+            >
+              Name
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => run(() => onSort(menu.panelId, "modified"))}
+            >
+              Modified
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => run(() => onSort(menu.panelId, "size"))}
+            >
+              Size
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => run(() => onSort(menu.panelId, "type"))}
+            >
+              Type
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => run(() => onSort(menu.panelId, "created"))}
+            >
+              Created
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => run(() => onSort(menu.panelId, "extension"))}
+            >
+              Extension
+            </ContextMenuItem>
+          </div>
+        </Button>
       </div>
     </div>
   );
