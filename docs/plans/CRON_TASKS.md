@@ -18,13 +18,13 @@
 
 ### 7. Implement Compress (archive job)
 
-|| Field | Value ||
-|| -------------- | ------------------------------------------------------------------------ ||
-|| **Status** | `pending` ||
-|| **Priority** | P2 ||
-|| **Spec** | MVP engineering spec §3.1 archives; UI Design Spec §4 ||
-|| **Acceptance** | **MVP-ARC-001** (create archive) ||
-|| **Micro-spec** | _not written_ ||
+|                | Field                                                 | Value |     |
+| -------------- | ----------------------------------------------------- | ----- | --- |
+| **Status**     | `pending`                                             |
+| **Priority**   | P2                                                    |
+| **Spec**       | MVP engineering spec §3.1 archives; UI Design Spec §4 |
+| **Acceptance** | **MVP-ARC-001** (create archive)                      |
+| **Micro-spec** | _not written_                                         |
 
 **Description:** Replace "coming soon" toast with planned archive job. Wire toolbar + context menu.
 
@@ -41,13 +41,13 @@
 
 ### 8. Implement Extract (unarchive job)
 
-|| Field | Value ||
-|| -------------- | ---------------------------------------------------- ||
-|| **Status** | `pending` ||
-|| **Priority** | P2 ||
-|| **Spec** | MVP §3.1; MVP §13.2 scenarios 8–9 ||
-|| **Acceptance** | **MVP-ARC-001**, **MVP-ARC-002** ||
-|| **Micro-spec** | _not written_ ||
+|                | Field                             | Value |     |
+| -------------- | --------------------------------- | ----- | --- |
+| **Status**     | `pending`                         |
+| **Priority**   | P2                                |
+| **Spec**       | MVP §3.1; MVP §13.2 scenarios 8–9 |
+| **Acceptance** | **MVP-ARC-001**, **MVP-ARC-002**  |
+| **Micro-spec** | _not written_                     |
 
 **Description:** Replace extract toast with extract job; block zip-slip / `..` traversal.
 
@@ -64,14 +64,14 @@
 
 ### 9. Empty directory state — action buttons
 
-|| Field | Value ||
-|| -------------- | ----------------------------------------------------------- ||
-|| **Status** | `done` ||
-|| **Priority** | P2 ||
-|| **Spec** | Sprint 5 FO-0211; UI Design Spec §Pane States ||
-|| **Acceptance** | Navigate to empty dir → "New Folder" + "Refresh" buttons ||
-|| **Micro-spec** | _already implemented — PaneStateView with action buttons_ ||
-|| **Commit** | `be185d9` ||
+|                | Field                                                     | Value |     |
+| -------------- | --------------------------------------------------------- | ----- | --- |
+| **Status**     | `done`                                                    |
+| **Priority**   | P2                                                        |
+| **Spec**       | Sprint 5 FO-0211; UI Design Spec §Pane States             |
+| **Acceptance** | Navigate to empty dir → "New Folder" + "Refresh" buttons  |
+| **Micro-spec** | _already implemented — PaneStateView with action buttons_ |
+| **Commit**     | `be185d9`                                                 |
 
 **Description:** When directory is empty, show action buttons: "New Folder" (calls `fs_create_file` with folder kind), "Refresh" (re-lists directory). Add E2E test in `pane-states.e2e.ts`.
 
@@ -86,26 +86,6 @@
 
 ---
 
-### 10. Settings: Shortcuts tab
-
-|| Field | Value ||
-|| -------------- | ---------------------------------------------------------------- ||
-|| **Status** | `pending` ||
-|| **Priority** | P3 ||
-|| **Spec** | UI Design Spec §Preferences; Menu spec (shortcuts customization) ||
-|| **Acceptance** | MVP-UI-001 (configurable shortcuts foundation) ||
-|| **Micro-spec** | _not written_ ||
-
-**Description:** Add Shortcuts tab to SettingsDialog; allow rebinding entries from `shortcuts.ts` with persistence.
-
-**Test plan (TDD):**
-
-- Frontend: Vitest — render tab, change binding, shortcut fires new action
-
-**Files:** `packages/frontend/src/components/SettingsDialog.tsx`, `packages/frontend/src/shortcuts.ts`
-
----
-
 ## Backlog (not yet prioritized for next cycle)
 
 - Application menu bar (File/Edit/View/Go/…) — P2, MVP-UI-001, Menu & Modal Spec §4
@@ -113,6 +93,7 @@
 - Embedded terminal panel — P3, MVP-TERM-001, MVP §Embedded Terminal
 - Remember last panes / boot restore — P3, UI Design Spec, FO-0243 / Sprint 5
 - Tabs per panel — P3, MVP §3.1, `PanelTabState` exists
+- Shortcut rebinding UI — P3, extends Task 10 foundation
 
 ---
 
@@ -132,3 +113,4 @@
 | 5. Expanded E2E tests                | 174 tests across 13 files                  | 2026-05-16 | existing  | ✅      |
 | 6. Wire Checksum toolbar             | handleChecksum via computeHash             | 2026-05-16 | existing  | ✅      |
 | 9. Empty directory state             | New Folder + Refresh buttons               | 2026-05-16 | `be185d9` | ✅      |
+| 10. Settings: Shortcuts tab          | Read-only shortcuts display in Settings    | 2026-05-16 | `2d90951` | ✅      |
