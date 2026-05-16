@@ -50,16 +50,16 @@ flowchart TD
 
 Trust order for “what should exist” vs “what exists today”:
 
-| Priority | Document                                                                      | Use for                                                        |
-| -------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| 1        | `docs/architecture/api-reference.md`                                          | Commands, events, DTOs, error codes                            |
-| 2        | `docs/architecture/mvp-engineering-spec.md`                                   | MVP scope, milestones (§5), acceptance IDs (§4), testing (§13) |
-| 3        | `docs/planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md`                           | Current delivery vs specs                                      |
-| 4        | `docs/plans/FileOctopus_Menu_and_Modal_Specification.md`                      | Menus, modals, shortcuts                                       |
-| 5        | `docs/FileOctopus_UI_Design_Spec.md`                                          | Layout, visual tokens, UX                                      |
-| 6        | `docs/planning/UI_FEATURE_INVENTORY.md`                                       | Coverage checklist                                             |
-| 7        | `docs/qa/e2e-audit-report.md`                                                 | Manual QA hints (may be stale—verify in code)                  |
-| 8        | `~/.hermes/skills/dogfood/fileoctopus-dev/references/gap-analysis-2026-05.md` | Backlog ideas (sync to alignment doc)                          |
+| Priority | Document                                                                      | Use for                                                                                |
+| -------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| 1        | `docs/architecture/api-reference.md`                                          | Commands, events, DTOs, error codes                                                    |
+| 2        | `docs/architecture/mvp-engineering-spec.md`                                   | MVP scope, milestones (§5), acceptance IDs (§4), testing (§13)                         |
+| 3        | `docs/planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md`                           | Current delivery vs specs                                                              |
+| 4        | `docs/plans/FileOctopus_Menu_and_Modal_Specification.md`                      | Menus, modals, shortcuts                                                               |
+| 5        | `docs/FileOctopus_UI_Design_and_Layout_Specification-1.md`                    | Layout architecture, visible surfaces, acceptance (§27), implementation priority (§28) |
+| 6        | `docs/planning/UI_FEATURE_INVENTORY.md`                                       | Coverage checklist                                                                     |
+| 7        | `docs/qa/e2e-audit-report.md`                                                 | Manual QA hints (may be stale—verify in code)                                          |
+| 8        | `~/.hermes/skills/dogfood/fileoctopus-dev/references/gap-analysis-2026-05.md` | Backlog ideas (sync to alignment doc)                                                  |
 
 Reference images: `docs/Images/MainApp/`, `docs/Images/MenuImages/`.
 
@@ -99,7 +99,13 @@ Before selecting new work:
 1. Read **PROJECT_STATUS_AND_DOC_ALIGNMENT.md** — note open milestones (especially M4: Git, archives, terminal).
 2. Scan **MVP §4 acceptance criteria** — list IDs still `Not met` / `Partial`.
 3. Cross-check **CRON_TASKS.md** and gap analysis for duplicates.
-4. For UI tasks, open the relevant Menu/UI spec section and reference PNGs.
+4. For UI tasks, read `docs/FileOctopus_UI_Design_and_Layout_Specification-1.md` §27–§28, then open the relevant Menu/UI spec section and reference PNGs.
+5. For UI tasks, identify the current UI implementation phase before coding:
+   - Phase 1: shell cleanup and layout baseline
+   - Phase 2: pane usability
+   - Phase 3: command surfaces
+   - Phase 4: preferences and dialogs
+   - Phase 5: polish and QA
 
 Output (mental or in status): _which acceptance IDs this cycle could close_.
 
@@ -118,6 +124,18 @@ Output (mental or in status): _which acceptance IDs this cycle could close_.
 7. Documentation drift (implementation changed contract).
 
 Pick **one primary feature slice** per cycle unless the slice is trivial (<30 min). Mark task `in_progress` in `CRON_TASKS.md`.
+
+### UI implementation order (required for UI slices)
+
+When the selected slice is primarily UI/layout work, sequence it according to `docs/FileOctopus_UI_Design_and_Layout_Specification-1.md` §28:
+
+1. **Phase 1 — Shell cleanup and layout baseline:** remove always-visible diagnostics, stabilize `AppShell`/`Sidebar`/`PaneWorkspace`/`FilePane`/`StatusBar`, implement active-pane styling, define theme/density tokens.
+2. **Phase 2 — Pane usability:** redesign toolbar groups, improve breadcrumb/path bar, stabilize file-table columns, standardize pane states, fix status-bar accuracy.
+3. **Phase 3 — Command surfaces:** add file/empty-space/sidebar/breadcrumb context menus, wire toolbar dropdowns, ensure top-menu commands target the active pane.
+4. **Phase 4 — Preferences and dialogs:** add settings, theme/density/view/hidden-file preferences, keyboard shortcuts, diagnostics, properties, and operation dialogs.
+5. **Phase 5 — Polish and QA:** add visual regression coverage, keyboard interaction tests, accessibility pass, and cross-platform/window-size validation.
+
+Do not start a later UI phase while earlier-phase blockers for that surface remain unresolved unless `CRON_STATUS.md` records the reason.
 
 ### Micro-spec template (required before Phase 3)
 
@@ -236,7 +254,7 @@ Do not mark task `done` until health gate passes.
 
 ## Phase 5: Specification Compliance & Documentation
 
-1. **Acceptance mapping:** In `CRON_STATUS.md`, state which MVP/UI criteria the slice satisfies (or partially satisfies).
+1. **Acceptance mapping:** In `CRON_STATUS.md`, state which MVP/UI criteria the slice satisfies (or partially satisfies). For UI work, map the slice to `docs/FileOctopus_UI_Design_and_Layout_Specification-1.md` §27 acceptance criteria and §28 implementation phase.
 2. **Spec diff:** If behavior matches spec but doc was wrong, update the spec or alignment doc—not silent drift.
 3. **IPC:** Update `docs/architecture/api-reference.md` for any command/event/DTO change.
 4. **Alignment:** Update `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` when a milestone or acceptance row changes state.
@@ -282,6 +300,7 @@ The cron loop continues until:
 - [ ] **MVP §4.3** reliability criteria covered by automated tests where feasible
 - [ ] **MVP §13** test lists implemented (not merely stubbed)
 - [ ] **Milestone M4–M5** rows in alignment doc marked **Done**
+- [ ] `docs/FileOctopus_UI_Design_and_Layout_Specification-1.md` §27 acceptance criteria met or explicitly deferred with tracked follow-up work
 - [ ] Menu spec **application menu bar** delivered or explicitly deferred with ADR
 - [ ] `CRON_TASKS.md` has no P1 `pending` items
 - [ ] `bash scripts/health-check.sh` exits 0 on clean `main`

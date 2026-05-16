@@ -1,8 +1,5 @@
 import { useMemo, useReducer, useRef, useState } from "react";
-import {
-  createFileOctopusClient,
-  normalizeIpcError,
-} from "@fileoctopus/ts-api";
+import { createFileOctopusClient } from "@fileoctopus/ts-api";
 import type {
   AppDataHealthResponse,
   AppInfoResponse,
@@ -16,7 +13,6 @@ import type {
 } from "@fileoctopus/ts-api";
 import { activeTab, createInitialState, panelReducer } from "./panelStore";
 import { applySplitRatio, type DensityPreference } from "./applyPreferences";
-import { ActivityPanel } from "./activity/ActivityPanel";
 import type { SearchState } from "./pane/PaneFilterBar";
 import { useWorkspaceLayout } from "./hooks/useWorkspaceLayout";
 import { useMenuBarProps } from "./hooks/useMenuBarProps";
@@ -27,20 +23,14 @@ import {
   useFileOpHandlers,
   type FileClipboardState,
 } from "./hooks/useFileOpHandlers";
-import { SidebarResizer, SplitResizer } from "./shell/LayoutResizers";
-import { TitleBar } from "./shell/TitleBar";
-import { Sidebar } from "./sidebar/Sidebar";
 import { type ContextMenuState } from "./components/ContextMenu";
-import { ContextMenuOverlay } from "./components/ContextMenuOverlay";
 import type { CommandEntry } from "./components/CommandPalette";
 import { isTextPreviewable } from "./components/PreviewPanel";
-import { ToastStack, type ToastMessage } from "./components/ToastStack";
-import { DialogOverlayGroup } from "./components/DialogOverlayGroup";
+import type { ToastMessage } from "./components/ToastStack";
 
-import { FilePanel, type FilePanelProps } from "./pane/FilePanel";
+import { type FilePanelProps } from "./pane/FilePanel";
 import { type OperationDialog } from "./dialogs/OperationDialogView";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { StatusBarSection } from "./components/StatusBarSection";
+import { ShellLayout } from "./shell/ShellLayout";
 import { shortcutEntries } from "./shortcuts";
 import type { UserPreferencesDto } from "@fileoctopus/ts-api";
 
@@ -433,182 +423,93 @@ export function FileOctopusShell() {
   }
 
   return (
-    <ErrorBoundary>
-      <main className="fo-shell" tabIndex={-1} onKeyDown={handleShellKeyDown}>
-        <div className="fo-shell-frame">
-          <TitleBar
-            onSettings={() => setSettingsOpen(true)}
-            menuBarProps={menuBarProps}
-          />
-          <section
-            ref={workspaceRef}
-            className="fo-workspace"
-            aria-label="File workspace"
-          >
-            {preferences?.sidebarVisible !== false ? (
-              <>
-                <Sidebar
-                  locations={locations}
-                  favorites={favorites}
-                  recentToday={recentToday}
-                  recentWeek={recentWeek}
-                  starred={starred}
-                  activeUri={activeTab(state.panels[state.activePanelId]).uri}
-                  onNavigate={(uri) => navigatePanel(state.activePanelId, uri)}
-                  onAddFavorite={(uri, label) => {
-                    void client.navigation
-                      .addFavorite({ uri, label })
-                      .then(() => refreshNavigation())
-                      .catch((error) =>
-                        setOperationError(normalizeIpcError(error).message),
-                      );
-                  }}
-                  onRemoveFavorite={(id) => {
-                    void client.navigation
-                      .removeFavorite({ id })
-                      .then(() => refreshNavigation())
-                      .catch((error) =>
-                        setOperationError(normalizeIpcError(error).message),
-                      );
-                  }}
-                  onRenameFavorite={(id, label) => {
-                    void client.navigation
-                      .renameFavorite({ id, label })
-                      .then(() => refreshNavigation())
-                      .catch((error) =>
-                        setOperationError(normalizeIpcError(error).message),
-                      );
-                  }}
-                  onRevealFavorite={(uri) => {
-                    void client.fs
-                      .revealPathInFileManager({ uri })
-                      .catch((error: unknown) =>
-                        setOperationError(normalizeIpcError(error).message),
-                      );
-                  }}
-                />
-                <SidebarResizer
-                  onSidebarResize={(width) => {
-                    document.documentElement.style.setProperty(
-                      "--fo-sidebar-width",
-                      `${width}px`,
-                    );
-                    void updatePreference("sidebarWidth", String(width));
-                  }}
-                />
-              </>
-            ) : null}
-            <div className="fo-dual-pane" aria-label="File panels">
-              <FilePanel {...makeFilePanelProps("left")} />
-              <SplitResizer
-                onSplitResize={(ratio) => {
-                  const nextRatio = applySplitRatio(ratio);
-                  void updatePreference("splitRatio", String(nextRatio));
-                }}
-              />
-              <FilePanel {...makeFilePanelProps("right")} />
-            </div>
-            <ActivityPanel
-              jobs={Object.values(jobs)}
-              history={history}
-              error={operationError}
-              collapsed={activityCollapsed}
-              jobMetrics={jobMetrics}
-              onToggleCollapsed={() => {
-                const next = !activityCollapsed;
-                if (!next) {
-                  markActivityPinnedOpen();
-                }
-                setActivityCollapsed(next);
-                void updatePreference("activityPanelVisible", String(!next));
-              }}
-              onCancel={(jobId) => void client.jobs.cancelJob({ jobId })}
-              onRefreshHistory={() => void refreshHistory()}
-              onClearHistory={() => void clearHistory()}
-            />
-          </section>
-          <ToastStack
-            toasts={toasts}
-            onDismiss={(id) =>
-              setToasts((current) => current.filter((toast) => toast.id !== id))
-            }
-          />
-          <DialogOverlayGroup
-            preferences={preferences}
-            settingsOpen={settingsOpen}
-            shortcutsOpen={shortcutsOpen}
-            commandPaletteOpen={commandPaletteOpen}
-            previewOpen={previewOpen}
-            diagnosticsOpen={diagnosticsOpen}
-            dialog={dialog}
-            autostart={autostart}
-            commandEntries={commandEntries}
-            previewEntry={previewEntry}
-            appInfo={appInfo}
-            appHealth={appHealth}
-            diagnosticsDestination={diagnosticsDestination}
-            diagnosticsMessage={diagnosticsMessage}
-            exportingDiagnostics={exportingDiagnostics}
-            isProductionBuild={isProductionBuild}
-            fs={client.fs}
-            updatePreference={updatePreference}
-            handleSetAutostart={handleSetAutostart}
-            handleCommandSelect={handleCommandSelect}
-            setSettingsOpen={setSettingsOpen}
-            setShortcutsOpen={setShortcutsOpen}
-            setCommandPaletteOpen={setCommandPaletteOpen}
-            setDiagnosticsOpen={setDiagnosticsOpen}
-            setPreviewOpen={setPreviewOpen}
-            setDialog={setDialog}
-            setDiagnosticsDestination={setDiagnosticsDestination}
-            refreshDiagnostics={refreshDiagnostics}
-            exportDiagnostics={exportDiagnostics}
-            reviewCopyMoveDialog={reviewCopyMoveDialog}
-            submitCreateFolder={submitCreateFolder}
-            submitCreateFile={submitCreateFile}
-            submitRename={submitRename}
-            submitCopyMove={submitCopyMove}
-            submitTrash={submitTrash}
-            submitPermanentDelete={submitPermanentDelete}
-            copyTextFromSelection={copyTextFromSelection}
-            revealEntry={revealEntry}
-          />
-          <ContextMenuOverlay
-            menu={contextMenu}
-            state={state}
-            clipboard={clipboard}
-            starredUriSet={starredUriSet}
-            dispatch={dispatch}
-            onClose={() => setContextMenu(null)}
-            activateEntry={activateEntry}
-            handleRename={handleRename}
-            copySelectionToFileClipboard={copySelectionToFileClipboard}
-            pasteClipboard={pasteClipboard}
-            handleTrash={handleTrash}
-            toggleStarredForEntry={toggleStarredForEntry}
-            handlePermanentDelete={handlePermanentDelete}
-            copyTextFromSelection={copyTextFromSelection}
-            handleProperties={handleProperties}
-            revealEntry={revealEntry}
-            pushToast={pushToast}
-            openTerminal={openTerminal}
-            handleChecksum={handleChecksum}
-            handleCreateFolder={handleCreateFolder}
-            handleCreateFile={handleCreateFile}
-            refreshPanel={refreshPanel}
-            handleCopyOrMove={handleCopyOrMove}
-            openExternal={openExternal}
-            toggleHidden={toggleHidden}
-          />
-          <StatusBarSection
-            state={state}
-            jobs={jobs}
-            operationError={operationError}
-            appHealth={appHealth}
-            diagnosticsOpen={diagnosticsOpen}
-          />
-        </div>
-      </main>
-    </ErrorBoundary>
+    <ShellLayout
+      workspaceRef={workspaceRef}
+      handleShellKeyDown={handleShellKeyDown}
+      makeFilePanelProps={makeFilePanelProps}
+      menuBarProps={menuBarProps}
+      state={state}
+      activeTabUri={activeTab(state.panels[state.activePanelId]).uri}
+      locations={locations}
+      favorites={favorites}
+      recentToday={recentToday}
+      recentWeek={recentWeek}
+      starred={starred}
+      preferences={preferences}
+      updatePreference={updatePreference}
+      client={client}
+      jobs={jobs}
+      jobMetrics={jobMetrics}
+      history={history}
+      operationError={operationError}
+      activityCollapsed={activityCollapsed}
+      markActivityPinnedOpen={markActivityPinnedOpen}
+      setActivityCollapsed={setActivityCollapsed}
+      refreshHistory={refreshHistory}
+      clearHistory={clearHistory}
+      settingsOpen={settingsOpen}
+      shortcutsOpen={shortcutsOpen}
+      commandPaletteOpen={commandPaletteOpen}
+      previewOpen={previewOpen}
+      diagnosticsOpen={diagnosticsOpen}
+      dialog={dialog}
+      autostart={autostart}
+      commandEntries={commandEntries}
+      previewEntry={previewEntry}
+      appInfo={appInfo}
+      appHealth={appHealth}
+      diagnosticsDestination={diagnosticsDestination}
+      diagnosticsMessage={diagnosticsMessage}
+      exportingDiagnostics={exportingDiagnostics}
+      isProductionBuild={isProductionBuild}
+      setSettingsOpen={setSettingsOpen}
+      setShortcutsOpen={setShortcutsOpen}
+      setCommandPaletteOpen={setCommandPaletteOpen}
+      setPreviewOpen={setPreviewOpen}
+      setDiagnosticsOpen={setDiagnosticsOpen}
+      setDialog={setDialog}
+      setDiagnosticsDestination={setDiagnosticsDestination}
+      refreshDiagnostics={refreshDiagnostics}
+      exportDiagnostics={exportDiagnostics}
+      reviewCopyMoveDialog={reviewCopyMoveDialog}
+      submitCreateFolder={submitCreateFolder}
+      submitCreateFile={submitCreateFile}
+      submitRename={submitRename}
+      submitCopyMove={submitCopyMove}
+      submitTrash={submitTrash}
+      submitPermanentDelete={submitPermanentDelete}
+      copyTextFromSelection={copyTextFromSelection}
+      revealEntry={revealEntry}
+      handleSetAutostart={handleSetAutostart}
+      handleCommandSelect={handleCommandSelect}
+      toasts={toasts}
+      setToasts={setToasts}
+      contextMenu={contextMenu}
+      setContextMenu={setContextMenu}
+      clipboard={clipboard}
+      starredUriSet={starredUriSet}
+      dispatch={dispatch}
+      activateEntry={activateEntry}
+      handleRename={handleRename}
+      copySelectionToFileClipboard={copySelectionToFileClipboard}
+      pasteClipboard={pasteClipboard}
+      handleTrash={handleTrash}
+      toggleStarredForEntry={toggleStarredForEntry}
+      handlePermanentDelete={handlePermanentDelete}
+      handleProperties={handleProperties}
+      pushToast={pushToast}
+      openTerminal={openTerminal}
+      handleChecksum={handleChecksum}
+      handleCreateFolder={handleCreateFolder}
+      handleCreateFile={handleCreateFile}
+      refreshPanel={refreshPanel}
+      handleCopyOrMove={handleCopyOrMove}
+      openExternal={openExternal}
+      toggleHidden={toggleHidden}
+      navigatePanel={navigatePanel}
+      refreshNavigation={refreshNavigation}
+      setOperationError={setOperationError}
+      applySplitRatioFn={applySplitRatio}
+    />
   );
 }
