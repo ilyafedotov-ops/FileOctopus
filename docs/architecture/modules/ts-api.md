@@ -59,25 +59,9 @@ Two ship in-box:
 
 ## `commandMap`
 
-Dotted method names → snake_case Tauri command names:
+Dotted method names → snake_case Tauri command names. **Source of truth:** `packages/ts-api/src/client.ts` (`commandMap` constant, ~40 entries including `fs.read_text_file`, `fs.watch_start`, `navigation.*`, `preferences.*`, `autostart.*`). The [API reference](../api-reference.md#full-registry-2026-05-16) lists the full registry.
 
-```ts
-const commandMap: Record<string, string> = {
-  "app.get_info": "app_get_info",
-  "fs.stat": "fs_stat",
-  "fs.list_start": "fs_list_start",
-  "fileOperation.plan": "plan_file_operation",
-  "fileOperation.start": "start_file_operation",
-  "job.cancel": "cancel_job",
-  "job.status": "get_job_status",
-  "operationHistory.listRecent": "list_recent_operations",
-  "operationHistory.clear": "clear_operation_history",
-  "diagnostics.appDataHealth": "diagnostics_app_data_health",
-  "diagnostics.exportBundle": "export_diagnostics_bundle",
-};
-```
-
-This map is the **single source of truth** for the wire-level command name. The sub-clients call `transport.invoke("fileOperation.plan", { request })`; the Tauri transport translates that to `plan_file_operation`. Mock transports in tests can stay agnostic to the snake_case form — they only see the dotted name.
+This map is the **single source of truth** for the wire-level command name when using `createTauriTransport()`. The sub-clients call `transport.invoke("fileOperation.plan", { request })`; the Tauri transport translates that to `plan_file_operation`. Mock transports in tests can stay agnostic to the snake_case form — they only see the dotted name.
 
 When you add a new Tauri command:
 

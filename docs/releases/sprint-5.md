@@ -11,8 +11,12 @@
 - Toast feedback for completed file operations
 - Expanded status bar and macOS location handling improvements
 
-## Known limitations
+## Known limitations (at Sprint 5 tag)
 
 - Split ratio and last-path restore remain stretch follow-ups
 - Command palette and first-run overlay are not included in this release
 - No column-view or drag-and-drop support
+
+## Post–Sprint 5 progress (2026-05-16)
+
+Subsequent work on `main` added: command palette (Ctrl/Cmd+P), text preview panel, column view, internal drag-and-drop, split-ratio persistence, full details columns (including permissions/owner), filesystem watcher, and expanded settings. Compress/extract archives, embedded terminal, and Git integration remain MVP gaps. See [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).

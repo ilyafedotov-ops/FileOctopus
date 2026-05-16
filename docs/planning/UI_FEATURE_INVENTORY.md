@@ -2,6 +2,8 @@
 
 Extracted from: UI Design Spec, MVP Engineering Spec, ui.md, frontend.md, Sprint 4 Backlog, Sprint 5 Backlog, Sprint 5 Release Notes.
 
+**Status alignment:** See [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](./PROJECT_STATUS_AND_DOC_ALIGNMENT.md) for what is implemented in the codebase as of 2026-05-16. Section 13 below reflects that snapshot.
+
 Each item is marked **specified** (explicitly defined in docs with detail) or **suggested** (implied, mentioned as TODO/stretch, or described loosely without full spec).
 
 ---
@@ -380,22 +382,38 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 
 ---
 
-## 13. Known NOT Implemented / Out of Scope (as of Sprint 5)
+## 13. Implementation snapshot (2026-05-16)
 
-Per Sprint 5 release notes and Sprint 5 backlog:
+### Delivered after Sprint 5 (codebase)
 
-- **Command palette** — not included (stretch only)
-- **First-run overlay** — not included (stretch only)
-- **Column view** — no support
-- **Drag-and-drop** — no support
-- **Split ratio persistence** — stretch follow-up
-- **Last-path restore** — stretch follow-up
-- **Tabs per panel** — out of scope for Sprint 4/5 (structural readiness in `PanelTabState` but single tab only)
-- **File content diff/merge** — excluded from MVP
-- **Plugin marketplace** — excluded from MVP
-- **Cloud/remote providers (SMB/SFTP/S3)** — excluded from MVP
-- **AI semantic search** — excluded from MVP
-- **Advanced ACL editing** — excluded from MVP
+- **Command palette** — implemented (`CommandPalette.tsx`, Ctrl/Cmd+P)
+- **File preview panel** — implemented (`PreviewPanel.tsx`, Space for text files)
+- **Column view** — implemented (macOS-style column browser)
+- **Drag-and-drop** — internal URI drag between panes
+- **Split ratio persistence** — `splitRatio` preference
+- **Details columns** — Name, Size, Modified, Created, Type, Extension, Permissions, Owner; Hash on selection
+- **Filesystem watcher** — `fs_watch_start` / `fs_watch_stop` wired to refresh
+- **Overflow toolbar** — Reveal, Calculate Size, Open Terminal (external emulator), Compress/Extract/Checksum menus present
+- **Settings** — General (autostart), Appearance (theme, density, accent, font/icon scale), Files & Folders, Layout
+- **Shortcuts** — Ctrl/Cmd+I (properties), Ctrl/Cmd+H alias for hidden files
+
+### Still not implemented (specified)
+
+- **Application menu bar** (File/Edit/View/Go/…) — see Menu & Modal Spec; title bar Help dropdown only
+- **Compress / Extract** — UI stubs (“coming soon”); no `archive-core` / MVP-ARC-001
+- **Checksum toolbar** — stub toast; hash column uses `fs_compute_hash` on selected file
+- **Embedded terminal panel** — external spawn only (`fs_open_terminal`)
+- **Git branch + file badges** — MVP-GIT-001/002
+- **Remember last panes / last-path restore** — no boot restore
+- **First-run overlay** — stretch, not built
+- **Tabs per panel** — `PanelTabState` exists; single tab per pane only
+- **Videos sidebar entry, network locations, “This Week” recent group** — partial (API has `thisWeek` bucket; UI grouping may vary)
+- **Title bar sync/health indicator** — optional, not built
+- **Operations / Shortcuts / Advanced settings tabs** as separate nav — consolidated into existing tabs + Shortcuts dialog
+
+### Out of MVP scope (unchanged)
+
+- **File content diff/merge**, **plugin marketplace**, **cloud providers**, **AI semantic search**, **advanced ACL editing**
 
 ---
 

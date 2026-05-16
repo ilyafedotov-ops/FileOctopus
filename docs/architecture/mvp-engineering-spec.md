@@ -6,6 +6,18 @@ This document translates the FileOctopus technical architecture into an implemen
 
 The MVP is intentionally focused on a high-performance local dual-pane file manager. Advanced capabilities such as peer-to-peer synchronization, full local AI indexing, and broad cloud provider support are deferred, but the MVP architecture must not block them.
 
+### Implementation status (2026-05-16)
+
+| Area                               | Delivered                                                                       | Not delivered                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Core navigation & file ops         | Dual pane, streamed listing, virtualization, plan/start jobs, operation history | Multi-tab per panel                                                                |
+| Jobs & persistence                 | In-memory jobs + SQLite operation history                                       | Full `job` / `job_item_result` schema from §9                                      |
+| Git / archives / embedded terminal | —                                                                               | `git-intel`, `archive-core`, `terminal-core` crates; MVP-GIT/ARC/embedded terminal |
+| UI (MVP §3.1)                      | Command palette, context menus, activity panel, preview, theme prefs            | App menu bar per Menu spec                                                         |
+| Platform                           | Windows/macOS/Linux builds in CI                                                | Formal MVP §16 release sign-off                                                    |
+
+Authoritative cross-doc matrix: [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md). Runtime IPC: [api-reference.md](api-reference.md).
+
 ---
 
 ## 2. MVP Product Definition
@@ -1864,16 +1876,18 @@ IPC DTOs should include implicit app version compatibility during MVP. Before 1.
 
 ## 17. Immediate Next Implementation Steps
 
-1. Create monorepo structure.
-2. Scaffold Tauri v2 desktop app.
-3. Create Rust workspace and empty crates.
-4. Implement `ResourceUri` parsing.
-5. Implement `LocalFsProvider.stat` and `LocalFsProvider.list`.
-6. Implement directory batch streaming.
-7. Build dual-pane UI shell.
-8. Integrate virtualized file table.
-9. Add `JobManager` skeleton and SQLite migration system.
-10. Implement copy job vertical slice.
+> **Historical (Milestone 0–1).** Completed on `main` as of 2026-05-16. Current priorities: Milestone 4 (`git-intel`, `archive-core`, embedded `terminal-core`), Menu & Modal Spec application menu bar, and MVP §16 hardening. See [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
+
+1. ~~Create monorepo structure.~~
+2. ~~Scaffold Tauri v2 desktop app.~~
+3. ~~Create Rust workspace and empty crates.~~
+4. ~~Implement `ResourceUri` parsing.~~
+5. ~~Implement `LocalFsProvider.stat` and `LocalFsProvider.list`.~~
+6. ~~Implement directory batch streaming.~~
+7. ~~Build dual-pane UI shell.~~
+8. ~~Integrate virtualized file table.~~
+9. ~~Add `JobManager` skeleton and SQLite migration system.~~
+10. ~~Implement copy job vertical slice.~~
 
 ---
 

@@ -6,6 +6,8 @@
 **Primary audience:** frontend engineers, Rust/Tauri IPC engineers, QA, and LLM implementation agents  
 **Purpose:** define the application menu structure, toolbar menus, context menus, submenu rules, action enablement, and every modal/dialog/drawer opened from menu actions.
 
+**Implementation status (2026-05-16):** Pane toolbars, context menus, and most modals from this spec exist in `packages/frontend`. The **application menu bar** (§4 File/Edit/View/Go/Tools/Window/Help) is **not implemented** — discoverability today is via title-bar Settings/Help, toolbar overflow, context menus, and Ctrl/Cmd+P command palette. Align delivery tracking with [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
+
 ---
 
 ## 1. Scope

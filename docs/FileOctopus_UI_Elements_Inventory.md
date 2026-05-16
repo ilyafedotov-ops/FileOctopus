@@ -1,5 +1,7 @@
 # FileOctopus UI Elements — Complete Inventory
 
+> **Note:** This file is a **spec extract** from `FileOctopus_UI_Design_Spec.md` (element → spec text). For implementation status (done / stub / not built), use **[UI_FEATURE_INVENTORY.md](planning/UI_FEATURE_INVENTORY.md)** and **[PROJECT_STATUS_AND_DOC_ALIGNMENT.md](planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md)**.
+
 > Extracted from `FileOctopus_UI_Design_Spec.md`. Every explicitly-specified element is listed with its exact spec text.
 
 ---

@@ -1,5 +1,7 @@
 # `@fileoctopus/frontend` — React shell
 
+> **Doc freshness (2026-05-16):** This page describes an earlier shell layout. The live UI is in `packages/frontend/src/index.tsx` (sidebar, settings/shortcuts/diagnostics dialogs, command palette, preview panel, columns view, expanded `SortField`, etc.). For status vs specs see [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
+
 `packages/frontend` is the **product UI**: the two-panel file manager, the operation toolbar, the job activity panel, and the operation dialogs. It is a pure React 19 component package — no application bootstrap, no Tauri import. The desktop shell mounts it; the React build can also run in a plain browser against the preview transport in `@fileoctopus/ts-api`.
 
 - Source: `packages/frontend/src/{index,panelStore}.{tsx,ts}`

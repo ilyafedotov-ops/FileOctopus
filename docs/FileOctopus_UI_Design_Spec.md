@@ -4,6 +4,8 @@
 
 This document defines the target interface direction for FileOctopus after Sprint 5: a polished, dual-pane, cross-platform file manager with a clean visual hierarchy, safe file operations, progress visibility, and user-customizable appearance.
 
+**Implementation status (2026-05-16):** Most shell regions (sidebar, dual pane, toolbar, activity panel, status bar, dialogs, preferences) are implemented. Gaps vs this spec include the full application menu bar, embedded terminal, archive compress/extract jobs, Git badges, and some preference sections (Operations/Shortcuts/Advanced as separate tabs). See [planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md](planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
+
 ## Product UI Principles
 
 - **Dual-pane first**: the left and right panes are the core workspace.
