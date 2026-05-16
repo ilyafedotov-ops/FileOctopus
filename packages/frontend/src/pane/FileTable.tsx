@@ -222,7 +222,16 @@ export function FileTable({
       >
         {loading && entries.length === 0 ? (
           <FileListSkeleton rowHeight={rowHeight} viewMode={viewMode} />
-        ) : entries.length === 0 ? null : (
+        ) : entries.length === 0 ? (
+          <div className="fo-empty-directory">
+            <span className="fo-empty-directory-icon" aria-hidden="true">
+              📁
+            </span>
+            <span className="fo-empty-directory-text">
+              This folder is empty
+            </span>
+          </div>
+        ) : (
           <div className="fo-table-spacer" style={{ height: totalHeight }}>
             {visibleEntries.map((entry, offset) => (
               <FileRow

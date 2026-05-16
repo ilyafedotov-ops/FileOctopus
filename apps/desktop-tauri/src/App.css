@@ -769,6 +769,26 @@ button:disabled {
   pointer-events: none;
 }
 
+.fo-empty-directory {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--fo-text-muted, #888);
+  gap: 8px;
+  user-select: none;
+}
+
+.fo-empty-directory-icon {
+  font-size: 48px;
+  opacity: 0.4;
+}
+
+.fo-empty-directory-text {
+  font-size: 14px;
+}
+
 .fo-file-skeleton {
   display: grid;
   gap: 4px;
