@@ -39,6 +39,12 @@ interface ContextMenuProps {
   onSort: (panelId: PanelId, field: SortField) => void;
   showHidden: boolean;
   onToggleHidden: (panelId: PanelId) => void;
+  onOpenWithDefaultApp: (panelId: PanelId) => void;
+  onCopyTo: (panelId: PanelId) => void;
+  onMoveTo: (panelId: PanelId) => void;
+  onCopyParentPath: (panelId: PanelId) => void;
+  onCopyResourceUri: (panelId: PanelId) => void;
+  onClearSelection: (panelId: PanelId) => void;
 }
 
 function ContextMenuItem({
@@ -98,6 +104,12 @@ export function ContextMenu({
   onSort,
   showHidden,
   onToggleHidden,
+  onOpenWithDefaultApp,
+  onCopyTo,
+  onMoveTo,
+  onCopyParentPath,
+  onCopyResourceUri,
+  onClearSelection,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{
@@ -189,9 +201,27 @@ export function ContextMenu({
         </ContextMenuItem>
         <ContextMenuItem
           disabled={!itemMenu}
+          onClick={() => run(() => onOpenWithDefaultApp(menu.panelId))}
+        >
+          Open With Default App
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={!itemMenu}
           onClick={() => run(() => onRename(menu.panelId))}
         >
           Rename
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={!itemMenu}
+          onClick={() => run(() => onCopyTo(menu.panelId))}
+        >
+          Copy To…
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={!itemMenu}
+          onClick={() => run(() => onMoveTo(menu.panelId))}
+        >
+          Move To…
         </ContextMenuItem>
 
         <ContextMenuSeparator />
@@ -261,6 +291,18 @@ export function ContextMenu({
         </ContextMenuItem>
         <ContextMenuItem
           disabled={!itemMenu}
+          onClick={() => run(() => onCopyParentPath(menu.panelId))}
+        >
+          Copy Parent Folder Path
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={!itemMenu}
+          onClick={() => run(() => onCopyResourceUri(menu.panelId))}
+        >
+          Copy Resource URI
+        </ContextMenuItem>
+        <ContextMenuItem
+          disabled={!itemMenu}
           onClick={() => run(() => onProperties(menu.panelId, menu.entry))}
         >
           Properties
@@ -314,6 +356,11 @@ export function ContextMenu({
         </ContextMenuItem>
         <ContextMenuItem onClick={() => run(() => onSelectAll(menu.panelId))}>
           Select All
+        </ContextMenuItem>
+        <ContextMenuItem
+          onClick={() => run(() => onClearSelection(menu.panelId))}
+        >
+          Clear Selection
         </ContextMenuItem>
 
         <ContextMenuSeparator />

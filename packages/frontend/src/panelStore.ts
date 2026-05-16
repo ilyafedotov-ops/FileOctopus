@@ -80,6 +80,7 @@ export type PanelAction =
   | { type: "applyBatch"; batch: DirectoryBatchEventDto }
   | { type: "setSelection"; panelId: PanelId; entryId: string | null }
   | { type: "selectAll"; panelId: PanelId }
+  | { type: "clearSelection"; panelId: PanelId }
   | {
       type: "selectEntry";
       panelId: PanelId;
@@ -211,6 +212,14 @@ export function panelReducer(
           anchorId: ids[0] ?? null,
         };
       });
+    case "clearSelection":
+      return updatePanel(state, action.panelId, (tab) => ({
+        ...tab,
+        selectedIds: [],
+        selectedId: null,
+        focusedId: null,
+        anchorId: null,
+      }));
     case "selectEntry":
       return updatePanel(state, action.panelId, (tab) =>
         selectEntry(tab, action.entryId, action.mode),

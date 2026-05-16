@@ -222,6 +222,54 @@ test.describe("Context Menu", () => {
     expect(hasStarItem).toBe(true);
   });
 
+  test("contains Open With Default App item", async ({ page }) => {
+    await openContextMenuOnFileRow(page);
+
+    const texts = await getMenuItemTexts(page);
+    const trimmed = texts.map((t) => t.trim());
+
+    expect(trimmed).toContain("Open With Default App");
+
+    // Open With Default App appears after Open
+    const openIdx = trimmed.indexOf("Open");
+    const openWithIdx = trimmed.indexOf("Open With Default App");
+    expect(openIdx).toBeLessThan(openWithIdx);
+  });
+
+  test("contains Copy To and Move To items", async ({ page }) => {
+    await openContextMenuOnFileRow(page);
+
+    const texts = await getMenuItemTexts(page);
+    const trimmed = texts.map((t) => t.trim());
+
+    expect(trimmed).toContain("Copy To…");
+    expect(trimmed).toContain("Move To…");
+
+    // Copy To comes before Move To
+    expect(trimmed.indexOf("Copy To…")).toBeLessThan(
+      trimmed.indexOf("Move To…"),
+    );
+  });
+
+  test("contains Copy Parent Folder Path and Copy Resource URI", async ({
+    page,
+  }) => {
+    await openContextMenuOnFileRow(page);
+
+    const texts = await getMenuItemTexts(page);
+    const trimmed = texts.map((t) => t.trim());
+
+    expect(trimmed).toContain("Copy Parent Folder Path");
+    expect(trimmed).toContain("Copy Resource URI");
+
+    // Both appear after Copy Name
+    const copyNameIdx = trimmed.indexOf("Copy Name");
+    const parentPathIdx = trimmed.indexOf("Copy Parent Folder Path");
+    const uriIdx = trimmed.indexOf("Copy Resource URI");
+    expect(copyNameIdx).toBeLessThan(parentPathIdx);
+    expect(copyNameIdx).toBeLessThan(uriIdx);
+  });
+
   test("contains view & selection group: Refresh, Show Hidden Files, Select All", async ({
     page,
   }) => {
@@ -237,6 +285,20 @@ test.describe("Context Menu", () => {
       trimmed.includes("Hide Hidden Files");
     expect(hasHiddenToggle).toBe(true);
     expect(trimmed).toContain("Select All");
+  });
+
+  test("contains Clear Selection item", async ({ page }) => {
+    await openContextMenuOnEmptySpace(page);
+
+    const texts = await getMenuItemTexts(page);
+    const trimmed = texts.map((t) => t.trim());
+
+    expect(trimmed).toContain("Clear Selection");
+
+    // Clear Selection appears after Select All
+    const selectAllIdx = trimmed.indexOf("Select All");
+    const clearIdx = trimmed.indexOf("Clear Selection");
+    expect(selectAllIdx).toBeLessThan(clearIdx);
   });
 
   test("contains view mode group: Details View, List View, Icon View, Columns View", async ({
@@ -402,13 +464,18 @@ test.describe("Context Menu", () => {
 
     // These items should be disabled when no file entry is selected
     expect(disabledTexts).toContain("Open");
+    expect(disabledTexts).toContain("Open With Default App");
     expect(disabledTexts).toContain("Rename");
+    expect(disabledTexts).toContain("Copy To…");
+    expect(disabledTexts).toContain("Move To…");
     expect(disabledTexts).toContain("Copy");
     expect(disabledTexts).toContain("Cut");
     expect(disabledTexts).toContain("Move to Trash");
     expect(disabledTexts).toContain("Delete Permanently");
     expect(disabledTexts).toContain("Copy Path");
     expect(disabledTexts).toContain("Copy Name");
+    expect(disabledTexts).toContain("Copy Parent Folder Path");
+    expect(disabledTexts).toContain("Copy Resource URI");
     expect(disabledTexts).toContain("Properties");
     expect(disabledTexts).toContain("Reveal");
     expect(disabledTexts).toContain("Compress…");
@@ -435,6 +502,7 @@ test.describe("Context Menu", () => {
     expect(enabledTexts).toContain("Open Terminal");
     expect(enabledTexts).toContain("Refresh");
     expect(enabledTexts).toContain("Select All");
+    expect(enabledTexts).toContain("Clear Selection");
     expect(enabledTexts).toContain("Details View");
     expect(enabledTexts).toContain("List View");
     expect(enabledTexts).toContain("Icon View");

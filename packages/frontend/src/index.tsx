@@ -1238,7 +1238,7 @@ export function FileOctopusShell() {
 
   async function copyTextFromSelection(
     panelId: PanelId,
-    mode: "path" | "name",
+    mode: "path" | "name" | "parentPath" | "uri",
   ) {
     const entries = selectedEntries(panelId);
 
@@ -1247,9 +1247,18 @@ export function FileOctopusShell() {
     }
 
     const text = entries
-      .map((entry) =>
-        mode === "path" ? localPathFromUri(entry.uri) : entry.name,
-      )
+      .map((entry) => {
+        switch (mode) {
+          case "path":
+            return localPathFromUri(entry.uri);
+          case "name":
+            return entry.name;
+          case "parentPath":
+            return localPathFromUri(parentUri(entry.uri) ?? "");
+          case "uri":
+            return entry.uri;
+        }
+      })
       .join("\n");
 
     await globalThis.navigator.clipboard?.writeText(text);
@@ -2249,6 +2258,22 @@ export function FileOctopusShell() {
             }
             onSort={(panelId, field) =>
               dispatch({ type: "setSort", panelId, field })
+            }
+            onOpenWithDefaultApp={(panelId) => {
+              if (contextMenu?.panelId !== panelId) return;
+              const entry = contextMenu?.entry;
+              if (entry && entry.kind !== "directory") void openExternal(entry);
+            }}
+            onCopyTo={(panelId) => handleCopyOrMove(panelId, "copy")}
+            onMoveTo={(panelId) => handleCopyOrMove(panelId, "move")}
+            onCopyParentPath={(panelId) =>
+              void copyTextFromSelection(panelId, "parentPath")
+            }
+            onCopyResourceUri={(panelId) =>
+              void copyTextFromSelection(panelId, "uri")
+            }
+            onClearSelection={(panelId) =>
+              dispatch({ type: "clearSelection", panelId })
             }
           />
           <StatusBar
