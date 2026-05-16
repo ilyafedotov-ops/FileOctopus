@@ -43,6 +43,18 @@ pub struct UserPreferencesDto {
     pub confirm_permanent_delete: bool,
     pub use_trash_by_default: bool,
     pub default_conflict_policy: String,
+    pub accent_color: String,
+    pub font_scale: String,
+    pub icon_scale: String,
+    pub confirm_overwrite: bool,
+    pub sidebar_visible: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AutostartStatusDto {
+    pub enabled: bool,
+    pub supported: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -632,6 +644,11 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             confirm_permanent_delete: value.confirm_permanent_delete,
             use_trash_by_default: value.use_trash_by_default,
             default_conflict_policy: value.default_conflict_policy,
+            accent_color: value.accent_color,
+            font_scale: value.font_scale,
+            icon_scale: value.icon_scale,
+            confirm_overwrite: value.confirm_overwrite,
+            sidebar_visible: value.sidebar_visible,
         }
     }
 }
