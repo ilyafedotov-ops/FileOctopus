@@ -1,6 +1,6 @@
 //! Integration tests for fs_recursive_search command logic.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use fs_core::sprint4::recursive_search;
 use vfs::ResourceUri;
@@ -15,7 +15,7 @@ fn temp_dir(prefix: &str) -> PathBuf {
     dir
 }
 
-fn local_uri(path: &PathBuf) -> String {
+fn local_uri(path: &Path) -> String {
     format!("local://{}", path.display())
 }
 
