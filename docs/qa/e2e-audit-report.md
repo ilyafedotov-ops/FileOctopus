@@ -1,5 +1,7 @@
 # FileOctopus — E2E UI Audit Report
 
+> **Staleness notice (2026-05-16):** Sections 2–4 below reflect an early pass on the same day. Many items marked missing or broken were fixed afterward (settings fields, table columns, command palette, preview, watcher, Ctrl+I/Ctrl+H). For current status use **[PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md)**.
+
 **Дата:** 2026-05-16  
 **Среда:** Linux (Ubuntu), Xvfb :99, WebKitGTK 2.52.3, Tauri v2  
 **Ветка:** main

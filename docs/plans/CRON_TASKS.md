@@ -1,46 +1,170 @@
-# FileOctopus — Pending Tasks (Cron Queue)
+# FileOctopus — Cron Task Queue
 
-Tasks are picked up by the next cron run. Mark status as `pending`, `in_progress`, or `done`.
+> Pick work per [CRONJOB_WORKFLOW.md](./CRONJOB_WORKFLOW.md).  
+> **Status:** `pending` → `in_progress` → `done` (at most one `in_progress`).  
+> **Before Phase 3:** file a micro-spec (workflow template) and name the first failing test.
+
+## Queue rules
+
+1. Fix Phase 0 failures before new features.
+2. Every task must list **Spec** + **Acceptance** IDs.
+3. Mark `done` only after `bash scripts/health-check.sh` passes and TDD evidence is recorded in `CRON_STATUS.md`.
+
+---
 
 ## Active Tasks
 
 ### 1. Visual comparison against reference images
 
-- **Status:** pending
-- **Priority:** P1
-- **Description:** Start Vite dev server, take Playwright screenshots of main app, compare against `docs/Images/MainApp/` (11 reference PNGs). Check: dual-pane layout, toolbar, sidebar, file table columns, status bar, breadcrumb navigation.
-- **Files:** `docs/Images/MainApp/*.png`, `packages/frontend/src/index.tsx`
+| Field          | Value                                                                          |
+| -------------- | ------------------------------------------------------------------------------ |
+| **Status**     | `pending`                                                                      |
+| **Priority**   | P1                                                                             |
+| **Spec**       | `docs/FileOctopus_UI_Design_Spec.md`; reference PNGs in `docs/Images/MainApp/` |
+| **Acceptance** | UI inventory / visual parity (supports MVP-UI-001 polish)                      |
+| **Micro-spec** | _not written_                                                                  |
 
-### 2. Implement Compress (Archive) — Rust backend
+**Description:** Start Vite dev server (`:1420`), capture Playwright screenshots of main shell, compare to 11 reference PNGs: dual-pane layout, toolbar, sidebar, file table, status bar, breadcrumbs.
 
-- **Status:** pending
-- **Priority:** P2
-- **Description:** Replace "coming soon" toast with real IPC. Rust: add `fs_compress` command using `zip` crate. TS: add `compress()` to FsClient. Wire in toolbar + context menu.
-- **Files:** `apps/desktop-tauri/src-tauri/src/lib.rs`, `packages/ts-api/src/client.ts`, `packages/frontend/src/index.tsx`
+**Test plan (TDD):**
 
-### 3. Implement Extract (Unarchive) — Rust backend
+- TS: add or extend Playwright spec under `apps/desktop-tauri/` or `packages/frontend/` — assert layout regions / snapshot diff vs baselines
+- Manual: document deltas in `CRON_STATUS.md` if automation blocked
 
-- **Status:** pending
-- **Priority:** P2
-- **Description:** Replace "coming soon" toast with real IPC. Rust: add `fs_extract` command. TS: add `extract()` to FsClient. Wire in toolbar + context menu.
-- **Files:** `apps/desktop-tauri/src-tauri/src/lib.rs`, `packages/ts-api/src/client.ts`, `packages/frontend/src/index.tsx`
+**Files:** `docs/Images/MainApp/*.png`, `packages/frontend/src/index.tsx`, Playwright config (if present)
 
-### 4. Implement Checksum verification — Rust backend
+**IPC / boundary:** N/A
 
-- **Status:** pending
-- **Priority:** P2
-- **Description:** Replace "coming soon" toast with real IPC. Rust: add `fs_verify_checksum` command (MD5/SHA256). TS: add method to FsClient. Show result in dialog or toast.
-- **Files:** `apps/desktop-tauri/src-tauri/src/lib.rs`, `packages/ts-api/src/client.ts`, `packages/frontend/src/index.tsx`
+---
+
+### 2. Implement Compress (archive job)
+
+| Field          | Value                                                                    |
+| -------------- | ------------------------------------------------------------------------ |
+| **Status**     | `pending`                                                                |
+| **Priority**   | P2                                                                       |
+| **Spec**       | MVP engineering spec §3.1 archives; UI Design Spec §4; gap analysis T3.2 |
+| **Acceptance** | **MVP-ARC-001** (partial — create archive); **MVP-SEC-001** / ADR-0002   |
+| **Micro-spec** | _not written_                                                            |
+
+**Description:** Replace “coming soon” toast with planned archive job. Prefer `archive-core` crate + plan/start pattern (not ad-hoc `fs_compress` only). Wire toolbar + context menu.
+
+**Test plan (TDD):**
+
+- Rust: `archive-core` or `fs-core` — `archive_rejects_dotdot_traversal`-style cases per MVP §13.1 when applicable; plan/execute integration test
+- Rust: `crates/app-ipc` — DTO round-trip if new request types
+- TS: `packages/ts-api/tests/` — client method + error normalization
+- Frontend: Vitest — toolbar handler invokes client (mock transport)
+
+**Files:** `crates/` (new `archive-core` or extend `fs-core`), `crates/vfs`, `crates/app-ipc`, `crates/app-core`, `apps/desktop-tauri/src-tauri/src/lib.rs`, `packages/ts-api/src/types.ts`, `client.ts`, `packages/frontend/src/index.tsx`, `docs/architecture/api-reference.md`
+
+**IPC / boundary:**
+
+- [ ] New commands mirrored: `app-ipc`, `api-reference`, `types.ts`, `client.ts`, `commandMap`, `lib.rs`
+- [ ] `local://` URIs only
+- [ ] Mutations via plan/start job + progress events
+- [ ] Stable error codes documented
+
+---
+
+### 3. Implement Extract (unarchive job)
+
+| Field          | Value                                                |
+| -------------- | ---------------------------------------------------- |
+| **Status**     | `pending`                                            |
+| **Priority**   | P2                                                   |
+| **Spec**       | MVP §3.1; MVP §13.2 scenarios 8–9; UI Design Spec §4 |
+| **Acceptance** | **MVP-ARC-001**, **MVP-ARC-002**, **MVP-REL-005**    |
+| **Micro-spec** | _not written_                                        |
+
+**Description:** Replace extract toast with extract job to selected destination; block zip-slip / `..` traversal (MVP-ARC-002).
+
+**Test plan (TDD):**
+
+- Rust: `archive_rejects_dotdot_traversal`, `archive_rejects_absolute_path` (MVP §13.1)
+- Rust: integration — safe zip extract + malicious archive rejected
+- TS + frontend: same pattern as task 2
+
+**Files:** Same stack as task 2
+
+**IPC / boundary:** Same checklist as task 2
+
+---
+
+### 4. Wire Checksum toolbar action
+
+| Field          | Value                                                                  |
+| -------------- | ---------------------------------------------------------------------- |
+| **Status**     | `pending`                                                              |
+| **Priority**   | P2                                                                     |
+| **Spec**       | UI Design Spec §4; gap analysis T3.1                                   |
+| **Acceptance** | UI inventory (toolbar checksum); reuse existing hash IPC if sufficient |
+| **Micro-spec** | _not written_                                                          |
+
+**Description:** Replace checksum toast. `fs_compute_hash` may already exist — wire toolbar + context menu to job or command; show result in dialog/toast. Only add `fs_verify_checksum` if spec requires verify-vs-file comparison.
+
+**Test plan (TDD):**
+
+- TS: `packages/ts-api/tests/` — hash/verify client calls
+- Frontend: Vitest — handler calls `client.fs` and surfaces result
+- Rust: extend only if new verify semantics — unit test in `fs-core`
+
+**Files:** `packages/frontend/src/index.tsx`, `packages/ts-api/src/client.ts`, optionally `apps/desktop-tauri/src-tauri/src/lib.rs`, `docs/architecture/api-reference.md`
+
+**IPC / boundary:**
+
+- [ ] Prefer existing commands; if new command, full mirror checklist
+- [ ] `local://` URIs only
+
+---
 
 ### 5. Settings: Shortcuts tab
 
-- **Status:** pending
-- **Priority:** P3
-- **Description:** Add keyboard shortcut customization tab to SettingsDialog. Allow re-binding shortcuts from shortcuts.ts.
-- **Files:** `packages/frontend/src/components/SettingsDialog.tsx`, `packages/frontend/src/shortcuts.ts`
+| Field          | Value                                                            |
+| -------------- | ---------------------------------------------------------------- |
+| **Status**     | `pending`                                                        |
+| **Priority**   | P3                                                               |
+| **Spec**       | UI Design Spec §Preferences; Menu spec (shortcuts customization) |
+| **Acceptance** | MVP-UI-001 (configurable shortcuts foundation)                   |
+| **Micro-spec** | _not written_                                                    |
+
+**Description:** Add Shortcuts tab to SettingsDialog; allow rebinding entries from `shortcuts.ts` with persistence (preferences store / IPC if needed).
+
+**Test plan (TDD):**
+
+- Frontend: Vitest — render tab, change binding, shortcut fires new action
+- TS: persistence round-trip if new preference IPC
+
+**Files:** `packages/frontend/src/components/SettingsDialog.tsx`, `packages/frontend/src/shortcuts.ts`, preferences module
+
+**IPC / boundary:** N/A unless new `app.setPreference` keys — then mirror DTOs
+
+---
+
+## Backlog (not yet prioritized for next cycle)
+
+| Feature                                    | Priority | Acceptance      | Spec                   |
+| ------------------------------------------ | -------- | --------------- | ---------------------- |
+| Application menu bar (File/Edit/View/Go/…) | P2       | MVP-UI-001      | Menu & Modal Spec §4   |
+| Git branch + file badges (`git-intel`)     | P2       | MVP-GIT-001–002 | MVP M4                 |
+| Embedded terminal panel                    | P3       | MVP-TERM-001    | MVP §Embedded Terminal |
+| Remember last panes / boot restore         | P3       | UI Design Spec  | FO-0243 / Sprint 5     |
+| Tabs per panel                             | P3       | MVP §3.1        | `PanelTabState` exists |
+
+_Add rows here when discovered; promote to **Active Tasks** with full template when scheduled._
+
+---
+
+## In Progress
+
+_None — set exactly one task to `in_progress` when starting Phase 3._
+
+---
 
 ## Completed Tasks
 
-- ✅ **Menu spec comparison** — ContextMenu fully matches spec (2026-05-16)
-- ✅ **Feature inventory cross-reference** — All specified items accounted for (2026-05-16)
-- ✅ **Fix deprecated sha256::digest_file** → replaced with `try_digest` (2026-05-16, `5ea036b`)
+| Task                                 | Acceptance   | Date       | Commit    | TDD RED |
+| ------------------------------------ | ------------ | ---------- | --------- | ------- |
+| Menu spec comparison — context menu  | Menu spec    | 2026-05-16 | —         | —       |
+| Feature inventory cross-reference    | UI inventory | 2026-05-16 | —         | —       |
+| Fix deprecated `sha256::digest_file` | —            | 2026-05-16 | `5ea036b` | no      |

@@ -1,9 +1,12 @@
 # FileOctopus Gap Analysis & Implementation Plan
 
-> **Date:** 2026-05-16
+> **Date:** 2026-05-16  
+> **Superseded for status:** [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md) and `~/.hermes/skills/dogfood/fileoctopus-dev/references/gap-analysis-2026-05.md`  
 > **Source:** E2E UI Audit (docs/qa/e2e-audit-report.md) + live code review
 
 ## Verified Status (vs Audit Report)
+
+**Update (end of day 2026-05-16):** Phases A and B (watcher, command palette, preview, permissions/owner) are complete on `main`. Remaining work is Milestone 4 (Git, archives, embedded terminal) and Menu spec application menu bar. See alignment doc.
 
 The audit report is **partially stale** — several items marked as "broken" or "missing" have already been fixed:
 

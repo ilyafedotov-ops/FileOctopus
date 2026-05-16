@@ -1,5 +1,14 @@
 import { test, expect } from "@playwright/test";
 
+/**
+ * Helper: send a keyboard shortcut through the shell element so that
+ * the onKeyDown handler on <main.fo-shell> receives it regardless of
+ * where browser focus currently is.
+ */
+async function shellPress(page: import("@playwright/test").Page, key: string) {
+  await page.locator(".fo-shell").press(key);
+}
+
 test.describe("Keyboard shortcuts", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
@@ -8,7 +17,7 @@ test.describe("Keyboard shortcuts", () => {
 
   test.describe("Ctrl+P — Command palette", () => {
     test("opens command palette with Ctrl+P", async ({ page }) => {
-      await page.keyboard.press("Control+p");
+      await shellPress(page, "Control+p");
       await expect(page.locator(".fo-command-palette")).toBeVisible();
       await expect(
         page.locator('.fo-command-palette input[aria-label="Search commands"]'),
@@ -16,14 +25,14 @@ test.describe("Keyboard shortcuts", () => {
     });
 
     test("closes command palette with Escape", async ({ page }) => {
-      await page.keyboard.press("Control+p");
+      await shellPress(page, "Control+p");
       await expect(page.locator(".fo-command-palette")).toBeVisible();
-      await page.keyboard.press("Escape");
+      await shellPress(page, "Escape");
       await expect(page.locator(".fo-command-palette")).not.toBeVisible();
     });
 
     test("filters commands by typing in search input", async ({ page }) => {
-      await page.keyboard.press("Control+p");
+      await shellPress(page, "Control+p");
       await expect(page.locator(".fo-command-palette")).toBeVisible();
 
       const input = page.locator(
@@ -36,7 +45,7 @@ test.describe("Keyboard shortcuts", () => {
     });
 
     test("shows empty state when no commands match", async ({ page }) => {
-      await page.keyboard.press("Control+p");
+      await shellPress(page, "Control+p");
       const input = page.locator(
         '.fo-command-palette input[aria-label="Search commands"]',
       );
@@ -50,7 +59,7 @@ test.describe("Keyboard shortcuts", () => {
     test("navigates with arrow keys and selects with Enter", async ({
       page,
     }) => {
-      await page.keyboard.press("Control+p");
+      await shellPress(page, "Control+p");
       await expect(page.locator(".fo-command-palette")).toBeVisible();
 
       const items = page.locator(".fo-command-palette-item");
@@ -69,7 +78,7 @@ test.describe("Keyboard shortcuts", () => {
     });
 
     test("closes command palette when clicking backdrop", async ({ page }) => {
-      await page.keyboard.press("Control+p");
+      await shellPress(page, "Control+p");
       await expect(page.locator(".fo-command-palette")).toBeVisible();
 
       await page
@@ -81,21 +90,21 @@ test.describe("Keyboard shortcuts", () => {
 
   test.describe("Escape — Close dialogs/menus", () => {
     test("closes command palette on Escape", async ({ page }) => {
-      await page.keyboard.press("Control+p");
+      await shellPress(page, "Control+p");
       await expect(page.locator(".fo-command-palette")).toBeVisible();
-      await page.keyboard.press("Escape");
+      await shellPress(page, "Escape");
       await expect(page.locator(".fo-command-palette")).not.toBeVisible();
     });
 
     test("closes shortcuts dialog on Escape", async ({ page }) => {
-      await page.keyboard.press("Control+/");
+      await shellPress(page, "Control+/");
       await expect(page.locator('[role="dialog"]')).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(page.locator('[role="dialog"]')).not.toBeVisible();
     });
 
     test("closes settings dialog on Escape", async ({ page }) => {
-      await page.keyboard.press("Control+,");
+      await shellPress(page, "Control+,");
       await expect(page.locator('[role="dialog"]')).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(page.locator('[role="dialog"]')).not.toBeVisible();
@@ -110,7 +119,7 @@ test.describe("Keyboard shortcuts", () => {
       await expect(leftPanel).toHaveClass(/fo-panel-active/);
       await expect(rightPanel).not.toHaveClass(/fo-panel-active/);
 
-      await page.keyboard.press("Tab");
+      await shellPress(page, "Tab");
 
       await expect(leftPanel).not.toHaveClass(/fo-panel-active/);
       await expect(rightPanel).toHaveClass(/fo-panel-active/);
@@ -119,8 +128,8 @@ test.describe("Keyboard shortcuts", () => {
     test("toggles back to left panel on second Tab", async ({ page }) => {
       const leftPanel = page.locator(".fo-panel").first();
 
-      await page.keyboard.press("Tab");
-      await page.keyboard.press("Tab");
+      await shellPress(page, "Tab");
+      await shellPress(page, "Tab");
 
       await expect(leftPanel).toHaveClass(/fo-panel-active/);
     });
@@ -128,21 +137,21 @@ test.describe("Keyboard shortcuts", () => {
 
   test.describe("Ctrl+/ — Shortcuts dialog", () => {
     test("opens shortcuts dialog with Ctrl+/", async ({ page }) => {
-      await page.keyboard.press("Control+/");
+      await shellPress(page, "Control+/");
       await expect(page.locator('[role="dialog"]')).toBeVisible();
     });
   });
 
   test.describe("Ctrl+, — Settings dialog", () => {
     test("opens settings dialog with Ctrl+,", async ({ page }) => {
-      await page.keyboard.press("Control+,");
+      await shellPress(page, "Control+,");
       await expect(page.locator('[role="dialog"]')).toBeVisible();
     });
   });
 
   test.describe("Ctrl+N — New folder", () => {
     test("opens create folder dialog with Ctrl+N", async ({ page }) => {
-      await page.keyboard.press("Control+n");
+      await shellPress(page, "Control+n");
       await expect(page.locator(".fo-dialog")).toBeVisible();
     });
   });
@@ -153,7 +162,7 @@ test.describe("Keyboard shortcuts", () => {
       const count = await fileRows.count();
       test.skip(count === 0, "No file entries in active panel");
 
-      await page.keyboard.press("Control+a");
+      await shellPress(page, "Control+a");
       const selected = page.locator(".fo-file-row.fo-file-row-selected");
       await expect(selected).toHaveCount(count);
     });
@@ -161,7 +170,7 @@ test.describe("Keyboard shortcuts", () => {
 
   test.describe("F5 — Refresh", () => {
     test("triggers refresh without error on F5", async ({ page }) => {
-      await page.keyboard.press("F5");
+      await shellPress(page, "F5");
       await expect(page.locator(".fo-shell")).toBeVisible();
     });
   });
@@ -170,16 +179,16 @@ test.describe("Keyboard shortcuts", () => {
     test("Escape closes command palette before other overlays", async ({
       page,
     }) => {
-      await page.keyboard.press("Control+p");
+      await shellPress(page, "Control+p");
       await expect(page.locator(".fo-command-palette")).toBeVisible();
-      await page.keyboard.press("Escape");
+      await shellPress(page, "Escape");
       await expect(page.locator(".fo-command-palette")).not.toBeVisible();
     });
 
     test("repeated Escape eventually returns to clean state", async ({
       page,
     }) => {
-      await page.keyboard.press("Control+p");
+      await shellPress(page, "Control+p");
       await expect(page.locator(".fo-command-palette")).toBeVisible();
 
       await page.keyboard.press("Escape");

@@ -2,6 +2,7 @@
 
 Architecture notes for the FileOctopus MVP. Start with the API reference for the runtime contract, then drop into the per-module docs for implementation detail.
 
+- [Project status & doc alignment](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md) — what is implemented vs MVP/UI/Menu specs (updated 2026-05-16).
 - [API reference](api-reference.md) — Tauri commands, event channels, the `@fileoctopus/ts-api` client, domain types, and the error catalog.
 
 ## Per-module architecture

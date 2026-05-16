@@ -40,23 +40,53 @@ Each IPC payload is a `serde(rename_all = "camelCase")` DTO defined in `crates/a
 
 ## Tauri command catalog
 
-The desktop shell registers exactly these commands (`tauri::generate_handler!`):
+The desktop shell registers these commands in `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!`). Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/client.ts` for the full map.
 
-| Tauri command                 | TS client method                                   | Request DTO                      | Response DTO                      | Purpose                                                             |
-| ----------------------------- | -------------------------------------------------- | -------------------------------- | --------------------------------- | ------------------------------------------------------------------- |
-| `app_get_info`                | `FileOctopusClient.getAppInfo()`                   | —                                | `AppInfoResponse`                 | App identity, version, build profile, commit, and target OS.        |
-| `fs_stat`                     | `FsClient.stat(req)`                               | `StatRequest`                    | `StatResponse`                    | Metadata for a single resource.                                     |
-| `fs_list_start`               | `FsClient.listStart(req)`                          | `ListStartRequest`               | `ListStartResponse`               | Start a streamed directory listing. Emits `directory:batch` events. |
-| `plan_file_operation`         | `FileOperationsClient.planFileOperation(req)`      | `PlanFileOperationRequest`       | `PlanFileOperationResponse`       | Validate a `FileOperationRequest` and return a deterministic plan.  |
-| `start_file_operation`        | `FileOperationsClient.startFileOperation(req)`     | `StartFileOperationRequest`      | `StartFileOperationResponse`      | Enqueue a job from a plan. Emits `fileOperation:job:*` events.      |
-| `cancel_job`                  | `JobsClient.cancelJob(req)`                        | `CancelJobRequest`               | `JobStatusResponse`               | Cancel a running job by id.                                         |
-| `get_job_status`              | `JobsClient.getJobStatus(req)`                     | `JobStatusRequest`               | `JobStatusResponse`               | Read the latest snapshot for a job.                                 |
-| `list_recent_operations`      | `OperationHistoryClient.listRecentOperations(req)` | `ListRecentOperationsRequest`    | `ListRecentOperationsResponse`    | Read recent rows from the operation-history database.               |
-| `clear_operation_history`     | `OperationHistoryClient.clearOperationHistory()`   | —                                | `ClearOperationHistoryResponse`   | Delete terminal history rows while preserving active jobs.          |
-| `diagnostics_app_data_health` | `DiagnosticsClient.appDataHealth()`                | —                                | `AppDataHealthResponse`           | Report app data, log, and schema health without enumerating files.  |
-| `export_diagnostics_bundle`   | `DiagnosticsClient.exportBundle(req)`              | `ExportDiagnosticsBundleRequest` | `ExportDiagnosticsBundleResponse` | Write a redacted diagnostics `.zip` for bug reports.                |
-| `get_preferences`             | `PreferencesClient.get()`                          | —                                | `GetPreferencesResponse`          | Read persisted UI preferences (theme, density, view mode, etc.).    |
-| `set_preference`              | `PreferencesClient.set(req)`                       | `SetPreferenceRequest`           | `SetPreferenceResponse`           | Update a single preference key with validation.                     |
+### Full registry (2026-05-16)
+
+| Tauri command                 | TS dotted name (typical)      | Client area              |
+| ----------------------------- | ----------------------------- | ------------------------ |
+| `app_get_info`                | `app.get_info`                | `FileOctopusClient`      |
+| `fs_stat`                     | `fs.stat`                     | `FsClient`               |
+| `fs_read_text_file`           | `fs.read_text_file`           | `FsClient`               |
+| `fs_compute_hash`             | `fs.compute_hash`             | `FsClient`               |
+| `fs_open_terminal`            | `fs.open_terminal`            | `FsClient`               |
+| `fs_list_start`               | `fs.list_start`               | `FsClient`               |
+| `fs_standard_locations`       | `fs.standard_locations`       | `FsClient`               |
+| `fs_open_default`             | `fs.open_default`             | `FsClient`               |
+| `fs_reveal`                   | `fs.reveal`                   | `FsClient`               |
+| `fs_create_file`              | `fs.create_file`              | `FsClient`               |
+| `fs_delete_permanently`       | `fs.delete_permanently`       | `FsClient`               |
+| `fs_properties`               | `fs.properties`               | `FsClient`               |
+| `fs_folder_size`              | `fs.folder_size`              | `FsClient`               |
+| `fs_folder_size_start`        | `fs.folder_size_start`        | `FsClient`               |
+| `fs_recursive_search`         | `fs.recursive_search`         | `FsClient`               |
+| `fs_recursive_search_start`   | `fs.recursive_search_start`   | `FsClient`               |
+| `fs_watch_start`              | `fs.watch_start`              | `FsClient`               |
+| `fs_watch_stop`               | `fs.watch_stop`               | `FsClient`               |
+| `get_preferences`             | `preferences.get`             | `PreferencesClient`      |
+| `set_preference`              | `preferences.set`             | `PreferencesClient`      |
+| `get_autostart`               | `autostart.get`               | `AutostartClient`        |
+| `set_autostart`               | `autostart.set`               | `AutostartClient`        |
+| `navigation_record_visit`     | `navigation.recordVisit`      | `NavigationClient`       |
+| `navigation_list_favorites`   | `navigation.listFavorites`    | `NavigationClient`       |
+| `navigation_add_favorite`     | `navigation.addFavorite`      | `NavigationClient`       |
+| `navigation_remove_favorite`  | `navigation.removeFavorite`   | `NavigationClient`       |
+| `navigation_rename_favorite`  | `navigation.renameFavorite`   | `NavigationClient`       |
+| `navigation_list_recent`      | `navigation.listRecent`       | `NavigationClient`       |
+| `navigation_list_starred`     | `navigation.listStarred`      | `NavigationClient`       |
+| `navigation_toggle_starred`   | `navigation.toggleStarred`    | `NavigationClient`       |
+| `navigation_is_starred`       | `navigation.isStarred`        | `NavigationClient`       |
+| `plan_file_operation`         | `fileOperation.plan`          | `FileOperationsClient`   |
+| `start_file_operation`        | `fileOperation.start`         | `FileOperationsClient`   |
+| `cancel_job`                  | `job.cancel`                  | `JobsClient`             |
+| `get_job_status`              | `job.status`                  | `JobsClient`             |
+| `list_recent_operations`      | `operationHistory.listRecent` | `OperationHistoryClient` |
+| `clear_operation_history`     | `operationHistory.clear`      | `OperationHistoryClient` |
+| `diagnostics_app_data_health` | `diagnostics.appDataHealth`   | `DiagnosticsClient`      |
+| `export_diagnostics_bundle`   | `diagnostics.exportBundle`    | `DiagnosticsClient`      |
+
+Per-command request/response detail below covers the **core** surface first; extend subsections when you add handlers.
 
 All command handlers return `Result<TResponse, IpcError>`. Errors carry a stable string `code` (see [Error model](#error-model)).
 
