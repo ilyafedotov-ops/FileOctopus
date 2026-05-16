@@ -169,6 +169,7 @@ export function SettingsDialog({
                           type="radio"
                           name="accentColor"
                           value={color}
+                          aria-label={label}
                           checked={preferences.accentColor === color}
                           onChange={() => onChange("accentColor", color)}
                         />
