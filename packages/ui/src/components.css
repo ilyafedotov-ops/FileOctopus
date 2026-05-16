@@ -323,3 +323,19 @@
   background: var(--fo-dark-surface);
   color: var(--fo-dark-text);
 }
+
+.fo-ui-dropdown-item--submenu {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.fo-ui-dropdown-submenu-caret {
+  color: var(--fo-muted-text);
+  margin-left: 8px;
+}
+
+.fo-ui-dropdown-submenu {
+  min-width: 200px;
+  box-shadow: var(--fo-shadow-popover);
+}
