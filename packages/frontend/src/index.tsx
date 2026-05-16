@@ -2743,7 +2743,6 @@ function FilePanel({
             sortField={tab.sort.field}
             sortDirection={tab.sort.direction}
             viewMode={tab.viewMode}
-            hashMap={tab.hashMap}
             onSelect={onSelect}
             onEntrySelect={onEntrySelect}
             onMove={onMove}
