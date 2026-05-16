@@ -11,3 +11,6 @@ coverage/
 apps/desktop-tauri/src-tauri/gen/
 
 .playwright-mcp/
+e2e-report/
+e2e-dist/
+/test-results/
