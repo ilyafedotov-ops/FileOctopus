@@ -145,6 +145,7 @@ type OperationDialog =
       conflictPolicy: ConflictPolicy;
       plan: FileOperationPlanDto | null;
       planning: boolean;
+      step: "review" | "confirm-overwrite";
       error: string | null;
     }
   | {
@@ -1118,6 +1119,7 @@ export function FileOctopusShell() {
       conflictPolicy: "fail",
       plan: null,
       planning: false,
+      step: "review",
       error: null,
     });
   }
@@ -1382,6 +1384,17 @@ export function FileOctopusShell() {
 
     if (!current.plan) {
       await reviewCopyMoveDialog(current);
+      return;
+    }
+
+    // Confirm-overwrite gate: if preference is on, conflicts exist, and policy is overwrite
+    if (
+      current.step !== "confirm-overwrite" &&
+      (preferences?.confirmOverwrite ?? false) &&
+      current.plan.conflicts.length > 0 &&
+      current.conflictPolicy === "overwrite"
+    ) {
+      setDialog({ ...current, step: "confirm-overwrite" });
       return;
     }
 
@@ -2654,6 +2667,35 @@ function OperationDialogView({
           </form>
         ) : null}
         {dialog.type === "copyMove" ? (
+          dialog.step === "confirm-overwrite" ? (
+            <section className="fo-dialog-section">
+              <h3>Confirm overwrite</h3>
+              <p>
+                The conflict policy is set to overwrite. Files at the destination
+                with the same name will be replaced. Continue?
+              </p>
+              <div className="fo-dialog-actions">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    onUpdate({ ...dialog, step: "review" })
+                  }
+                >
+                  Back
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  onClick={() => void onSubmitCopyMove(dialog)}
+                >
+                  Overwrite
+                </Button>
+              </div>
+            </section>
+          ) : (
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -2742,6 +2784,7 @@ function OperationDialogView({
               </Button>
             </div>
           </form>
+          )
         ) : null}
         {dialog.type === "trash" ? (
           <form
