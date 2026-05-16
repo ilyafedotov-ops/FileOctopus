@@ -2121,6 +2121,105 @@ button:disabled {
   transform: translateX(1rem);
 }
 
+/* --- Accent swatches --- */
+.fo-settings-fieldset {
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.fo-settings-fieldset legend {
+  color: var(--fo-muted-text);
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 0.35rem;
+}
+
+.fo-accent-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fo-accent-swatch {
+  position: relative;
+  cursor: pointer;
+}
+
+.fo-accent-swatch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.fo-accent-swatch-dot {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.fo-accent-swatch-dot[data-accent="blue"]   { background: #3578ff; }
+.fo-accent-swatch-dot[data-accent="indigo"] { background: #5b6cff; }
+.fo-accent-swatch-dot[data-accent="violet"] { background: #8b5cf6; }
+.fo-accent-swatch-dot[data-accent="pink"]   { background: #ec4899; }
+.fo-accent-swatch-dot[data-accent="red"]    { background: #dc2626; }
+.fo-accent-swatch-dot[data-accent="orange"] { background: #ea580c; }
+.fo-accent-swatch-dot[data-accent="amber"]  { background: #d97706; }
+.fo-accent-swatch-dot[data-accent="green"]  { background: #16a34a; }
+
+.fo-accent-swatch-active .fo-accent-swatch-dot {
+  border-color: var(--fo-text);
+  box-shadow: 0 0 0 2px var(--fo-surface), 0 0 0 4px var(--fo-accent);
+}
+
+/* --- Segmented control --- */
+.fo-segmented {
+  display: inline-flex;
+  border: 1px solid var(--fo-border);
+  border-radius: 7px;
+  background: var(--fo-strip-bg);
+  overflow: hidden;
+}
+
+.fo-segmented label {
+  position: relative;
+  cursor: pointer;
+}
+
+.fo-segmented input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.fo-segmented span {
+  display: block;
+  padding: 0.35rem 0.85rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fo-muted-text);
+  transition: background 0.15s, color 0.15s;
+}
+
+.fo-segmented input:checked + span {
+  background: var(--fo-control-bg);
+  color: var(--fo-text);
+  box-shadow: 0 1px 2px rgb(29 42 68 / 10%);
+}
+
+/* --- Hint text --- */
+.fo-settings-hint {
+  margin: 4px 0 0;
+  color: var(--fo-muted-text);
+  font-size: 12px;
+}
+
 .fo-shortcuts-table {
   width: 100%;
   border-collapse: collapse;
