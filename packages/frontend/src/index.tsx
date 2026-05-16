@@ -3195,28 +3195,54 @@ function OperationDialogView({
                 <dl>
                   <dt>Name</dt>
                   <dd>{dialog.properties.name}</dd>
-                  <dt>Path</dt>
-                  <dd>{localPathFromUri(dialog.properties.uri)}</dd>
                   <dt>Type</dt>
                   <dd>{propertyType(dialog.properties)}</dd>
+                  <dt>Full path</dt>
+                  <dd>{localPathFromUri(dialog.properties.uri)}</dd>
+                  <dt>Resource URI</dt>
+                  <dd>{dialog.properties.uri}</dd>
                   <dt>Size</dt>
                   <dd>
                     {formatSize(
                       dialog.properties.size ?? dialog.properties.totalSize,
                     )}
                   </dd>
-                  <dt>Items</dt>
-                  <dd>{dialog.properties.itemCount ?? "Unavailable"}</dd>
-                  <dt>Modified</dt>
-                  <dd>{formatDate(dialog.properties.modifiedAt)}</dd>
+                  <dt>Contains</dt>
+                  <dd>
+                    {dialog.properties.itemCount != null
+                      ? [
+                          dialog.properties.itemCount != null &&
+                          `${dialog.properties.itemCount} item(s)`,
+                          dialog.properties.directoryCount != null &&
+                          `${dialog.properties.directoryCount} folder(s)`,
+                          dialog.properties.fileCount != null &&
+                          `${dialog.properties.fileCount} file(s)`,
+                        ]
+                          .filter(Boolean)
+                          .join(", ")
+                      : "Not available"}
+                  </dd>
                   <dt>Created</dt>
                   <dd>{formatDate(dialog.properties.createdAt)}</dd>
+                  <dt>Modified</dt>
+                  <dd>{formatDate(dialog.properties.modifiedAt)}</dd>
                   <dt>Accessed</dt>
                   <dd>{formatDate(dialog.properties.accessedAt)}</dd>
-                  <dt>Hidden</dt>
-                  <dd>{dialog.properties.isHidden ? "Yes" : "No"}</dd>
-                  <dt>Read-only</dt>
-                  <dd>{dialog.properties.readonly ? "Yes" : "No"}</dd>
+                  <dt>Permissions</dt>
+                  <dd>Not available</dd>
+                  <dt>Flags</dt>
+                  <dd>
+                    {[
+                      dialog.properties.isHidden && "Hidden",
+                      dialog.properties.readonly && "Read-only",
+                      dialog.properties.isSymlink &&
+                        `Symlink${dialog.properties.symlinkTarget ? ` → ${dialog.properties.symlinkTarget}` : ""}`,
+                    ]
+                      .filter(Boolean)
+                      .join(", ") || "None"}
+                  </dd>
+                  <dt>Provider capabilities</dt>
+                  <dd>Not available</dd>
                 </dl>
                 {dialog.properties.warnings.length > 0 ? (
                   <div className="fo-dialog-summary">
@@ -3233,6 +3259,16 @@ function OperationDialogView({
                     onClick={() => onCopyPath(dialog.panelId)}
                   >
                     Copy Path
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(dialog.properties!.uri);
+                    }}
+                  >
+                    Copy Resource URI
                   </Button>
                   <Button
                     type="button"
