@@ -322,6 +322,13 @@ describe("panel store", () => {
     ]);
   });
 
+  it("starts in details view mode", () => {
+    const state = createInitialState("local:///left", "local:///right");
+
+    expect(activeTab(state.panels.left).viewMode).toBe("details");
+    expect(activeTab(state.panels.right).viewMode).toBe("details");
+  });
+
   it("hydrates both panes from persisted preferences", () => {
     let state = createInitialState("local:///left", "local:///right");
 

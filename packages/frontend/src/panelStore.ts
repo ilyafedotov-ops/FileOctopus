@@ -200,7 +200,7 @@ function createPanel(id: PanelId, uri: string): PanelState {
         filter: "",
         recursiveQuery: "",
         sort: storedSort(),
-        viewMode: storedViewMode(),
+        viewMode: "details",
         showHidden: storedShowHidden(),
         backStack: [],
         forwardStack: [],
@@ -524,18 +524,6 @@ function compareField(
 
 function dateValue(value?: string | null): number {
   return value ? Date.parse(value) || 0 : 0;
-}
-
-function storedViewMode(): ViewMode {
-  const value = readValue("fileoctopus.viewMode");
-
-  return value === "list" ||
-    value === "compact" ||
-    value === "icons" ||
-    value === "columns" ||
-    value === "details"
-    ? value
-    : "details";
 }
 
 function storedShowHidden(): boolean {

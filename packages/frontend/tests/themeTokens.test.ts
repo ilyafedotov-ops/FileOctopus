@@ -25,6 +25,7 @@ describe("Design token architecture", () => {
     "--fo-danger-bg",
     "--fo-danger-border",
     "--fo-danger-text",
+    "--fo-on-accent",
   ] as const;
 
   it("tokens.css defines all base tokens", () => {
@@ -195,6 +196,15 @@ describe("Design token architecture", () => {
     expect(paneContent).not.toContain(
       ".fo-view-list .fo-row span:not(:first-child)",
     );
+  });
+
+  it("pane.css does not use hardcoded hex colors", () => {
+    const hexPattern = /#[0-9a-fA-F]{3,8}\b/g;
+    const matches = paneContent.match(hexPattern);
+    expect(
+      matches,
+      `pane.css should use semantic tokens instead of hex (${matches?.join(", ") ?? "none"})`,
+    ).toBeNull();
   });
 
   it("compact view hides only the direct type cell", () => {
