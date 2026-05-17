@@ -1,19 +1,17 @@
 .fo-shell {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  gap: 0;
-  min-height: 100vh;
-  padding: 4px;
+  position: relative;
+  height: 100vh;
+  padding: 2px;
   background: var(--fo-app-bg);
   outline: none;
 }
 
 .fo-shell-frame {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  min-height: calc(100vh - 8px);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  height: calc(100vh - 4px);
   border: 1px solid var(--fo-border);
-  border-radius: 14px;
+  border-radius: 8px;
   background: var(--fo-surface);
   box-shadow: 0 14px 36px var(--fo-shell-shadow);
   overflow: hidden;
@@ -28,7 +26,7 @@
   gap: 0;
   min-height: 0;
   min-width: 0;
-  padding: 4px;
+  padding: 2px;
   background: var(--fo-workspace-bg);
   overflow: hidden;
 }
@@ -75,10 +73,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  min-height: 28px;
+  gap: 4px;
+  min-height: 24px;
   min-width: 0;
-  padding: 0 8px;
+  padding: 0 4px;
   border-width: 0 0 1px;
   border-radius: 0;
   background: var(--fo-strip-bg);
@@ -108,7 +106,7 @@
 .fo-brand-badge {
   display: inline-block;
   margin-top: 2px;
-  padding: 2px 8px;
+  padding: 2px 4px;
   border-radius: 999px;
   background: var(--fo-workspace-bg);
   color: var(--fo-muted-text);
@@ -119,7 +117,7 @@
 .fo-topbar-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   flex-shrink: 0;
 }
 
@@ -140,7 +138,7 @@
 }
 
 .fo-menubar-trigger {
-  padding: 4px 10px;
+  padding: 2px 6px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 13px;
@@ -175,7 +173,7 @@
   min-width: 10rem;
   padding: 6px;
   border: 1px solid var(--fo-border);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--fo-control-bg);
   box-shadow: 0 8px 24px var(--fo-menu-shadow);
 }
@@ -191,7 +189,7 @@
 }
 
 .fo-workspace[data-workspace="compact"] .fo-dual-pane {
-  gap: 6px;
+  gap: 4px;
 }
 
 .fo-workspace[data-layout="medium"] {
@@ -311,9 +309,9 @@
 .fo-status {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   min-height: var(--fo-statusbar-height, 22px);
-  padding: 2px 8px;
+  padding: 1px 4px;
   color: var(--fo-muted-text);
   font-size: 11px;
   white-space: nowrap;

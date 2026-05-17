@@ -5,10 +5,10 @@
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  min-height: 24px;
+  min-height: 22px;
   padding: 0 0.5rem;
   border: 1px solid var(--fo-control-border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--fo-control-bg);
   color: var(--fo-text);
   font-size: 12px;
@@ -81,7 +81,7 @@
 
 .fo-ui-icon-btn {
   min-width: 24px;
-  min-height: 24px;
+  min-height: 22px;
   padding: 0;
 }
 
@@ -101,10 +101,10 @@
 .fo-ui-input,
 .fo-ui-search-input {
   min-width: 0;
-  min-height: 26px;
+  min-height: 22px;
   padding: 0 0.5rem;
   border: 1px solid var(--fo-control-border);
-  border-radius: 7px;
+  border-radius: 4px;
   background: var(--fo-control-bg);
   color: var(--fo-text);
   font-size: 12px;
@@ -192,9 +192,9 @@
   display: grid;
   gap: 2px;
   min-width: 18rem;
-  padding: 6px;
+  padding: 4px;
   border: 1px solid var(--fo-border);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--fo-control-bg);
   box-shadow: 0 8px 24px var(--fo-menu-shadow);
 }
@@ -213,10 +213,10 @@
   align-items: center;
   gap: 0.45rem;
   width: 100%;
-  min-height: 30px;
+  min-height: 24px;
   padding: 0 0.55rem;
   border: 0;
-  border-radius: 6px;
+  border-radius: 4px;
   background: transparent;
   color: var(--fo-text);
   font-size: 12px;
@@ -273,17 +273,17 @@
 
 .fo-ui-segmented {
   display: inline-flex;
-  padding: 2px;
+  padding: 1px;
   border: 1px solid var(--fo-border);
-  border-radius: 8px;
+  border-radius: 4px;
   background: var(--fo-strip-bg);
 }
 
 .fo-ui-segmented-item {
-  min-height: 22px;
+  min-height: 20px;
   padding: 0 0.5rem;
   border: 0;
-  border-radius: 6px;
+  border-radius: 4px;
   background: transparent;
   color: var(--fo-muted-text);
   font-size: 11px;

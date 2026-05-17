@@ -4,7 +4,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 6px;
 }
 
 .fo-panel[data-active="true"],
@@ -27,11 +27,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 24px;
-  padding: 0 6px;
+  min-height: 20px;
+  padding: 0 2px;
   background: var(--fo-strip-bg);
   border-bottom: 1px solid var(--fo-border);
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
 }
 
@@ -103,7 +103,7 @@
 .fo-toolbar-search {
   flex: 0 1 200px;
   min-width: 120px;
-  min-height: 20px;
+  min-height: 18px;
   padding: 0 0.4rem;
   border: 1px solid var(--fo-control-border);
   border-radius: 4px;
@@ -157,11 +157,11 @@
 .fo-filter,
 .fo-search-strip input {
   min-width: 0;
-  min-height: 22px;
+  min-height: 18px;
   border: 1px solid var(--fo-control-border);
   background: var(--fo-control-bg);
   color: var(--fo-text);
-  padding: 2px 8px;
+  padding: 1px 4px;
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     monospace;
@@ -175,9 +175,9 @@
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--fo-border);
-  border-radius: 6px;
+  border-radius: 4px;
   background: var(--fo-control-bg);
-  padding: 1px;
+  padding: 0;
 }
 
 .fo-breadcrumb button {
@@ -237,12 +237,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  min-height: 32px;
+  gap: 4px;
+  min-height: 26px;
   border: 1px solid var(--fo-danger-border);
   background: var(--fo-danger-bg);
   color: var(--fo-danger-text);
-  padding: 4px 6px;
+  padding: 2px 4px;
   font-size: 12px;
 }
 
@@ -382,7 +382,7 @@
   position: absolute;
   left: 0;
   right: 0;
-  height: 22px;
+  height: 20px;
   border: 0;
   border-bottom: 1px solid var(--fo-subtle-border);
   background: var(--fo-control-bg);
@@ -396,7 +396,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 2px 6px;
+  padding: 1px 4px;
   font-size: 12px;
 }
 
@@ -445,7 +445,7 @@
 .fo-row-name {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -473,7 +473,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
 }
 
 .fo-column-button-active {
@@ -497,7 +497,7 @@
   justify-content: center;
   height: 100%;
   color: var(--fo-text-muted, #888);
-  gap: 8px;
+  gap: 4px;
   user-select: none;
 }
 
@@ -512,7 +512,7 @@
 
 .fo-empty-directory-actions {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   margin-top: 8px;
 }
 
@@ -541,8 +541,8 @@
 
 .fo-file-skeleton {
   display: grid;
-  gap: 4px;
-  padding: 8px;
+  gap: 2px;
+  padding: 4px;
 }
 
 .fo-file-skeleton-row {
@@ -559,7 +559,7 @@
 
 .fo-file-skeleton-icons {
   grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
-  gap: 8px;
+  gap: 4px;
 }
 
 .fo-file-skeleton-card {
@@ -587,8 +587,8 @@
   z-index: 5;
   display: grid;
   place-content: center;
-  gap: 6px;
-  padding: 16px;
+  gap: 4px;
+  padding: 8px;
   border-radius: 10px;
   background: color-mix(in srgb, var(--fo-accent-soft) 92%, transparent);
   color: var(--fo-text);
@@ -606,7 +606,7 @@
 }
 
 .fo-pane-state-loading-label {
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   color: var(--fo-muted-text);
   font-size: 12px;
   font-weight: 600;
@@ -669,7 +669,7 @@
 
 .fo-columns-view {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   min-height: 0;
   overflow: auto;
   flex: 1;
@@ -688,7 +688,7 @@
 
 .fo-columns-column button {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   width: 100%;
   min-height: 22px;
   border: 1px solid transparent;
@@ -726,8 +726,9 @@
 }
 
 .fo-breadcrumb .fo-ui-btn {
-  min-height: 22px;
-  padding: 0 0.3rem;
+  min-height: 16px;
+  padding: 0 0.25rem;
+  font-size: 12px;
 }
 
 .fo-panel-path-row .fo-path {
@@ -737,7 +738,7 @@
 
 .fo-toolbar-group {
   display: flex;
-  gap: 5px;
+  gap: 3px;
   align-items: center;
   min-width: 0;
 }
@@ -766,7 +767,7 @@
   right: 0;
   z-index: 20;
   display: grid;
-  gap: 0.25rem;
+  gap: 2px;
   min-width: 10rem;
   padding: 0.5rem;
   background: var(--fo-control-bg);
@@ -784,8 +785,8 @@
 
 .fo-pane-state {
   display: grid;
-  gap: 0.5rem;
-  padding: 1rem;
+  gap: 4px;
+  padding: 8px;
   border: 1px dashed var(--fo-border);
   border-radius: 0.5rem;
   background: var(--fo-strip-bg);
@@ -798,7 +799,7 @@
 
 .fo-pane-state-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 4px;
 }
 
 .fo-table-header {

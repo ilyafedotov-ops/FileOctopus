@@ -6,11 +6,11 @@
 .fo-sidebar {
   display: grid;
   align-content: start;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
   overflow: auto;
-  border-radius: 10px;
-  padding: 4px;
+  border-radius: 6px;
+  padding: 2px;
 }
 
 .fo-sidebar-section {
@@ -46,12 +46,12 @@
 .fo-sidebar-item {
   display: flex;
   width: 100%;
-  min-height: 22px;
+  min-height: 20px;
   justify-content: flex-start;
-  gap: 6px;
-  padding: 0 8px;
+  gap: 4px;
+  padding: 0 4px;
   border: 1px solid transparent;
-  border-radius: 7px;
+  border-radius: 4px;
   text-align: left;
 }
 
@@ -106,7 +106,7 @@
   position: absolute;
   display: grid;
   gap: 2px;
-  padding: 6px;
+  padding: 4px;
   border: 1px solid var(--fo-border);
   border-radius: 8px;
   background: var(--fo-control-bg);
@@ -130,7 +130,7 @@
 .fo-sidebar-menu {
   display: grid;
   gap: 4px;
-  padding: 8px;
+  padding: 4px;
   border: 1px solid var(--fo-border);
   border-radius: 8px;
   background: var(--fo-control-bg);

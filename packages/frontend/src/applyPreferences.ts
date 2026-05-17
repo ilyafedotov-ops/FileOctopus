@@ -128,12 +128,12 @@ export function applyChromeLayout(
 export function rowHeightForDensity(density: DensityPreference): number {
   switch (density) {
     case "compact":
-      return 24;
+      return 18;
     case "spacious":
-      return 36;
+      return 24;
     case "comfortable":
     default:
-      return 30;
+      return 20;
   }
 }
 
