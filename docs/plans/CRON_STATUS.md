@@ -1,66 +1,56 @@
-# FileOctopus — Cron Status Report
+# CI/CD Cron Status — Last Run
 
-**Run date:** 2026-05-17 20:36 UTC
-**Cycle:** P1 Conflict Dialog + Settings Operations Tab
-**Agent:** glm-5.1 (cron CI/CD)
+**Date**: 2026-05-18
+**Agent**: CI/CD (GLM-5.1)
+**Duration**: ~15 minutes
 
-## Health Gate — ✅ ALL GREEN
+## Health Gate
 
-| Check                | Result  | Details                         |
-| -------------------- | ------- | ------------------------------- |
-| `pnpm typecheck`     | ✅ Pass | ts-api, ui, frontend — 0 errors |
-| `cargo check`        | ✅ Pass | `dev` profile clean             |
-| `cargo clippy`       | ✅ Pass | `-- -D warnings` clean          |
-| `pnpm test` (Vitest) | ✅ Pass | 164 tests / 23 files            |
-| `pnpm lint`          | ✅ Pass | ESLint clean                    |
+| Check                       | Status                             |
+| --------------------------- | ---------------------------------- |
+| TypeScript (`tsc --noEmit`) | ✅ Clean                           |
+| Vitest (175 tests)          | ✅ All pass                        |
+| Rust (`cargo check`)        | ⏭️ Not run (frontend-only changes) |
+| Clippy                      | ⏭️ Not run (no Rust changes)       |
 
-## Work Completed This Cycle
+## Work Completed
 
-### 1. Conflict Resolution Dialog Enhancement — ✅ (cbcce86)
+### P0-1: Wire Filter Input ✅
 
-**Spec:** §14.8 Conflict Resolution Dialog
+- **Commit**: `25c77c5`
+- Imported and rendered `FilterInput` inside `FilePanel.tsx`
+- Wired `onFilter` and `filterFocusToken` props
+- 2 new tests: filter input renders, filter dispatch narrows entries
 
-| Feature                       | Status | Notes                                 |
-| ----------------------------- | ------ | ------------------------------------- |
-| Per-item conflict actions     | ✅     | Replace, Skip, Keep Both per conflict |
-| Apply to all checkbox         | ✅     | Batch resolution mode                 |
-| Source/destination comparison | ✅     | Name, path, size, modified date       |
-| Safe default (Skip)           | ✅     | Default radio = Skip                  |
-| Cancel Operation button       | ✅     | Returns to review step                |
-| CSS styling                   | ✅     | 106 lines in dialogs.css              |
-| Unit tests                    | ✅     | 10 new tests                          |
+### P0-2: Toolbar Search Input ✅
 
-### 2. Settings Operations Tab — ✅ (95ceb9e)
+- **Status**: Already resolved (dead search input removed in prior refactoring)
 
-**Spec:** §14.13 Settings dialog
+### P0-4: Enable Toggle Toolbar/Status Bar ✅
 
-| Feature                      | Status | Notes                             |
-| ---------------------------- | ------ | --------------------------------- |
-| Rename Behavior → Operations | ✅     | Matches spec §14.13               |
-| Confirm move to trash        | ✅     | confirmDelete pref                |
-| Confirm permanent delete     | ✅     | confirmPermanentDelete pref       |
-| Confirm overwrite files      | ✅     | NEW — confirmOverwrite pref       |
-| Use trash by default         | ✅     | useTrashByDefault pref            |
-| Default conflict policy      | ✅     | NEW — ask/overwrite/skip/keepBoth |
-| Unit tests                   | ✅     | 7 new tests                       |
+- **Commit**: `dffbf11`
+- Removed `disabled: true` from toggle-toolbar and toggle-statusbar menu items
+- 2 new tests verifying menu items are enabled
 
-## Test Counts
+### P0-5: Implement Swap Panes ✅
 
-- Frontend: 164 (was 147) — +17 new tests
-- Rust: 173 (unchanged)
-- E2E: 152 passed + 23 skipped (unchanged)
+- **Commit**: `fb55230`
+- Added `swapPanes` action to `PanelAction` + reducer
+- Added `layout.swapPanes` command type + dispatch handler
+- Wired `onSwapPanes` via `runCommand("layout.swapPanes")`
+- Removed `disabled: true` from menu, added `Ctrl+U` shortcut hint
+- 3 new tests: swap URIs, preserve activePanelId, swap selection
 
-## Spec Compliance
+## Test Summary
 
-- **§14.8 Conflict Resolution** — ✅ Complete
-- **§14.13 Settings > Operations** — ✅ Complete
-- **Settings tabs** — General, Appearance, Files, Layout, Operations, Diagnostics, Shortcuts (7 tabs)
-- **Compress/Extract** — Already wired with real IPC (not toast placeholders as previously documented)
-- **Checksum toolbar** — Already wired with real SHA-256 IPC
+- **Before**: 170 tests (26 files)
+- **After**: 175 tests (26 files) — net +5 new tests
+- **New test files**: `filterInput.test.tsx` (2), `toolbarToggle.test.tsx` (2), `swapPanes.test.ts` (3)
 
-## Recommended Next Priorities
+## Remaining P0
 
-1. **P1 — git-intel crate** — Git branch + file status badges (requires `git2` crate)
-2. **P1 — archive-core crate** — Already has backend; test end-to-end compress/extract
-3. **P2 — Embedded terminal panel** — xterm.js + pty spawn
-4. **P2 — Tabs per panel** — Multi-tab UI using existing PanelTabState model
+None — all P0 tasks complete.
+
+## Next Priority
+
+P1 tasks (Tab System UI, Column Resizing, etc.)
