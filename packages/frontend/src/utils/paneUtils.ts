@@ -28,16 +28,13 @@ export function breadcrumbSegments(
   const result: Array<{ label: string; uri: string }> = [];
   let current = "";
 
-  if (path.startsWith("/")) {
-    result.push({ label: "/", uri: "local:///" });
-  }
+  const isAbsolute = path.startsWith("/");
 
   for (const segment of segments) {
-    current =
-      path.startsWith("/") || current ? `${current}/${segment}` : segment;
+    current = isAbsolute || current ? `${current}/${segment}` : segment;
     result.push({
       label: segment,
-      uri: `local://${path.startsWith("/") ? current : `${current}/`}`,
+      uri: `local://${isAbsolute ? current : `${current}/`}`,
     });
   }
 

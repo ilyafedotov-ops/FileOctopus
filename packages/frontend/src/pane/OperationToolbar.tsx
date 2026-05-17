@@ -15,7 +15,6 @@ export interface OperationToolbarProps extends ToolbarDropdownsProps {
 }
 
 export function OperationToolbar({
-  selectedCount,
   canGoBack,
   canGoForward,
   canGoUp,
@@ -40,14 +39,18 @@ export function OperationToolbar({
           {Icons.arrowUp()}
           <span>Up</span>
         </ToolbarButton>
-        <ToolbarButton onClick={onRefresh}>
-          {Icons.refresh()}
-          <span>Refresh</span>
-        </ToolbarButton>
       </div>
       <span className="fo-toolbar-separator" aria-hidden="true" />
-      <ToolbarDropdowns selectedCount={selectedCount} {...dropdownProps} />
-      <span className="fo-toolbar-meta">{selectedCount} selected</span>
+      <input
+        type="search"
+        className="fo-toolbar-search"
+        placeholder="Search…"
+        aria-label="Search files"
+      />
+      <span className="fo-toolbar-separator" aria-hidden="true" />
+      <ToolbarButton onClick={onRefresh}>{Icons.refresh()}</ToolbarButton>
+      <span className="fo-toolbar-separator" aria-hidden="true" />
+      <ToolbarDropdowns {...dropdownProps} />
     </div>
   );
 }
