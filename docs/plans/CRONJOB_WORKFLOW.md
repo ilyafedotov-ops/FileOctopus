@@ -163,11 +163,11 @@ For the chosen slice, write (in run notes or a dated plan under `docs/plans/`):
 ### Files (expected)
 
 - Rust: vfs | fs-core | app-ipc | app-core | desktop-tauri
-- TS: ts-api types + client + commandMap | frontend components
+- TS: ts-api types + `clients/*` + `commandMap.ts` | frontend components
 
 ### IPC / boundary
 
-- [ ] No new command OR new command mirrored: app-ipc, api-reference, types.ts, client.ts, lib.rs
+- [ ] No new command OR new command mirrored: app-ipc, api-reference, types.ts, clients/_.ts, commandMap.ts, commands/_.rs + lib.rs registration
 - [ ] URIs are `local://` only at boundary
 - [ ] Stable error codes from VfsError / FileOperationError
 ```
@@ -214,8 +214,8 @@ For a typical **cross-boundary feature**, implement in this order (each step = T
 
 1. **Domain (`vfs`)** — types, errors, traits if new concepts.
 2. **Executor (`fs-core`)** — plan/execute, conflict, progress.
-3. **IPC (`app-ipc` + `lib.rs` handler)** — DTOs, command, events.
-4. **TS API (`ts-api`)** — types, `commandMap`, client method, tests.
+3. **IPC (`app-ipc` + `commands/<domain>.rs` + `lib.rs` registration)** — DTOs, command, events.
+4. **TS API (`ts-api`)** — types, `commandMap.ts`, method on `clients/<domain>.ts`, tests.
 5. **UI (`frontend`)** — wire control; keyboard shortcut if spec requires.
 6. **Docs** — `api-reference.md`, alignment matrix, micro-spec marked done.
 
@@ -227,7 +227,7 @@ For **frontend-only** features (data already in DTO): start tests in `frontend` 
 - [ ] Mutations go through plan/start jobs where applicable (ADR-0002)
 - [ ] `#[serde(rename_all = "camelCase")]` matches `types.ts`
 - [ ] Error `code` strings stable and documented in api-reference
-- [ ] Event names match `app_ipc` constants and `client.ts` listeners
+- [ ] Event names match `app_ipc` constants and `packages/ts-api/src/events.ts` listeners
 
 ---
 

@@ -67,7 +67,7 @@ pnpm tauri:build
 
 ## Project layout
 
-- `apps/desktop-tauri` — Tauri v2 shell (React + `src-tauri/src/lib.rs` handlers)
+- `apps/desktop-tauri` — Tauri v2 shell (React + `src-tauri/src/commands/*` handlers, thin `lib.rs` entrypoint)
 - `apps/cli` — Placeholder CLI
 - `crates/` — `vfs`, `fs-core`, `jobs`, `app-core`, `app-ipc`, `telemetry`, `config`, `platform`, `test-support`
 - `packages/` — `@fileoctopus/frontend`, `@fileoctopus/ui`, `@fileoctopus/ts-api`

@@ -1,11 +1,13 @@
 # `apps/desktop-tauri` — Tauri v2 desktop shell
 
-> **Doc freshness (2026-05-16):** The handler list in §Rust entry below is **out of date**. The live registry is **39 commands** in `src-tauri/src/lib.rs` (`generate_handler!`). See the [API reference command catalog](../api-reference.md#full-registry-2026-05-16).
+> **Doc freshness (2026-05-17):** Handler bodies live under `src-tauri/src/commands/`; `lib.rs` only boots and registers them. The live command list is in the [API reference catalog](../api-reference.md#full-registry-2026-05-16) (count with `grep` on `generate_handler!` in `lib.rs` if the doc lags).
 
 The desktop shell is the **only place Rust and TypeScript meet at runtime**. It is a Tauri v2 application that boots `AppCore`, registers the IPC command surface, emits asynchronous events, and hosts the React `FileOctopusShell` component as its only WebView content. The trust boundary documented across the rest of this directory is enforced here.
 
 - Frontend entry: `apps/desktop-tauri/src/{main,App,App.css}.tsx`
-- Rust entry: `apps/desktop-tauri/src-tauri/src/lib.rs`
+- Rust entry: `apps/desktop-tauri/src-tauri/src/lib.rs` (thin; ~70 lines)
+- Command modules: `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,folder_size,recursive_search,watch,preferences,autostart,navigation,file_operations,diagnostics}.rs`
+- Shared shell state: `state.rs` (listing sessions, watch handles, metadata jobs), `emit.rs` (directory + job event helpers)
 - Manifest: `apps/desktop-tauri/src-tauri/Cargo.toml` (binary crate `fileoctopus-desktop`)
 - Tauri config: `apps/desktop-tauri/src-tauri/tauri.conf.json`
 - Capabilities: `apps/desktop-tauri/src-tauri/capabilities/default.json`
@@ -30,42 +32,28 @@ A single OS window hosts the WebView; the React app is built by Vite (see `apps/
 
 ## Rust entry (`src-tauri/src/lib.rs`)
 
-The library's public entry is `pub fn run()`, called by the auto-generated `main.rs`:
-
-```rust
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
-    let app_state = AppCore::boot().expect("failed to boot FileOctopus app core");
-
-    tauri::Builder::default()
-        .manage(app_state)
-        .setup(|_app| { telemetry::info("FileOctopus Tauri shell started"); Ok(()) })
-        .invoke_handler(tauri::generate_handler![
-            app_get_info, fs_stat, fs_list_start, plan_file_operation,
-            start_file_operation, cancel_job, get_job_status, list_recent_operations
-        ])
-        .run(tauri::generate_context!())
-        .expect("failed to run FileOctopus");
-}
-```
+The library's public entry is `pub fn run()`, called by the auto-generated `main.rs`. It boots `AppCore`, registers plugin state (`WatchState`, `MetadataJobState`, `ListingRegistry` in `state.rs`), and wires `tauri::generate_handler!` with fully qualified paths such as `commands::fs::fs_stat` and `commands::file_operations::plan_file_operation`. Handler implementations are **not** inlined in `lib.rs` — each domain file under `commands/` owns its `#[tauri::command]` functions.
 
 Boot is fail-fast: if `AppCore::boot()` returns `Err(AppCoreError::…)` the process panics. The user-visible failure mode is a window that never appears; this is intentional — we'd rather a missing telemetry/registry/history surface a crash than a half-initialized app.
 
 ## Registered commands
 
-Eleven handlers, each taking a typed request DTO and (where state is needed) `State<'_, Arc<AppState>>`. They are the entire privileged API:
+The privileged API is the union of every function listed in `generate_handler!` inside `lib.rs`. Grouping by module file:
 
-| Command                                                     | Behaviour                                                                                                                                                                                                                                                                                   |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app_get_info`                                              | Static metadata `{ name, version, buildProfile, commitSha, targetOs }` derived from build/runtime constants.                                                                                                                                                                                |
-| `fs_stat`                                                   | Parses URI, delegates to `state.vfs().stat`, wraps result in `StatResponse`.                                                                                                                                                                                                                |
-| `fs_list_start`                                             | Allocates `ListSessionId` (UUID), spawns two `tauri::async_runtime::spawn` tasks: one drains the mpsc channel and forwards batches as `DIRECTORY_BATCH_EVENT` emissions, one runs `vfs.list(...)` and emits a final error frame if the listing aborts. Returns `{ sessionId }` immediately. |
-| `plan_file_operation`                                       | `TryFrom` the DTO into `FileOperationRequest`, calls `state.operations().plan`, wraps the result. No side effects.                                                                                                                                                                          |
-| `start_file_operation`                                      | `TryFrom` the plan DTO, builds a sink that fans `JobEvent` values out to `app.emit(job_event_name(event), job_event_payload(event))`, calls `operations.start`. Returns the initial `JobSnapshot`.                                                                                          |
-| `cancel_job` / `get_job_status`                             | Look up the job in the runtime, return the current snapshot.                                                                                                                                                                                                                                |
-| `list_recent_operations`                                    | Reads up to `limit` rows from the SQLite history; maps each `OperationHistoryRecord` into an `OperationHistoryRecordDto`.                                                                                                                                                                   |
-| `clear_operation_history`                                   | Deletes terminal history rows while preserving active jobs.                                                                                                                                                                                                                                 |
-| `diagnostics_app_data_health` / `export_diagnostics_bundle` | Report app data/log/schema health and write a redacted diagnostics ZIP.                                                                                                                                                                                                                     |
+| Module file                    | Examples (snake_case)                                                            |
+| ------------------------------ | -------------------------------------------------------------------------------- |
+| `commands/app_info.rs`         | `app_get_info`                                                                   |
+| `commands/fs.rs`               | `fs_stat`, `fs_list_start`, `fs_read_text_file`, `fs_properties`, `fs_reveal`, … |
+| `commands/folder_size.rs`      | `fs_folder_size`, `fs_folder_size_start`                                         |
+| `commands/recursive_search.rs` | `fs_recursive_search`, `fs_recursive_search_start`                               |
+| `commands/watch.rs`            | `fs_watch_start`, `fs_watch_stop`                                                |
+| `commands/preferences.rs`      | `get_preferences`, `set_preference`                                              |
+| `commands/autostart.rs`        | `get_autostart`, `set_autostart`                                                 |
+| `commands/navigation.rs`       | `navigation_record_visit`, `navigation_list_favorites`, …                        |
+| `commands/file_operations.rs`  | `plan_file_operation`, `start_file_operation`, `cancel_job`, …                   |
+| `commands/diagnostics.rs`      | `diagnostics_app_data_health`, `export_diagnostics_bundle`                       |
+
+For dotted IPC names, request/response DTOs, and the authoritative row-by-row registry, see [api-reference.md §Tauri command catalog](../api-reference.md#tauri-command-catalog).
 
 Every handler returns `Result<TResponse, IpcError>`. All conversions from `VfsError` / `FileOperationError` go through the `From` impls in `crates/app-ipc`.
 
@@ -169,7 +157,8 @@ This serialization matters: `ts-api` exports the typed client other packages imp
 The Tauri shell is exercised by integration with the rest of the workspace; there are no Rust unit tests in `src-tauri/src/lib.rs` itself. Coverage comes from:
 
 - `crates/app-ipc/src/lib.rs::tests` — wire format round-trips.
-- `crates/app-core/src/lib.rs::tests` — operation runtime end-to-end.
+- `crates/app-core/src/tests.rs` — operation runtime end-to-end.
+- `apps/desktop-tauri/src-tauri/src/tests.rs` — shell-level tests where present.
 - `packages/ts-api/tests/client.test.ts` — client-side command map and event handlers.
 - `packages/frontend/tests/` — Vitest renders of the shell against a mock transport.
 

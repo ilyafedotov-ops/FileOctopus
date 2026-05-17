@@ -1,6 +1,6 @@
 # FileOctopus — Project Status & Documentation Alignment
 
-**As of:** 2026-05-16  
+**As of:** 2026-05-17  
 **Purpose:** Single source of truth for how specification documents relate to the running codebase. Use this page before trusting older audit notes, sprint release notes, or inventory “not implemented” lists.
 
 ## Document roles
@@ -118,19 +118,19 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 | [pane-lifecycle.md](../architecture/pane-lifecycle.md)             | **Current**         | `requestId`, `loadState`, 30s timeout                                                           |
 | [modules/\*.md](../architecture/modules/)                          | **Mixed**           | See module table below                                                                          |
 
-| Module doc                                | Status    | Gap                                                                                         |
-| ----------------------------------------- | --------- | ------------------------------------------------------------------------------------------- |
-| [vfs](modules/vfs.md)                     | Current   | —                                                                                           |
-| [fs-core](modules/fs-core.md)             | Current   | —                                                                                           |
-| [jobs](modules/jobs.md)                   | Current   | —                                                                                           |
-| [app-core](modules/app-core.md)           | Current   | —                                                                                           |
-| [app-ipc](modules/app-ipc.md)             | Partial   | DTO count grew; spot-check when adding IPC                                                  |
-| [frontend](modules/frontend.md)           | **Stale** | Component tree, `SortField`, dialogs — banner added; read `packages/frontend/src/index.tsx` |
-| [desktop-tauri](modules/desktop-tauri.md) | **Stale** | Listed 11 commands; **39** registered — banner + registry link                              |
-| [ts-api](modules/ts-api.md)               | **Stale** | `commandMap` example truncated — see `client.ts`                                            |
-| [ui](modules/ui.md)                       | Current   | Small package                                                                               |
-| [telemetry](modules/telemetry.md)         | Current   | —                                                                                           |
-| [test-support](modules/test-support.md)   | Current   | —                                                                                           |
+| Module doc                                | Status      | Gap                                                                                     |
+| ----------------------------------------- | ----------- | --------------------------------------------------------------------------------------- |
+| [vfs](modules/vfs.md)                     | Current     | —                                                                                       |
+| [fs-core](modules/fs-core.md)             | Current     | Reflects `file_ops/` split + helper modules (2026-05-17)                                |
+| [jobs](modules/jobs.md)                   | Current     | —                                                                                       |
+| [app-core](modules/app-core.md)           | Current     | Reflects `runtime` / `history` / `paths` split (2026-05-17)                             |
+| [app-ipc](modules/app-ipc.md)             | Partial     | DTO count grew; spot-check when adding IPC                                              |
+| [frontend](modules/frontend.md)           | **Partial** | Component tree still simplified; `hooks/fileOps/` layout documented (2026-05-17)        |
+| [desktop-tauri](modules/desktop-tauri.md) | Current     | `commands/*` layout; full registry in [api-reference](../architecture/api-reference.md) |
+| [ts-api](modules/ts-api.md)               | Current     | `commandMap.ts`, `clients/*`, `transports/*` (2026-05-17)                               |
+| [ui](modules/ui.md)                       | Current     | Small package                                                                           |
+| [telemetry](modules/telemetry.md)         | Current     | —                                                                                       |
+| [test-support](modules/test-support.md)   | Current     | —                                                                                       |
 
 ### ADRs
 

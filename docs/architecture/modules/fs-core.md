@@ -2,11 +2,20 @@
 
 `crates/fs-core` is where FileOctopus actually touches the disk. It supplies the only registered `VfsProvider` today (`LocalFsProvider`) and the planner/executor for every file-mutating operation. Everything privileged that the desktop shell does goes through this crate.
 
-- Source: `crates/fs-core/src/lib.rs`, `crates/fs-core/src/file_ops.rs`
+- Source: `crates/fs-core/src/lib.rs`, `crates/fs-core/src/file_ops/{mod,planning,execution,archive,trash,paths}.rs`, plus `metadata.rs`, `search.rs`, `locations.rs`, `external_open.rs`, `direct_ops.rs`
 - Depends on: `vfs`, `jobs`, `chrono`, `filetime`, `uuid`, `tokio` (for `spawn_blocking`).
-- Used by: `app-core` (which wraps `OperationRuntime` around the planner/executor) and integration tests.
+- Used by: `app-core` (which wraps `OperationRuntime` around the planner/executor), Tauri `commands/*`, and integration tests.
 
-The crate has two logical halves: **read-side** (`lib.rs`, `LocalFsProvider`) and **mutation-side** (`file_ops.rs`).
+The crate splits **read-side** (`lib.rs`, `LocalFsProvider`) from **mutation-side** (`file_ops/`) and **direct helpers** used by IPC commands that are not planned jobs:
+
+| Module          | Role                                                                |
+| --------------- | ------------------------------------------------------------------- |
+| `file_ops/`     | Plan/execute copy, move, rename, trash, mkdir, create-file, archive |
+| `metadata`      | Path properties, folder-size (sync + progress)                      |
+| `search`        | Recursive search (sync + progress)                                  |
+| `locations`     | `standard_locations` enumeration                                    |
+| `external_open` | Open with default app, reveal in file manager                       |
+| `direct_ops`    | `create_empty_file`, `delete_permanently` (non-job mutators)        |
 
 ## `LocalFsProvider`
 
@@ -38,7 +47,9 @@ impl VfsProvider for LocalFsProvider {
 - Each non-final batch carries `is_complete = false`; a final empty-or-partial batch carries `is_complete = true`. Callers can rely on receiving at least one frame.
 - `total_hint` is always `None` for the local provider (we do not pre-walk the directory to count entries).
 
-## `file_ops` — plan and execute
+## `file_ops/` — plan and execute
+
+The `file_ops` module directory re-exports the public API from `mod.rs`. Planning lives in `planning.rs`, execution in `execution.rs`, with `archive.rs`, `trash.rs`, and `paths.rs` for specialised flows.
 
 `file_ops` exports two pure entry points:
 

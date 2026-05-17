@@ -18,14 +18,14 @@
 
 ### 7. Implement Compress (archive job)
 
-|                |                                                       | Field | Value |     |
-| -------------- | ----------------------------------------------------- | ----- | ----- | --- |
-| **Status**     | `done`                                                |
-| **Priority**   | P2                                                    |
-| **Spec**       | MVP engineering spec §3.1 archives; UI Design Spec §4 |
-| **Acceptance** | **MVP-ARC-001** (create archive)                      |
-| **Micro-spec** | Reuse zip 0.6, add to existing lib.rs handlers        |
-| **Commit**     | `6aad4e5`                                             |
+|                |                                                                      | Field | Value |     |
+| -------------- | -------------------------------------------------------------------- | ----- | ----- | --- |
+| **Status**     | `done`                                                               |
+| **Priority**   | P2                                                                   |
+| **Spec**       | MVP engineering spec §3.1 archives; UI Design Spec §4                |
+| **Acceptance** | **MVP-ARC-001** (create archive)                                     |
+| **Micro-spec** | Reuse zip 0.6, add handler in `commands/*.rs` + register in `lib.rs` |
+| **Commit**     | `6aad4e5`                                                            |
 
 **Description:** Replace "coming soon" toast with planned archive job. Wire toolbar + context menu.
 
@@ -34,7 +34,7 @@
 - Rust: 12 tests — compress single/multi/dir, extract simple/subdir/roundtrip, path traversal rejection, invalid URIs
 - TS + frontend: client method, toolbar handler, context menu handler
 
-**Files:** `crates/app-ipc/src/lib.rs`, `apps/desktop-tauri/src-tauri/src/lib.rs`, `packages/ts-api/`, `packages/frontend/src/`
+**Files:** `crates/app-ipc/src/lib.rs`, `apps/desktop-tauri/src-tauri/src/commands/`, `packages/ts-api/src/{clients,commandMap}.ts`, `packages/frontend/src/`
 
 **IPC / boundary:** CreateArchiveRequest/Response + ExtractArchiveRequest/Response — full mirror ✅
 

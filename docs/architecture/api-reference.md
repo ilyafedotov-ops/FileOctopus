@@ -2,8 +2,8 @@
 
 This document is the authoritative description of FileOctopus's runtime API surface: the Tauri IPC commands, the events streamed back from Rust, the `@fileoctopus/ts-api` client that wraps them, and the domain types that flow across the boundary. It is the contract every change to filesystem behaviour must respect (see ADR-0002 and ADR-0003).
 
-- Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/lib.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/fs-core/src/file_ops.rs`.
-- Source of truth (TypeScript): `packages/ts-api/src/client.ts`, `packages/ts-api/src/types.ts`.
+- Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
+- Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
 
 When you change any of the above, update the rest as a unit (see [Maintenance](#maintenance)).
 
@@ -40,7 +40,7 @@ Each IPC payload is a `serde(rename_all = "camelCase")` DTO defined in `crates/a
 
 ## Tauri command catalog
 
-The desktop shell registers these commands in `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!`). Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/client.ts` for the full map.
+The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!` with `commands::*` paths). Handler bodies live in `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,folder_size,recursive_search,watch,preferences,autostart,navigation,file_operations,diagnostics}.rs`. Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/commandMap.ts` and the per-domain methods in `packages/ts-api/src/clients/*.ts`.
 
 ### Full registry (2026-05-16)
 
@@ -213,7 +213,7 @@ Rust pushes events via `app.emit(name, payload)`. The TS client wraps them in `t
 | `fileOperation:job:failed` (`JOB_FAILED_EVENT`)       | `JobFailedEvent`         | Operation executor        |
 | `fileOperation:job:cancelled` (`JOB_CANCELLED_EVENT`) | `JobCancelledEvent`      | Operation executor        |
 
-Names are exported as constants from both sides (`crates/app-ipc/src/lib.rs` and `packages/ts-api/src/client.ts`). The Rust enum-to-name mapping lives in `app_ipc::job_event_name`; the payload serializer is `app_ipc::job_event_payload`.
+Names are exported as constants from both sides (`crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts`, re-exported from the package root). The Rust enum-to-name mapping lives in `app_ipc::job_event_name`; the payload serializer is `app_ipc::job_event_payload`.
 
 ### `DirectoryBatchEventDto`
 
@@ -404,7 +404,7 @@ type FileOperationKind =
   | "createDirectory";
 ```
 
-Shape rules enforced by the planner (`crates/fs-core/src/file_ops.rs::validate_request_shape`):
+Shape rules enforced by the planner (`crates/fs-core/src/file_ops/mod.rs` — `validate_request_shape`):
 
 | Kind              | Sources   | Destination       | `newName`                     |
 | ----------------- | --------- | ----------------- | ----------------------------- |
@@ -625,12 +625,12 @@ When you add or change anything in the API:
 
 1. **Domain types** — start in `crates/vfs` (or `crates/jobs` for job-level types). Update `code()` if a new error variant.
 2. **DTOs** — add the camelCase DTO in `crates/app-ipc` with `From` / `TryFrom` to the domain type, and matching tests.
-3. **Tauri handler** — add the function in `apps/desktop-tauri/src-tauri/src/lib.rs` and register it in `tauri::generate_handler!`.
+3. **Tauri handler** — add the function in the matching `apps/desktop-tauri/src-tauri/src/commands/<domain>.rs` and register it in `tauri::generate_handler!` inside `lib.rs` (use the `commands::…::handler_name` path).
 4. **TS types** — mirror the DTO in `packages/ts-api/src/types.ts`.
-5. **TS client** — add the method on the right client class in `packages/ts-api/src/client.ts` and update `commandMap` with the dotted-to-snake-case mapping. Wrap the call in `normalizeIpcError`.
+5. **TS client** — add the method on the right class in `packages/ts-api/src/clients/<domain>.ts`, add the dotted-to-snake-case row in `packages/ts-api/src/commandMap.ts`, and wrap the call in `normalizeIpcError` from `packages/ts-api/src/normalizeError.ts`.
 6. **This document** — add the command to the [catalog](#tauri-command-catalog), document any new event, and extend the [error model](#error-model) for any new code.
 7. **Tests** — add Rust unit tests in the crate, IPC roundtrip tests in `crates/app-ipc`, and a Vitest test in `packages/ts-api/tests` for the new client method.
 
-For new event channels, also pick the constant name in `crates/app-ipc/src/lib.rs` first, then mirror it in `packages/ts-api/src/client.ts`. Update `job_event_name` / `job_event_payload` if the event is part of the job event enum.
+For new event channels, also pick the constant name in `crates/app-ipc/src/lib.rs` first, then mirror it in `packages/ts-api/src/events.ts` (re-exported from `@fileoctopus/ts-api`). Update `job_event_name` / `job_event_payload` if the event is part of the job event enum.
 
 Boundary changes must be called out in the PR template's "Security impact" section per `AGENTS.md`.

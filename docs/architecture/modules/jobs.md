@@ -81,7 +81,7 @@ impl CancellationToken {
 ## Wire-format invariants
 
 - Event-name strings (`fileOperation:job:*`) are owned by `crates/app-ipc`. Do **not** hardcode them in this crate.
-- New event variants must be added simultaneously here, in `app_ipc::job_event_name`, in `packages/ts-api/src/client.ts`, and in [api-reference.md](../api-reference.md).
+- New event variants must be added simultaneously here, in `app_ipc::job_event_name`, in `packages/ts-api/src/events.ts`, and in [api-reference.md](../api-reference.md).
 - New `JobStatus` values that can actually be emitted must propagate to `OperationHistoryRepository::status_string` so the SQLite row stays consistent.
 
 ## Tests

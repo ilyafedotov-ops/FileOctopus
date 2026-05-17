@@ -4,7 +4,7 @@
 
 `packages/frontend` is the **product UI**: the two-panel file manager, the operation toolbar, the job activity panel, and the operation dialogs. It is a pure React 19 component package — no application bootstrap, no Tauri import. The desktop shell mounts it; the React build can also run in a plain browser against the preview transport in `@fileoctopus/ts-api`.
 
-- Source: `packages/frontend/src/{index,panelStore}.{tsx,ts}`
+- Source: `packages/frontend/src/{index,panelStore}.{tsx,ts}`, `packages/frontend/src/hooks/useFileOpHandlers.ts`, `packages/frontend/src/hooks/fileOps/*.ts`
 - Depends on: `@fileoctopus/ts-api`, `@fileoctopus/ui`, `react` (peer).
 - Used by: `apps/desktop-tauri/src/App.tsx`.
 
@@ -54,6 +54,21 @@ The shell owns:
 - `dialog` (`OperationDialog | null`) — the active modal.
 
 These are all `useState` / `useReducer` locals; there is no global store. Persistence between sessions, if needed, would land in `panelStore` (currently `homeUri()` reads a `localStorage` key as a hint).
+
+## File-operation handlers
+
+`hooks/useFileOpHandlers.ts` is a thin facade that composes domain hooks from `hooks/fileOps/`:
+
+| Hook file                 | Responsibility                                          |
+| ------------------------- | ------------------------------------------------------- |
+| `useOperationCore.ts`     | Shared dialog state, plan/start wiring, error surfacing |
+| `useClipboardHandlers.ts` | Copy/cut/paste clipboard flows                          |
+| `useMutationHandlers.ts`  | Create, rename, delete/trash                            |
+| `useTransferHandlers.ts`  | Copy/move dialog submit                                 |
+| `useMetadataHandlers.ts`  | Properties, hash, folder size                           |
+| `useArchiveHandlers.ts`   | Archive extract/compress                                |
+
+`FileOctopusShell` imports the composed hook once; callers do not need to know about the split.
 
 ## Lifecycle and effects
 

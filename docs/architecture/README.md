@@ -2,7 +2,7 @@
 
 Architecture notes for the FileOctopus MVP. Start with the API reference for the runtime contract, then drop into the per-module docs for implementation detail.
 
-- [Project status & doc alignment](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md) — what is implemented vs MVP/UI/Menu specs (updated 2026-05-16).
+- [Project status & doc alignment](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md) — what is implemented vs MVP/UI/Menu specs (updated 2026-05-17).
 - [API reference](api-reference.md) — Tauri commands, event channels, the `@fileoctopus/ts-api` client, domain types, and the error catalog.
 
 ## Per-module architecture
@@ -10,7 +10,7 @@ Architecture notes for the FileOctopus MVP. Start with the API reference for the
 Rust workspace (`crates/`):
 
 - [`vfs`](modules/vfs.md) — Domain types, `ResourceUri`, `FileEntry`, `VfsProvider` trait, error taxonomy.
-- [`fs-core`](modules/fs-core.md) — `LocalFsProvider` and the `file_ops` planner/executor.
+- [`fs-core`](modules/fs-core.md) — `LocalFsProvider`, `file_ops/` planner/executor, and IPC helper modules (metadata, search, …).
 - [`jobs`](modules/jobs.md) — `JobId`, `JobSnapshot`, `JobEvent`, `CancellationToken`.
 - [`app-core`](modules/app-core.md) — `AppCore::boot`, `OperationRuntime`, SQLite operation history.
 - [`app-ipc`](modules/app-ipc.md) — IPC DTOs, event-name constants, error mapping.
@@ -19,7 +19,7 @@ Rust workspace (`crates/`):
 
 Desktop shell:
 
-- [`apps/desktop-tauri`](modules/desktop-tauri.md) — Tauri v2 shell, command registration, event emission, capabilities.
+- [`apps/desktop-tauri`](modules/desktop-tauri.md) — Tauri v2 shell (`commands/*`, thin `lib.rs`), event emission, capabilities.
 
 TypeScript workspace (`packages/`):
 

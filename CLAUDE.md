@@ -42,7 +42,7 @@ bash scripts/sprint-2-manual-qa.sh [root]
 
 ## Architecture
 
-The trust boundary is the IPC layer. Read these together to understand a feature: the domain types in `crates/vfs`, the runtime in `crates/app-core`, the DTOs in `crates/app-ipc`, the Tauri command handlers in `apps/desktop-tauri/src-tauri/src/lib.rs`, and the TS client in `packages/ts-api/src/client.ts`.
+The trust boundary is the IPC layer. Read these together to understand a feature: the domain types in `crates/vfs`, the runtime in `crates/app-core`, the DTOs in `crates/app-ipc`, the Tauri command handlers in `apps/desktop-tauri/src-tauri/src/commands/*.rs` (registered from `lib.rs`), and the TS client in `packages/ts-api` (`clients/*`, `commandMap.ts`, facade `client.ts`).
 
 ### Rust workspace (`crates/`)
 

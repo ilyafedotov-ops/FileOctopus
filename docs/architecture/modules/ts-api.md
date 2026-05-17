@@ -2,7 +2,9 @@
 
 `packages/ts-api` is the **only** package that talks to Tauri. Everything else in the frontend imports from `@fileoctopus/ts-api`, never from `@tauri-apps/api` directly. This keeps the IPC surface small, typed, and swappable.
 
-- Source: `packages/ts-api/src/{client,types,index}.ts`
+> **Doc freshness (2026-05-17):** `commandMap` and per-domain clients are split out of the monolithic `client.ts`; the public import path is unchanged.
+
+- Source: `packages/ts-api/src/{client,types,index,commandMap,events,normalizeError}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`
 - Depends on: `@tauri-apps/api` (peer/dev only at the import path).
 - Used by: `@fileoctopus/frontend`, tests in `packages/ts-api/tests/client.test.ts`.
 
@@ -20,20 +22,25 @@ The shape is documented in [api-reference.md](../api-reference.md) §TypeScript 
 ## Architecture
 
 ```
-FileOctopusClient ── fs ─────► FsClient ────────────┐
-                  │                                 │
-                  ├ fileOperations ► FileOperationsClient ─►
-                  │                                 │   transport.invoke / transport.listen
-                  ├ jobs ─────► JobsClient ─────────┤
-                  │                                 │
-                  └ operationHistory ► OperationHistoryClient ─┘
+FileOctopusClient (client.ts)
+ ├── fs ────────────────► clients/fs.ts
+ ├── fileOperations ────► clients/fileOperations.ts
+ ├── jobs ──────────────► clients/jobs.ts
+ ├── operationHistory ──► clients/history.ts
+ ├── diagnostics ───────► clients/diagnostics.ts
+ ├── preferences ───────► clients/preferences.ts
+ ├── navigation ────────► clients/navigation.ts
+ └── autostart ─────────► clients/autostart.ts
+              │
+              ▼
+        IpcTransport ◄── transports/tauri.ts (uses commandMap.ts)
+                      └── transports/preview.ts
 
-                                  IpcTransport
-                                   ▲       ▲
-                  createTauriTransport()   createPreviewTransport()
+events.ts — channel name constants (mirrors app-ipc)
+normalizeError.ts — normalizeIpcError / isIpcError
 ```
 
-`FileOctopusClient` owns the transport and four sub-clients. Each sub-client is a thin wrapper that calls `transport.invoke<TResponse>(command, { request })` and normalizes errors. Event subscriptions go through `transport.listen` (optional on the interface).
+`FileOctopusClient` owns the transport and one sub-client per IPC domain. Each sub-client calls `transport.invoke<TResponse>(dottedName, { request })` and normalizes errors. Event subscriptions go through `transport.listen` (optional on the interface); channel strings come from `events.ts`.
 
 ## `IpcTransport`
 
@@ -59,16 +66,17 @@ Two ship in-box:
 
 ## `commandMap`
 
-Dotted method names → snake_case Tauri command names. **Source of truth:** `packages/ts-api/src/client.ts` (`commandMap` constant, ~40 entries including `fs.read_text_file`, `fs.watch_start`, `navigation.*`, `preferences.*`, `autostart.*`). The [API reference](../api-reference.md#full-registry-2026-05-16) lists the full registry.
+Dotted method names → snake_case Tauri command names. **Source of truth:** `packages/ts-api/src/commandMap.ts` (imported by `transports/tauri.ts`). The [API reference](../api-reference.md#full-registry-2026-05-16) lists the full registry.
 
-This map is the **single source of truth** for the wire-level command name when using `createTauriTransport()`. The sub-clients call `transport.invoke("fileOperation.plan", { request })`; the Tauri transport translates that to `plan_file_operation`. Mock transports in tests can stay agnostic to the snake_case form — they only see the dotted name.
+The Tauri transport translates dotted names before `invoke` — e.g. `fileOperation.plan` → `plan_file_operation`. Mock transports in tests only see the dotted name.
 
 When you add a new Tauri command:
 
 1. Pick a dotted name (`scope.actionName`, camelCase action).
-2. Add a row to `commandMap` mapping it to the snake_case Rust name.
-3. Add a method on the appropriate sub-client (`FsClient`, `FileOperationsClient`, etc.).
-4. Mirror the request/response types in `src/types.ts`.
+2. Add a row to `commandMap.ts` mapping it to the snake_case Rust name.
+3. Add a method on the matching file in `clients/*.ts`.
+4. Mirror the request/response types in `types.ts`.
+5. Register the handler in `src-tauri/src/commands/<domain>.rs` and `lib.rs`'s `generate_handler!`.
 
 ## Sub-clients
 
@@ -107,6 +115,8 @@ Event subscriptions use `requireListen` (a helper that rejects with `unsupported
 
 ## Error normalization
 
+Implemented in `normalizeError.ts` and re-exported from `client.ts` / the package root:
+
 ```ts
 export function normalizeIpcError(error: unknown): IpcError;
 ```
@@ -116,7 +126,7 @@ export function normalizeIpcError(error: unknown): IpcError;
 - Strings become `{ code: "unknown", message: error }`.
 - Everything else becomes `{ code: "unknown", message: "Unexpected IPC error" }`.
 
-`isIpcError(error)` is a small predicate the public `normalizeIpcError` uses internally.
+`isIpcError(error)` lives in the same module.
 
 ## Conventions
 

@@ -54,7 +54,7 @@ pub const JOB_FAILED_EVENT: &str = "fileOperation:job:failed";
 pub const JOB_CANCELLED_EVENT: &str = "fileOperation:job:cancelled";
 ```
 
-These are the **authoritative** names for `app.emit` / `tauri::listen`. The TS client mirrors them in `packages/ts-api/src/client.ts`; never hardcode a new string outside this file.
+These are the **authoritative** names for `app.emit` / `tauri::listen`. The TS client mirrors them in `packages/ts-api/src/events.ts` (re-exported from `@fileoctopus/ts-api`); never hardcode a new string outside `app-ipc` and `events.ts`.
 
 ### Event helpers
 
