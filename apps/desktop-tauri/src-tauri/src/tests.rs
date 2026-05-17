@@ -3,7 +3,7 @@ use std::io::Read;
 use app_core::AppCore;
 use app_ipc::{error_codes, IpcError};
 use config::RecentBucket;
-use fs_core::sprint4;
+use fs_core::{direct_ops, metadata};
 use vfs::{FileKind, ResourceUri};
 
 use crate::commands::app_info::app_get_info;
@@ -138,7 +138,7 @@ fn create_empty_file_creates_empty_file() {
     let uri = local_uri(&file_path);
     let parsed = ResourceUri::parse(&uri).unwrap();
 
-    let entry = sprint4::create_empty_file(&parsed).unwrap();
+    let entry = direct_ops::create_empty_file(&parsed).unwrap();
     assert!(file_path.exists());
     assert_eq!(entry.name, "newfile.txt");
     assert_eq!(entry.size, Some(0));
@@ -154,7 +154,7 @@ fn create_empty_file_rejects_duplicate() {
     let uri = local_uri(&file_path);
     let parsed = ResourceUri::parse(&uri).unwrap();
 
-    let result = sprint4::create_empty_file(&parsed);
+    let result = direct_ops::create_empty_file(&parsed);
     assert!(result.is_err());
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -167,7 +167,7 @@ fn delete_permanently_removes_file() {
     assert!(file_path.exists());
 
     let uri = ResourceUri::parse(&local_uri(&file_path)).unwrap();
-    sprint4::delete_permanently(&[uri]).unwrap();
+    direct_ops::delete_permanently(&[uri]).unwrap();
     assert!(!file_path.exists());
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -180,7 +180,7 @@ fn delete_permanently_removes_directory() {
     std::fs::write(sub.join("inner.txt"), "data").unwrap();
 
     let uri = ResourceUri::parse(&local_uri(&sub)).unwrap();
-    sprint4::delete_permanently(&[uri]).unwrap();
+    direct_ops::delete_permanently(&[uri]).unwrap();
     assert!(!sub.exists());
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -192,7 +192,7 @@ fn fs_properties_returns_metadata() {
     std::fs::write(&file_path, "properties test").unwrap();
 
     let uri = ResourceUri::parse(&local_uri(&file_path)).unwrap();
-    let props = sprint4::path_properties(&uri, false).unwrap();
+    let props = metadata::path_properties(&uri, false).unwrap();
 
     assert_eq!(props.name, "info.txt");
     assert_eq!(props.size, Some(15));
@@ -207,7 +207,7 @@ fn fs_properties_directory_includes_item_count() {
     std::fs::write(dir.join("b.txt"), "b").unwrap();
 
     let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
-    let props = sprint4::path_properties(&uri, true).unwrap();
+    let props = metadata::path_properties(&uri, true).unwrap();
 
     assert_eq!(props.kind, FileKind::Directory);
     assert!(props.item_count.unwrap() >= 2);
@@ -221,7 +221,7 @@ fn fs_folder_size_calculates_total() {
     std::fs::write(dir.join("f2.txt"), "67890").unwrap();
 
     let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
-    let summary = sprint4::calculate_folder_size(&uri).unwrap();
+    let summary = metadata::calculate_folder_size(&uri).unwrap();
 
     assert!(summary.total_size >= 10);
     assert!(summary.file_count >= 2);

@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 
 use app_core::AppCore;
 use app_ipc::IpcError;
-use fs_core::sprint4;
+use fs_core::direct_ops;
 use vfs::ResourceUri;
 
 fn temp_dir(prefix: &str) -> PathBuf {
@@ -87,7 +87,7 @@ fn create_empty_file_in_nonexistent_dir_returns_destination_missing() {
     let nested = dir.join("no-such-dir").join("file.txt");
     let uri = ResourceUri::from_local_path(&nested).unwrap();
 
-    let result = sprint4::create_empty_file(&uri);
+    let result = direct_ops::create_empty_file(&uri);
     assert!(result.is_err());
     let err: IpcError = result.unwrap_err().into();
     assert_eq!(err.code, "destination_missing");
@@ -101,7 +101,7 @@ fn delete_permanently_nonexistent_returns_error() {
     let missing = dir.join("ghost.txt");
     let uri = ResourceUri::from_local_path(&missing).unwrap();
 
-    let result = sprint4::delete_permanently(&[uri]);
+    let result = direct_ops::delete_permanently(&[uri]);
     assert!(result.is_err());
 
     let _ = std::fs::remove_dir_all(dir);
@@ -116,7 +116,7 @@ fn create_empty_file_existing_returns_destination_conflict() {
     std::fs::write(&file_path, "data").unwrap();
 
     let uri = ResourceUri::from_local_path(&file_path).unwrap();
-    let result = sprint4::create_empty_file(&uri);
+    let result = direct_ops::create_empty_file(&uri);
 
     assert!(result.is_err());
     let err: IpcError = result.unwrap_err().into();

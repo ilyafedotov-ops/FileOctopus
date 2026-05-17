@@ -5,7 +5,7 @@ use app_ipc::{
     RECURSIVE_SEARCH_MATCH_EVENT,
 };
 use chrono::Utc;
-use fs_core::sprint4;
+use fs_core::search;
 use jobs::{
     JobCancelledEvent, JobCompletedEvent, JobEvent, JobFailedEvent, JobStartedEvent, JobStatus,
 };
@@ -23,7 +23,7 @@ pub async fn fs_recursive_search(
     request: RecursiveSearchRequest,
 ) -> Result<RecursiveSearchResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
-    let result = sprint4::recursive_search(&uri, &request.query, request.limit.unwrap_or(500))
+    let result = search::recursive_search(&uri, &request.query, request.limit.unwrap_or(500))
         .map_err(IpcError::from)?;
 
     Ok(RecursiveSearchResponse {
@@ -72,7 +72,7 @@ pub async fn fs_recursive_search_start(
         let progress_jobs = jobs.clone();
         let progress_query = query.clone();
         let result =
-            sprint4::recursive_search_with_progress(&uri, &query, limit, &token, |item, result| {
+            search::recursive_search_with_progress(&uri, &query, limit, &token, |item, result| {
                 update_metadata_job_progress(
                     &progress_jobs,
                     &progress_app,
@@ -169,7 +169,7 @@ pub async fn fs_recursive_search_start(
     Ok(RecursiveSearchJobResponse { job })
 }
 
-pub(crate) fn search_match_to_dto(item: sprint4::SearchMatch) -> SearchMatchDto {
+pub(crate) fn search_match_to_dto(item: search::SearchMatch) -> SearchMatchDto {
     SearchMatchDto {
         uri: item.uri,
         parent_uri: item.parent_uri,
@@ -180,7 +180,7 @@ pub(crate) fn search_match_to_dto(item: sprint4::SearchMatch) -> SearchMatchDto 
     }
 }
 
-pub(crate) fn search_result_to_dto(result: sprint4::SearchResult) -> RecursiveSearchResultDto {
+pub(crate) fn search_result_to_dto(result: search::SearchResult) -> RecursiveSearchResultDto {
     RecursiveSearchResultDto {
         matches: result
             .matches

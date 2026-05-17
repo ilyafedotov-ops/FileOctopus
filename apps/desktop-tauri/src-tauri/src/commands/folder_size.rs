@@ -3,7 +3,7 @@ use app_ipc::{
     FolderSizeSummaryDto, IpcError, FOLDER_SIZE_COMPLETED_EVENT,
 };
 use chrono::Utc;
-use fs_core::sprint4;
+use fs_core::metadata;
 use jobs::{
     JobCancelledEvent, JobCompletedEvent, JobEvent, JobFailedEvent, JobStartedEvent, JobStatus,
 };
@@ -19,7 +19,7 @@ use crate::state::{
 #[tauri::command]
 pub async fn fs_folder_size(request: FolderSizeRequest) -> Result<FolderSizeResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
-    let summary = sprint4::calculate_folder_size(&uri).map_err(IpcError::from)?;
+    let summary = metadata::calculate_folder_size(&uri).map_err(IpcError::from)?;
 
     Ok(FolderSizeResponse {
         summary: folder_summary_to_dto(summary),
@@ -63,17 +63,18 @@ pub async fn fs_folder_size_start(
         let thread_job_id = job_id.clone();
         let progress_app = app.clone();
         let progress_jobs = jobs.clone();
-        let result = sprint4::calculate_folder_size_with_progress(&uri, &token, |summary, path| {
-            update_metadata_job_progress(
-                &progress_jobs,
-                &progress_app,
-                &thread_job_id,
-                FileOperationKind::FolderSize,
-                path.to_string_lossy().to_string(),
-                summary.item_count,
-                summary.total_size,
-            );
-        });
+        let result =
+            metadata::calculate_folder_size_with_progress(&uri, &token, |summary, path| {
+                update_metadata_job_progress(
+                    &progress_jobs,
+                    &progress_app,
+                    &thread_job_id,
+                    FileOperationKind::FolderSize,
+                    path.to_string_lossy().to_string(),
+                    summary.item_count,
+                    summary.total_size,
+                );
+            });
 
         match result {
             Ok(summary) => {
@@ -150,7 +151,7 @@ pub async fn fs_folder_size_start(
     Ok(FolderSizeJobResponse { job })
 }
 
-pub(crate) fn folder_summary_to_dto(summary: sprint4::FolderSizeSummary) -> FolderSizeSummaryDto {
+pub(crate) fn folder_summary_to_dto(summary: metadata::FolderSizeSummary) -> FolderSizeSummaryDto {
     FolderSizeSummaryDto {
         total_size: summary.total_size,
         item_count: summary.item_count,

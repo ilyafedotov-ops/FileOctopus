@@ -11,7 +11,7 @@ use app_ipc::{
     ReadTextFileRequest, ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse,
     StatRequest, StatResponse, DIRECTORY_BATCH_EVENT,
 };
-use fs_core::sprint4;
+use fs_core::{external_open, locations, metadata};
 use tauri::{AppHandle, State};
 use vfs::{ListOptions, ListSessionId, ResourceUri, VfsError};
 
@@ -242,7 +242,7 @@ pub async fn fs_list_start(
 #[tauri::command]
 pub async fn fs_standard_locations() -> Result<StandardLocationsResponse, IpcError> {
     Ok(StandardLocationsResponse {
-        locations: sprint4::standard_locations()
+        locations: locations::standard_locations()
             .into_iter()
             .map(|location| StandardLocationDto {
                 id: location.id,
@@ -258,7 +258,7 @@ pub async fn fs_standard_locations() -> Result<StandardLocationsResponse, IpcErr
 pub async fn fs_open_default(request: PathRequest) -> Result<OkResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
 
-    sprint4::open_path_with_default_app(&uri).map_err(IpcError::from)?;
+    external_open::open_path_with_default_app(&uri).map_err(IpcError::from)?;
 
     Ok(OkResponse { ok: true })
 }
@@ -267,7 +267,7 @@ pub async fn fs_open_default(request: PathRequest) -> Result<OkResponse, IpcErro
 pub async fn fs_reveal(request: PathRequest) -> Result<OkResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
 
-    sprint4::reveal_path_in_file_manager(&uri).map_err(IpcError::from)?;
+    external_open::reveal_path_in_file_manager(&uri).map_err(IpcError::from)?;
 
     Ok(OkResponse { ok: true })
 }
@@ -278,7 +278,7 @@ pub async fn fs_properties(
 ) -> Result<PathPropertiesResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
     let properties =
-        sprint4::path_properties(&uri, request.include_folder_summary.unwrap_or(false))
+        metadata::path_properties(&uri, request.include_folder_summary.unwrap_or(false))
             .map_err(IpcError::from)?;
 
     Ok(PathPropertiesResponse {

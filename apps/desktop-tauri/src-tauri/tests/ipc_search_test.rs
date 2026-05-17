@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use fs_core::sprint4::recursive_search;
+use fs_core::search::recursive_search;
 use vfs::ResourceUri;
 
 fn temp_dir(prefix: &str) -> PathBuf {
