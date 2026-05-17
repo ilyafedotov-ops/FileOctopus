@@ -19,6 +19,7 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
     setManageFavoritesOpen: vi.fn(),
     setOperationHistoryOpen: vi.fn(),
     setFilterFocusToken: vi.fn(),
+    activityCollapsed: true,
     setActivityCollapsed: vi.fn(),
     handleCreateFolder: vi.fn(),
     handleCreateFile: vi.fn(),
@@ -50,6 +51,8 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
     toggleStatusBar: vi.fn(),
     toggleToolbar: vi.fn(),
     revealUri: vi.fn(),
+    removeFavorite: vi.fn(),
+    renameFavorite: vi.fn(),
     ...overrides,
   };
 }
@@ -166,5 +169,36 @@ describe("dispatchCommand", () => {
     dispatchCommand("view.toggleStatusBar", baseDeps({ toggleStatusBar }));
 
     expect(toggleStatusBar).toHaveBeenCalled();
+  });
+
+  it("expands activity rail when collapsed", () => {
+    const setActivityCollapsed = vi.fn();
+    const markActivityPinnedOpen = vi.fn();
+    const updatePreference = vi.fn();
+    dispatchCommand(
+      "view.toggleActivity",
+      baseDeps({
+        activityCollapsed: true,
+        setActivityCollapsed,
+        markActivityPinnedOpen,
+        updatePreference,
+      }),
+    );
+
+    expect(markActivityPinnedOpen).toHaveBeenCalled();
+    expect(setActivityCollapsed).toHaveBeenCalledWith(false);
+    expect(updatePreference).toHaveBeenCalledWith(
+      "activityPanelVisible",
+      "true",
+    );
+  });
+
+  it("removes favorite by id", () => {
+    const removeFavorite = vi.fn();
+    dispatchCommand("nav.removeFavorite", baseDeps({ removeFavorite }), {
+      favoriteId: 3,
+    });
+
+    expect(removeFavorite).toHaveBeenCalledWith(3);
   });
 });

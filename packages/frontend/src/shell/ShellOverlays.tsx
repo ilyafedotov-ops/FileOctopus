@@ -61,26 +61,17 @@ export function ShellOverlays() {
             targetUri: uri,
           })
         }
-        onRemoveFavorite={(id) => {
-          void ctx.client.navigation
-            .removeFavorite({ id })
-            .then(() => ctx.refreshNavigation())
-            .catch((error) =>
-              ctx.setOperationError(
-                error instanceof Error ? error.message : String(error),
-              ),
-            );
-        }}
-        onRenameFavorite={(id, label) => {
-          void ctx.client.navigation
-            .renameFavorite({ id, label })
-            .then(() => ctx.refreshNavigation())
-            .catch((error) =>
-              ctx.setOperationError(
-                error instanceof Error ? error.message : String(error),
-              ),
-            );
-        }}
+        onRemoveFavorite={(id) =>
+          ctx.handleCommandSelect("nav.removeFavorite", undefined, {
+            favoriteId: id,
+          })
+        }
+        onRenameFavorite={(id, label) =>
+          ctx.handleCommandSelect("nav.renameFavorite", undefined, {
+            favoriteId: id,
+            preferenceValue: label,
+          })
+        }
         setPreviewOpen={ctx.setPreviewOpen}
         setDialog={ctx.setDialog}
         setDiagnosticsDestination={ctx.setDiagnosticsDestination}
@@ -111,7 +102,6 @@ export function ShellOverlays() {
         openExternal={ctx.openExternal}
         navigatePanel={ctx.navigatePanel}
         navigateOtherPane={ctx.navigateOtherPane}
-        addFavorite={ctx.addFavorite}
       />
     </>
   );

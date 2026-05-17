@@ -38,6 +38,8 @@ export type CommandId =
   | "nav.addFavorite"
   | "nav.openUri"
   | "nav.revealUri"
+  | "nav.removeFavorite"
+  | "nav.renameFavorite"
   | "view.details"
   | "view.list"
   | "view.compact"

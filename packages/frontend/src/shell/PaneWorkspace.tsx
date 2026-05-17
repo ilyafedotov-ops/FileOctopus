@@ -1,4 +1,3 @@
-import { normalizeIpcError } from "@fileoctopus/ts-api";
 import { Sidebar } from "../sidebar/Sidebar";
 import { FilePanel } from "../pane/FilePanel";
 import { ActivityPanel } from "../jobs/ActivityPanel";
@@ -39,22 +38,17 @@ export function PaneWorkspace() {
                 },
               )
             }
-            onRemoveFavorite={(id) => {
-              void ctx.client.navigation
-                .removeFavorite({ id })
-                .then(() => ctx.refreshNavigation())
-                .catch((error) =>
-                  ctx.setOperationError(normalizeIpcError(error).message),
-                );
-            }}
-            onRenameFavorite={(id, label) => {
-              void ctx.client.navigation
-                .renameFavorite({ id, label })
-                .then(() => ctx.refreshNavigation())
-                .catch((error) =>
-                  ctx.setOperationError(normalizeIpcError(error).message),
-                );
-            }}
+            onRemoveFavorite={(id) =>
+              ctx.handleCommandSelect("nav.removeFavorite", undefined, {
+                favoriteId: id,
+              })
+            }
+            onRenameFavorite={(id, label) =>
+              ctx.handleCommandSelect("nav.renameFavorite", undefined, {
+                favoriteId: id,
+                preferenceValue: label,
+              })
+            }
             onRevealFavorite={(uri) =>
               ctx.handleCommandSelect(
                 "nav.revealUri",
@@ -103,14 +97,7 @@ export function PaneWorkspace() {
         error={ctx.operationError}
         collapsed={ctx.activityCollapsed}
         jobMetrics={ctx.jobMetrics}
-        onToggleCollapsed={() => {
-          const next = !ctx.activityCollapsed;
-          if (!next) {
-            ctx.markActivityPinnedOpen();
-          }
-          ctx.setActivityCollapsed(next);
-          void ctx.updatePreference("activityPanelVisible", String(!next));
-        }}
+        onToggleCollapsed={() => ctx.handleCommandSelect("view.toggleActivity")}
         onCancel={(jobId) => void ctx.client.jobs.cancelJob({ jobId })}
         onRefreshHistory={() => void ctx.refreshHistory()}
         onClearHistory={() => void ctx.clearHistory()}

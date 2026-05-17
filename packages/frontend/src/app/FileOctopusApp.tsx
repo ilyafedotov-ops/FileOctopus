@@ -294,6 +294,7 @@ function FileOctopusAppInner() {
     setManageFavoritesOpen,
     setOperationHistoryOpen,
     setFilterFocusToken,
+    activityCollapsed,
     setActivityCollapsed,
     markActivityPinnedOpen,
     handleCreateFolder,
@@ -337,6 +338,22 @@ function FileOctopusAppInner() {
     revealUri: async (uri) => {
       try {
         await client.fs.revealPathInFileManager({ uri });
+      } catch {
+        /* ignore */
+      }
+    },
+    removeFavorite: async (id) => {
+      try {
+        await client.navigation.removeFavorite({ id });
+        refreshNavigation();
+      } catch {
+        /* ignore */
+      }
+    },
+    renameFavorite: async (id, label) => {
+      try {
+        await client.navigation.renameFavorite({ id, label });
+        refreshNavigation();
       } catch {
         /* ignore */
       }
@@ -590,14 +607,6 @@ function FileOctopusAppInner() {
         const otherPanel: "left" | "right" =
           state.activePanelId === "left" ? "right" : "left";
         navigatePanel(otherPanel, uri);
-      }}
-      addFavorite={async (uri) => {
-        try {
-          const label = uri.split("/").pop() || uri;
-          await client.navigation.addFavorite({ uri, label });
-        } catch {
-          /* ignore */
-        }
       }}
       refreshNavigation={refreshNavigation}
       setOperationError={setOperationError}

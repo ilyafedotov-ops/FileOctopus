@@ -38,6 +38,7 @@ export interface CommandDispatchDeps {
   setManageFavoritesOpen: (open: boolean) => void;
   setOperationHistoryOpen: (open: boolean) => void;
   setFilterFocusToken: Dispatch<SetStateAction<number>>;
+  activityCollapsed: boolean;
   setActivityCollapsed: (collapsed: boolean) => void;
   markActivityPinnedOpen?: () => void;
   handleCreateFolder: (panelId: PanelId) => void;
@@ -81,6 +82,8 @@ export interface CommandDispatchDeps {
     label?: string,
   ) => Promise<void>;
   revealUri: (uri: string) => Promise<void>;
+  removeFavorite: (id: number) => Promise<void>;
+  renameFavorite: (id: number, label: string) => Promise<void>;
   setTheme: (theme: string) => void;
   setDensity: (density: DensityPreference) => void;
   equalizePanes: () => void;
@@ -138,11 +141,15 @@ export function dispatchCommand(
       void deps.updatePreference("paneMode", next);
       return true;
     }
-    case "view.toggleActivity":
-      deps.markActivityPinnedOpen?.();
-      deps.setActivityCollapsed(false);
-      void deps.updatePreference("activityPanelVisible", "true");
+    case "view.toggleActivity": {
+      const next = !deps.activityCollapsed;
+      if (!next) {
+        deps.markActivityPinnedOpen?.();
+      }
+      deps.setActivityCollapsed(next);
+      void deps.updatePreference("activityPanelVisible", String(!next));
       return true;
+    }
     case "view.toggleStatusBar":
       deps.toggleStatusBar();
       return true;
@@ -308,6 +315,23 @@ export function dispatchCommand(
         options?.preferenceValue ?? uri.split("/").filter(Boolean).pop() ?? uri;
       void deps.addFavorite(panelId, uri, label);
       return true;
+    }
+    case "nav.removeFavorite": {
+      const id = options?.favoriteId;
+      if (id != null) {
+        void deps.removeFavorite(id);
+        return true;
+      }
+      return false;
+    }
+    case "nav.renameFavorite": {
+      const id = options?.favoriteId;
+      const label = options?.preferenceValue?.trim();
+      if (id != null && label) {
+        void deps.renameFavorite(id, label);
+        return true;
+      }
+      return false;
     }
     case "op.copyTo":
       deps.handleCopyOrMove(panelId, "copy");

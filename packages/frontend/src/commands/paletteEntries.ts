@@ -23,6 +23,8 @@ const PALETTE_EXCLUDED = new Set<string>([
   "layout.equalizePanes",
   "nav.openUri",
   "nav.revealUri",
+  "nav.removeFavorite",
+  "nav.renameFavorite",
 ]);
 
 const PALETTE_LEGACY: CommandEntry[] = [

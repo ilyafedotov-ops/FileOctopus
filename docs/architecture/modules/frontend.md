@@ -122,9 +122,9 @@ User actions are converging on a single **command id** vocabulary (`commands/typ
 
 **Wired through dispatch today:** app modals; navigation (back/forward/up/home/refresh/go-to/manage favorites, `nav.openUri` for sidebar/go-to dialogs, `nav.revealUri`, `nav.addFavorite` with optional `targetUri`); view modes and toggles (sidebar, dual pane, hidden files, activity rail, status bar, toolbar); sort (`view.sort` + direction); theme/density preferences; layout (`layout.switchPane`, `layout.equalizePanes`); create/copy/cut/paste/trash/delete; properties, compress/extract/checksum/terminal/size/starred; open/reveal/open-default; clipboard and selection; **pane toolbar**, **context menu** (`runPanelCommand`), **menu bar**, and **global keyboard** shortcuts.
 
-**Still direct handlers (not dispatch):** path/recursive-search focus and text preview (Space); context-menu open/reveal with explicit `FileEntryDto` when entry is known; breadcrumb “add favorite” with arbitrary path string; sidebar favorite rename/remove (IPC by favorite id); drag-and-drop; diagnostics export; activity rail collapse (preference write); sidebar width / split ratio resizers.
+**Still direct handlers (not dispatch):** path/recursive-search focus and text preview (Space); context-menu open/reveal with explicit `FileEntryDto` when entry is known; drag-and-drop; diagnostics export; sidebar width / split ratio resizers; job cancel / history refresh in the activity rail.
 
-When adding a user-visible action, prefer: register in `registry.ts` → implement in `dispatch.ts` → bind in `bindings.ts` / menu / palette / shortcuts. Pass pane-specific data via `CommandInvokeContext` (`entry`, `targetUri`, `sortField`, `preferenceValue`).
+When adding a user-visible action, prefer: register in `registry.ts` → implement in `dispatch.ts` → bind in `bindings.ts` / menu / palette / shortcuts. Pass pane-specific data via `CommandInvokeContext` (`entry`, `targetUri`, `favoriteId`, `sortField`, `preferenceValue`).
 
 ## State
 

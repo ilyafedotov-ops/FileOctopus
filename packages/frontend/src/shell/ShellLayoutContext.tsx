@@ -150,7 +150,6 @@ export interface ShellLayoutContextValue {
   toggleHidden: (panelId: PanelId) => void;
   navigatePanel: (panelId: PanelId, uri: string) => void;
   navigateOtherPane: (uri: string) => void;
-  addFavorite: (uri: string) => Promise<void>;
   refreshNavigation: () => Promise<void>;
   setOperationError: (error: string | null) => void;
   applySplitRatioFn: (ratio: number) => number;

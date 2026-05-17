@@ -28,7 +28,6 @@ export interface ContextMenuOverlayProps {
   openExternal: (entry: FileEntryDto) => Promise<void>;
   navigatePanel: (panelId: PanelId, uri: string) => void;
   navigateOtherPane: (uri: string) => void;
-  addFavorite: (uri: string) => Promise<void>;
 }
 
 export function ContextMenuOverlay({
@@ -44,7 +43,6 @@ export function ContextMenuOverlay({
   openExternal,
   navigatePanel,
   navigateOtherPane,
-  addFavorite,
 }: ContextMenuOverlayProps) {
   const panelId = menu?.panelId ?? "left";
   const contextEntry = menu?.entry ?? undefined;
@@ -114,13 +112,13 @@ export function ContextMenuOverlay({
         void navigator.clipboard.writeText(path);
       }}
       onRevealBreadcrumb={() => undefined}
-      onAddFavorite={(uri) => {
-        if (menu?.entry) {
-          runPanelCommand(panelId, "nav.addFavorite", menu.entry);
-          return;
-        }
-        void addFavorite(uri);
-      }}
+      onAddFavorite={(uri) =>
+        runPanelCommand(
+          panelId,
+          "nav.addFavorite",
+          menu?.entry ?? { targetUri: uri },
+        )
+      }
     />
   );
 }

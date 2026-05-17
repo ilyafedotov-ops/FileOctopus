@@ -62,6 +62,16 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     group: "navigation",
   },
   {
+    id: "nav.removeFavorite",
+    label: "Remove Favorite",
+    group: "navigation",
+  },
+  {
+    id: "nav.renameFavorite",
+    label: "Rename Favorite",
+    group: "navigation",
+  },
+  {
     id: "create.folder",
     label: "New Folder",
     group: "creation",
