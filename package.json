@@ -31,7 +31,7 @@
   },
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged",
-    "pre-push": "pnpm typecheck && pnpm format:check && cargo fmt --all --check"
+    "pre-push": "pnpm format:check && pnpm rc:validate"
   },
   "lint-staged": {
     "*.{ts,tsx,css,json,md}": "prettier --write",
