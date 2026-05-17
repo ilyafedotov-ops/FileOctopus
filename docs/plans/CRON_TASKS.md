@@ -57,15 +57,10 @@
 
 ### P0-5: Implement Swap Panes
 
-**Status**: pending
-**Files**: `packages/frontend/src/shell/useMenuBarProps.ts` (`onSwapPanes: () => undefined`)
-**Problem**: Complete no-op. No `layout.swapPanes` dispatch case, no handler, no implementation.
-**Action**:
-
-- Add `layout.swapPanes` dispatch case in FileOctopusApp
-- Implement handler that swaps left/right panel paths and selections
-- Remove `disabled: true` from menu item
-  **Tests**: Unit test: swap panes → left path becomes right path and vice versa.
+**Status**: done ✅ (commit `fb55230`)
+**Files**: `panelStore.ts`, `commands/types.ts`, `commands/dispatch.ts`, `useMenuBarProps.ts`, `MenuBar.tsx`
+**Action**: Added `swapPanes` action to reducer (swaps panels.left ↔ panels.right), `layout.swapPanes` command dispatch, removed `disabled: true` from menu item.
+**Tests**: 3 unit tests: swap URIs, preserve activePanelId, swap selection state.
 
 ---
 
