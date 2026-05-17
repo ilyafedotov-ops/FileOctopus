@@ -12,170 +12,21 @@ exports[`visual regression snapshots > matches the shell chrome structure in dar
     >
       <span
         aria-hidden="true"
-        class="fo-brand-mark"
+        class="fo-window-dot fo-window-dot-red"
+      />
+      <span
+        aria-hidden="true"
+        class="fo-window-dot fo-window-dot-yellow"
+      />
+      <span
+        aria-hidden="true"
+        class="fo-window-dot fo-window-dot-green"
+      />
+      <h1
+        title="FileOctopus"
       >
-        FO
-      </span>
-      <h1>
         FileOctopus
       </h1>
-      <span
-        class="fo-ui-badge fo-ui-badge--default"
-      >
-        Rust-powered
-      </span>
-    </div>
-    <div
-      class="fo-menubar"
-      role="menubar"
-    >
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_7_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              F
-            </u>
-            ile
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_8_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              E
-            </u>
-            dit
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_9_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              V
-            </u>
-            iew
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_a_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              G
-            </u>
-            o
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_b_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              T
-            </u>
-            ools
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_c_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              W
-            </u>
-            indow
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_d_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              H
-            </u>
-            elp
-          </span>
-        </button>
-      </div>
     </div>
     <div
       class="fo-topbar-actions"
@@ -353,170 +204,21 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
     >
       <span
         aria-hidden="true"
-        class="fo-brand-mark"
+        class="fo-window-dot fo-window-dot-red"
+      />
+      <span
+        aria-hidden="true"
+        class="fo-window-dot fo-window-dot-yellow"
+      />
+      <span
+        aria-hidden="true"
+        class="fo-window-dot fo-window-dot-green"
+      />
+      <h1
+        title="FileOctopus"
       >
-        FO
-      </span>
-      <h1>
         FileOctopus
       </h1>
-      <span
-        class="fo-ui-badge fo-ui-badge--default"
-      >
-        Rust-powered
-      </span>
-    </div>
-    <div
-      class="fo-menubar"
-      role="menubar"
-    >
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_0_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              F
-            </u>
-            ile
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_1_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              E
-            </u>
-            dit
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_2_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              V
-            </u>
-            iew
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_3_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              G
-            </u>
-            o
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_4_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              T
-            </u>
-            ools
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_5_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              W
-            </u>
-            indow
-          </span>
-        </button>
-      </div>
-      <div
-        class="fo-ui-dropdown fo-ui-dropdown--start"
-      >
-        <button
-          aria-controls="_r_6_"
-          aria-expanded="false"
-          aria-haspopup="menu"
-          class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm fo-menubar-trigger"
-          type="button"
-        >
-          <span
-            class="fo-menubar-trigger-inner"
-            role="menuitem"
-          >
-            <u>
-              H
-            </u>
-            elp
-          </span>
-        </button>
-      </div>
     </div>
     <div
       class="fo-topbar-actions"

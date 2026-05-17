@@ -1,5 +1,6 @@
 import { StatusBarSection } from "../components/StatusBarSection";
 import { activeTab } from "../panelStore";
+import { localPathFromUri } from "../utils/paneUtils";
 import { useShellLayout } from "./ShellLayoutContext";
 
 export function ShellStatusBar() {
@@ -8,24 +9,19 @@ export function ShellStatusBar() {
   const tab = activeTab(ctx.state.panels[panelId]);
   const selectedCount = tab.selectedIds.length;
   const hasSelection = selectedCount > 0;
-  const canRename = selectedCount === 1;
+  const pathLabel = localPathFromUri(tab.uri);
   const functionItems = [
     {
-      key: "F2",
-      label: "Rename",
-      disabled: !canRename,
-      onClick: () => ctx.triggerInlineRename(panelId),
-    },
-    {
       key: "F3",
-      label: "Open",
+      label: "View",
       disabled: !hasSelection,
-      onClick: () => ctx.handleCommandSelect("op.open", panelId),
+      onClick: () => ctx.setPreviewOpen(true),
     },
     {
       key: "F4",
-      label: "Info",
-      onClick: () => void ctx.handleProperties(panelId, null),
+      label: "Edit",
+      disabled: !hasSelection,
+      onClick: () => ctx.handleCommandSelect("op.openDefault", panelId),
     },
     {
       key: "F5",
@@ -46,19 +42,17 @@ export function ShellStatusBar() {
     },
     {
       key: "F8",
-      label: "Trash",
+      label: "Delete",
       disabled: !hasSelection,
       onClick: () => ctx.handleTrash(panelId),
-    },
-    {
-      key: "⌘I",
-      label: "Properties",
-      onClick: () => void ctx.handleProperties(panelId, null),
     },
   ];
 
   return (
     <div className="fo-shell-status-stack">
+      <div className="fo-bottom-path-rail">
+        <span title={pathLabel}>{pathLabel}</span>
+      </div>
       <div className="fo-commander-bar" aria-label="Function key actions">
         {functionItems.map((item) => (
           <button
@@ -68,8 +62,8 @@ export function ShellStatusBar() {
             disabled={item.disabled}
             onClick={item.onClick}
           >
-            <span className="fo-commander-keycap">{item.key}</span>
             <span className="fo-commander-label">{item.label}</span>
+            <span className="fo-commander-keycap">- {item.key}</span>
           </button>
         ))}
       </div>

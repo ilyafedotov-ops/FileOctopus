@@ -153,20 +153,20 @@ export function FileTable({
             Name
           </ColumnHeader>
           <ColumnHeader
-            field="size"
-            active={sortField === "size"}
-            direction={sortDirection}
-            onSort={onSort}
-          >
-            Size
-          </ColumnHeader>
-          <ColumnHeader
             field="type"
             active={sortField === "type"}
             direction={sortDirection}
             onSort={onSort}
           >
-            Type
+            ext
+          </ColumnHeader>
+          <ColumnHeader
+            field="size"
+            active={sortField === "size"}
+            direction={sortDirection}
+            onSort={onSort}
+          >
+            size
           </ColumnHeader>
           <ColumnHeader
             field="modified"
@@ -174,7 +174,15 @@ export function FileTable({
             direction={sortDirection}
             onSort={onSort}
           >
-            Modified
+            modified
+          </ColumnHeader>
+          <ColumnHeader
+            field="type"
+            active={sortField === "type"}
+            direction={sortDirection}
+            onSort={onSort}
+          >
+            kind
           </ColumnHeader>
         </div>
       ) : null}

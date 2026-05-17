@@ -68,7 +68,7 @@ impl Default for UserPreferences {
             font_scale: "medium".to_string(),
             icon_scale: "medium".to_string(),
             confirm_overwrite: true,
-            sidebar_visible: true,
+            sidebar_visible: false,
             status_bar_visible: true,
             toolbar_visible: true,
             pane_mode: "dual".to_string(),
@@ -612,7 +612,7 @@ mod tests {
         assert_eq!(defaults.font_scale, "medium");
         assert_eq!(defaults.icon_scale, "medium");
         assert!(defaults.confirm_overwrite);
-        assert!(defaults.sidebar_visible);
+        assert!(!defaults.sidebar_visible);
         assert!(defaults.status_bar_visible);
         assert!(defaults.toolbar_visible);
         assert_eq!(defaults.pane_mode, "dual");
@@ -628,7 +628,7 @@ mod tests {
         assert_eq!(rows["fontScale"], "medium");
         assert_eq!(rows["iconScale"], "medium");
         assert_eq!(rows["confirmOverwrite"], "true");
-        assert_eq!(rows["sidebarVisible"], "true");
+        assert_eq!(rows["sidebarVisible"], "false");
         assert_eq!(rows["statusBarVisible"], "true");
         assert_eq!(rows["toolbarVisible"], "true");
         assert_eq!(rows["paneMode"], "dual");
@@ -738,7 +738,7 @@ mod tests {
         assert_eq!(prefs.font_scale, "medium");
         assert_eq!(prefs.icon_scale, "medium");
         assert!(prefs.confirm_overwrite);
-        assert!(prefs.sidebar_visible);
+        assert!(!prefs.sidebar_visible);
         assert_eq!(prefs.pane_mode, "dual");
         assert_eq!(prefs.job_drawer_behavior, "manual");
 

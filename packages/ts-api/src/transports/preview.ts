@@ -38,7 +38,7 @@ export function createPreviewTransport(): IpcTransport {
     fontScale: "medium",
     iconScale: "medium",
     confirmOverwrite: true,
-    sidebarVisible: true,
+    sidebarVisible: false,
     statusBarVisible: true,
     toolbarVisible: true,
     paneMode: "dual",

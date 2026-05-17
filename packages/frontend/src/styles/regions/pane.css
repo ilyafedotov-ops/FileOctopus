@@ -4,13 +4,13 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border-radius: 6px;
+  border-radius: 0;
 }
 
 .fo-panel[data-active="true"],
 .fo-panel-active {
-  border-color: var(--fo-accent);
-  box-shadow: inset 3px 0 0 0 var(--fo-accent);
+  border-color: #9c9c9c;
+  box-shadow: none;
 }
 
 .fo-panel[data-active="false"] {
@@ -25,10 +25,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 20px;
-  padding: 0 2px;
-  background: var(--fo-strip-bg);
-  border-bottom: 1px solid var(--fo-border);
+  min-height: 28px;
+  padding: 0;
+  background: linear-gradient(#dcdcdf, #c9c9cc);
+  border-bottom: 1px solid #adadb0;
   font-size: 12px;
   font-weight: 700;
 }
@@ -39,7 +39,8 @@
   flex-direction: column;
   gap: 3px;
   min-height: 0;
-  padding: 4px;
+  padding: 0;
+  background: #ffffff;
 }
 
 .fo-panel-body > .fo-table-shell {
@@ -80,8 +81,11 @@
   display: flex;
   flex-wrap: nowrap;
   align-items: center;
-  gap: 3px;
+  gap: 4px;
   min-width: 0;
+  min-height: 34px;
+  padding: 3px 8px;
+  background: #ffffff;
   overflow: hidden;
 }
 
@@ -101,13 +105,13 @@
 .fo-toolbar-search {
   flex: 0 1 200px;
   min-width: 120px;
-  min-height: 18px;
-  padding: 0 0.4rem;
-  border: 1px solid var(--fo-control-border);
-  border-radius: 4px;
-  background: var(--fo-control-bg);
-  color: var(--fo-text);
-  font-size: 11px;
+  min-height: 22px;
+  padding: 0 0.5rem;
+  border: 1px solid #cacaca;
+  border-radius: 7px;
+  background: #ffffff;
+  color: #333333;
+  font-size: 12px;
 }
 
 .fo-toolbar-search:focus {
@@ -122,9 +126,9 @@
 
 .fo-toolbar-separator {
   width: 1px;
-  height: 18px;
+  height: 24px;
   margin: 0 2px;
-  background: var(--fo-border);
+  background: #d4d4d4;
   flex-shrink: 0;
 }
 
@@ -253,10 +257,10 @@
 
 .fo-table-shell {
   display: grid;
-  grid-template-rows: 22px minmax(0, 1fr);
+  grid-template-rows: 24px minmax(0, 1fr);
   min-height: 0;
-  border: 1px solid var(--fo-border);
-  background: var(--fo-control-bg);
+  border: 0;
+  background: #ffffff;
 }
 
 .fo-view-list,
@@ -266,6 +270,12 @@
 }
 
 .fo-table-header,
+.fo-view-details .fo-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 52px 78px 126px 110px;
+  min-width: 0;
+}
+
 .fo-row {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) 96px 90px 160px;
@@ -352,17 +362,20 @@
 }
 
 .fo-table-header {
-  border-bottom: 1px solid var(--fo-border);
-  background: var(--fo-subtle-border);
+  border-bottom: 1px solid #cfcfcf;
+  background: #ffffff;
 }
 
 .fo-column-button {
   min-width: 0;
   border-width: 0 1px 0 0;
+  border-color: #d8d8d8;
   text-align: left;
-  padding: 0 7px;
-  font-size: 11px;
-  font-weight: 700;
+  padding: 0 8px;
+  background: #ffffff;
+  color: #333333;
+  font-size: 12px;
+  font-weight: 500;
 }
 
 .fo-column-button:last-child {
@@ -391,9 +404,9 @@
   right: 0;
   height: 20px;
   border: 0;
-  border-bottom: 1px solid var(--fo-subtle-border);
-  background: var(--fo-control-bg);
-  color: var(--fo-text);
+  border-bottom: 0;
+  background: #ffffff;
+  color: #111111;
   padding: 0;
   text-align: left;
 }
@@ -403,7 +416,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 1px 4px;
+  padding: 1px 8px;
+  border-right: 1px solid #e0e0e0;
   font-size: 12px;
 }
 
@@ -435,15 +449,16 @@
 }
 
 .fo-row:hover:not(.fo-row-selected) {
-  background: var(--fo-workspace-bg);
+  background: #f4f8ff;
 }
 
 .fo-row-selected {
-  background: var(--fo-accent-soft);
+  background: #075edb;
+  color: #ffffff;
 }
 
 .fo-row-focused {
-  outline: 1px solid var(--fo-accent);
+  outline: 1px solid #075edb;
   outline-offset: -1px;
   z-index: 1;
 }
@@ -461,7 +476,12 @@
   align-items: center;
   justify-content: center;
   width: 1.25rem;
-  color: var(--fo-muted-text);
+  color: #2b9edb;
+}
+
+.fo-row-selected .fo-row-icon,
+.fo-row-selected .fo-row-text {
+  color: #ffffff;
 }
 
 .fo-row-icon svg {
@@ -637,7 +657,7 @@
 .fo-panel-path-row,
 .fo-panel-filter-row {
   display: flex;
-  gap: 0.5rem;
+  gap: 0;
   align-items: center;
   min-width: 0;
 }
@@ -650,7 +670,7 @@
 .fo-panel-title-row .fo-breadcrumb,
 .fo-panel-title-row .fo-path {
   flex: 1;
-  min-width: 12rem;
+  min-width: 0;
 }
 
 .fo-pane-label {
@@ -735,6 +755,19 @@
   min-height: 16px;
   padding: 0 0.25rem;
   font-size: 12px;
+}
+
+.fo-panel-title-row > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.fo-panel-title-row .fo-breadcrumb {
+  width: 100%;
+  min-height: 28px;
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
 }
 
 .fo-panel-path-row .fo-path {

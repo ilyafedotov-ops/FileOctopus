@@ -2,6 +2,8 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { TitleBar } from "./TitleBar";
 import { useShellLayout } from "./ShellLayoutContext";
+import { activeTab } from "../panelStore";
+import { localPathFromUri } from "../utils/paneUtils";
 
 function getH(sel: string) {
   const el = document.querySelector(sel);
@@ -79,8 +81,9 @@ export function AppShell({
   overlays: ReactNode;
   statusBar: ReactNode;
 }) {
-  const { handleShellKeyDown, menuBarProps, setSettingsOpen } =
+  const { handleShellKeyDown, menuBarProps, setSettingsOpen, state } =
     useShellLayout();
+  const titlePath = localPathFromUri(activeTab(state.panels.left).uri);
 
   return (
     <ErrorBoundary>
@@ -89,6 +92,7 @@ export function AppShell({
           <TitleBar
             onSettings={() => setSettingsOpen(true)}
             menuBarProps={menuBarProps}
+            titlePath={titlePath}
           />
           {toolbar}
           {workspace}

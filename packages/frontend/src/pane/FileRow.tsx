@@ -65,6 +65,8 @@ export function FileRow({
       : entry.extension
         ? entry.extension.toUpperCase()
         : "File";
+  const extensionLabel =
+    entry.kind === "directory" ? "" : (entry.extension ?? "").toLowerCase();
   const showMetadata =
     viewMode === "details" || viewMode === "list" || viewMode === "compact";
 
@@ -139,15 +141,28 @@ export function FileRow({
         )}
       </span>
       {showMetadata ? (
-        <>
-          <span>
-            {entry.kind === "directory" ? "—" : formatSize(entry.size)}
-          </span>
-          <span>{typeLabel}</span>
-          <span title={entry.modifiedAt ?? undefined}>
-            {formatDate(entry.modifiedAt)}
-          </span>
-        </>
+        viewMode === "details" ? (
+          <>
+            <span>{extensionLabel}</span>
+            <span>
+              {entry.kind === "directory" ? "DIR" : formatSize(entry.size)}
+            </span>
+            <span title={entry.modifiedAt ?? undefined}>
+              {formatDate(entry.modifiedAt)}
+            </span>
+            <span>{entry.kind === "directory" ? "folder" : typeLabel}</span>
+          </>
+        ) : (
+          <>
+            <span>
+              {entry.kind === "directory" ? "—" : formatSize(entry.size)}
+            </span>
+            <span>{typeLabel}</span>
+            <span title={entry.modifiedAt ?? undefined}>
+              {formatDate(entry.modifiedAt)}
+            </span>
+          </>
+        )
       ) : null}
     </div>
   );
