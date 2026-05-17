@@ -2,6 +2,8 @@
 
 This document is the authoritative description of FileOctopus's runtime API surface: the Tauri IPC commands, the events streamed back from Rust, the `@fileoctopus/ts-api` client that wraps them, and the domain types that flow across the boundary. It is the contract every change to filesystem behaviour must respect (see ADR-0002 and ADR-0003).
 
+> **Doc freshness (2026-05-17):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (37 handlers). After adding IPC, update this page, `commandMap.ts`, and `clients/*` in the same change.
+
 - Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
 - Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
 
@@ -42,7 +44,9 @@ Each IPC payload is a `serde(rename_all = "camelCase")` DTO defined in `crates/a
 
 The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!` with `commands::*` paths). Handler bodies live in `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,folder_size,recursive_search,watch,preferences,autostart,navigation,file_operations,diagnostics}.rs`. Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/commandMap.ts` and the per-domain methods in `packages/ts-api/src/clients/*.ts`.
 
-### Full registry (2026-05-16)
+### Full registry (2026-05-17)
+
+**37 commands** — verify with `grep` on `generate_handler!` in `apps/desktop-tauri/src-tauri/src/lib.rs` and row count in `packages/ts-api/src/commandMap.ts` if this table drifts.
 
 | Tauri command                 | TS dotted name (typical)      | Client area              |
 | ----------------------------- | ----------------------------- | ------------------------ |

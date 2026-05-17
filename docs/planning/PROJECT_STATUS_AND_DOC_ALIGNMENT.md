@@ -110,13 +110,13 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 
 ### Architecture & API
 
-| Document                                                           | Status              | Notes                                                                                           |
-| ------------------------------------------------------------------ | ------------------- | ----------------------------------------------------------------------------------------------- |
-| [architecture/README.md](../architecture/README.md)                | **Current**         | Links this page                                                                                 |
-| [api-reference.md](../architecture/api-reference.md)               | **Partial**         | Full command registry added; per-command detail sections still sparse for navigation/FS helpers |
-| [mvp-engineering-spec.md](../architecture/mvp-engineering-spec.md) | **Target + status** | MVP scope; §17 historical                                                                       |
-| [pane-lifecycle.md](../architecture/pane-lifecycle.md)             | **Current**         | `requestId`, `loadState`, 30s timeout                                                           |
-| [modules/\*.md](../architecture/modules/)                          | **Mixed**           | See module table below                                                                          |
+| Document                                                           | Status              | Notes                                                                                                   |
+| ------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------- |
+| [architecture/README.md](../architecture/README.md)                | **Current**         | Links this page                                                                                         |
+| [api-reference.md](../architecture/api-reference.md)               | **Partial**         | Full registry (37 cmds, 2026-05-17); per-command detail sections still sparse for navigation/FS helpers |
+| [mvp-engineering-spec.md](../architecture/mvp-engineering-spec.md) | **Target + status** | MVP scope; §17 historical                                                                               |
+| [pane-lifecycle.md](../architecture/pane-lifecycle.md)             | **Current**         | `requestId`, `loadState`, 30s timeout                                                                   |
+| [modules/\*.md](../architecture/modules/)                          | **Mixed**           | See module table below                                                                                  |
 
 | Module doc                                | Status      | Gap                                                                                     |
 | ----------------------------------------- | ----------- | --------------------------------------------------------------------------------------- |
