@@ -684,7 +684,7 @@ describe("FileOctopusShell", () => {
     fireEvent.click(helpTrigger!);
     fireEvent.click(await screen.findByText("Diagnostics…"));
     expect(await screen.findByText("0.1.0")).toBeTruthy();
-    fireEvent.click(screen.getByText("Export bundle"));
+    fireEvent.click(screen.getByRole("button", { name: "Export bundle" }));
 
     await waitFor(() => expect(exportBundle).toHaveBeenCalledTimes(1));
     expect(await screen.findByText("Exported 1 file(s).")).toBeTruthy();
