@@ -42,6 +42,11 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     shortcutWin: "Ctrl+L",
   },
   {
+    id: "nav.manageFavorites",
+    label: "Manage Favorites…",
+    group: "navigation",
+  },
+  {
     id: "create.folder",
     label: "New Folder",
     group: "creation",

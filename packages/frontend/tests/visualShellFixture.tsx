@@ -1,4 +1,4 @@
-import { ActivityPanel } from "../src/activity/ActivityPanel";
+import { ActivityPanel } from "../src/jobs/ActivityPanel";
 import { StatusBar } from "../src/shell/StatusBar";
 import { TitleBar } from "../src/shell/TitleBar";
 
