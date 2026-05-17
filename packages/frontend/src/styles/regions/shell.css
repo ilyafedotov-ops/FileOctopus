@@ -393,3 +393,11 @@
 .fo-status-error {
   color: var(--fo-danger, #f38ba8);
 }
+
+:root[data-status-bar="hidden"] .fo-status {
+  display: none;
+}
+
+:root[data-toolbar-hidden] .fo-operation-toolbar {
+  display: none;
+}

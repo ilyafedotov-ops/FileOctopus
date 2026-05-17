@@ -14,11 +14,6 @@ import {
   type ViewMode,
 } from "../panelStore";
 import type { MenuBarProps } from "../shell/MenuBar";
-import {
-  type DensityPreference,
-  applySplitRatio,
-  applyDensityPreference,
-} from "../applyPreferences";
 import type { FileClipboardState } from "./useFileOpHandlers";
 import type { ToastMessage } from "../components/ToastStack";
 import { viewModeCommandId } from "../commands/viewModeCommands";
@@ -30,17 +25,21 @@ export interface UseMenuBarPropsParams {
   locations: StandardLocationDto[];
   clipboard: FileClipboardState | null;
   preferences: UserPreferencesDto | null;
-  setDensity: (d: DensityPreference) => void;
   navigatePanel: (panelId: PanelId, uri: string) => void;
   refreshNavigation: () => void;
   exportDiagnostics: () => Promise<void>;
   handleRename: (panelId: PanelId) => void;
-  updatePreference: (key: string, value: string) => Promise<void>;
   pushToast: (toast: Omit<ToastMessage, "id">) => void;
   setFilterFocusToken: (fn: (v: number) => number) => void;
   setRecursiveSearchFocusToken: (fn: (v: number) => number) => void;
   setDiagnosticsOpen: (v: boolean) => void;
-  runCommand: (commandId: string) => void;
+  runCommand: (
+    commandId: string,
+    panelId?: PanelId,
+    context?: import("../commands/invokeContext").CommandInvokeArg,
+  ) => void;
+  statusBarVisible: boolean;
+  toolbarVisible: boolean;
 }
 
 export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
@@ -51,17 +50,17 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     locations,
     clipboard,
     preferences,
-    setDensity,
     navigatePanel,
     refreshNavigation,
     exportDiagnostics,
     handleRename,
-    updatePreference,
     pushToast,
     setFilterFocusToken,
     setRecursiveSearchFocusToken,
     setDiagnosticsOpen,
     runCommand,
+    statusBarVisible,
+    toolbarVisible,
   } = params;
 
   const panelId = state.activePanelId;
@@ -114,35 +113,22 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
         viewMode: mode as ViewMode,
       });
     },
-    onSortBy: (field: string) => {
-      dispatch({
-        type: "setSort",
+    onSortBy: (field: string) =>
+      runCommand("view.sort", panelId, { sortField: field as SortField }),
+    onSortDirection: (dir: string) =>
+      runCommand(
+        dir === "ascending" ? "view.sortAscending" : "view.sortDescending",
         panelId,
-        field: field as SortField,
-      });
-    },
-    onSortDirection: (dir: string) => {
-      const ascending = dir === "ascending";
-      if ((tab.sort.direction === "asc") !== ascending) {
-        dispatch({
-          type: "setSort",
-          panelId,
-          field: tab.sort.field,
-        });
-      }
-    },
-    onTheme: (theme: string) => {
-      void updatePreference("theme", theme);
-    },
-    onDensity: (density: string) => {
-      const d = density as DensityPreference;
-      setDensity(d);
-      applyDensityPreference(d);
-      void updatePreference("density", density);
-    },
+      ),
+    onTheme: (theme: string) =>
+      runCommand("preferences.theme", undefined, { preferenceValue: theme }),
+    onDensity: (density: string) =>
+      runCommand("preferences.density", undefined, {
+        preferenceValue: density,
+      }),
     onToggleSidebar: () => runCommand("view.toggleSidebar"),
-    onToggleToolbar: () => undefined,
-    onToggleStatusBar: () => undefined,
+    onToggleToolbar: () => runCommand("view.toggleToolbar"),
+    onToggleStatusBar: () => runCommand("view.toggleStatusBar"),
     onToggleDualPane: () => runCommand("view.toggleDualPane"),
     onToggleHidden: () => runCommand("view.toggleHidden"),
     onRefresh: () => runCommand("nav.refresh"),
@@ -168,16 +154,9 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
       setDiagnosticsOpen(true);
       void exportDiagnostics();
     },
-    onSwitchPane: () =>
-      dispatch({
-        type: "setActivePanel",
-        panelId: panelId === "left" ? "right" : "left",
-      }),
+    onSwitchPane: () => runCommand("layout.switchPane", panelId),
     onSwapPanes: () => undefined,
-    onEqualizePanes: () => {
-      applySplitRatio(0.5);
-      void updatePreference("splitRatio", "0.5");
-    },
+    onEqualizePanes: () => runCommand("layout.equalizePanes"),
     onShortcuts: () => runCommand("app.shortcuts"),
     onDocumentation: () => {
       void globalThis.open(
@@ -199,8 +178,8 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     hasSelection: tab.selectedIds.length > 0,
     hasClipboard: clipboard !== null,
     sidebarVisible: preferences?.sidebarVisible !== false,
-    toolbarVisible: true,
-    statusBarVisible: true,
+    toolbarVisible,
+    statusBarVisible,
     dualPane: preferences?.paneMode !== "single",
     showHidden: tab.showHidden,
   };

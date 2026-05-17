@@ -21,7 +21,7 @@ export interface ContextMenuOverlayProps {
   runPanelCommand: (
     panelId: PanelId,
     commandId: string,
-    entry?: FileEntryDto | null,
+    context?: import("../commands/invokeContext").CommandInvokeArg,
   ) => void;
   activateEntry: (panelId: PanelId, entry: FileEntryDto | null) => void;
   revealEntry: (panelId: PanelId, entry: FileEntryDto | null) => Promise<void>;
@@ -92,7 +92,7 @@ export function ContextMenuOverlay({
         dispatch({ type: "setViewMode", panelId: pid, viewMode });
       }}
       onSort={(pid, field) =>
-        dispatch({ type: "setSort", panelId: pid, field })
+        runPanelCommand(pid, "view.sort", { sortField: field })
       }
       onOpenWithDefaultApp={(pid) => {
         if (menu?.panelId !== pid) return;

@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { FileEntryDto, UserPreferencesDto } from "@fileoctopus/ts-api";
+import type { DensityPreference } from "../applyPreferences";
 import {
   activeTab,
   parentUri,
@@ -9,6 +10,7 @@ import {
   type PanelId,
   type ViewMode,
 } from "../panelStore";
+import type { CommandInvokeContext } from "./invokeContext";
 
 const LEGACY_COMMAND_ALIASES: Record<string, string> = {
   settings: "app.settings",
@@ -17,6 +19,7 @@ const LEGACY_COMMAND_ALIASES: Record<string, string> = {
   up: "nav.up",
   refresh: "nav.refresh",
   "toggle-hidden": "view.toggleHidden",
+  "switch-pane": "layout.switchPane",
 };
 
 export interface CommandDispatchDeps {
@@ -73,16 +76,20 @@ export interface CommandDispatchDeps {
   ) => Promise<void>;
   toggleStarredForEntry: (entry: FileEntryDto) => Promise<void>;
   addFavorite: (panelId: PanelId, uri?: string) => Promise<void>;
+  setTheme: (theme: string) => void;
+  setDensity: (density: DensityPreference) => void;
+  equalizePanes: () => void;
+  toggleStatusBar: () => void;
+  toggleToolbar: () => void;
 }
 
 function resolveCommandId(id: string): string {
   return LEGACY_COMMAND_ALIASES[id] ?? id;
 }
 
-export interface DispatchCommandOptions {
+export type DispatchCommandOptions = CommandInvokeContext & {
   panelId?: PanelId;
-  entry?: FileEntryDto | null;
-}
+};
 
 export function dispatchCommand(
   id: string,
@@ -130,6 +137,61 @@ export function dispatchCommand(
       deps.markActivityPinnedOpen?.();
       deps.setActivityCollapsed(false);
       void deps.updatePreference("activityPanelVisible", "true");
+      return true;
+    case "view.toggleStatusBar":
+      deps.toggleStatusBar();
+      return true;
+    case "view.toggleToolbar":
+      deps.toggleToolbar();
+      return true;
+    case "view.sort":
+      if (options?.sortField) {
+        deps.dispatch({
+          type: "setSort",
+          panelId,
+          field: options.sortField,
+        });
+        return true;
+      }
+      return false;
+    case "view.sortAscending":
+      if (tab.sort.direction !== "asc") {
+        deps.dispatch({
+          type: "setSort",
+          panelId,
+          field: tab.sort.field,
+        });
+      }
+      return true;
+    case "view.sortDescending":
+      if (tab.sort.direction !== "desc") {
+        deps.dispatch({
+          type: "setSort",
+          panelId,
+          field: tab.sort.field,
+        });
+      }
+      return true;
+    case "preferences.theme": {
+      const theme = options?.preferenceValue ?? "system";
+      deps.setTheme(theme);
+      void deps.updatePreference("theme", theme);
+      return true;
+    }
+    case "preferences.density": {
+      const density = options?.preferenceValue ?? "comfortable";
+      deps.setDensity(density as DensityPreference);
+      void deps.updatePreference("density", density);
+      return true;
+    }
+    case "layout.switchPane":
+      deps.dispatch({
+        type: "setActivePanel",
+        panelId: panelId === "left" ? "right" : "left",
+      });
+      return true;
+    case "layout.equalizePanes":
+      deps.equalizePanes();
       return true;
     case "nav.back":
       void deps.goHistory(panelId, "back");

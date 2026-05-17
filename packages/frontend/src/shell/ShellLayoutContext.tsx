@@ -118,7 +118,7 @@ export interface ShellLayoutContextValue {
   handleCommandSelect: (
     id: string,
     panelId?: PanelId,
-    entry?: FileEntryDto | null,
+    context?: import("../commands/invokeContext").CommandInvokeArg,
   ) => void;
   toasts: ToastMessage[];
   setToasts: React.Dispatch<React.SetStateAction<ToastMessage[]>>;

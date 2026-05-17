@@ -35,6 +35,7 @@ import type { ToastMessage } from "../../components/ToastStack";
 import type { FileClipboardState } from "../../hooks/useFileOpHandlers";
 import type { ContextMenuState } from "../../components/ContextMenu";
 import type { SearchState } from "../../pane/PaneFilterBar";
+import { useChromeLayoutStore } from "../../state/chromeStore";
 import { useLayoutFocusStore } from "../../state/layoutStore";
 
 export interface ShellContextValue {
@@ -59,6 +60,10 @@ export interface ShellContextValue {
   renameFocusToken: number;
   filterFocusToken: number;
   recursiveSearchFocusToken: number;
+  statusBarVisible: boolean;
+  toolbarVisible: boolean;
+  toggleStatusBar: () => void;
+  toggleToolbar: () => void;
   diagnosticsDestination: string;
   diagnosticsMessage: string | null;
   exportingDiagnostics: boolean;
@@ -125,6 +130,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [search, setSearch] = useState<SearchState | null>(null);
   const layoutFocus = useLayoutFocusStore();
+  const chrome = useChromeLayoutStore();
   const [diagnosticsDestination, setDiagnosticsDestination] = useState(
     "/tmp/fileoctopus-diagnostics.zip",
   );
@@ -156,6 +162,10 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       renameFocusToken: layoutFocus.renameFocusToken,
       filterFocusToken: layoutFocus.filterFocusToken,
       recursiveSearchFocusToken: layoutFocus.recursiveSearchFocusToken,
+      statusBarVisible: chrome.statusBarVisible,
+      toolbarVisible: chrome.toolbarVisible,
+      toggleStatusBar: chrome.toggleStatusBar,
+      toggleToolbar: chrome.toggleToolbar,
       diagnosticsDestination,
       diagnosticsMessage,
       exportingDiagnostics,
@@ -201,6 +211,10 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       contextMenu,
       search,
       layoutFocus,
+      chrome.statusBarVisible,
+      chrome.toolbarVisible,
+      chrome.toggleStatusBar,
+      chrome.toggleToolbar,
       diagnosticsDestination,
       diagnosticsMessage,
       exportingDiagnostics,

@@ -12,7 +12,16 @@ const GROUP_LABELS: Record<CommandGroup, string> = {
   app: "App",
 };
 
-const PALETTE_EXCLUDED = new Set<string>(["app.commandPalette"]);
+const PALETTE_EXCLUDED = new Set<string>([
+  "app.commandPalette",
+  "view.sort",
+  "view.sortAscending",
+  "view.sortDescending",
+  "preferences.theme",
+  "preferences.density",
+  "layout.switchPane",
+  "layout.equalizePanes",
+]);
 
 const PALETTE_LEGACY: CommandEntry[] = [
   {

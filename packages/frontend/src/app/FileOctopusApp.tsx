@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from "react";
 import { activeTab } from "../panelStore";
-import { applySplitRatio } from "../applyPreferences";
+import { applySplitRatio, applyThemePreference } from "../applyPreferences";
 import { useWorkspaceLayout } from "../hooks/useWorkspaceLayout";
 import { useMenuBarProps } from "../hooks/useMenuBarProps";
 import { useEventHandlers } from "../hooks/useEventHandlers";
@@ -48,6 +48,10 @@ function FileOctopusAppInner() {
     renameFocusToken,
     filterFocusToken,
     recursiveSearchFocusToken,
+    statusBarVisible,
+    toolbarVisible,
+    toggleStatusBar,
+    toggleToolbar,
     diagnosticsDestination,
     diagnosticsMessage,
     exportingDiagnostics,
@@ -325,6 +329,14 @@ function FileOctopusAppInner() {
         /* ignore */
       }
     },
+    setTheme: applyThemePreference,
+    setDensity,
+    equalizePanes: () => {
+      applySplitRatio(0.5);
+      void updatePreference("splitRatio", "0.5");
+    },
+    toggleStatusBar,
+    toggleToolbar,
   });
 
   const handleShellKeyDown = useMemo(
@@ -372,22 +384,25 @@ function FileOctopusAppInner() {
     locations,
     clipboard,
     preferences,
-    setDensity,
     navigatePanel,
     refreshNavigation,
     exportDiagnostics,
     handleRename,
-    updatePreference,
     pushToast,
     setFilterFocusToken,
     setRecursiveSearchFocusToken,
     setDiagnosticsOpen,
     runCommand: handleCommandSelect,
+    statusBarVisible,
+    toolbarVisible,
   });
 
   function makeFilePanelProps(pid: "left" | "right"): FilePanelProps {
     const tab = activeTab(state.panels[pid]);
-    const runPanel = (commandId: string) => handleCommandSelect(commandId, pid);
+    const runPanel = (
+      commandId: string,
+      context?: import("../commands/invokeContext").CommandInvokeArg,
+    ) => handleCommandSelect(commandId, pid, context);
 
     return {
       panelId: pid,
@@ -427,7 +442,7 @@ function FileOctopusAppInner() {
       onSelectAll: () => runPanel("selection.selectAll"),
       onMove: (delta) =>
         dispatch({ type: "moveSelection", panelId: pid, delta }),
-      onSort: (field) => dispatch({ type: "setSort", panelId: pid, field }),
+      onSort: (field) => runPanel("view.sort", { sortField: field }),
       onFilter: (filter) =>
         dispatch({ type: "setFilter", panelId: pid, filter }),
       onRecursiveQuery: (query) =>

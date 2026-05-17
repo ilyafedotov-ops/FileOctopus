@@ -218,6 +218,48 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     group: "view",
   },
   {
+    id: "view.toggleToolbar",
+    label: "Toggle Toolbar",
+    group: "view",
+  },
+  {
+    id: "view.sort",
+    label: "Sort",
+    group: "view",
+  },
+  {
+    id: "view.sortAscending",
+    label: "Sort Ascending",
+    group: "view",
+  },
+  {
+    id: "view.sortDescending",
+    label: "Sort Descending",
+    group: "view",
+  },
+  {
+    id: "preferences.theme",
+    label: "Theme",
+    group: "app",
+  },
+  {
+    id: "preferences.density",
+    label: "Density",
+    group: "app",
+  },
+  {
+    id: "layout.switchPane",
+    label: "Switch Pane",
+    group: "view",
+    shortcutMac: "Tab",
+    shortcutWin: "Tab",
+  },
+  {
+    id: "layout.equalizePanes",
+    label: "Equalize Panes",
+    group: "view",
+  },
+  {
     id: "view.toggleActivity",
     label: "Jobs & Activity",
     group: "view",
