@@ -200,6 +200,7 @@ pub struct AppDataHealth {
 #[derive(Clone)]
 pub struct OperationRuntime {
     jobs: Arc<Mutex<HashMap<String, JobRuntimeState>>>,
+    planned_operations: Arc<Mutex<HashMap<String, FileOperationPlan>>>,
     history: OperationHistoryRepository,
 }
 
@@ -207,6 +208,7 @@ impl OperationRuntime {
     pub fn new(history: OperationHistoryRepository) -> Self {
         Self {
             jobs: Arc::new(Mutex::new(HashMap::new())),
+            planned_operations: Arc::new(Mutex::new(HashMap::new())),
             history,
         }
     }
@@ -216,19 +218,47 @@ impl OperationRuntime {
         request: FileOperationRequest,
     ) -> Result<FileOperationPlan, FileOperationError> {
         let kind = request.kind;
-        let result = plan_file_operation(request);
+        let plan = match plan_file_operation(request) {
+            Ok(plan) => plan,
+            Err(error) => {
+                telemetry::error(&format!(
+                    "operation planning failed kind={kind:?} code={}",
+                    error.code()
+                ));
+                return Err(error);
+            }
+        };
 
-        if let Err(error) = &result {
-            telemetry::error(&format!(
-                "operation planning failed kind={kind:?} code={}",
-                error.code()
-            ));
-        }
+        self.planned_operations
+            .lock()
+            .map_err(|_| FileOperationError::Internal {
+                message: "planned operation registry lock poisoned".to_string(),
+            })?
+            .insert(plan.operation_id.clone(), plan.clone());
 
-        result
+        Ok(plan)
     }
 
-    pub fn start(
+    pub fn start_planned(
+        &self,
+        operation_id: &str,
+        sink: Arc<FileOperationEventSink>,
+    ) -> Result<JobSnapshot, FileOperationError> {
+        let plan = self
+            .planned_operations
+            .lock()
+            .map_err(|_| FileOperationError::Internal {
+                message: "planned operation registry lock poisoned".to_string(),
+            })?
+            .remove(operation_id)
+            .ok_or_else(|| FileOperationError::NotFound {
+                uri: operation_id.to_string(),
+            })?;
+
+        self.start(plan, sink)
+    }
+
+    fn start(
         &self,
         plan: FileOperationPlan,
         sink: Arc<FileOperationEventSink>,
@@ -822,8 +852,8 @@ mod tests {
             })
             .unwrap();
         runtime
-            .start(
-                plan,
+            .start_planned(
+                &plan.operation_id,
                 Arc::new(move |event| {
                     let _ = sender.send(event);
                 }),
@@ -889,8 +919,8 @@ mod tests {
             })
             .unwrap();
         runtime
-            .start(
-                plan,
+            .start_planned(
+                &plan.operation_id,
                 Arc::new(move |event| {
                     let _ = sender.send(event);
                 }),
@@ -937,8 +967,8 @@ mod tests {
             .unwrap();
         let runtime_for_sink = runtime.clone();
         let job = runtime
-            .start(
-                plan,
+            .start_planned(
+                &plan.operation_id,
                 Arc::new(move |event| {
                     if let JobEvent::Progress(progress) = &event {
                         let _ = runtime_for_sink.cancel(progress.job_id.as_str());
@@ -961,5 +991,50 @@ mod tests {
 
         let history = runtime.recent_history(10);
         assert_eq!(history[0].status, "cancelled");
+    }
+
+    #[test]
+    fn planned_operation_is_removed_after_start() {
+        let dir = tempfile::tempdir().unwrap();
+        let history_path = dir.path().join("history.sqlite");
+        let runtime = OperationRuntime::new(OperationHistoryRepository::new(history_path).unwrap());
+        let source = dir.path().join("source.txt");
+        let destination = dir.path().join("dest");
+        let (sender, receiver) = mpsc::channel();
+
+        std::fs::write(&source, b"content").unwrap();
+        std::fs::create_dir(&destination).unwrap();
+
+        let plan = runtime
+            .plan(vfs::FileOperationRequest {
+                kind: vfs::FileOperationKind::Copy,
+                sources: vec![ResourceUri::from_local_path(&source).unwrap()],
+                destination: Some(ResourceUri::from_local_path(&destination).unwrap()),
+                new_name: None,
+                conflict_policy: vfs::ConflictPolicy::Fail,
+            })
+            .unwrap();
+
+        runtime
+            .start_planned(
+                &plan.operation_id,
+                Arc::new(move |event| {
+                    let _ = sender.send(event);
+                }),
+            )
+            .unwrap();
+
+        loop {
+            let event = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+
+            if matches!(event, JobEvent::Completed(_)) {
+                break;
+            }
+        }
+
+        let error = runtime
+            .start_planned(&plan.operation_id, Arc::new(|_| {}))
+            .unwrap_err();
+        assert_eq!(error.code(), "not_found");
     }
 }

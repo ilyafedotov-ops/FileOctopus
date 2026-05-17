@@ -319,16 +319,16 @@ const planFileOperation = vi.fn(
     },
   }),
 );
-const startFileOperation = vi.fn(async ({ plan }) => ({
+const startFileOperation = vi.fn(async ({ operationId }) => ({
   job: {
     jobId: "job-1",
-    operationKind: plan.kind,
+    operationKind: "copy",
     status: "running",
     currentItem: null,
     completedItems: 0,
-    totalItems: plan.totalItems,
+    totalItems: operationId ? 1 : 0,
     completedBytes: 0,
-    totalBytes: plan.totalBytes,
+    totalBytes: 12,
     startedAt: new Date(0).toISOString(),
     updatedAt: new Date(0).toISOString(),
   },

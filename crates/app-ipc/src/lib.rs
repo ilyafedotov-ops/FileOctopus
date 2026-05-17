@@ -560,7 +560,7 @@ pub struct PlanFileOperationResponse {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct StartFileOperationRequest {
-    pub plan: FileOperationPlanDto,
+    pub operation_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

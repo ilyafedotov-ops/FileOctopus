@@ -1342,7 +1342,6 @@ async fn start_file_operation(
 ) -> Result<StartFileOperationResponse, IpcError> {
     telemetry::debug("start_file_operation requested");
 
-    let plan = request.plan.try_into()?;
     let sink_app = app.clone();
     let sink = Arc::new(move |event: JobEvent| {
         let name = job_event_name(&event);
@@ -1351,7 +1350,7 @@ async fn start_file_operation(
     });
     let job = state
         .operations()
-        .start(plan, sink)
+        .start_planned(&request.operation_id, sink)
         .map_err(IpcError::from)?;
 
     Ok(StartFileOperationResponse { job })

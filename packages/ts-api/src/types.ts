@@ -450,7 +450,7 @@ export interface PlanFileOperationResponse {
 }
 
 export interface StartFileOperationRequest {
-  plan: FileOperationPlanDto;
+  operationId: string;
 }
 
 export interface StartFileOperationResponse {

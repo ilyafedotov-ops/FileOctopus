@@ -412,17 +412,7 @@ describe("FileOctopusClient", () => {
       },
     });
     await client.fileOperations.startFileOperation({
-      plan: {
-        operationId: "op-1",
-        kind: "copy",
-        sources: ["local:///tmp/a.txt"],
-        destination: "local:///tmp/dest",
-        conflictPolicy: "fail",
-        items: [],
-        conflicts: [],
-        warnings: [],
-        totalItems: 0,
-      },
+      operationId: "op-1",
     });
     await client.jobs.cancelJob({ jobId: "job-1" });
     await client.jobs.getJobStatus({ jobId: "job-1" });

@@ -113,7 +113,9 @@ export function useFileOpHandlers(deps: UseFileOpHandlersDeps) {
     plan: FileOperationPlanDto,
   ): Promise<boolean> {
     try {
-      const started = await client.fileOperations.startFileOperation({ plan });
+      const started = await client.fileOperations.startFileOperation({
+        operationId: plan.operationId,
+      });
 
       setJobs((current) => ({
         ...current,
