@@ -87,23 +87,6 @@ const stopWatching = vi.fn(async () => ({ ok: true }));
 const onWatchChanged = vi.fn(async () => () => undefined);
 const openPathWithDefaultApp = vi.fn(async () => ({ ok: true }));
 const revealPathInFileManager = vi.fn(async () => ({ ok: true }));
-const deletePermanently = vi.fn(async () => ({ ok: true }));
-const createFile = vi.fn(async ({ uri }: { uri: string }) => ({
-  entry: {
-    uri,
-    name: uri.split("/").slice(-1)[0],
-    kind: "file",
-    size: 0,
-    isHidden: false,
-    isSymlink: false,
-    providerId: "local",
-    canRead: true,
-    canList: false,
-    canWrite: true,
-    canDelete: true,
-    canRename: true,
-  },
-}));
 const properties = vi.fn(async ({ uri }: { uri: string }) => ({
   properties: {
     uri,
@@ -383,8 +366,6 @@ vi.mock("@fileoctopus/ts-api", () => ({
       onWatchChanged,
       openPathWithDefaultApp,
       revealPathInFileManager,
-      deletePermanently,
-      createFile,
       properties,
       recursiveSearch,
       startFolderSizeJob,
@@ -467,8 +448,6 @@ describe("FileOctopusShell", () => {
     onWatchChanged.mockClear();
     openPathWithDefaultApp.mockClear();
     revealPathInFileManager.mockClear();
-    deletePermanently.mockClear();
-    createFile.mockClear();
     properties.mockClear();
     recursiveSearch.mockClear();
     startFolderSizeJob.mockClear();
@@ -725,6 +704,27 @@ describe("FileOctopusShell", () => {
         kind: "createFile",
         sources: [],
         destination: "local:///Users/ilya/notes.txt",
+        newName: undefined,
+        conflictPolicy: "fail",
+      },
+    });
+    expect(startFileOperation).toHaveBeenCalledWith({
+      operationId: "operation-1",
+    });
+  });
+
+  it("starts archive creation through the shared file operation pipeline", async () => {
+    render(<FileOctopusShell />);
+    await applyLeftEntries([entry("alpha.txt")]);
+
+    clickToolbar("Compress…", 0);
+
+    await waitFor(() => expect(startFileOperation).toHaveBeenCalledTimes(1));
+    expect(planFileOperation).toHaveBeenCalledWith({
+      operation: {
+        kind: "createArchive",
+        sources: ["local:///tmp/alpha.txt"],
+        destination: "local:///Users/ilya/alpha.zip",
         newName: undefined,
         conflictPolicy: "fail",
       },

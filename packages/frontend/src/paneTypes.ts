@@ -1,4 +1,8 @@
-import type { DirectoryBatchEventDto, IpcError } from "@fileoctopus/ts-api";
+import {
+  IPC_ERROR_CODES,
+  type DirectoryBatchEventDto,
+  type IpcError,
+} from "@fileoctopus/ts-api";
 
 export type PaneLoadState =
   | "idle"
@@ -28,15 +32,15 @@ export function loadStateFromBatchError(
     return "error";
   }
 
-  if (error.code === "not_found") {
+  if (error.code === IPC_ERROR_CODES.NOT_FOUND) {
     return "notFound";
   }
 
-  if (error.code === "permission_denied") {
+  if (error.code === IPC_ERROR_CODES.PERMISSION_DENIED) {
     return "permissionDenied";
   }
 
-  if (error.code === "timeout") {
+  if (error.code === IPC_ERROR_CODES.TIMEOUT) {
     return "timeout";
   }
 

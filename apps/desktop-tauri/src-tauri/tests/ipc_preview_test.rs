@@ -3,7 +3,7 @@
 use std::io::Read;
 use std::path::PathBuf;
 
-use app_ipc::IpcError;
+use app_ipc::{error_codes, IpcError};
 use vfs::ResourceUri;
 
 fn temp_dir(prefix: &str) -> PathBuf {
@@ -25,16 +25,10 @@ fn read_text_file_logic(
     let uri = ResourceUri::parse(uri_str).map_err(IpcError::from)?;
     let path = uri.to_local_path().map_err(IpcError::from)?;
 
-    let metadata = std::fs::metadata(&path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: e.to_string(),
-    })?;
+    let metadata = std::fs::metadata(&path).map_err(|e| IpcError::io(e.to_string()))?;
 
     if metadata.is_dir() {
-        return Err(IpcError {
-            code: "is_directory".to_string(),
-            message: "cannot read a directory as text".to_string(),
-        });
+        return Err(IpcError::is_directory("cannot read a directory as text"));
     }
 
     let file_size = metadata.len();
@@ -46,14 +40,9 @@ fn read_text_file_logic(
     };
 
     let mut buf = vec![0u8; read_len as usize];
-    let mut f = std::fs::File::open(&path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: e.to_string(),
-    })?;
-    f.read_exact(&mut buf).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: e.to_string(),
-    })?;
+    let mut f = std::fs::File::open(&path).map_err(|e| IpcError::io(e.to_string()))?;
+    f.read_exact(&mut buf)
+        .map_err(|e| IpcError::io(e.to_string()))?;
 
     let content = String::from_utf8_lossy(&buf).to_string();
 
@@ -84,7 +73,7 @@ fn fs_read_text_file_rejects_directory() {
 
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert_eq!(err.code, "is_directory");
+    assert_eq!(err.code, error_codes::IS_DIRECTORY);
 
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -131,7 +120,7 @@ fn fs_read_text_file_rejects_missing_file() {
 
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert_eq!(err.code, "io_error");
+    assert_eq!(err.code, error_codes::IO_ERROR);
 
     let _ = std::fs::remove_dir_all(dir);
 }

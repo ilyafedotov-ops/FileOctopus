@@ -19,7 +19,6 @@ import {
   selectVisibleEntries,
 } from "../panelStore";
 import { localPathFromUri } from "../utils/paneUtils";
-import { formatSize } from "../pane/fileTableUtils";
 import {
   type OperationDialog,
   jobIdValue,
@@ -601,15 +600,23 @@ export function useFileOpHandlers(deps: UseFileOpHandlersDeps) {
     const destinationUri = joinLocalUri(parentUri, baseName + ".zip");
 
     try {
-      const result = await client.fs.createArchive({
-        sourceUris: selectedUris,
+      const planResponse = await planOperation(
+        "createArchive",
+        selectedUris,
         destinationUri,
+      );
+      const started = await client.fileOperations.startFileOperation({
+        operationId: planResponse.plan.operationId,
       });
+      setJobs((current) => ({
+        ...current,
+        [jobIdValue(started.job.jobId)]: started.job,
+      }));
       pushToast({
-        tone: "success",
-        title: `Compressed ${result.entryCount} entr${result.entryCount === 1 ? "y" : "ies"} (${formatSize(result.byteSize)})`,
+        tone: "info",
+        title: "Compression started",
+        detail: baseName + ".zip",
       });
-      void refreshPanel(panelId);
     } catch (error) {
       const normalized = normalizeIpcError(error);
       pushToast({
@@ -638,15 +645,23 @@ export function useFileOpHandlers(deps: UseFileOpHandlersDeps) {
     const destinationUri = joinLocalUri(tab.uri, dirName);
 
     try {
-      const result = await client.fs.extractArchive({
-        archiveUri: selectedEntry.uri,
+      const planResponse = await planOperation(
+        "extractArchive",
+        [selectedEntry.uri],
         destinationUri,
+      );
+      const started = await client.fileOperations.startFileOperation({
+        operationId: planResponse.plan.operationId,
       });
+      setJobs((current) => ({
+        ...current,
+        [jobIdValue(started.job.jobId)]: started.job,
+      }));
       pushToast({
-        tone: "success",
-        title: `Extracted ${result.entryCount} file${result.entryCount === 1 ? "" : "s"}`,
+        tone: "info",
+        title: "Extraction started",
+        detail: dirName,
       });
-      void refreshPanel(panelId);
     } catch (error) {
       const normalized = normalizeIpcError(error);
       pushToast({
@@ -696,18 +711,23 @@ export function useFileOpHandlers(deps: UseFileOpHandlersDeps) {
     }
 
     const tab = activeTab(state.panels[current.panelId]);
+    const targetUri = joinLocalUri(tab.uri, name);
 
     try {
-      const response = await client.fs.createFile({
-        uri: joinLocalUri(tab.uri, name),
+      const planResponse = await planOperation("createFile", [], targetUri);
+      const started = await client.fileOperations.startFileOperation({
+        operationId: planResponse.plan.operationId,
       });
 
+      setJobs((jobMap) => ({
+        ...jobMap,
+        [jobIdValue(started.job.jobId)]: started.job,
+      }));
       setDialog(null);
-      refreshPanel(current.panelId);
       dispatch({
         type: "setSelection",
         panelId: current.panelId,
-        entryId: response.entry.uri,
+        entryId: targetUri,
       });
     } catch (error) {
       const normalized = normalizeIpcError(error);
@@ -785,12 +805,19 @@ export function useFileOpHandlers(deps: UseFileOpHandlersDeps) {
     current: Extract<OperationDialog, { type: "permanentDelete" }>,
   ) {
     try {
-      await client.fs.deletePermanently({
-        uris: current.entries.map((entry) => entry.uri),
+      const planResponse = await planOperation(
+        "deletePermanently",
+        current.entries.map((entry) => entry.uri),
+      );
+      const started = await client.fileOperations.startFileOperation({
+        operationId: planResponse.plan.operationId,
       });
 
+      setJobs((jobMap) => ({
+        ...jobMap,
+        [jobIdValue(started.job.jobId)]: started.job,
+      }));
       setDialog(null);
-      refreshPanel(current.panelId);
     } catch (error) {
       const normalized = normalizeIpcError(error);
       setDialog({

@@ -270,33 +270,6 @@ pub struct OpenTerminalResponse {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct CreateArchiveRequest {
-    pub source_uris: Vec<String>,
-    pub destination_uri: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateArchiveResponse {
-    pub entry_count: usize,
-    pub byte_size: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ExtractArchiveRequest {
-    pub archive_uri: String,
-    pub destination_uri: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ExtractArchiveResponse {
-    pub entry_count: usize,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct ListStartRequest {
     pub uri: String,
     pub request_id: String,
@@ -335,26 +308,8 @@ pub struct PathRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct DeletePermanentlyRequest {
-    pub uris: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct OkResponse {
     pub ok: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateFileRequest {
-    pub uri: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CreateFileResponse {
-    pub entry: FileEntryDto,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -652,6 +607,70 @@ pub struct FileOperationWarningDto {
     pub code: String,
     pub message: String,
     pub uri: Option<String>,
+}
+
+pub mod error_codes {
+    pub const INVALID_URI: &str = "invalid_uri";
+    pub const UNSUPPORTED_PROVIDER: &str = "unsupported_provider";
+    pub const DUPLICATE_PROVIDER: &str = "duplicate_provider";
+    pub const NOT_FOUND: &str = "not_found";
+    pub const PERMISSION_DENIED: &str = "permission_denied";
+    pub const TIMEOUT: &str = "timeout";
+    pub const CANCELLED: &str = "cancelled";
+    pub const PREFERENCES_ERROR: &str = "preferences_error";
+    pub const INVALID_REQUEST: &str = "invalid_request";
+    pub const INVALID_NAME: &str = "invalid_name";
+    pub const INVALID_PATH: &str = "invalid_path";
+    pub const DESTINATION_MISSING: &str = "destination_missing";
+    pub const DESTINATION_CONFLICT: &str = "destination_conflict";
+    pub const RECURSIVE_OPERATION: &str = "recursive_operation";
+    pub const UNSUPPORTED_SYMLINK: &str = "unsupported_symlink";
+    pub const UNSUPPORTED_TRASH: &str = "unsupported_trash";
+    pub const IO_ERROR: &str = "io_error";
+    pub const INTERNAL: &str = "internal";
+    pub const IS_DIRECTORY: &str = "is_directory";
+    pub const FILE_TOO_LARGE: &str = "file_too_large";
+    pub const UNSUPPORTED_ALGORITHM: &str = "unsupported_algorithm";
+    pub const SPAWN_ERROR: &str = "spawn_error";
+    pub const NO_TERMINAL: &str = "no_terminal";
+    pub const AUTOSTART_UNAVAILABLE: &str = "autostart_unavailable";
+    pub const NAVIGATION_ERROR: &str = "navigation_error";
+    pub const FOLDER_NOT_FOUND: &str = "folder_not_found";
+    pub const UNKNOWN: &str = "unknown";
+    pub const TAURI_UNAVAILABLE: &str = "tauri_unavailable";
+    pub const UNSUPPORTED_TRANSPORT: &str = "unsupported_transport";
+
+    pub const ALL: &[&str] = &[
+        INVALID_URI,
+        UNSUPPORTED_PROVIDER,
+        DUPLICATE_PROVIDER,
+        NOT_FOUND,
+        PERMISSION_DENIED,
+        TIMEOUT,
+        CANCELLED,
+        PREFERENCES_ERROR,
+        INVALID_REQUEST,
+        INVALID_NAME,
+        INVALID_PATH,
+        DESTINATION_MISSING,
+        DESTINATION_CONFLICT,
+        RECURSIVE_OPERATION,
+        UNSUPPORTED_SYMLINK,
+        UNSUPPORTED_TRASH,
+        IO_ERROR,
+        INTERNAL,
+        IS_DIRECTORY,
+        FILE_TOO_LARGE,
+        UNSUPPORTED_ALGORITHM,
+        SPAWN_ERROR,
+        NO_TERMINAL,
+        AUTOSTART_UNAVAILABLE,
+        NAVIGATION_ERROR,
+        FOLDER_NOT_FOUND,
+        UNKNOWN,
+        TAURI_UNAVAILABLE,
+        UNSUPPORTED_TRANSPORT,
+    ];
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -983,17 +1002,62 @@ pub fn job_event_payload(event: JobEvent) -> serde_json::Value {
 }
 
 impl IpcError {
-    pub fn internal(message: &str) -> Self {
+    pub fn new(code: &'static str, message: impl Into<String>) -> Self {
         Self {
-            code: "internal".to_string(),
-            message: message.to_string(),
+            code: code.to_string(),
+            message: message.into(),
         }
+    }
+
+    pub fn internal(message: &str) -> Self {
+        Self::new(error_codes::INTERNAL, message)
+    }
+
+    pub fn io(message: impl Into<String>) -> Self {
+        Self::new(error_codes::IO_ERROR, message)
+    }
+
+    pub fn is_directory(message: impl Into<String>) -> Self {
+        Self::new(error_codes::IS_DIRECTORY, message)
+    }
+
+    pub fn file_too_large(message: impl Into<String>) -> Self {
+        Self::new(error_codes::FILE_TOO_LARGE, message)
+    }
+
+    pub fn unsupported_algorithm(message: impl Into<String>) -> Self {
+        Self::new(error_codes::UNSUPPORTED_ALGORITHM, message)
+    }
+
+    pub fn spawn_error(message: impl Into<String>) -> Self {
+        Self::new(error_codes::SPAWN_ERROR, message)
+    }
+
+    pub fn no_terminal(message: impl Into<String>) -> Self {
+        Self::new(error_codes::NO_TERMINAL, message)
+    }
+
+    pub fn preferences_error(message: impl Into<String>) -> Self {
+        Self::new(error_codes::PREFERENCES_ERROR, message)
+    }
+
+    pub fn autostart_unavailable(message: impl Into<String>) -> Self {
+        Self::new(error_codes::AUTOSTART_UNAVAILABLE, message)
+    }
+
+    pub fn navigation_error(message: impl Into<String>) -> Self {
+        Self::new(error_codes::NAVIGATION_ERROR, message)
+    }
+
+    pub fn folder_not_found(message: impl Into<String>) -> Self {
+        Self::new(error_codes::FOLDER_NOT_FOUND, message)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
     use vfs::{EntryCapabilities, ListSessionId, ProviderId, ResourceUri};
 
     #[test]
@@ -1067,7 +1131,76 @@ mod tests {
     fn maps_vfs_error_to_ipc_error() {
         let error = IpcError::from(VfsError::invalid_uri("bad", "missing scheme"));
 
-        assert_eq!(error.code, "invalid_uri");
+        assert_eq!(error.code, error_codes::INVALID_URI);
         assert!(error.message.contains("missing scheme"));
+    }
+
+    #[test]
+    fn ipc_error_catalog_has_unique_codes() {
+        let unique = error_codes::ALL.iter().copied().collect::<HashSet<_>>();
+
+        assert_eq!(unique.len(), error_codes::ALL.len());
+    }
+
+    #[test]
+    fn ipc_error_helpers_use_catalog_codes() {
+        assert_eq!(IpcError::internal("x").code, error_codes::INTERNAL);
+        assert_eq!(IpcError::io("x").code, error_codes::IO_ERROR);
+        assert_eq!(IpcError::is_directory("x").code, error_codes::IS_DIRECTORY);
+        assert_eq!(
+            IpcError::file_too_large("x").code,
+            error_codes::FILE_TOO_LARGE
+        );
+        assert_eq!(
+            IpcError::unsupported_algorithm("x").code,
+            error_codes::UNSUPPORTED_ALGORITHM
+        );
+        assert_eq!(IpcError::spawn_error("x").code, error_codes::SPAWN_ERROR);
+        assert_eq!(IpcError::no_terminal("x").code, error_codes::NO_TERMINAL);
+        assert_eq!(
+            IpcError::preferences_error("x").code,
+            error_codes::PREFERENCES_ERROR
+        );
+        assert_eq!(
+            IpcError::autostart_unavailable("x").code,
+            error_codes::AUTOSTART_UNAVAILABLE
+        );
+        assert_eq!(
+            IpcError::navigation_error("x").code,
+            error_codes::NAVIGATION_ERROR
+        );
+        assert_eq!(
+            IpcError::folder_not_found("x").code,
+            error_codes::FOLDER_NOT_FOUND
+        );
+    }
+
+    #[test]
+    fn vfs_and_file_operation_error_codes_stay_in_catalog() {
+        let errors = [
+            IpcError::from(VfsError::invalid_uri("bad", "bad")),
+            IpcError::from(VfsError::UnsupportedProvider {
+                scheme: "ftp".to_string(),
+            }),
+            IpcError::from(VfsError::DuplicateProvider {
+                scheme: "local".to_string(),
+            }),
+            IpcError::from(VfsError::Internal {
+                message: "boom".to_string(),
+            }),
+            IpcError::from(FileOperationError::InvalidRequest {
+                message: "bad".to_string(),
+            }),
+            IpcError::from(FileOperationError::DestinationConflict {
+                uri: "local:///tmp/a".to_string(),
+            }),
+            IpcError::from(FileOperationError::UnsupportedTrash {
+                message: "no trash".to_string(),
+            }),
+        ];
+
+        for error in errors {
+            assert!(error_codes::ALL.contains(&error.code.as_str()));
+        }
     }
 }

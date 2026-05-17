@@ -1045,6 +1045,7 @@ dependencies = [
  "tokio",
  "uuid",
  "vfs",
+ "zip",
 ]
 
 [[package]]

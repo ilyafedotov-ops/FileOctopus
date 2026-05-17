@@ -82,7 +82,7 @@ fn fs_stat_nonexistent_returns_not_found() {
 }
 
 #[test]
-fn fs_create_file_in_nonexistent_dir_returns_destination_missing() {
+fn create_empty_file_in_nonexistent_dir_returns_destination_missing() {
     let dir = temp_dir("err-create");
     let nested = dir.join("no-such-dir").join("file.txt");
     let uri = ResourceUri::from_local_path(&nested).unwrap();
@@ -96,7 +96,7 @@ fn fs_create_file_in_nonexistent_dir_returns_destination_missing() {
 }
 
 #[test]
-fn fs_delete_permanently_nonexistent_returns_error() {
+fn delete_permanently_nonexistent_returns_error() {
     let dir = temp_dir("err-delete");
     let missing = dir.join("ghost.txt");
     let uri = ResourceUri::from_local_path(&missing).unwrap();
@@ -110,7 +110,7 @@ fn fs_delete_permanently_nonexistent_returns_error() {
 // --- Destination conflict error test ---
 
 #[test]
-fn fs_create_file_existing_returns_destination_conflict() {
+fn create_empty_file_existing_returns_destination_conflict() {
     let dir = temp_dir("err-conflict");
     let file_path = dir.join("exists.txt");
     std::fs::write(&file_path, "data").unwrap();

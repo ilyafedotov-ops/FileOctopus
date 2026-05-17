@@ -6,6 +6,64 @@ export type FileKind =
   | "virtual"
   | "unknown";
 
+export const IPC_ERROR_CODES = {
+  INVALID_URI: "invalid_uri",
+  UNSUPPORTED_PROVIDER: "unsupported_provider",
+  DUPLICATE_PROVIDER: "duplicate_provider",
+  NOT_FOUND: "not_found",
+  PERMISSION_DENIED: "permission_denied",
+  TIMEOUT: "timeout",
+  CANCELLED: "cancelled",
+  PREFERENCES_ERROR: "preferences_error",
+  INVALID_REQUEST: "invalid_request",
+  INVALID_NAME: "invalid_name",
+  INVALID_PATH: "invalid_path",
+  DESTINATION_MISSING: "destination_missing",
+  DESTINATION_CONFLICT: "destination_conflict",
+  RECURSIVE_OPERATION: "recursive_operation",
+  UNSUPPORTED_SYMLINK: "unsupported_symlink",
+  UNSUPPORTED_TRASH: "unsupported_trash",
+  IO_ERROR: "io_error",
+  INTERNAL: "internal",
+  IS_DIRECTORY: "is_directory",
+  FILE_TOO_LARGE: "file_too_large",
+  UNSUPPORTED_ALGORITHM: "unsupported_algorithm",
+  SPAWN_ERROR: "spawn_error",
+  NO_TERMINAL: "no_terminal",
+  AUTOSTART_UNAVAILABLE: "autostart_unavailable",
+  NAVIGATION_ERROR: "navigation_error",
+  FOLDER_NOT_FOUND: "folder_not_found",
+  UNKNOWN: "unknown",
+  TAURI_UNAVAILABLE: "tauri_unavailable",
+  UNSUPPORTED_TRANSPORT: "unsupported_transport",
+} as const;
+
+export type KnownIpcErrorCode =
+  (typeof IPC_ERROR_CODES)[keyof typeof IPC_ERROR_CODES];
+export type IpcErrorCode = KnownIpcErrorCode | (string & {});
+
+export const FILE_OPERATION_WARNING_CODES = {
+  METADATA_FAILED: "metadata_failed",
+} as const;
+
+export type KnownFileOperationWarningCode =
+  (typeof FILE_OPERATION_WARNING_CODES)[keyof typeof FILE_OPERATION_WARNING_CODES];
+export type FileOperationWarningCode =
+  | KnownFileOperationWarningCode
+  | (string & {});
+
+export function isKnownIpcErrorCode(code: string): code is KnownIpcErrorCode {
+  return Object.values(IPC_ERROR_CODES).includes(code as KnownIpcErrorCode);
+}
+
+export function isKnownFileOperationWarningCode(
+  code: string,
+): code is KnownFileOperationWarningCode {
+  return Object.values(FILE_OPERATION_WARNING_CODES).includes(
+    code as KnownFileOperationWarningCode,
+  );
+}
+
 export interface IpcTransport {
   invoke<TResponse>(
     command: string,
@@ -52,7 +110,7 @@ export interface ClearOperationHistoryResponse {
 }
 
 export interface IpcError {
-  code: string;
+  code: IpcErrorCode;
   message: string;
 }
 
@@ -92,25 +150,6 @@ export interface OpenTerminalRequest {
 
 export interface OpenTerminalResponse {
   success: boolean;
-}
-
-export interface CreateArchiveRequest {
-  sourceUris: string[];
-  destinationUri: string;
-}
-
-export interface CreateArchiveResponse {
-  entryCount: number;
-  byteSize: number;
-}
-
-export interface ExtractArchiveRequest {
-  archiveUri: string;
-  destinationUri: string;
-}
-
-export interface ExtractArchiveResponse {
-  entryCount: number;
 }
 
 export interface ListStartRequest {
@@ -253,20 +292,8 @@ export interface PathRequest {
   uri: string;
 }
 
-export interface DeletePermanentlyRequest {
-  uris: string[];
-}
-
 export interface OkResponse {
   ok: boolean;
-}
-
-export interface CreateFileRequest {
-  uri: string;
-}
-
-export interface CreateFileResponse {
-  entry: FileEntryDto;
 }
 
 export interface PathPropertiesRequest {
@@ -415,6 +442,10 @@ export type FileOperationKind =
   | "rename"
   | "deleteToTrash"
   | "createDirectory"
+  | "createFile"
+  | "deletePermanently"
+  | "createArchive"
+  | "extractArchive"
   | "folderSize"
   | "recursiveSearch";
 
@@ -505,17 +536,13 @@ export interface FileOperationConflictDto {
 }
 
 export interface FileOperationWarningDto {
-  code: string;
+  code: FileOperationWarningCode;
   message: string;
   uri?: string | null;
 }
 
-export interface JobId {
-  value?: string;
-}
-
 export interface JobSnapshot {
-  jobId: string | JobId;
+  jobId: string;
   operationKind: FileOperationKind;
   status: JobStatus;
   currentItem?: string | null;
@@ -530,7 +557,7 @@ export interface JobSnapshot {
 }
 
 export interface JobStartedEvent {
-  jobId: string | JobId;
+  jobId: string;
   operationKind: FileOperationKind;
   totalItems: number;
   totalBytes?: number | null;
@@ -538,7 +565,7 @@ export interface JobStartedEvent {
 }
 
 export interface JobProgressEvent {
-  jobId: string | JobId;
+  jobId: string;
   operationKind: FileOperationKind;
   currentItem?: string | null;
   completedItems: number;
@@ -549,7 +576,7 @@ export interface JobProgressEvent {
 }
 
 export interface JobCompletedEvent {
-  jobId: string | JobId;
+  jobId: string;
   operationKind: FileOperationKind;
   completedItems: number;
   completedBytes: number;
@@ -557,7 +584,7 @@ export interface JobCompletedEvent {
 }
 
 export interface JobFailedEvent {
-  jobId: string | JobId;
+  jobId: string;
   operationKind: FileOperationKind;
   errorCode: string;
   message: string;
@@ -565,7 +592,7 @@ export interface JobFailedEvent {
 }
 
 export interface JobCancelledEvent {
-  jobId: string | JobId;
+  jobId: string;
   operationKind: FileOperationKind;
   cancelledAt: string;
 }

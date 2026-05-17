@@ -55,8 +55,6 @@ The desktop shell registers these commands in `apps/desktop-tauri/src-tauri/src/
 | `fs_standard_locations`       | `fs.standard_locations`       | `FsClient`               |
 | `fs_open_default`             | `fs.open_default`             | `FsClient`               |
 | `fs_reveal`                   | `fs.reveal`                   | `FsClient`               |
-| `fs_create_file`              | `fs.create_file`              | `FsClient`               |
-| `fs_delete_permanently`       | `fs.delete_permanently`       | `FsClient`               |
 | `fs_properties`               | `fs.properties`               | `FsClient`               |
 | `fs_folder_size`              | `fs.folder_size`              | `FsClient`               |
 | `fs_folder_size_start`        | `fs.folder_size_start`        | `FsClient`               |
@@ -180,7 +178,18 @@ const { plan } = await client.fileOperations.planFileOperation({
 Spawns a background worker thread that executes the plan. Returns the initial `JobSnapshot` (status `queued` → `running`). Progress flows through `fileOperation:job:*` events. The runtime persists a row to the operation-history SQLite DB on start and updates it on terminal states.
 
 ```ts
-const { job } = await client.fileOperations.startFileOperation({ plan });
+const { plan } = await client.fileOperations.planFileOperation({
+  operation: {
+    kind: "copy",
+    sources: ["local:///home/me/a.txt"],
+    destination: "local:///home/me/Documents",
+    conflictPolicy: "fail",
+  },
+});
+
+const { job } = await client.fileOperations.startFileOperation({
+  operationId: plan.operationId,
+});
 ```
 
 ### `cancel_job` / `get_job_status`
@@ -235,7 +244,7 @@ All job events carry `jobId` and `operationKind`. Specific shapes:
 
 Progress events are throttled by a byte interval (`PROGRESS_BYTE_INTERVAL = 1 MiB`) inside copy/move operations; for small operations a single progress event may precede the terminal event.
 
-> ⚠️ `JobSnapshot.jobId` is typed `string | JobId` on the TS side because the Rust `JobId` newtype serializes either as `{"value":"…"}` (in some serde contexts) or as a bare string. Treat as string via `typeof === "string" ? jobId : jobId.value`.
+`JobSnapshot.jobId` is always a plain string on the TS side.
 
 ## TypeScript client (`@fileoctopus/ts-api`)
 
@@ -445,6 +454,14 @@ interface FileOperationPlanDto {
 
 Items are sorted deterministically by source/destination URI. `totalBytes` is `null` if any item lacks a size (e.g. directories, symlinks). Warnings are non-fatal planner diagnostics — surface them but do not block execution.
 
+Current planner warning codes:
+
+| Code              | Meaning                                                      |
+| ----------------- | ------------------------------------------------------------ |
+| `metadata_failed` | Planner could not stat a discovered path, so it was skipped. |
+
+The warning-code source of truth is `vfs::file_operation_warning_codes::ALL`. The TS mirror is exported from `packages/ts-api/src/types.ts` as `FILE_OPERATION_WARNING_CODES`.
+
 ## Jobs and job lifecycle
 
 Each `start_file_operation` allocates a `JobId` (UUID) and registers a `JobRuntimeState` in the in-memory job table. State transitions:
@@ -528,6 +545,14 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/inde
 | `timeout`               | `VfsError`                       | Directory listing exceeded the server timeout (30s).                |
 | `cancelled`             | `VfsError`                       | Directory listing was cancelled (superseded navigation or timeout). |
 | `preferences_error`     | Preferences repository           | Invalid preference key/value or database failure.                   |
+| `is_directory`          | Tauri shell                      | File-only command was pointed at a directory.                       |
+| `file_too_large`        | Tauri shell                      | Hash preview refused an oversized file.                             |
+| `unsupported_algorithm` | Tauri shell                      | Hash request named an unsupported digest algorithm.                 |
+| `spawn_error`           | Tauri shell                      | External process launch failed.                                     |
+| `no_terminal`           | Tauri shell                      | No terminal emulator was found for `fs.open_terminal`.              |
+| `autostart_unavailable` | Tauri shell                      | OS autostart integration is unavailable or failed.                  |
+| `navigation_error`      | Navigation repository            | Favorites/recent/starred persistence failed.                        |
+| `folder_not_found`      | Tauri shell                      | Watch start requires an existing directory.                         |
 | `invalid_request`       | `FileOperationError`             | Operation request shape is wrong (missing sources, etc.).           |
 | `invalid_name`          | `FileOperationError`             | Proposed name is empty, contains separators, or is reserved.        |
 | `invalid_path`          | `FileOperationError`             | URI parsed but is not usable for this operation.                    |
@@ -543,7 +568,7 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/inde
 | `tauri_unavailable`     | Preview transport                | A mutating command was called outside the Tauri shell.              |
 | `unsupported_transport` | TS client                        | Event subscription on a transport without `listen`.                 |
 
-The Rust enums are `VfsError::code()` and `FileOperationError::code()` — those are the source of truth, and any new variant must extend this table.
+The Rust source of truth is `crates/app-ipc/src/lib.rs`: `error_codes::ALL` for boundary-wide codes, plus `VfsError::code()` and `FileOperationError::code()` for the domain enums that feed into it. The TS mirror is exported from `packages/ts-api/src/types.ts` as `IPC_ERROR_CODES`.
 
 ## Rust crate APIs
 

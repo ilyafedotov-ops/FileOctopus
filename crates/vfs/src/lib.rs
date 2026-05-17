@@ -240,6 +240,10 @@ pub enum FileOperationKind {
     Rename,
     DeleteToTrash,
     CreateDirectory,
+    CreateFile,
+    DeletePermanently,
+    CreateArchive,
+    ExtractArchive,
     FolderSize,
     RecursiveSearch,
 }
@@ -302,6 +306,12 @@ pub struct FileOperationConflict {
     pub destination: ResourceUri,
 }
 
+pub mod file_operation_warning_codes {
+    pub const METADATA_FAILED: &str = "metadata_failed";
+
+    pub const ALL: &[&str] = &[METADATA_FAILED];
+}
+
 /// Non-fatal planner diagnostic for incomplete metadata.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -309,6 +319,24 @@ pub struct FileOperationWarning {
     pub code: String,
     pub message: String,
     pub uri: Option<ResourceUri>,
+}
+
+impl FileOperationWarning {
+    pub fn new(code: &'static str, message: impl Into<String>, uri: Option<ResourceUri>) -> Self {
+        Self {
+            code: code.to_string(),
+            message: message.into(),
+            uri,
+        }
+    }
+
+    pub fn metadata_failed(message: impl Into<String>, uri: ResourceUri) -> Self {
+        Self::new(
+            file_operation_warning_codes::METADATA_FAILED,
+            message,
+            Some(uri),
+        )
+    }
 }
 
 /// Stable file operation error taxonomy shared by planning, execution, and IPC.
@@ -327,11 +355,24 @@ pub enum FileOperationError {
     UnsupportedSymlink { uri: String, message: String },
     UnsupportedTrash { message: String },
     Cancelled { job_id: Option<String> },
-    Io { code: String, message: String },
+    Timeout { message: String },
+    Io { message: String },
     Internal { message: String },
 }
 
 impl FileOperationError {
+    pub fn io(message: impl Into<String>) -> Self {
+        Self::Io {
+            message: message.into(),
+        }
+    }
+
+    pub fn timeout(message: impl Into<String>) -> Self {
+        Self::Timeout {
+            message: message.into(),
+        }
+    }
+
     pub fn code(&self) -> &'static str {
         match self {
             Self::InvalidRequest { .. } => "invalid_request",
@@ -346,6 +387,7 @@ impl FileOperationError {
             Self::UnsupportedSymlink { .. } => "unsupported_symlink",
             Self::UnsupportedTrash { .. } => "unsupported_trash",
             Self::Cancelled { .. } => "cancelled",
+            Self::Timeout { .. } => "timeout",
             Self::Io { .. } => "io_error",
             Self::Internal { .. } => "internal",
         }
@@ -358,7 +400,8 @@ impl FileOperationError {
             | Self::RecursiveOperation { message }
             | Self::UnsupportedSymlink { message, .. }
             | Self::UnsupportedTrash { message }
-            | Self::Io { message, .. }
+            | Self::Timeout { message }
+            | Self::Io { message }
             | Self::Internal { message } => message.clone(),
             Self::InvalidName { name } => format!("invalid file name `{name}`"),
             Self::UnsupportedProvider { scheme } => {
@@ -391,10 +434,9 @@ impl From<VfsError> for FileOperationError {
             VfsError::UnsupportedProvider { scheme } => Self::UnsupportedProvider { scheme },
             VfsError::NotFound { uri } => Self::NotFound { uri },
             VfsError::PermissionDenied { uri } => Self::PermissionDenied { uri },
-            VfsError::Timeout { uri } => Self::Io {
-                code: "timeout".to_string(),
-                message: format!("Directory listing timed out for `{uri}`"),
-            },
+            VfsError::Timeout { uri } => {
+                Self::timeout(format!("Directory listing timed out for `{uri}`"))
+            }
             VfsError::Cancelled { .. } => Self::Cancelled { job_id: None },
             VfsError::DuplicateProvider { scheme } => Self::Internal {
                 message: format!("duplicate provider scheme `{scheme}`"),
@@ -588,6 +630,7 @@ fn has_windows_drive_prefix(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashSet;
     use std::path::Path;
     use std::sync::Arc;
 
@@ -709,6 +752,10 @@ mod tests {
             FileOperationKind::Rename,
             FileOperationKind::DeleteToTrash,
             FileOperationKind::CreateDirectory,
+            FileOperationKind::CreateFile,
+            FileOperationKind::DeletePermanently,
+            FileOperationKind::CreateArchive,
+            FileOperationKind::ExtractArchive,
         ];
 
         for kind in kinds {
@@ -752,6 +799,34 @@ mod tests {
         });
 
         assert_eq!(error.code(), "unsupported_provider");
+    }
+
+    #[test]
+    fn maps_vfs_timeout_to_file_operation_timeout() {
+        let uri = ResourceUri::parse("local:///tmp").unwrap();
+        let error = FileOperationError::from(VfsError::timeout(&uri));
+
+        assert_eq!(error.code(), "timeout");
+        assert!(error.user_message().contains("timed out"));
+    }
+
+    #[test]
+    fn file_operation_warning_catalog_has_unique_codes() {
+        let unique = file_operation_warning_codes::ALL
+            .iter()
+            .copied()
+            .collect::<HashSet<_>>();
+
+        assert_eq!(unique.len(), file_operation_warning_codes::ALL.len());
+    }
+
+    #[test]
+    fn metadata_failed_warning_uses_catalog_code() {
+        let uri = ResourceUri::parse("local:///tmp/file.txt").unwrap();
+        let warning = FileOperationWarning::metadata_failed("metadata missing", uri.clone());
+
+        assert_eq!(warning.code, file_operation_warning_codes::METADATA_FAILED);
+        assert_eq!(warning.uri, Some(uri));
     }
 
     struct TestProvider;

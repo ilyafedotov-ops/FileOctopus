@@ -11,6 +11,7 @@ jobs = { path = "../jobs" }
 tokio = { version = "1", features = ["rt"] }
 uuid = { version = "1", features = ["v4"] }
 vfs = { path = "../vfs" }
+zip = "0.6"
 
 [dev-dependencies]
 tempfile = "3"

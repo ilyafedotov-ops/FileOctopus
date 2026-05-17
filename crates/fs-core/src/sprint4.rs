@@ -539,18 +539,13 @@ fn launch_open_command(path: &Path) -> Result<(), FileOperationError> {
 
     match status {
         Ok(status) if status.success() => Ok(()),
-        Ok(_) => Err(FileOperationError::Io {
-            code: "launch_failed".to_string(),
-            message: "The operating system could not open this item.".to_string(),
-        }),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Err(FileOperationError::Io {
-            code: "no_default_app".to_string(),
-            message: "No default application is available for this item.".to_string(),
-        }),
-        Err(error) => Err(FileOperationError::Io {
-            code: "launch_failed".to_string(),
-            message: error.to_string(),
-        }),
+        Ok(_) => Err(FileOperationError::io(
+            "The operating system could not open this item.",
+        )),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Err(FileOperationError::io(
+            "No default application is available for this item.",
+        )),
+        Err(error) => Err(FileOperationError::io(error.to_string())),
     }
 }
 
@@ -572,14 +567,10 @@ fn launch_reveal_command(path: &Path) -> Result<(), FileOperationError> {
 
     match status {
         Ok(status) if status.success() => Ok(()),
-        Ok(_) => Err(FileOperationError::Io {
-            code: "reveal_failed".to_string(),
-            message: "The operating system could not reveal this item.".to_string(),
-        }),
-        Err(error) => Err(FileOperationError::Io {
-            code: "reveal_failed".to_string(),
-            message: error.to_string(),
-        }),
+        Ok(_) => Err(FileOperationError::io(
+            "The operating system could not reveal this item.",
+        )),
+        Err(error) => Err(FileOperationError::io(error.to_string())),
     }
 }
 
@@ -721,13 +712,7 @@ fn map_io_error(uri: &ResourceUri, error: std::io::Error) -> FileOperationError 
         std::io::ErrorKind::PermissionDenied => FileOperationError::PermissionDenied {
             uri: uri.as_str().to_string(),
         },
-        _ => FileOperationError::Io {
-            code: error
-                .raw_os_error()
-                .map(|code| code.to_string())
-                .unwrap_or_else(|| "io".to_string()),
-            message: error.to_string(),
-        },
+        _ => FileOperationError::io(error.to_string()),
     }
 }
 
@@ -740,12 +725,6 @@ fn map_std_io_error(path: &Path, error: std::io::Error) -> FileOperationError {
         std::io::ErrorKind::AlreadyExists => FileOperationError::DestinationConflict { uri },
         std::io::ErrorKind::NotFound => FileOperationError::NotFound { uri },
         std::io::ErrorKind::PermissionDenied => FileOperationError::PermissionDenied { uri },
-        _ => FileOperationError::Io {
-            code: error
-                .raw_os_error()
-                .map(|code| code.to_string())
-                .unwrap_or_else(|| "io".to_string()),
-            message: error.to_string(),
-        },
+        _ => FileOperationError::io(error.to_string()),
     }
 }

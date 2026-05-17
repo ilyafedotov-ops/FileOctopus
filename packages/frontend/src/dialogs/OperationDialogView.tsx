@@ -1,4 +1,6 @@
-import type {
+import {
+  IPC_ERROR_CODES,
+  type KnownIpcErrorCode,
   ConflictPolicy,
   FileEntryDto,
   FileOperationPlanDto,
@@ -506,7 +508,7 @@ export function OperationDialogView({
 }
 
 export function jobIdValue(jobId: JobSnapshot["jobId"]): string {
-  return typeof jobId === "string" ? jobId : String(jobId.value ?? "");
+  return jobId;
 }
 
 export function snapshotFromStarted(event: JobStartedEvent): JobSnapshot {
@@ -630,19 +632,26 @@ export function isValidName(name: string): boolean {
 }
 
 export function operationErrorMessage(code: string, fallback: string): string {
-  const messages: Record<string, string> = {
-    permission_denied: "Permission denied for this operation.",
-    not_found: "The selected file or folder no longer exists.",
-    destination_missing: "The destination folder no longer exists.",
-    destination_conflict: "A destination item already exists.",
-    invalid_name: "Enter a valid name without path separators.",
-    unsupported_symlink:
+  const messages: Partial<Record<KnownIpcErrorCode | "interrupted", string>> = {
+    [IPC_ERROR_CODES.PERMISSION_DENIED]:
+      "Permission denied for this operation.",
+    [IPC_ERROR_CODES.NOT_FOUND]:
+      "The selected file or folder no longer exists.",
+    [IPC_ERROR_CODES.DESTINATION_MISSING]:
+      "The destination folder no longer exists.",
+    [IPC_ERROR_CODES.DESTINATION_CONFLICT]:
+      "A destination item already exists.",
+    [IPC_ERROR_CODES.INVALID_NAME]:
+      "Enter a valid name without path separators.",
+    [IPC_ERROR_CODES.UNSUPPORTED_SYMLINK]:
       "Symlink file operations are not supported in this MVP.",
-    unsupported_trash: "Move to Trash is not supported on this platform.",
-    cancelled: "Operation cancelled.",
+    [IPC_ERROR_CODES.UNSUPPORTED_TRASH]:
+      "Move to Trash is not supported on this platform.",
+    [IPC_ERROR_CODES.CANCELLED]: "Operation cancelled.",
     interrupted: "Operation interrupted by app shutdown.",
-    timeout: "Directory listing timed out.",
+    [IPC_ERROR_CODES.TIMEOUT]: "Directory listing timed out.",
   };
+  const key = code as KnownIpcErrorCode | "interrupted";
 
-  return messages[code] ?? fallback;
+  return messages[key] ?? fallback;
 }

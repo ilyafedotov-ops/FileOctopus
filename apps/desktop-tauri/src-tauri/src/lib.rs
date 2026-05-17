@@ -10,18 +10,16 @@ use tauri_plugin_autostart::ManagerExt;
 
 use app_core::{AppCore, AppState, OperationHistoryRecord};
 use app_ipc::{
-    job_event_name, job_event_payload, AppDataHealthResponse, AppInfoResponse, AutostartStatusDto,
-    CancelJobRequest, ClearOperationHistoryResponse, ComputeHashRequest, ComputeHashResponse,
-    CreateArchiveRequest, CreateArchiveResponse, CreateFileRequest, CreateFileResponse,
-    DeletePermanentlyRequest, DirectoryBatchEventDto, ExportDiagnosticsBundleRequest,
-    ExportDiagnosticsBundleResponse, ExtractArchiveRequest, ExtractArchiveResponse,
-    FolderSizeCompletedEventDto, FolderSizeJobResponse, FolderSizeRequest, FolderSizeResponse,
-    FolderSizeSummaryDto, GetPreferencesResponse, IpcError, JobStatusRequest, JobStatusResponse,
-    ListRecentOperationsRequest, ListRecentOperationsResponse, ListStartRequest, ListStartResponse,
-    NavigationAddFavoriteRequest, NavigationFavoriteResponse, NavigationIsStarredRequest,
-    NavigationIsStarredResponse, NavigationListFavoritesResponse, NavigationListRecentRequest,
-    NavigationListRecentResponse, NavigationListStarredResponse, NavigationRecordVisitRequest,
-    NavigationRemoveFavoriteRequest, NavigationRenameFavoriteRequest,
+    error_codes, job_event_name, job_event_payload, AppDataHealthResponse, AppInfoResponse,
+    AutostartStatusDto, CancelJobRequest, ClearOperationHistoryResponse, ComputeHashRequest,
+    ComputeHashResponse, DirectoryBatchEventDto, ExportDiagnosticsBundleRequest,
+    ExportDiagnosticsBundleResponse, FolderSizeCompletedEventDto, FolderSizeJobResponse,
+    FolderSizeRequest, FolderSizeResponse, FolderSizeSummaryDto, GetPreferencesResponse, IpcError,
+    JobStatusRequest, JobStatusResponse, ListRecentOperationsRequest, ListRecentOperationsResponse,
+    ListStartRequest, ListStartResponse, NavigationAddFavoriteRequest, NavigationFavoriteResponse,
+    NavigationIsStarredRequest, NavigationIsStarredResponse, NavigationListFavoritesResponse,
+    NavigationListRecentRequest, NavigationListRecentResponse, NavigationListStarredResponse,
+    NavigationRecordVisitRequest, NavigationRemoveFavoriteRequest, NavigationRenameFavoriteRequest,
     NavigationToggleStarredRequest, NavigationToggleStarredResponse, OkResponse,
     OpenTerminalRequest, OpenTerminalResponse, OperationHistoryRecordDto, PathPropertiesDto,
     PathPropertiesRequest, PathPropertiesResponse, PathRequest, PlanFileOperationRequest,
@@ -47,7 +45,6 @@ use vfs::{
     ListSessionId, ResourceUri, VfsError,
 };
 use zip::write::FileOptions;
-
 #[derive(Default)]
 struct WatchState {
     current: Mutex<Option<WatchRuntime>>,
@@ -192,16 +189,10 @@ async fn fs_read_text_file(
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
     let path = uri.to_local_path().map_err(IpcError::from)?;
 
-    let metadata = std::fs::metadata(&path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: e.to_string(),
-    })?;
+    let metadata = std::fs::metadata(&path).map_err(|e| IpcError::io(e.to_string()))?;
 
     if metadata.is_dir() {
-        return Err(IpcError {
-            code: "is_directory".to_string(),
-            message: "cannot read a directory as text".to_string(),
-        });
+        return Err(IpcError::is_directory("cannot read a directory as text"));
     }
 
     let file_size = metadata.len();
@@ -213,14 +204,9 @@ async fn fs_read_text_file(
     };
 
     let mut buf = vec![0u8; read_len as usize];
-    let mut f = File::open(&path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: e.to_string(),
-    })?;
-    f.read_exact(&mut buf).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: e.to_string(),
-    })?;
+    let mut f = File::open(&path).map_err(|e| IpcError::io(e.to_string()))?;
+    f.read_exact(&mut buf)
+        .map_err(|e| IpcError::io(e.to_string()))?;
 
     let content = String::from_utf8_lossy(&buf).to_string();
 
@@ -239,43 +225,33 @@ async fn fs_compute_hash(
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
     let path = uri.to_local_path().map_err(IpcError::from)?;
 
-    let metadata = std::fs::metadata(&path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: e.to_string(),
-    })?;
+    let metadata = std::fs::metadata(&path).map_err(|e| IpcError::io(e.to_string()))?;
 
     if metadata.is_dir() {
-        return Err(IpcError {
-            code: "is_directory".to_string(),
-            message: "cannot compute hash for a directory".to_string(),
-        });
+        return Err(IpcError::is_directory(
+            "cannot compute hash for a directory",
+        ));
     }
 
     let file_size = metadata.len();
 
     // Limit to 100 MB for safety
     if file_size > 100 * 1024 * 1024 {
-        return Err(IpcError {
-            code: "file_too_large".to_string(),
-            message: format!(
-                "file too large for hash computation ({} bytes, max 100 MB)",
-                file_size
-            ),
-        });
+        return Err(IpcError::file_too_large(format!(
+            "file too large for hash computation ({} bytes, max 100 MB)",
+            file_size
+        )));
     }
 
     let algo = request.algorithm.to_lowercase();
     if algo != "sha256" && algo != "sha-256" {
-        return Err(IpcError {
-            code: "unsupported_algorithm".to_string(),
-            message: format!("unsupported hash algorithm: {}", request.algorithm),
-        });
+        return Err(IpcError::unsupported_algorithm(format!(
+            "unsupported hash algorithm: {}",
+            request.algorithm
+        )));
     }
 
-    let hash = sha256::try_digest(&path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: e.to_string(),
-    })?;
+    let hash = sha256::try_digest(&path).map_err(|e| IpcError::io(e.to_string()))?;
 
     Ok(ComputeHashResponse {
         hash,
@@ -293,10 +269,10 @@ async fn fs_open_terminal(
     let path = uri.to_local_path().map_err(IpcError::from)?;
 
     if !path.exists() || !path.is_dir() {
-        return Err(IpcError {
-            code: "not_found".to_string(),
-            message: format!("directory not found: {}", path.display()),
-        });
+        return Err(IpcError::new(
+            error_codes::NOT_FOUND,
+            format!("directory not found: {}", path.display()),
+        ));
     }
 
     let terminals = [
@@ -314,277 +290,11 @@ async fn fs_open_terminal(
             std::process::Command::new(*term)
                 .current_dir(&path)
                 .spawn()
-                .map_err(|e| IpcError {
-                    code: "spawn_error".to_string(),
-                    message: e.to_string(),
-                })?;
+                .map_err(|e| IpcError::spawn_error(e.to_string()))?;
             Ok(OpenTerminalResponse { success: true })
         }
-        None => Err(IpcError {
-            code: "no_terminal".to_string(),
-            message: "no terminal emulator found".to_string(),
-        }),
+        None => Err(IpcError::no_terminal("no terminal emulator found")),
     }
-}
-
-fn add_file_to_zip<W: std::io::Write + std::io::Seek>(
-    archive: &mut zip::ZipWriter<W>,
-    base: &Path,
-    file_path: &Path,
-    options: &zip::write::FileOptions,
-) -> Result<(), IpcError> {
-    let relative = file_path.strip_prefix(base).unwrap_or(file_path);
-    let name = relative.to_string_lossy().to_string();
-    let name = if name.is_empty() {
-        file_path
-            .file_name()
-            .map(|n| n.to_string_lossy().to_string())
-            .unwrap_or(name)
-    } else {
-        name
-    };
-
-    archive.start_file(&name, *options).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: format!("failed to add file to archive: {e}"),
-    })?;
-
-    let mut f = std::fs::File::open(file_path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: format!("failed to open source file: {e}"),
-    })?;
-
-    std::io::copy(&mut f, archive).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: format!("failed to write file to archive: {e}"),
-    })?;
-
-    Ok(())
-}
-
-fn add_dir_to_zip<W: std::io::Write + std::io::Seek>(
-    archive: &mut zip::ZipWriter<W>,
-    base: &Path,
-    dir: &Path,
-    options: &zip::write::FileOptions,
-) -> Result<(), IpcError> {
-    let entries = std::fs::read_dir(dir).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: format!("failed to read directory: {e}"),
-    })?;
-
-    for entry in entries {
-        let entry = entry.map_err(|e| IpcError {
-            code: "io_error".to_string(),
-            message: format!("failed to read directory entry: {e}"),
-        })?;
-        let path = entry.path();
-        if path.is_dir() {
-            add_dir_to_zip(archive, base, &path, options)?;
-        } else {
-            add_file_to_zip(archive, base, &path, options)?;
-        }
-    }
-
-    Ok(())
-}
-
-fn normalize_entry_path(path: &Path) -> PathBuf {
-    let mut components = Vec::new();
-    for component in path.components() {
-        match component {
-            std::path::Component::CurDir => {}
-            std::path::Component::ParentDir => {
-                if let Some(last) = components.last() {
-                    if *last != std::path::Component::ParentDir {
-                        components.pop();
-                    } else {
-                        components.push(component);
-                    }
-                } else {
-                    components.push(component);
-                }
-            }
-            _ => components.push(component),
-        }
-    }
-    components.iter().collect()
-}
-
-fn sanitize_entry_path(entry_name: &str, dest_root: &Path) -> Result<PathBuf, IpcError> {
-    if Path::new(entry_name).is_absolute() {
-        return Err(IpcError {
-            code: "path_traversal".to_string(),
-            message: format!("archive entry has absolute path: {entry_name}"),
-        });
-    }
-
-    let canonical_dest = dest_root
-        .canonicalize()
-        .unwrap_or_else(|_| dest_root.to_path_buf());
-    let target = normalize_entry_path(&canonical_dest.join(entry_name));
-
-    if !target.starts_with(&canonical_dest) {
-        return Err(IpcError {
-            code: "path_traversal".to_string(),
-            message: format!("archive entry escapes destination: {entry_name}"),
-        });
-    }
-
-    Ok(target)
-}
-
-#[tauri::command]
-async fn fs_create_archive(
-    request: CreateArchiveRequest,
-    _state: State<'_, Arc<AppState>>,
-) -> Result<CreateArchiveResponse, IpcError> {
-    let dest_uri = ResourceUri::parse(&request.destination_uri).map_err(IpcError::from)?;
-    let dest_path = dest_uri.to_local_path().map_err(IpcError::from)?;
-
-    if request.source_uris.is_empty() {
-        return Err(IpcError {
-            code: "invalid_argument".to_string(),
-            message: "no source URIs provided".to_string(),
-        });
-    }
-
-    let mut sources = Vec::new();
-    for uri_str in &request.source_uris {
-        let uri = ResourceUri::parse(uri_str).map_err(IpcError::from)?;
-        let path = uri.to_local_path().map_err(IpcError::from)?;
-        if !path.exists() {
-            return Err(IpcError {
-                code: "not_found".to_string(),
-                message: format!("source not found: {}", path.display()),
-            });
-        }
-        sources.push(path);
-    }
-
-    if let Some(parent) = dest_path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| IpcError {
-            code: "io_error".to_string(),
-            message: format!("failed to create destination directory: {e}"),
-        })?;
-    }
-
-    let file = std::fs::File::create(&dest_path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: format!("failed to create archive: {e}"),
-    })?;
-
-    let mut archive = zip::ZipWriter::new(file);
-    let options =
-        zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
-
-    let mut entry_count = 0usize;
-    for source in &sources {
-        if source.is_dir() {
-            let before = entry_count;
-            add_dir_to_zip(&mut archive, source, source, &options)?;
-            // Count entries by checking the difference (approximate)
-            entry_count = before; // will count from zip verification
-        } else {
-            add_file_to_zip(&mut archive, source, source, &options)?;
-            entry_count += 1;
-        }
-    }
-
-    archive.finish().map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: format!("failed to finalize archive: {e}"),
-    })?;
-
-    let byte_size = std::fs::metadata(&dest_path).map(|m| m.len()).unwrap_or(0);
-
-    // Count entries by reading back
-    let file = std::fs::File::open(&dest_path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: format!("failed to verify archive: {e}"),
-    })?;
-    let reader = zip::ZipArchive::new(file).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: format!("failed to verify archive: {e}"),
-    })?;
-    let total_entries = reader.len();
-
-    Ok(CreateArchiveResponse {
-        entry_count: total_entries,
-        byte_size,
-    })
-}
-
-#[tauri::command]
-async fn fs_extract_archive(
-    request: ExtractArchiveRequest,
-    _state: State<'_, Arc<AppState>>,
-) -> Result<ExtractArchiveResponse, IpcError> {
-    let src_uri = ResourceUri::parse(&request.archive_uri).map_err(IpcError::from)?;
-    let src_path = src_uri.to_local_path().map_err(IpcError::from)?;
-
-    let dest_uri = ResourceUri::parse(&request.destination_uri).map_err(IpcError::from)?;
-    let dest_path = dest_uri.to_local_path().map_err(IpcError::from)?;
-
-    if !src_path.exists() {
-        return Err(IpcError {
-            code: "not_found".to_string(),
-            message: format!("archive not found: {}", src_path.display()),
-        });
-    }
-
-    std::fs::create_dir_all(&dest_path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: format!("failed to create destination directory: {e}"),
-    })?;
-
-    let file = std::fs::File::open(&src_path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: format!("failed to open archive: {e}"),
-    })?;
-
-    let mut archive = zip::ZipArchive::new(file).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: format!("failed to read archive: {e}"),
-    })?;
-
-    let mut entry_count = 0usize;
-    for i in 0..archive.len() {
-        let mut entry = archive.by_index(i).map_err(|e| IpcError {
-            code: "io_error".to_string(),
-            message: format!("failed to read archive entry {i}: {e}"),
-        })?;
-
-        let entry_name = entry.name().to_string();
-
-        // Skip directory entries
-        if entry_name.ends_with('/') {
-            continue;
-        }
-
-        let target_path = sanitize_entry_path(&entry_name, &dest_path)?;
-
-        if let Some(parent) = target_path.parent() {
-            std::fs::create_dir_all(parent).map_err(|e| IpcError {
-                code: "io_error".to_string(),
-                message: format!("failed to create directory: {e}"),
-            })?;
-        }
-
-        let mut out = std::fs::File::create(&target_path).map_err(|e| IpcError {
-            code: "io_error".to_string(),
-            message: format!("failed to create file: {e}"),
-        })?;
-
-        std::io::copy(&mut entry, &mut out).map_err(|e| IpcError {
-            code: "io_error".to_string(),
-            message: format!("failed to extract file: {e}"),
-        })?;
-
-        entry_count += 1;
-    }
-
-    Ok(ExtractArchiveResponse { entry_count })
 }
 
 #[tauri::command]
@@ -677,10 +387,10 @@ async fn fs_list_start(
 
 #[tauri::command]
 fn get_preferences(state: State<'_, Arc<AppState>>) -> Result<GetPreferencesResponse, IpcError> {
-    let preferences = state.preferences().get_all().map_err(|error| IpcError {
-        code: "preferences_error".to_string(),
-        message: error.to_string(),
-    })?;
+    let preferences = state
+        .preferences()
+        .get_all()
+        .map_err(|error| IpcError::preferences_error(error.to_string()))?;
 
     Ok(GetPreferencesResponse {
         preferences: UserPreferencesDto::from(preferences),
@@ -695,10 +405,7 @@ fn set_preference(
     let preferences = state
         .preferences()
         .set(&request.key, &request.value)
-        .map_err(|error| IpcError {
-            code: "preferences_error".to_string(),
-            message: error.to_string(),
-        })?;
+        .map_err(|error| IpcError::preferences_error(error.to_string()))?;
 
     Ok(SetPreferenceResponse {
         preferences: UserPreferencesDto::from(preferences),
@@ -741,23 +448,14 @@ async fn set_autostart(
                 enabled: state,
                 supported: true,
             }),
-            Err(error) => Err(IpcError {
-                code: "autostart_unavailable".to_string(),
-                message: error.to_string(),
-            }),
+            Err(error) => Err(IpcError::autostart_unavailable(error.to_string())),
         },
-        Err(error) => Err(IpcError {
-            code: "autostart_unavailable".to_string(),
-            message: error.to_string(),
-        }),
+        Err(error) => Err(IpcError::autostart_unavailable(error.to_string())),
     }
 }
 
 fn navigation_error(error: config::NavigationError) -> IpcError {
-    IpcError {
-        code: "navigation_error".to_string(),
-        message: error.to_string(),
-    }
+    IpcError::navigation_error(error.to_string())
 }
 
 #[tauri::command]
@@ -922,29 +620,6 @@ async fn fs_reveal(request: PathRequest) -> Result<OkResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
 
     sprint4::reveal_path_in_file_manager(&uri).map_err(IpcError::from)?;
-
-    Ok(OkResponse { ok: true })
-}
-
-#[tauri::command]
-async fn fs_create_file(request: CreateFileRequest) -> Result<CreateFileResponse, IpcError> {
-    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
-    let entry = sprint4::create_empty_file(&uri).map_err(IpcError::from)?;
-
-    Ok(CreateFileResponse {
-        entry: entry.into(),
-    })
-}
-
-#[tauri::command]
-async fn fs_delete_permanently(request: DeletePermanentlyRequest) -> Result<OkResponse, IpcError> {
-    let uris = request
-        .uris
-        .iter()
-        .map(|uri| ResourceUri::parse(uri).map_err(IpcError::from))
-        .collect::<Result<Vec<_>, _>>()?;
-
-    sprint4::delete_permanently(&uris).map_err(IpcError::from)?;
 
     Ok(OkResponse { ok: true })
 }
@@ -1273,10 +948,9 @@ async fn fs_watch_start(
     let path = uri.to_local_path().map_err(IpcError::from)?;
 
     if !path.is_dir() {
-        return Err(IpcError {
-            code: "folder_not_found".to_string(),
-            message: "Choose an existing folder to watch.".to_string(),
-        });
+        return Err(IpcError::folder_not_found(
+            "Choose an existing folder to watch.",
+        ));
     }
 
     stop_watcher(&watch)?;
@@ -1474,8 +1148,6 @@ pub fn run() {
             fs_read_text_file,
             fs_compute_hash,
             fs_open_terminal,
-            fs_create_archive,
-            fs_extract_archive,
             fs_list_start,
             get_preferences,
             set_preference,
@@ -1491,8 +1163,6 @@ pub fn run() {
             fs_standard_locations,
             fs_open_default,
             fs_reveal,
-            fs_create_file,
-            fs_delete_permanently,
             fs_properties,
             fs_folder_size,
             fs_folder_size_start,
@@ -2021,7 +1691,7 @@ mod tests {
     }
 
     #[test]
-    fn fs_create_file_creates_empty_file() {
+    fn create_empty_file_creates_empty_file() {
         let dir = temp_dir("create-file");
         let file_path = dir.join("newfile.txt");
         let uri = local_uri(&file_path);
@@ -2035,7 +1705,7 @@ mod tests {
     }
 
     #[test]
-    fn fs_create_file_rejects_duplicate() {
+    fn create_empty_file_rejects_duplicate() {
         let dir = temp_dir("create-dup");
         let file_path = dir.join("exists.txt");
         std::fs::write(&file_path, "already here").unwrap();
@@ -2049,7 +1719,7 @@ mod tests {
     }
 
     #[test]
-    fn fs_delete_permanently_removes_file() {
+    fn delete_permanently_removes_file() {
         let dir = temp_dir("delete");
         let file_path = dir.join("to-delete.txt");
         std::fs::write(&file_path, "bye").unwrap();
@@ -2062,7 +1732,7 @@ mod tests {
     }
 
     #[test]
-    fn fs_delete_permanently_removes_directory() {
+    fn delete_permanently_removes_directory() {
         let dir = temp_dir("delete-dir");
         let sub = dir.join("subdir");
         std::fs::create_dir_all(&sub).unwrap();
@@ -2138,10 +1808,7 @@ mod tests {
 
     #[test]
     fn ipc_error_serializes_to_json() {
-        let err = IpcError {
-            code: "not_found".to_string(),
-            message: "path does not exist".to_string(),
-        };
+        let err = IpcError::new(error_codes::NOT_FOUND, "path does not exist");
         let json = serde_json::to_string(&err).unwrap();
         assert!(json.contains("not_found"));
         assert!(json.contains("path does not exist"));

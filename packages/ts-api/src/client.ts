@@ -1,5 +1,6 @@
 import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { listen as tauriListen } from "@tauri-apps/api/event";
+import { IPC_ERROR_CODES } from "./types";
 import type {
   AppInfoResponse,
   AppDataHealthResponse,
@@ -7,11 +8,8 @@ import type {
   CancelJobRequest,
   ClearOperationHistoryResponse,
   DirectoryBatchEventDto,
-  CreateFileRequest,
-  CreateFileResponse,
   ExportDiagnosticsBundleRequest,
   ExportDiagnosticsBundleResponse,
-  DeletePermanentlyRequest,
   FileEntryDto,
   FolderSizeCompletedEventDto,
   FolderSizeJobResponse,
@@ -66,10 +64,6 @@ import type {
   ComputeHashResponse,
   OpenTerminalRequest,
   OpenTerminalResponse,
-  CreateArchiveRequest,
-  CreateArchiveResponse,
-  ExtractArchiveRequest,
-  ExtractArchiveResponse,
   StartFileOperationRequest,
   StartFileOperationResponse,
   StandardLocationsResponse,
@@ -95,14 +89,10 @@ const commandMap: Record<string, string> = {
   "fs.read_text_file": "fs_read_text_file",
   "fs.compute_hash": "fs_compute_hash",
   "fs.open_terminal": "fs_open_terminal",
-  "fs.create_archive": "fs_create_archive",
-  "fs.extract_archive": "fs_extract_archive",
   "fs.list_start": "fs_list_start",
   "fs.standard_locations": "fs_standard_locations",
   "fs.open_default": "fs_open_default",
   "fs.reveal": "fs_reveal",
-  "fs.create_file": "fs_create_file",
-  "fs.delete_permanently": "fs_delete_permanently",
   "fs.properties": "fs_properties",
   "fs.folder_size": "fs_folder_size",
   "fs.folder_size_start": "fs_folder_size_start",
@@ -486,32 +476,6 @@ export class FsClient {
     }
   }
 
-  async createArchive(
-    request: CreateArchiveRequest,
-  ): Promise<CreateArchiveResponse> {
-    try {
-      return await this.transport.invoke<CreateArchiveResponse>(
-        "fs.create_archive",
-        { request },
-      );
-    } catch (error) {
-      throw normalizeIpcError(error);
-    }
-  }
-
-  async extractArchive(
-    request: ExtractArchiveRequest,
-  ): Promise<ExtractArchiveResponse> {
-    try {
-      return await this.transport.invoke<ExtractArchiveResponse>(
-        "fs.extract_archive",
-        { request },
-      );
-    } catch (error) {
-      throw normalizeIpcError(error);
-    }
-  }
-
   async listStart(request: ListStartRequest): Promise<ListStartResponse> {
     try {
       return await this.transport.invoke<ListStartResponse>("fs.list_start", {
@@ -545,28 +509,6 @@ export class FsClient {
   async revealPathInFileManager(request: PathRequest): Promise<OkResponse> {
     try {
       return await this.transport.invoke<OkResponse>("fs.reveal", {
-        request,
-      });
-    } catch (error) {
-      throw normalizeIpcError(error);
-    }
-  }
-
-  async createFile(request: CreateFileRequest): Promise<CreateFileResponse> {
-    try {
-      return await this.transport.invoke<CreateFileResponse>("fs.create_file", {
-        request,
-      });
-    } catch (error) {
-      throw normalizeIpcError(error);
-    }
-  }
-
-  async deletePermanently(
-    request: DeletePermanentlyRequest,
-  ): Promise<OkResponse> {
-    try {
-      return await this.transport.invoke<OkResponse>("fs.delete_permanently", {
         request,
       });
     } catch (error) {
@@ -679,7 +621,7 @@ export class FsClient {
   onWatchChanged(handler: (event: WatchEventDto) => void): Promise<UnlistenFn> {
     if (!this.transport.listen) {
       return Promise.reject({
-        code: "unsupported_transport",
+        code: IPC_ERROR_CODES.UNSUPPORTED_TRANSPORT,
         message: "Transport does not support event subscriptions",
       } satisfies IpcError);
     }
@@ -692,7 +634,7 @@ export class FsClient {
   ): Promise<UnlistenFn> {
     if (!this.transport.listen) {
       return Promise.reject({
-        code: "unsupported_transport",
+        code: IPC_ERROR_CODES.UNSUPPORTED_TRANSPORT,
         message: "Transport does not support event subscriptions",
       } satisfies IpcError);
     }
@@ -918,31 +860,10 @@ export function createPreviewTransport(): IpcTransport {
       if (
         command === "fs.open_default" ||
         command === "fs.reveal" ||
-        command === "fs.delete_permanently" ||
         command === "fs.watch_start" ||
         command === "fs.watch_stop"
       ) {
         return { ok: true } as TResponse;
-      }
-
-      if (command === "fs.create_file") {
-        const request = args?.request as Partial<CreateFileRequest> | undefined;
-        return {
-          entry: {
-            uri: request?.uri ?? "local:///Users/ilya/New File.txt",
-            name: "New File.txt",
-            kind: "file",
-            size: 0,
-            isHidden: false,
-            isSymlink: false,
-            providerId: "local",
-            canRead: true,
-            canList: false,
-            canWrite: true,
-            canDelete: true,
-            canRename: true,
-          },
-        } as TResponse;
       }
 
       if (command === "fs.properties") {
@@ -1098,7 +1019,7 @@ export function createPreviewTransport(): IpcTransport {
       }
 
       throw {
-        code: "tauri_unavailable",
+        code: IPC_ERROR_CODES.TAURI_UNAVAILABLE,
         message: "Tauri IPC is unavailable in browser preview",
       } satisfies IpcError;
     },
@@ -1231,7 +1152,7 @@ function requireListen<TPayload>(
 ): Promise<UnlistenFn> {
   if (!transport.listen) {
     return Promise.reject({
-      code: "unsupported_transport",
+      code: IPC_ERROR_CODES.UNSUPPORTED_TRANSPORT,
       message: "Transport does not support event subscriptions",
     } satisfies IpcError);
   }
@@ -1254,20 +1175,20 @@ export function normalizeIpcError(error: unknown): IpcError {
 
   if (error instanceof Error) {
     return {
-      code: "unknown",
+      code: IPC_ERROR_CODES.UNKNOWN,
       message: error.message,
     };
   }
 
   if (typeof error === "string") {
     return {
-      code: "unknown",
+      code: IPC_ERROR_CODES.UNKNOWN,
       message: error,
     };
   }
 
   return {
-    code: "unknown",
+    code: IPC_ERROR_CODES.UNKNOWN,
     message: "Unexpected IPC error",
   };
 }

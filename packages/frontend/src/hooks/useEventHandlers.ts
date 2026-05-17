@@ -35,7 +35,7 @@ import type { OperationDialog } from "../dialogs/OperationDialogView";
 import { operationErrorMessage } from "../dialogs/OperationDialogView";
 import { mergeToast } from "../toastNotifications";
 import { localPathFromUri } from "../utils/paneUtils";
-import { createRequestId } from "../paneTypes";
+import { createRequestId, loadStateFromBatchError } from "../paneTypes";
 
 export interface UseEventHandlersParams {
   client: FileOctopusClient;
@@ -294,12 +294,7 @@ export function useEventHandlers({
         panelId,
         error: normalized.message,
         errorCode: normalized.code,
-        loadState:
-          normalized.code === "permission_denied"
-            ? "permissionDenied"
-            : normalized.code === "timeout"
-              ? "timeout"
-              : "error",
+        loadState: loadStateFromBatchError(normalized),
       });
     }
   }

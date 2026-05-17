@@ -1,7 +1,7 @@
 import type { FileOperationKind, JobSnapshot } from "@fileoctopus/ts-api";
 
 export function jobIdValue(jobId: JobSnapshot["jobId"]): string {
-  return typeof jobId === "string" ? jobId : String(jobId.value ?? "");
+  return jobId;
 }
 
 export function progressPercent(job: JobSnapshot): number {

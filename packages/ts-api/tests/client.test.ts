@@ -3,10 +3,14 @@ import {
   DIRECTORY_BATCH_EVENT,
   FOLDER_SIZE_COMPLETED_EVENT,
   FileOctopusClient,
+  IPC_ERROR_CODES,
+  FILE_OPERATION_WARNING_CODES,
   RECURSIVE_SEARCH_COMPLETED_EVENT,
   RECURSIVE_SEARCH_MATCH_EVENT,
+  isKnownFileOperationWarningCode,
+  isKnownIpcErrorCode,
   normalizeIpcError,
-} from "../src/client";
+} from "../src";
 import type { IpcTransport } from "../src/types";
 
 describe("FileOctopusClient", () => {
@@ -168,25 +172,6 @@ describe("FileOctopusClient", () => {
           } as TResponse;
         }
 
-        if (command === "fs.create_file") {
-          return {
-            entry: {
-              uri: "local:///tmp/new.txt",
-              name: "new.txt",
-              kind: "file",
-              size: 0,
-              isHidden: false,
-              isSymlink: false,
-              providerId: "local",
-              canRead: true,
-              canList: false,
-              canWrite: false,
-              canDelete: false,
-              canRename: false,
-            },
-          } as TResponse;
-        }
-
         return { ok: true } as TResponse;
       },
     };
@@ -195,7 +180,6 @@ describe("FileOctopusClient", () => {
     await client.fs.standardLocations();
     await client.fs.openPathWithDefaultApp({ uri: "local:///tmp/a.txt" });
     await client.fs.revealPathInFileManager({ uri: "local:///tmp/a.txt" });
-    await client.fs.createFile({ uri: "local:///tmp/new.txt" });
     await client.fs.properties({
       uri: "local:///tmp/a.txt",
       includeFolderSummary: true,
@@ -212,7 +196,6 @@ describe("FileOctopusClient", () => {
       query: "needle",
       limit: 100,
     });
-    await client.fs.deletePermanently({ uris: ["local:///tmp/a.txt"] });
     await client.fs.startWatching({ uri: "local:///tmp" });
     await client.fs.stopWatching();
 
@@ -220,13 +203,11 @@ describe("FileOctopusClient", () => {
       "fs.standard_locations",
       "fs.open_default",
       "fs.reveal",
-      "fs.create_file",
       "fs.properties",
       "fs.folder_size",
       "fs.folder_size_start",
       "fs.recursive_search",
       "fs.recursive_search_start",
-      "fs.delete_permanently",
       "fs.watch_start",
       "fs.watch_stop",
     ]);
@@ -539,14 +520,28 @@ describe("FileOctopusClient", () => {
 
   it("normalizes frontend-safe ipc errors", () => {
     expect(
-      normalizeIpcError({ code: "not_found", message: "missing" }),
+      normalizeIpcError({
+        code: IPC_ERROR_CODES.NOT_FOUND,
+        message: "missing",
+      }),
     ).toEqual({
-      code: "not_found",
+      code: IPC_ERROR_CODES.NOT_FOUND,
       message: "missing",
     });
     expect(normalizeIpcError("boom")).toEqual({
-      code: "unknown",
+      code: IPC_ERROR_CODES.UNKNOWN,
       message: "boom",
     });
+  });
+
+  it("exports typed error and warning catalogs", () => {
+    expect(isKnownIpcErrorCode(IPC_ERROR_CODES.TIMEOUT)).toBe(true);
+    expect(isKnownIpcErrorCode("definitely_not_real")).toBe(false);
+    expect(
+      isKnownFileOperationWarningCode(
+        FILE_OPERATION_WARNING_CODES.METADATA_FAILED,
+      ),
+    ).toBe(true);
+    expect(isKnownFileOperationWarningCode("unknown_warning")).toBe(false);
   });
 });

@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use app_ipc::IpcError;
+use app_ipc::{error_codes, IpcError};
 use vfs::ResourceUri;
 
 fn temp_dir(prefix: &str) -> PathBuf {
@@ -21,33 +21,23 @@ fn compute_hash_logic(uri_str: &str) -> Result<String, IpcError> {
     let uri = ResourceUri::parse(uri_str).map_err(IpcError::from)?;
     let path = uri.to_local_path().map_err(IpcError::from)?;
 
-    let metadata = std::fs::metadata(&path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: e.to_string(),
-    })?;
+    let metadata = std::fs::metadata(&path).map_err(|e| IpcError::io(e.to_string()))?;
 
     if metadata.is_dir() {
-        return Err(IpcError {
-            code: "is_directory".to_string(),
-            message: "cannot compute hash for a directory".to_string(),
-        });
+        return Err(IpcError::is_directory(
+            "cannot compute hash for a directory",
+        ));
     }
 
     let file_size = metadata.len();
     if file_size > 100 * 1024 * 1024 {
-        return Err(IpcError {
-            code: "file_too_large".to_string(),
-            message: format!(
-                "file too large for hash computation ({} bytes, max 100 MB)",
-                file_size
-            ),
-        });
+        return Err(IpcError::file_too_large(format!(
+            "file too large for hash computation ({} bytes, max 100 MB)",
+            file_size
+        )));
     }
 
-    let hash = sha256::try_digest(&path).map_err(|e| IpcError {
-        code: "io_error".to_string(),
-        message: e.to_string(),
-    })?;
+    let hash = sha256::try_digest(&path).map_err(|e| IpcError::io(e.to_string()))?;
 
     Ok(hash)
 }
@@ -75,7 +65,7 @@ fn fs_compute_hash_rejects_directory() {
 
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert_eq!(err.code, "is_directory");
+    assert_eq!(err.code, error_codes::IS_DIRECTORY);
 
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -89,7 +79,7 @@ fn fs_compute_hash_rejects_missing_file() {
 
     assert!(result.is_err());
     let err = result.unwrap_err();
-    assert_eq!(err.code, "io_error");
+    assert_eq!(err.code, error_codes::IO_ERROR);
 
     let _ = std::fs::remove_dir_all(dir);
 }

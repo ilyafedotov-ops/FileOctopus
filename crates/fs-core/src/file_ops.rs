@@ -10,6 +10,7 @@ use vfs::{
     ConflictPolicy, FileKind, FileOperationConflict, FileOperationError, FileOperationItem,
     FileOperationKind, FileOperationPlan, FileOperationRequest, FileOperationWarning, ResourceUri,
 };
+use zip::write::FileOptions;
 
 const COPY_BUFFER_SIZE: usize = 64 * 1024;
 const PROGRESS_BYTE_INTERVAL: u64 = 1024 * 1024;
@@ -29,7 +30,12 @@ pub fn plan_file_operation(
         }
         FileOperationKind::Rename => vec![plan_rename_item(&request)?],
         FileOperationKind::CreateDirectory => vec![plan_create_directory_item(&request)?],
-        FileOperationKind::DeleteToTrash => plan_trash_items(&request)?,
+        FileOperationKind::CreateFile => vec![plan_create_file_item(&request)?],
+        FileOperationKind::DeleteToTrash | FileOperationKind::DeletePermanently => {
+            plan_delete_items(&request)?
+        }
+        FileOperationKind::CreateArchive => plan_create_archive_items(&request, &mut warnings)?,
+        FileOperationKind::ExtractArchive => plan_extract_archive_items(&request)?,
         FileOperationKind::FolderSize | FileOperationKind::RecursiveSearch => {
             return Err(FileOperationError::InvalidRequest {
                 message: "metadata jobs are started through filesystem commands".to_string(),
@@ -91,7 +97,11 @@ pub fn execute_file_operation(
         FileOperationKind::Move => execute_move(plan, job_id, cancel, sink),
         FileOperationKind::Rename => execute_rename(plan),
         FileOperationKind::CreateDirectory => execute_create_directory(plan),
+        FileOperationKind::CreateFile => execute_create_file(plan),
         FileOperationKind::DeleteToTrash => execute_trash(plan),
+        FileOperationKind::DeletePermanently => execute_delete_permanently(plan),
+        FileOperationKind::CreateArchive => execute_create_archive(plan, job_id, cancel, sink),
+        FileOperationKind::ExtractArchive => execute_extract_archive(plan, job_id, cancel, sink),
         FileOperationKind::FolderSize | FileOperationKind::RecursiveSearch => {
             Err(FileOperationError::InvalidRequest {
                 message: "metadata jobs are started through filesystem commands".to_string(),
@@ -139,10 +149,49 @@ fn validate_request_shape(request: &FileOperationRequest) -> Result<(), FileOper
                 });
             }
         }
-        FileOperationKind::DeleteToTrash => {
+        FileOperationKind::CreateFile => {
+            if request.destination.is_none() {
+                return Err(FileOperationError::InvalidRequest {
+                    message: "create file requires a destination".to_string(),
+                });
+            }
+        }
+        FileOperationKind::DeleteToTrash | FileOperationKind::DeletePermanently => {
+            if request.sources.is_empty() {
+                let message = if request.kind == FileOperationKind::DeleteToTrash {
+                    "trash operation requires at least one source"
+                } else {
+                    "delete permanently operation requires at least one source"
+                };
+
+                return Err(FileOperationError::InvalidRequest {
+                    message: message.to_string(),
+                });
+            }
+        }
+        FileOperationKind::CreateArchive => {
             if request.sources.is_empty() {
                 return Err(FileOperationError::InvalidRequest {
-                    message: "trash operation requires at least one source".to_string(),
+                    message: "create archive requires at least one source".to_string(),
+                });
+            }
+
+            if request.destination.is_none() {
+                return Err(FileOperationError::InvalidRequest {
+                    message: "create archive requires a destination".to_string(),
+                });
+            }
+        }
+        FileOperationKind::ExtractArchive => {
+            if request.sources.len() != 1 {
+                return Err(FileOperationError::InvalidRequest {
+                    message: "extract archive requires exactly one source".to_string(),
+                });
+            }
+
+            if request.destination.is_none() {
+                return Err(FileOperationError::InvalidRequest {
+                    message: "extract archive requires a destination".to_string(),
                 });
             }
         }
@@ -262,7 +311,41 @@ fn plan_create_directory_item(
     })
 }
 
-fn plan_trash_items(
+fn plan_create_file_item(
+    request: &FileOperationRequest,
+) -> Result<FileOperationItem, FileOperationError> {
+    let destination = request.destination.as_ref().unwrap().clone();
+    let destination_path = destination.to_local_path()?;
+    let parent =
+        destination_path
+            .parent()
+            .ok_or_else(|| FileOperationError::DestinationMissing {
+                uri: destination.as_str().to_string(),
+            })?;
+
+    validate_basename(
+        destination_path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or_default(),
+    )?;
+
+    if !parent.is_dir() {
+        return Err(FileOperationError::DestinationMissing {
+            uri: destination.as_str().to_string(),
+        });
+    }
+
+    Ok(FileOperationItem {
+        source: None,
+        destination: Some(destination),
+        kind: FileKind::File,
+        size: Some(0),
+        recursive: false,
+    })
+}
+
+fn plan_delete_items(
     request: &FileOperationRequest,
 ) -> Result<Vec<FileOperationItem>, FileOperationError> {
     request
@@ -284,6 +367,82 @@ fn plan_trash_items(
         .collect()
 }
 
+fn plan_create_archive_items(
+    request: &FileOperationRequest,
+    warnings: &mut Vec<FileOperationWarning>,
+) -> Result<Vec<FileOperationItem>, FileOperationError> {
+    let destination = request.destination.as_ref().unwrap().clone();
+    let destination_path = destination.to_local_path()?;
+
+    if let Some(parent) = destination_path.parent() {
+        if !parent.exists() {
+            return Err(FileOperationError::DestinationMissing {
+                uri: destination.as_str().to_string(),
+            });
+        }
+    }
+
+    let mut items = Vec::new();
+
+    for source in &request.sources {
+        let source_path = source.to_local_path()?;
+        let source_path = canonical_existing_path(&source_path, source)?;
+        collect_archive_files(
+            &source_path,
+            &source_path,
+            &destination,
+            &mut items,
+            warnings,
+        )?;
+    }
+
+    Ok(items)
+}
+
+fn plan_extract_archive_items(
+    request: &FileOperationRequest,
+) -> Result<Vec<FileOperationItem>, FileOperationError> {
+    let source = request.sources[0].clone();
+    let source_path = canonical_existing_path(&source.to_local_path()?, &source)?;
+    let destination = request.destination.as_ref().unwrap().clone();
+    let destination_path = destination.to_local_path()?;
+
+    if destination_path.exists() && !destination_path.is_dir() {
+        return Err(FileOperationError::DestinationConflict {
+            uri: destination.as_str().to_string(),
+        });
+    }
+
+    let file = File::open(&source_path).map_err(|error| map_std_io_error(&source_path, error))?;
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|error| FileOperationError::io(format!("failed to read archive: {error}")))?;
+    let mut items = Vec::new();
+
+    for index in 0..archive.len() {
+        let entry = archive.by_index(index).map_err(|error| {
+            FileOperationError::io(format!("failed to read archive entry {index}: {error}"))
+        })?;
+        let entry_name = entry.name().to_string();
+
+        if entry_name.ends_with('/') {
+            continue;
+        }
+
+        let target_path = sanitize_archive_entry_path(&entry_name, &destination_path)?;
+        let target_uri = ResourceUri::from_local_path(&target_path)?;
+
+        items.push(FileOperationItem {
+            source: Some(source.clone()),
+            destination: Some(target_uri),
+            kind: FileKind::File,
+            size: Some(entry.size()),
+            recursive: false,
+        });
+    }
+
+    Ok(items)
+}
+
 fn collect_copy_or_move_items(
     path: &Path,
     destination_dir: &Path,
@@ -295,11 +454,10 @@ fn collect_copy_or_move_items(
     let metadata = match fs::symlink_metadata(path) {
         Ok(metadata) => metadata,
         Err(error) => {
-            warnings.push(FileOperationWarning {
-                code: "metadata_failed".to_string(),
-                message: error.to_string(),
-                uri: Some(uri),
-            });
+            warnings.push(FileOperationWarning::metadata_failed(
+                error.to_string(),
+                uri,
+            ));
             return Ok(());
         }
     };
@@ -357,6 +515,60 @@ fn detect_conflicts(items: &[FileOperationItem]) -> Vec<FileOperationConflict> {
                 })
         })
         .collect()
+}
+
+fn collect_archive_files(
+    path: &Path,
+    root: &Path,
+    archive_destination: &ResourceUri,
+    items: &mut Vec<FileOperationItem>,
+    warnings: &mut Vec<FileOperationWarning>,
+) -> Result<(), FileOperationError> {
+    let uri = ResourceUri::from_local_path(path)?;
+    let metadata = match fs::symlink_metadata(path) {
+        Ok(metadata) => metadata,
+        Err(error) => {
+            warnings.push(FileOperationWarning::metadata_failed(
+                error.to_string(),
+                uri,
+            ));
+            return Ok(());
+        }
+    };
+
+    if metadata.is_dir() {
+        let path_uri = ResourceUri::from_local_path(path)?;
+        let mut children = fs::read_dir(path)
+            .map_err(|error| map_io_error(&path_uri, error))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|error| map_io_error(&path_uri, error))?;
+
+        children.sort_by_key(|entry| entry.path());
+
+        for child in children {
+            collect_archive_files(&child.path(), root, archive_destination, items, warnings)?;
+        }
+
+        return Ok(());
+    }
+
+    if metadata.file_type().is_symlink() {
+        return Err(FileOperationError::UnsupportedSymlink {
+            uri: uri.as_str().to_string(),
+            message: "copying symlink objects into archives is not supported in the MVP"
+                .to_string(),
+        });
+    }
+
+    items.push(FileOperationItem {
+        source: Some(uri),
+        destination: Some(archive_destination.clone()),
+        kind: FileKind::File,
+        size: Some(metadata.len()),
+        recursive: false,
+    });
+
+    Ok(())
 }
 
 fn execute_copy(
@@ -508,6 +720,27 @@ fn execute_create_directory(plan: &FileOperationPlan) -> Result<(), FileOperatio
     fs::create_dir(&destination_path).map_err(|error| map_std_io_error(&destination_path, error))
 }
 
+fn execute_create_file(plan: &FileOperationPlan) -> Result<(), FileOperationError> {
+    let destination = plan
+        .items
+        .first()
+        .and_then(|item| item.destination.as_ref())
+        .ok_or_else(|| FileOperationError::InvalidRequest {
+            message: "create file plan has no destination".to_string(),
+        })?;
+    let destination_path = destination.to_local_path()?;
+
+    if destination_path.exists() {
+        return Err(FileOperationError::DestinationConflict {
+            uri: destination.as_str().to_string(),
+        });
+    }
+
+    File::create_new(&destination_path)
+        .map(|_| ())
+        .map_err(|error| map_std_io_error(&destination_path, error))
+}
+
 fn execute_trash(plan: &FileOperationPlan) -> Result<(), FileOperationError> {
     for source in &plan.sources {
         let path = source.to_local_path()?;
@@ -516,6 +749,237 @@ fn execute_trash(plan: &FileOperationPlan) -> Result<(), FileOperationError> {
     }
 
     Ok(())
+}
+
+fn execute_delete_permanently(plan: &FileOperationPlan) -> Result<(), FileOperationError> {
+    for source in &plan.sources {
+        let path = source.to_local_path()?;
+
+        if path.is_dir() {
+            fs::remove_dir_all(&path).map_err(|error| map_std_io_error(&path, error))?;
+        } else {
+            fs::remove_file(&path).map_err(|error| map_std_io_error(&path, error))?;
+        }
+    }
+
+    Ok(())
+}
+
+fn execute_create_archive(
+    plan: &FileOperationPlan,
+    job_id: &JobId,
+    cancel: &CancellationToken,
+    sink: &FileOperationEventSink,
+) -> Result<(), FileOperationError> {
+    let destination =
+        plan.destination
+            .as_ref()
+            .ok_or_else(|| FileOperationError::InvalidRequest {
+                message: "create archive plan has no destination".to_string(),
+            })?;
+    let destination_path = destination.to_local_path()?;
+
+    if destination_path.exists() && plan.conflict_policy == ConflictPolicy::Skip {
+        return Ok(());
+    }
+
+    let destination_path = resolve_conflict_path(destination_path, plan.conflict_policy)?;
+
+    if let Some(parent) = destination_path.parent() {
+        fs::create_dir_all(parent).map_err(|error| map_std_io_error(parent, error))?;
+    }
+
+    let file = File::create(&destination_path)
+        .map_err(|error| map_std_io_error(&destination_path, error))?;
+    let mut archive = zip::ZipWriter::new(file);
+    let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    let mut progress = ExecutionProgress::new(plan);
+
+    for item in &plan.items {
+        check_cancelled(cancel, job_id)?;
+        let source = item
+            .source
+            .as_ref()
+            .ok_or_else(|| FileOperationError::InvalidRequest {
+                message: "archive item has no source".to_string(),
+            })?;
+        let source_path = source.to_local_path()?;
+        let entry_name = archive_entry_name(plan, &source_path)?;
+
+        archive.start_file(&entry_name, options).map_err(|error| {
+            FileOperationError::io(format!("failed to add file to archive: {error}"))
+        })?;
+
+        let mut input =
+            File::open(&source_path).map_err(|error| map_std_io_error(&source_path, error))?;
+        let copied = std::io::copy(&mut input, &mut archive).map_err(|error| {
+            FileOperationError::io(format!("failed to write file to archive: {error}"))
+        })?;
+        progress.completed_bytes += copied;
+        progress.complete_item(item, job_id, sink);
+    }
+
+    archive
+        .finish()
+        .map_err(|error| FileOperationError::io(format!("failed to finalize archive: {error}")))?;
+
+    Ok(())
+}
+
+fn execute_extract_archive(
+    plan: &FileOperationPlan,
+    job_id: &JobId,
+    cancel: &CancellationToken,
+    sink: &FileOperationEventSink,
+) -> Result<(), FileOperationError> {
+    let source = plan
+        .sources
+        .first()
+        .ok_or_else(|| FileOperationError::InvalidRequest {
+            message: "extract archive plan has no source".to_string(),
+        })?;
+    let source_path = source.to_local_path()?;
+    let destination =
+        plan.destination
+            .as_ref()
+            .ok_or_else(|| FileOperationError::InvalidRequest {
+                message: "extract archive plan has no destination".to_string(),
+            })?;
+    let destination_root = destination.to_local_path()?;
+
+    fs::create_dir_all(&destination_root)
+        .map_err(|error| map_std_io_error(&destination_root, error))?;
+
+    let file = File::open(&source_path).map_err(|error| map_std_io_error(&source_path, error))?;
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|error| FileOperationError::io(format!("failed to read archive: {error}")))?;
+    let mut progress = ExecutionProgress::new(plan);
+    let mut planned_items = plan.items.iter();
+
+    for index in 0..archive.len() {
+        check_cancelled(cancel, job_id)?;
+        let mut entry = archive.by_index(index).map_err(|error| {
+            FileOperationError::io(format!("failed to read archive entry {index}: {error}"))
+        })?;
+        let entry_name = entry.name().to_string();
+
+        if entry_name.ends_with('/') {
+            continue;
+        }
+
+        let item = planned_items
+            .next()
+            .ok_or_else(|| FileOperationError::Internal {
+                message: "archive extract plan no longer matches archive contents".to_string(),
+            })?;
+        let destination =
+            item.destination
+                .as_ref()
+                .ok_or_else(|| FileOperationError::InvalidRequest {
+                    message: "extract item has no destination".to_string(),
+                })?;
+        let destination_path = destination.to_local_path()?;
+
+        if destination_path.exists() && plan.conflict_policy == ConflictPolicy::Skip {
+            progress.complete_item(item, job_id, sink);
+            continue;
+        }
+
+        let destination_path = resolve_conflict_path(destination_path, plan.conflict_policy)?;
+
+        if let Some(parent) = destination_path.parent() {
+            fs::create_dir_all(parent).map_err(|error| map_std_io_error(parent, error))?;
+        }
+
+        let mut output = File::create(&destination_path)
+            .map_err(|error| map_std_io_error(&destination_path, error))?;
+        let copied = std::io::copy(&mut entry, &mut output)
+            .map_err(|error| FileOperationError::io(format!("failed to extract file: {error}")))?;
+        progress.completed_bytes += copied;
+        progress.complete_item(item, job_id, sink);
+    }
+
+    Ok(())
+}
+
+fn archive_entry_name(
+    plan: &FileOperationPlan,
+    source_path: &Path,
+) -> Result<String, FileOperationError> {
+    for root_uri in &plan.sources {
+        let root_path = root_uri.to_local_path()?;
+
+        if root_path.is_file() && root_path == source_path {
+            return Ok(source_path
+                .file_name()
+                .map(|name| name.to_string_lossy().to_string())
+                .unwrap_or_else(|| source_path.to_string_lossy().to_string()));
+        }
+
+        if root_path.is_dir() && source_path.starts_with(&root_path) {
+            let relative = source_path
+                .strip_prefix(&root_path)
+                .unwrap_or(source_path)
+                .to_string_lossy()
+                .to_string();
+            return Ok(relative);
+        }
+    }
+
+    Err(FileOperationError::Internal {
+        message: format!(
+            "archive source `{}` is not covered by the plan roots",
+            source_path.display()
+        ),
+    })
+}
+
+fn sanitize_archive_entry_path(
+    entry_name: &str,
+    dest_root: &Path,
+) -> Result<PathBuf, FileOperationError> {
+    if Path::new(entry_name).is_absolute() {
+        return Err(FileOperationError::InvalidRequest {
+            message: format!("archive entry has absolute path: {entry_name}"),
+        });
+    }
+
+    let canonical_dest = dest_root
+        .canonicalize()
+        .unwrap_or_else(|_| dest_root.to_path_buf());
+    let target = normalize_archive_entry_path(&canonical_dest.join(entry_name));
+
+    if !target.starts_with(&canonical_dest) {
+        return Err(FileOperationError::InvalidRequest {
+            message: format!("archive entry escapes destination: {entry_name}"),
+        });
+    }
+
+    Ok(target)
+}
+
+fn normalize_archive_entry_path(path: &Path) -> PathBuf {
+    let mut components = Vec::new();
+
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                if let Some(last) = components.last() {
+                    if *last != std::path::Component::ParentDir {
+                        components.pop();
+                    } else {
+                        components.push(component);
+                    }
+                } else {
+                    components.push(component);
+                }
+            }
+            _ => components.push(component),
+        }
+    }
+
+    components.iter().collect()
 }
 
 #[cfg(target_os = "linux")]
@@ -753,13 +1217,7 @@ fn map_io_error(uri: &ResourceUri, error: std::io::Error) -> FileOperationError 
         std::io::ErrorKind::PermissionDenied => FileOperationError::PermissionDenied {
             uri: uri.as_str().to_string(),
         },
-        _ => FileOperationError::Io {
-            code: error
-                .raw_os_error()
-                .map(|code| code.to_string())
-                .unwrap_or_else(|| "io".to_string()),
-            message: error.to_string(),
-        },
+        _ => FileOperationError::io(error.to_string()),
     }
 }
 
@@ -771,13 +1229,7 @@ fn map_std_io_error(path: &Path, error: std::io::Error) -> FileOperationError {
     match error.kind() {
         std::io::ErrorKind::NotFound => FileOperationError::NotFound { uri },
         std::io::ErrorKind::PermissionDenied => FileOperationError::PermissionDenied { uri },
-        _ => FileOperationError::Io {
-            code: error
-                .raw_os_error()
-                .map(|code| code.to_string())
-                .unwrap_or_else(|| "io".to_string()),
-            message: error.to_string(),
-        },
+        _ => FileOperationError::io(error.to_string()),
     }
 }
 
@@ -957,6 +1409,27 @@ mod tests {
         .unwrap_err();
 
         assert_eq!(error.code(), "destination_missing");
+    }
+
+    #[test]
+    fn collect_copy_or_move_items_uses_cataloged_metadata_warning() {
+        let dir = tempdir().unwrap();
+        let missing = dir.path().join("missing.txt");
+        let destination = dir.path().join("dest");
+        let mut items = Vec::new();
+        let mut warnings = Vec::new();
+
+        fs::create_dir(&destination).unwrap();
+
+        collect_copy_or_move_items(&missing, &destination, &missing, &mut items, &mut warnings)
+            .unwrap();
+
+        assert!(items.is_empty());
+        assert_eq!(warnings.len(), 1);
+        assert_eq!(
+            warnings[0].code,
+            vfs::file_operation_warning_codes::METADATA_FAILED
+        );
     }
 
     #[test]
@@ -1305,6 +1778,102 @@ mod tests {
 
         assert!(!file.exists());
         assert!(!folder.exists());
+    }
+
+    #[test]
+    fn create_archive_writes_zip_file() {
+        let dir = tempdir().unwrap();
+        let source = dir.path().join("source.txt");
+        let archive_path = dir.path().join("archive.zip");
+
+        fs::write(&source, b"archive me").unwrap();
+
+        let plan = plan_file_operation(request(
+            FileOperationKind::CreateArchive,
+            vec![uri(&source)],
+            Some(uri(&archive_path)),
+        ))
+        .unwrap();
+
+        execute_file_operation(
+            &plan,
+            &JobId::new("job"),
+            &CancellationToken::new(),
+            &|_| {},
+        )
+        .unwrap();
+
+        let file = File::open(&archive_path).unwrap();
+        let archive = zip::ZipArchive::new(file).unwrap();
+
+        assert_eq!(archive.len(), 1);
+    }
+
+    #[test]
+    fn extract_archive_writes_files_to_destination() {
+        let dir = tempdir().unwrap();
+        let source = dir.path().join("source.txt");
+        let archive_path = dir.path().join("archive.zip");
+        let extract_dir = dir.path().join("out");
+
+        fs::write(&source, b"archive me").unwrap();
+
+        let create_plan = plan_file_operation(request(
+            FileOperationKind::CreateArchive,
+            vec![uri(&source)],
+            Some(uri(&archive_path)),
+        ))
+        .unwrap();
+        execute_file_operation(
+            &create_plan,
+            &JobId::new("job-create"),
+            &CancellationToken::new(),
+            &|_| {},
+        )
+        .unwrap();
+
+        let extract_plan = plan_file_operation(request(
+            FileOperationKind::ExtractArchive,
+            vec![uri(&archive_path)],
+            Some(uri(&extract_dir)),
+        ))
+        .unwrap();
+        execute_file_operation(
+            &extract_plan,
+            &JobId::new("job-extract"),
+            &CancellationToken::new(),
+            &|_| {},
+        )
+        .unwrap();
+
+        assert_eq!(
+            fs::read(extract_dir.join("source.txt")).unwrap(),
+            b"archive me"
+        );
+    }
+
+    #[test]
+    fn extract_archive_rejects_path_traversal_entries() {
+        let dir = tempdir().unwrap();
+        let archive_path = dir.path().join("bad.zip");
+        let extract_dir = dir.path().join("out");
+        let file = File::create(&archive_path).unwrap();
+        let mut archive = zip::ZipWriter::new(file);
+
+        archive
+            .start_file("../escape.txt", FileOptions::default())
+            .unwrap();
+        archive.write_all(b"nope").unwrap();
+        archive.finish().unwrap();
+
+        let error = plan_file_operation(request(
+            FileOperationKind::ExtractArchive,
+            vec![uri(&archive_path)],
+            Some(uri(&extract_dir)),
+        ))
+        .unwrap_err();
+
+        assert_eq!(error.code(), "invalid_request");
     }
 
     #[test]

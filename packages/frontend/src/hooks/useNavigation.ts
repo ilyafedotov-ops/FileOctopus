@@ -23,7 +23,7 @@ import {
   type PanelAction,
   type PanelId,
 } from "../panelStore";
-import { createRequestId } from "../paneTypes";
+import { createRequestId, loadStateFromBatchError } from "../paneTypes";
 import { localPathFromUri } from "../utils/paneUtils";
 import { operationErrorMessage } from "../dialogs/OperationDialogView";
 import type { OperationDialog } from "../dialogs/OperationDialogView";
@@ -182,12 +182,7 @@ export function useNavigation(deps: UseNavigationDeps) {
         panelId,
         error: normalized.message,
         errorCode: normalized.code,
-        loadState:
-          normalized.code === "permission_denied"
-            ? "permissionDenied"
-            : normalized.code === "timeout"
-              ? "timeout"
-              : "error",
+        loadState: loadStateFromBatchError(normalized),
       });
     }
   }
