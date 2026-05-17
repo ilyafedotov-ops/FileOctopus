@@ -18,7 +18,6 @@ import { normalizeIpcError, type FileOctopusClient } from "@fileoctopus/ts-api";
 import {
   activeTab,
   normalizeLocalInput,
-  parentUri,
   type FileOctopusState,
   type PanelAction,
   type PanelId,
@@ -36,6 +35,10 @@ import { operationErrorMessage } from "../dialogs/OperationDialogView";
 import { mergeToast } from "../toastNotifications";
 import { localPathFromUri } from "../utils/paneUtils";
 import { createRequestId, loadStateFromBatchError } from "../paneTypes";
+import {
+  dispatchCommand,
+  type CommandDispatchDeps,
+} from "../commands/dispatch";
 
 export interface UseEventHandlersParams {
   client: FileOctopusClient;
@@ -53,7 +56,11 @@ export interface UseEventHandlersParams {
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
   setShortcutsOpen: Dispatch<SetStateAction<boolean>>;
   setDiagnosticsOpen: Dispatch<SetStateAction<boolean>>;
+  setAboutOpen: Dispatch<SetStateAction<boolean>>;
+  setGoToLocationOpen: Dispatch<SetStateAction<boolean>>;
+  setManageFavoritesOpen: Dispatch<SetStateAction<boolean>>;
   setFilterFocusToken: Dispatch<SetStateAction<number>>;
+  markActivityPinnedOpen?: () => void;
   setAutostart: Dispatch<SetStateAction<AutostartStatusDto | null>>;
   setFavorites: Dispatch<SetStateAction<FavoriteEntryDto[]>>;
   setRecentToday: Dispatch<SetStateAction<RecentEntryDto[]>>;
@@ -84,7 +91,11 @@ export function useEventHandlers({
   setSettingsOpen,
   setShortcutsOpen,
   setDiagnosticsOpen,
+  setAboutOpen,
+  setGoToLocationOpen,
+  setManageFavoritesOpen,
   setFilterFocusToken,
+  markActivityPinnedOpen,
   setAutostart,
   setFavorites,
   setRecentToday,
@@ -144,46 +155,39 @@ export function useEventHandlers({
   function handleCommandSelect(id: string) {
     setCommandPaletteOpen(false);
     const panelId = state.activePanelId;
-    const tab = activeTab(state.panels[panelId]);
-    switch (id) {
-      case "settings":
-        setSettingsOpen(true);
-        break;
-      case "shortcuts":
-        setShortcutsOpen(true);
-        break;
-      case "diagnostics":
-        setDiagnosticsOpen(true);
-        break;
-      case "toggle-sidebar":
-        void updatePreference(
-          "sidebarVisible",
-          String(preferences?.sidebarVisible === false),
-        );
-        break;
-      case "switch-pane":
-        dispatch({
-          type: "setActivePanel",
-          panelId: panelId === "left" ? "right" : "left",
-        });
-        break;
-      case "up": {
-        const upUri = parentUri(tab.uri);
-        if (upUri) void navigatePanel(panelId, upUri);
-        break;
-      }
-      case "refresh":
-        refreshPanel(panelId);
-        break;
-      case "filter":
-        setFilterFocusToken((v) => v + 1);
-        break;
-      case "toggle-hidden":
-        dispatch({ type: "toggleHidden", panelId });
-        break;
-      default:
-        break;
+
+    if (id === "switch-pane") {
+      dispatch({
+        type: "setActivePanel",
+        panelId: panelId === "left" ? "right" : "left",
+      });
+      return;
     }
+
+    if (id === "filter") {
+      setFilterFocusToken((v) => v + 1);
+      return;
+    }
+
+    const dispatchDeps: CommandDispatchDeps = {
+      state,
+      dispatch,
+      preferences,
+      navigatePanel,
+      refreshPanel,
+      updatePreference,
+      setSettingsOpen,
+      setShortcutsOpen,
+      setDiagnosticsOpen,
+      setAboutOpen,
+      setGoToLocationOpen,
+      setManageFavoritesOpen,
+      setFilterFocusToken,
+      setActivityCollapsed,
+      markActivityPinnedOpen,
+    };
+
+    dispatchCommand(id, dispatchDeps);
   }
 
   async function handleSetAutostart(enabled: boolean) {

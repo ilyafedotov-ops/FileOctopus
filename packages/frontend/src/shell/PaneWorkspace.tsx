@@ -1,7 +1,7 @@
 import { normalizeIpcError } from "@fileoctopus/ts-api";
 import { Sidebar } from "../sidebar/Sidebar";
 import { FilePanel } from "../pane/FilePanel";
-import { ActivityPanel } from "../activity/ActivityPanel";
+import { ActivityPanel } from "../jobs/ActivityPanel";
 import { SidebarResizer, SplitResizer } from "./LayoutResizers";
 import { useShellLayout } from "./ShellLayoutContext";
 
