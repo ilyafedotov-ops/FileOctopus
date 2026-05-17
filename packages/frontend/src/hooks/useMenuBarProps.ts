@@ -137,7 +137,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
       void exportDiagnostics();
     },
     onSwitchPane: () => runCommand("layout.switchPane", panelId),
-    onSwapPanes: () => undefined,
+    onSwapPanes: () => runCommand("layout.swapPanes"),
     onEqualizePanes: () => runCommand("layout.equalizePanes"),
     onShortcuts: () => runCommand("app.shortcuts"),
     onDocumentation: () => {

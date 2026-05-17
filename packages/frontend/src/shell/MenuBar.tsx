@@ -590,7 +590,7 @@ export function MenuBar(props: MenuBarProps) {
     {
       id: "swap-panes",
       label: "Swap Panes",
-      disabled: true,
+      shortcut: "Ctrl+U",
       onSelect: wrap(props.onSwapPanes),
     },
     {

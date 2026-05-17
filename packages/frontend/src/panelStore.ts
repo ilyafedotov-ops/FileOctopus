@@ -111,7 +111,8 @@ export type PanelAction =
       panelId: PanelId;
       entryId: string;
       hashState: HashState;
-    };
+    }
+  | { type: "swapPanes" };
 
 export function createInitialState(
   leftUri = homeUri(),
@@ -132,6 +133,15 @@ export function panelReducer(
   state: FileOctopusState,
   action: PanelAction,
 ): FileOctopusState {
+  if (action.type === "swapPanes") {
+    return {
+      ...state,
+      panels: {
+        left: state.panels.right,
+        right: state.panels.left,
+      },
+    };
+  }
   return reducePanelAction(state, action);
 }
 
