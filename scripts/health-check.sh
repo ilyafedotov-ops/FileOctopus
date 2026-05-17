@@ -17,11 +17,11 @@ run_check() {
   if "$@" &>/tmp/fo-check-output.txt; then
     echo "   ✅ $name"
     RESULTS="$RESULTS\n✅ $name"
-    ((PASS++))
+    PASS=$((PASS + 1))
   else
     echo "   ❌ $name (see /tmp/fo-check-output.txt)"
     RESULTS="$RESULTS\n❌ $name"
-    ((FAIL++))
+    FAIL=$((FAIL + 1))
   fi
 }
 
@@ -35,12 +35,12 @@ echo ""
 if [ -z "$(git status --short)" ]; then
   echo "✅ Git: working tree clean"
   RESULTS="$RESULTS\n✅ Git: working tree clean"
-  ((PASS++))
+  PASS=$((PASS + 1))
 else
   echo "⚠️  Git: uncommitted changes:"
   git status --short | head -10
   RESULTS="$RESULTS\n⚠️ Git: uncommitted changes"
-  ((PASS++))  # not a failure, just informational
+  PASS=$((PASS + 1))  # not a failure, just informational
 fi
 echo ""
 
