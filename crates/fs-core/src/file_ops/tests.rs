@@ -7,7 +7,7 @@ use tempfile::tempdir;
 use vfs::{ConflictPolicy, FileKind, FileOperationKind, FileOperationRequest, ResourceUri};
 use zip::write::FileOptions;
 
-use super::execution::{COPY_BUFFER_SIZE, PROGRESS_BYTE_INTERVAL};
+use super::execution::PROGRESS_BYTE_INTERVAL;
 use super::planning::collect_copy_or_move_items;
 use super::{execute_file_operation, plan_file_operation};
 
