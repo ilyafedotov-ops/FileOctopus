@@ -14,21 +14,22 @@ if ! pnpm audit --audit-level=high; then
 fi
 
 # --- cargo audit (RustSec advisory db) -----------------------------------
-# Note: only vulnerabilities fail the hook. Unmaintained-crate warnings
-# (gtk-rs GTK3 bindings, unic-*, proc-macro-error, etc.) are surfaced by
-# the same command but treated as informational since they come from the
-# Tauri 2 ecosystem and have no drop-in replacement yet.
+# Only vulnerabilities fail the hook. Unmaintained-crate warnings (gtk-rs
+# GTK3 bindings, unic-*, proc-macro-error, etc.) are surfaced by the same
+# command but treated as informational since they come from the Tauri 2
+# ecosystem and have no drop-in replacement yet.
 # Ignored advisories live in .cargo/audit.toml.
-if command -v cargo-audit >/dev/null 2>&1; then
-  echo "Running cargo audit…"
-  if ! cargo audit; then
-    echo "pre-push: cargo audit found Rust vulnerabilities." >&2
-    echo "Run 'cargo audit' to inspect or 'cargo update -p <crate>' to fix." >&2
-    exit 1
-  fi
-else
-  echo "pre-push: cargo-audit not installed; skipping Rust advisory check." >&2
+if ! command -v cargo-audit >/dev/null 2>&1; then
+  echo "pre-push: cargo-audit is required but not installed." >&2
   echo "Install with: cargo install cargo-audit --locked" >&2
+  exit 1
+fi
+
+echo "Running cargo audit…"
+if ! cargo audit; then
+  echo "pre-push: cargo audit found Rust vulnerabilities." >&2
+  echo "Run 'cargo audit' to inspect or 'cargo update -p <crate>' to fix." >&2
+  exit 1
 fi
 
 exit 0
