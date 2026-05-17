@@ -427,14 +427,12 @@ export function MenuBar(props: MenuBarProps) {
       id: "toggle-toolbar",
       label: "Show Toolbar",
       checked: props.toolbarVisible,
-      disabled: true,
       onSelect: wrap(props.onToggleToolbar),
     },
     {
       id: "toggle-statusbar",
       label: "Show Status Bar",
       checked: props.statusBarVisible,
-      disabled: true,
       onSelect: wrap(props.onToggleStatusBar),
     },
     {
