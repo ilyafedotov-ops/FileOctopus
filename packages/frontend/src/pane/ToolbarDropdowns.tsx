@@ -93,6 +93,7 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
         >
           {Icons.folderPlus()}
           <span>New</span>
+          {Icons.chevronDown()}
         </DropdownMenu>
       </div>
       <span className="fo-toolbar-separator" aria-hidden="true" />
@@ -169,6 +170,7 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
         >
           {Icons.pictures()}
           <span>View</span>
+          {Icons.chevronDown()}
         </DropdownMenu>
       </div>
       <span className="fo-toolbar-spacer" aria-hidden="true" />
@@ -362,6 +364,7 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
       >
         {Icons.more()}
         <span>More</span>
+        {Icons.chevronDown()}
       </DropdownMenu>
     </>
   );

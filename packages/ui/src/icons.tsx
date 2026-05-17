@@ -2,6 +2,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   ArrowRightLeft,
   ArrowUp,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Clock,
@@ -21,6 +22,7 @@ import {
   Pencil,
   Pin,
   RefreshCw,
+  Search,
   Star,
   Trash2,
 } from "lucide-react";
@@ -42,6 +44,7 @@ export function renderIcon(Icon: LucideIcon, className?: string): ReactNode {
 export const Icons = {
   chevronLeft: () => renderIcon(ChevronLeft, "fo-ui-icon"),
   chevronRight: () => renderIcon(ChevronRight, "fo-ui-icon"),
+  chevronDown: () => renderIcon(ChevronDown, "fo-ui-icon"),
   arrowUp: () => renderIcon(ArrowUp, "fo-ui-icon"),
   folderPlus: () => renderIcon(FolderPlus, "fo-ui-icon"),
   filePlus: () => renderIcon(FilePlus, "fo-ui-icon"),
@@ -63,6 +66,7 @@ export const Icons = {
   star: () => renderIcon(Star, "fo-ui-icon"),
   folder: () => renderIcon(Folder, "fo-ui-icon"),
   file: () => renderIcon(File, "fo-ui-icon"),
+  search: () => renderIcon(Search, "fo-ui-icon"),
 };
 
 export function fileEntryIcon(
