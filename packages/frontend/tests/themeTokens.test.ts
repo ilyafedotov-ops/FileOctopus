@@ -199,6 +199,9 @@ describe("Design token architecture", () => {
 
   it("compact view hides only the direct type cell", () => {
     expect(paneContent).toContain(
+      ".fo-view-list,\n.fo-view-compact,\n.fo-view-icons",
+    );
+    expect(paneContent).toContain(
       ".fo-view-compact .fo-row > span:nth-child(3)",
     );
   });

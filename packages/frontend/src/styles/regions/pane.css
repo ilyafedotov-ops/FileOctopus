@@ -260,6 +260,7 @@
 }
 
 .fo-view-list,
+.fo-view-compact,
 .fo-view-icons {
   grid-template-rows: minmax(0, 1fr);
 }
