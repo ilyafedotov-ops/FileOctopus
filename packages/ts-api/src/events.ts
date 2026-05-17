@@ -1,0 +1,10 @@
+export const DIRECTORY_BATCH_EVENT = "directory:batch";
+export const JOB_STARTED_EVENT = "fileOperation:job:started";
+export const JOB_PROGRESS_EVENT = "fileOperation:job:progress";
+export const JOB_COMPLETED_EVENT = "fileOperation:job:completed";
+export const JOB_FAILED_EVENT = "fileOperation:job:failed";
+export const JOB_CANCELLED_EVENT = "fileOperation:job:cancelled";
+export const WATCH_CHANGED_EVENT = "fs:watch:changed";
+export const FOLDER_SIZE_COMPLETED_EVENT = "fs:folderSize:completed";
+export const RECURSIVE_SEARCH_MATCH_EVENT = "fs:recursiveSearch:match";
+export const RECURSIVE_SEARCH_COMPLETED_EVENT = "fs:recursiveSearch:completed";
