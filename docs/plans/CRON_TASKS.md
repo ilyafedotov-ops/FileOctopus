@@ -47,9 +47,11 @@
 
 ### P0-4: Enable Show Toolbar / Show Status Bar menu items
 
-**Status**: pending
-**Files**: `packages/frontend/src/shell/useMenuBarProps.ts` (lines ~431, 437)
-**Problem**: Both items have `disabled: true` — users can't toggle toolbar or status bar from menu. Handlers exist and work (`view.toggleToolbar` / `view.toggleStatusBar`).
+### P0-4: Enable Toggle Toolbar/Statusbar
+
+**Status**: done ✅ (commit `dffbf11`)
+**Files**: `packages/frontend/src/shell/MenuBar.tsx` (lines 427-438)
+**Action**: Remove `disabled: true` from toggle-toolbar and toggle-statusbar items. Handlers (`onToggleToolbar`, `onToggleStatusBar`) already wired through layout store.
 **Action**: Remove `disabled: true` from both menu items. Verify toggle state reflects in menu checkbox.
 **Tests**: Click menu item → toolbar/statusbar hides; click again → shows.
 
