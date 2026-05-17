@@ -12,6 +12,8 @@ type SettingsSection =
   | "appearance"
   | "files"
   | "layout"
+  | "behavior"
+  | "diagnostics"
   | "shortcuts";
 
 interface SettingsDialogProps {
@@ -101,6 +103,28 @@ export function SettingsDialog({
               onClick={() => setActiveSection("layout")}
             >
               Layout
+            </button>
+            <button
+              type="button"
+              className={
+                activeSection === "behavior"
+                  ? "fo-settings-nav-active"
+                  : undefined
+              }
+              onClick={() => setActiveSection("behavior")}
+            >
+              Behavior
+            </button>
+            <button
+              type="button"
+              className={
+                activeSection === "diagnostics"
+                  ? "fo-settings-nav-active"
+                  : undefined
+              }
+              onClick={() => setActiveSection("diagnostics")}
+            >
+              Diagnostics
             </button>
             <button
               type="button"
@@ -413,9 +437,71 @@ export function SettingsDialog({
                     }
                   >
                     <option value="manual">Manual</option>
+                    <option value="openOnStart">Open when a job starts</option>
                     <option value="openOnError">Open on error</option>
                   </select>
                 </label>
+              </section>
+            )}
+            {activeSection === "behavior" && (
+              <section
+                className="fo-settings-section"
+                role="region"
+                aria-label="Behavior settings"
+              >
+                <h3>Behavior</h3>
+                <label className="fo-settings-field">
+                  <input
+                    type="checkbox"
+                    checked={preferences.confirmDelete}
+                    onChange={(event) =>
+                      onChange(
+                        "confirmDelete",
+                        event.target.checked ? "true" : "false",
+                      )
+                    }
+                  />
+                  <span>Confirm move to trash</span>
+                </label>
+                <label className="fo-settings-field">
+                  <input
+                    type="checkbox"
+                    checked={preferences.confirmPermanentDelete}
+                    onChange={(event) =>
+                      onChange(
+                        "confirmPermanentDelete",
+                        event.target.checked ? "true" : "false",
+                      )
+                    }
+                  />
+                  <span>Confirm permanent delete</span>
+                </label>
+                <label className="fo-settings-field">
+                  <input
+                    type="checkbox"
+                    checked={preferences.useTrashByDefault}
+                    onChange={(event) =>
+                      onChange(
+                        "useTrashByDefault",
+                        event.target.checked ? "true" : "false",
+                      )
+                    }
+                  />
+                  <span>Use trash by default</span>
+                </label>
+              </section>
+            )}
+            {activeSection === "diagnostics" && (
+              <section
+                className="fo-settings-section"
+                role="region"
+                aria-label="Diagnostics settings"
+              >
+                <h3>Diagnostics</h3>
+                <p className="fo-settings-hint">
+                  Open the Help menu to view diagnostics or export a support
+                  bundle.
+                </p>
               </section>
             )}
             {activeSection === "shortcuts" && (

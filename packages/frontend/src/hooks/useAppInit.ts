@@ -282,6 +282,10 @@ export function useAppInit({
     Promise.all([
       client.fileOperations.onJobStarted((event) => {
         remember(snapshotFromStarted(event));
+        if (preferencesRef.current?.jobDrawerBehavior === "openOnStart") {
+          setActivityCollapsed(false);
+          void updatePreference("activityPanelVisible", "true");
+        }
       }),
       client.fileOperations.onJobProgress((event) => {
         setJobs((current) => ({

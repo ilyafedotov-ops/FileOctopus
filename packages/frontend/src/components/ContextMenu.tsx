@@ -8,6 +8,10 @@ import {
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import type { PanelId, SortField, ViewMode } from "../panelStore";
+import {
+  ContextMenuItem,
+  ContextMenuSeparator,
+} from "../menus/context/ContextMenuPrimitives";
 
 export interface ContextMenuState {
   panelId: PanelId;
@@ -57,34 +61,6 @@ interface ContextMenuProps {
   onCopyBreadcrumbPath: (path: string) => void;
   onRevealBreadcrumb: (path: string) => void;
   onAddFavorite: (uri: string) => void;
-}
-
-function ContextMenuItem({
-  disabled,
-  onClick,
-  children,
-}: {
-  disabled?: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      className="fo-context-menu-item"
-      role="menuitem"
-      disabled={disabled}
-      onClick={onClick}
-    >
-      {children}
-    </Button>
-  );
-}
-
-function ContextMenuSeparator() {
-  return <div className="fo-context-menu-separator" role="separator" />;
 }
 
 export function ContextMenu({

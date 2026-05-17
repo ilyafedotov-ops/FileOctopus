@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DropdownMenu, Icons, ToolbarButton } from "@fileoctopus/ui";
+import { formatCommandShortcut } from "../commands/registry";
 
 import type { ViewMode } from "../panelStore";
 
@@ -111,7 +112,7 @@ export function OperationToolbar({
               id: "new-folder",
               label: "New Folder",
               icon: Icons.folderPlus(),
-              shortcut: "Cmd+N",
+              shortcut: formatCommandShortcut("create.folder", "mac"),
               onSelect: onCreateFolder,
             },
             {
@@ -165,6 +166,13 @@ export function OperationToolbar({
               icon: Icons.file(),
               checked: viewMode === "list",
               onSelect: () => onViewMode("list"),
+            },
+            {
+              id: "view-compact",
+              label: "Compact view",
+              icon: Icons.file(),
+              checked: viewMode === "compact",
+              onSelect: () => onViewMode("compact"),
             },
             {
               id: "view-icons",

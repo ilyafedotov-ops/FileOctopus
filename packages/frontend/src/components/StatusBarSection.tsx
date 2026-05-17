@@ -16,6 +16,7 @@ interface StatusBarSectionProps {
   appHealth: AppDataHealthResponse | null;
   diagnosticsOpen: boolean;
   onOpenActivity: () => void;
+  onShowErrorDetails?: () => void;
 }
 
 export function StatusBarSection({
@@ -25,6 +26,7 @@ export function StatusBarSection({
   appHealth,
   diagnosticsOpen,
   onOpenActivity,
+  onShowErrorDetails,
 }: StatusBarSectionProps) {
   const statusTab = activeTab(state.panels[state.activePanelId]);
   const statusSelection = statusTab.selectedIds
@@ -60,6 +62,7 @@ export function StatusBarSection({
       activeJobCount={activeJobCount}
       operationError={operationError}
       onOpenActivity={onOpenActivity}
+      onShowErrorDetails={onShowErrorDetails}
       logPath={appHealth?.logDir ?? null}
       showLogPath={diagnosticsOpen}
     />

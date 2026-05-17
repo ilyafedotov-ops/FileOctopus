@@ -487,7 +487,7 @@ fn parse_pane_mode(value: &str) -> Result<String, PreferencesError> {
 
 fn parse_job_drawer_behavior(value: &str) -> Result<String, PreferencesError> {
     match value {
-        "manual" | "openOnError" => Ok(value.to_string()),
+        "manual" | "openOnError" | "openOnStart" => Ok(value.to_string()),
         other => Err(invalid_value(
             "jobDrawerBehavior",
             format!("unsupported value `{other}`"),

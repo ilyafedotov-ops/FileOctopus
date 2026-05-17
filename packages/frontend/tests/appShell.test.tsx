@@ -557,10 +557,11 @@ describe("FileOctopusShell", () => {
     await applyLeftEntries([entry("alpha.txt")]);
 
     clickToolbar("Rename", 0);
-    fireEvent.change(screen.getByLabelText("New name"), {
+    const renameInput = screen.getByLabelText("Rename alpha.txt");
+    fireEvent.change(renameInput, {
       target: { value: "bad/name" },
     });
-    fireEvent.click(screen.getAllByText("Rename").slice(-1)[0]);
+    fireEvent.blur(renameInput);
 
     expect(
       await screen.findByText("Enter a name without path separators."),

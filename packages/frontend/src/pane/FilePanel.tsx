@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import {
   selectVisibleEntries,
   parentUri,
@@ -9,13 +9,13 @@ import {
   type PanelTabState,
 } from "../panelStore";
 import { SegmentedControl, Button, cx } from "@fileoctopus/ui";
-import { PathBar } from "./PanePathBar";
 import { FilterInput, type SearchState } from "./PaneFilterBar";
 import { OperationToolbar } from "./OperationToolbar";
 import { FileTable } from "./FileTable";
 import { ColumnsView } from "./ColumnsView";
 import { RecursiveSearchPanel } from "./PaneFilterBar";
 import { PaneStateView } from "../components/PaneStateView";
+import { PaneHeader } from "./PaneHeader";
 import {
   readDraggedUri,
   useFileOctopusDragTarget,
@@ -67,12 +67,14 @@ export interface FilePanelProps {
   onSelectAll: () => void;
   canPaste: boolean;
   pathFocusToken: number;
+  renameFocusToken: number;
   filterFocusToken: number;
   recursiveSearchFocusToken: number;
   rowHeight: number;
   search: SearchState | null;
   onContextMenu: (menu: ContextMenuState | null) => void;
   onBreadcrumbContextMenu?: (path: string, event: React.MouseEvent) => void;
+  onSubmitInlineRename?: (entryUri: string, newName: string) => void;
 }
 
 export function FilePanel({
@@ -117,12 +119,14 @@ export function FilePanel({
   onSelectAll,
   canPaste,
   pathFocusToken,
+  renameFocusToken,
   filterFocusToken,
   recursiveSearchFocusToken,
   rowHeight,
   search,
   onContextMenu,
   onBreadcrumbContextMenu,
+  onSubmitInlineRename,
 }: FilePanelProps) {
   const entries = selectVisibleEntries(tab);
 
@@ -130,7 +134,12 @@ export function FilePanel({
     entries.find((entry) => entry.uri === tab.selectedId) ?? null;
   const upUri = parentUri(tab.uri);
   const recursiveSearchRef = useRef<HTMLInputElement | null>(null);
+  const [inlineRenameUri, setInlineRenameUri] = useState<string | null>(null);
   const { dragOver, reset, dragTargetProps } = useFileOctopusDragTarget();
+  const visibleCount = entries.length;
+  const filteredCount = tab.filter.trim()
+    ? selectVisibleEntries(tab).length
+    : visibleCount;
 
   useEffect(() => {
     if (recursiveSearchFocusToken > 0 && active) {
@@ -139,26 +148,28 @@ export function FilePanel({
     }
   }, [active, recursiveSearchFocusToken]);
 
+  useEffect(() => {
+    if (renameFocusToken > 0 && active && tab.selectedIds.length === 1) {
+      setInlineRenameUri(tab.selectedIds[0] ?? null);
+    }
+  }, [renameFocusToken, active, tab.selectedIds]);
+
   return (
     <section
       className={active ? "fo-panel fo-panel-active" : "fo-panel"}
+      data-active={active ? "true" : "false"}
+      aria-current={active ? "true" : undefined}
       onFocus={onActivate}
     >
-      <header className="fo-panel-header">
-        <div className="fo-panel-title-row">
-          <span className="fo-pane-badge">{title}</span>
-          <PathBar
-            value={tab.uri}
-            error={tab.error}
-            focusToken={pathFocusToken}
-            onSubmit={onNavigate}
-            onBreadcrumbContextMenu={onBreadcrumbContextMenu}
-          />
-          <span className={active ? "fo-pane-active-label" : "fo-pane-label"}>
-            {title.toUpperCase()}
-          </span>
-        </div>
-      </header>
+      <PaneHeader
+        title={title}
+        active={active}
+        uri={tab.uri}
+        pathError={tab.error}
+        pathFocusToken={pathFocusToken}
+        onNavigate={onNavigate}
+        onBreadcrumbContextMenu={onBreadcrumbContextMenu}
+      />
       <div
         className={cx("fo-panel-body", dragOver && "fo-panel-body-drag-over")}
         {...dragTargetProps}
@@ -194,7 +205,13 @@ export function FilePanel({
           onUp={() => upUri && onNavigate(upUri)}
           onCreateFolder={onCreateFolder}
           onCreateFile={onCreateFile}
-          onRename={onRename}
+          onRename={() => {
+            if (tab.selectedIds.length === 1) {
+              setInlineRenameUri(tab.selectedIds[0] ?? null);
+              return;
+            }
+            onRename();
+          }}
           onCopy={onCopy}
           onCut={onCut}
           onCopyOperation={onCopyOperation}
@@ -223,6 +240,11 @@ export function FilePanel({
             focusToken={filterFocusToken}
             onChange={onFilter}
           />
+          {tab.filter.trim() ? (
+            <span className="fo-filter-match-count" aria-live="polite">
+              {filteredCount} match{filteredCount === 1 ? "" : "es"}
+            </span>
+          ) : null}
           <SegmentedControl
             aria-label={`${panelId} view mode`}
             value={tab.viewMode}
@@ -264,9 +286,12 @@ export function FilePanel({
           loadState={tab.loadState}
           uri={tab.uri}
           message={tab.error}
+          canPaste={canPaste}
           onRetry={() => onNavigate(tab.uri)}
           onRefresh={onRefresh}
           onCreateFolder={onCreateFolder}
+          onCreateFile={onCreateFile}
+          onPaste={onPaste}
         />
         {tab.viewMode === "columns" ? (
           <ColumnsView
@@ -288,6 +313,16 @@ export function FilePanel({
             sortField={tab.sort.field}
             sortDirection={tab.sort.direction}
             viewMode={tab.viewMode}
+            filterQuery={tab.filter}
+            inlineRenameUri={inlineRenameUri}
+            onCancelInlineRename={() => setInlineRenameUri(null)}
+            onSubmitInlineRename={(entryUri, newName) => {
+              const entry = tab.entriesById[entryUri];
+              if (entry && onSubmitInlineRename) {
+                onSubmitInlineRename(entryUri, newName);
+              }
+              setInlineRenameUri(null);
+            }}
             onSelect={onSelect}
             onEntrySelect={onEntrySelect}
             onMove={onMove}

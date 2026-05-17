@@ -1,6 +1,12 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { cx, fileEntryIcon } from "@fileoctopus/ui";
-import type { DragEvent, MouseEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type DragEvent,
+  type MouseEvent,
+} from "react";
 import { formatDate, formatSize } from "./fileTableUtils";
 import type { ViewMode } from "../panelStore";
 
@@ -14,6 +20,9 @@ export interface FileRowProps {
   selected: boolean;
   multiSelected: boolean;
   focused: boolean;
+  renaming?: boolean;
+  onSubmitRename?: (newName: string) => void;
+  onCancelRename?: () => void;
   onSelect: (entryId: string | null) => void;
   onEntrySelect: (entryId: string, mode: "single" | "toggle" | "range") => void;
   onEntryActivate: (entry: FileEntryDto) => void;
@@ -31,11 +40,25 @@ export function FileRow({
   selected,
   multiSelected,
   focused,
+  renaming = false,
+  onSubmitRename,
+  onCancelRename,
   onSelect,
   onEntrySelect,
   onEntryActivate,
   onContextMenu,
 }: FileRowProps) {
+  const [draftName, setDraftName] = useState(entry.name);
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (renaming) {
+      setDraftName(entry.name);
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    }
+  }, [renaming, entry.name]);
+
   const typeLabel =
     entry.kind === "directory"
       ? "Folder"
@@ -88,9 +111,30 @@ export function FileRow({
         <span className="fo-row-icon" aria-hidden="true">
           {fileEntryIcon(entry)}
         </span>
-        <span className="fo-row-text" title={entry.name}>
-          {entry.name}
-        </span>
+        {renaming ? (
+          <input
+            ref={renameInputRef}
+            className="fo-row-rename-input"
+            value={draftName}
+            aria-label={`Rename ${entry.name}`}
+            onChange={(event) => setDraftName(event.target.value)}
+            onClick={(event) => event.stopPropagation()}
+            onKeyDown={(event) => {
+              event.stopPropagation();
+              if (event.key === "Enter") {
+                onSubmitRename?.(draftName);
+              }
+              if (event.key === "Escape") {
+                onCancelRename?.();
+              }
+            }}
+            onBlur={() => onSubmitRename?.(draftName)}
+          />
+        ) : (
+          <span className="fo-row-text" title={entry.name}>
+            {entry.name}
+          </span>
+        )}
       </span>
       {viewMode === "details" || viewMode === "list" ? (
         <>

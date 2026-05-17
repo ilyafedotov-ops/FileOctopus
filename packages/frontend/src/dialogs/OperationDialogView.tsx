@@ -17,8 +17,8 @@ import {
 import type { PanelId } from "../panelStore";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
-import { propertyType, localPathFromUri } from "../utils/paneUtils";
-import { formatDate, formatSize } from "../pane/fileTableUtils";
+import { PropertiesDialog } from "../components/dialogs/PropertiesDialog";
+import { ConflictResolutionDialog } from "../components/dialogs/ConflictResolutionDialog";
 
 type CopyMoveKind = "copy" | "move";
 
@@ -232,31 +232,10 @@ export function OperationDialogView({
         ) : null}
         {dialog.type === "copyMove" ? (
           dialog.step === "confirm-overwrite" ? (
-            <section className="fo-dialog-section">
-              <h3>Confirm overwrite</h3>
-              <p>
-                The conflict policy is set to overwrite. Files at the
-                destination with the same name will be replaced. Continue?
-              </p>
-              <div className="fo-dialog-actions">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => onUpdate({ ...dialog, step: "review" })}
-                >
-                  Back
-                </Button>
-                <Button
-                  type="button"
-                  variant="danger"
-                  size="sm"
-                  onClick={() => void onSubmitCopyMove(dialog)}
-                >
-                  Overwrite
-                </Button>
-              </div>
-            </section>
+            <ConflictResolutionDialog
+              onBack={() => onUpdate({ ...dialog, step: "review" })}
+              onOverwrite={() => void onSubmitCopyMove(dialog)}
+            />
           ) : (
             <form
               onSubmit={(event) => {
@@ -404,105 +383,18 @@ export function OperationDialogView({
           </form>
         ) : null}
         {dialog.type === "properties" ? (
-          <div className="fo-properties">
-            {dialog.loading ? <div>Loading</div> : null}
-            {dialog.error ? (
-              <div className="fo-operation-error">{dialog.error}</div>
-            ) : null}
-            {dialog.properties ? (
-              <>
-                <dl>
-                  <dt>Name</dt>
-                  <dd>{dialog.properties.name}</dd>
-                  <dt>Type</dt>
-                  <dd>{propertyType(dialog.properties)}</dd>
-                  <dt>Full path</dt>
-                  <dd>{localPathFromUri(dialog.properties.uri)}</dd>
-                  <dt>Resource URI</dt>
-                  <dd>{dialog.properties.uri}</dd>
-                  <dt>Size</dt>
-                  <dd>
-                    {formatSize(
-                      dialog.properties.size ?? dialog.properties.totalSize,
-                    )}
-                  </dd>
-                  <dt>Contains</dt>
-                  <dd>
-                    {dialog.properties.itemCount != null
-                      ? [
-                          dialog.properties.itemCount != null &&
-                            `${dialog.properties.itemCount} item(s)`,
-                          dialog.properties.directoryCount != null &&
-                            `${dialog.properties.directoryCount} folder(s)`,
-                          dialog.properties.fileCount != null &&
-                            `${dialog.properties.fileCount} file(s)`,
-                        ]
-                          .filter(Boolean)
-                          .join(", ")
-                      : "Not available"}
-                  </dd>
-                  <dt>Created</dt>
-                  <dd>{formatDate(dialog.properties.createdAt)}</dd>
-                  <dt>Modified</dt>
-                  <dd>{formatDate(dialog.properties.modifiedAt)}</dd>
-                  <dt>Accessed</dt>
-                  <dd>{formatDate(dialog.properties.accessedAt)}</dd>
-                  <dt>Permissions</dt>
-                  <dd>Not available</dd>
-                  <dt>Flags</dt>
-                  <dd>
-                    {[
-                      dialog.properties.isHidden && "Hidden",
-                      dialog.properties.readonly && "Read-only",
-                      dialog.properties.isSymlink &&
-                        `Symlink${dialog.properties.symlinkTarget ? ` → ${dialog.properties.symlinkTarget}` : ""}`,
-                    ]
-                      .filter(Boolean)
-                      .join(", ") || "None"}
-                  </dd>
-                  <dt>Provider capabilities</dt>
-                  <dd>Not available</dd>
-                </dl>
-                {dialog.properties.warnings.length > 0 ? (
-                  <div className="fo-dialog-summary">
-                    {dialog.properties.warnings.slice(0, 3).map((warning) => (
-                      <span key={warning}>{warning}</span>
-                    ))}
-                  </div>
-                ) : null}
-                <div className="fo-dialog-actions">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onCopyPath(dialog.panelId)}
-                  >
-                    Copy Path
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      void navigator.clipboard.writeText(
-                        dialog.properties!.uri,
-                      );
-                    }}
-                  >
-                    Copy Resource URI
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onReveal(dialog.panelId, dialog.entry)}
-                  >
-                    Reveal
-                  </Button>
-                </div>
-              </>
-            ) : null}
-          </div>
+          <PropertiesDialog
+            open
+            state={{
+              panelId: dialog.panelId,
+              entry: dialog.entry,
+              properties: dialog.properties,
+              loading: dialog.loading,
+              error: dialog.error,
+            }}
+            onCopyPath={() => onCopyPath(dialog.panelId)}
+            onReveal={() => onReveal(dialog.panelId, dialog.entry)}
+          />
         ) : null}
       </section>
     </div>

@@ -1,0 +1,88 @@
+:root[data-density="compact"] {
+  --fo-activity-width: var(--fo-job-drawer-width, 380px);
+}
+
+:root[data-density="comfortable"] {
+  --fo-activity-width: var(--fo-job-drawer-width, 420px);
+}
+
+:root[data-density="spacious"] {
+  --fo-activity-width: var(--fo-job-drawer-width, 480px);
+}
+
+.fo-operation-toolbar {
+  min-height: var(--fo-toolbar-height);
+}
+
+.fo-breadcrumb,
+.fo-path {
+  min-height: var(--fo-pathbar-height);
+}
+
+.fo-status {
+  min-height: var(--fo-statusbar-height);
+}
+
+.fo-resizer-split {
+  width: var(--fo-splitter-width);
+}
+
+.fo-activity-rail:not(.fo-activity-collapsed) {
+  width: var(--fo-activity-width, var(--fo-job-drawer-width, 420px));
+}
+
+.fo-toast-stack {
+  width: min(100vw - 24px, var(--fo-toast-width, 360px));
+}
+
+.fo-pane-location-name {
+  color: var(--fo-muted-text);
+  font-size: 11px;
+  max-width: 8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-filter-match-count {
+  color: var(--fo-muted-text);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.fo-pane-state-loading {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: center;
+  min-height: 120px;
+}
+
+.fo-pane-state-spinner {
+  animation: fo-spin 0.8s linear infinite;
+  border: 2px solid var(--fo-border);
+  border-radius: 50%;
+  border-top-color: var(--fo-accent);
+  height: 24px;
+  width: 24px;
+}
+
+@keyframes fo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fo-row-rename-input {
+  background: var(--fo-control-bg);
+  border: 1px solid var(--fo-accent);
+  border-radius: 4px;
+  min-width: 8rem;
+  padding: 2px 6px;
+}
+
+.fo-view-compact .fo-table-header span:nth-child(3),
+.fo-view-compact .fo-row span:nth-child(3) {
+  display: none;
+}

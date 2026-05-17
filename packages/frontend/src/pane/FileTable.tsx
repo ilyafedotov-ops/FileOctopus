@@ -24,6 +24,10 @@ export interface FileTableProps {
   sortField: SortField;
   sortDirection: string;
   viewMode: ViewMode;
+  filterQuery?: string;
+  inlineRenameUri?: string | null;
+  onSubmitInlineRename?: (entryUri: string, newName: string) => void;
+  onCancelInlineRename?: () => void;
   onSelect: (entryId: string | null) => void;
   onEntrySelect: (entryId: string, mode: "single" | "toggle" | "range") => void;
   onMove: (delta: number) => void;
@@ -46,6 +50,10 @@ export function FileTable({
   sortField,
   sortDirection,
   viewMode,
+  filterQuery = "",
+  inlineRenameUri,
+  onSubmitInlineRename,
+  onCancelInlineRename,
   onSelect,
   onEntrySelect,
   onMove,
@@ -178,10 +186,12 @@ export function FileTable({
         ) : entries.length === 0 ? (
           <div className="fo-empty-directory">
             <span className="fo-empty-directory-icon" aria-hidden="true">
-              📁
+              {filterQuery.trim() ? "🔍" : "📁"}
             </span>
             <span className="fo-empty-directory-text">
-              This folder is empty
+              {filterQuery.trim()
+                ? `No matches for "${filterQuery.trim()}"`
+                : "This folder is empty"}
             </span>
           </div>
         ) : (
@@ -193,6 +203,11 @@ export function FileTable({
                 top={(startIndex + offset) * rowHeight}
                 rowHeight={rowHeight}
                 viewMode={viewMode}
+                renaming={entry.uri === inlineRenameUri}
+                onSubmitRename={(newName) =>
+                  onSubmitInlineRename?.(entry.uri, newName)
+                }
+                onCancelRename={onCancelInlineRename}
                 selected={entry.uri === selectedId}
                 multiSelected={selectedIds.includes(entry.uri)}
                 focused={entry.uri === focusedId}

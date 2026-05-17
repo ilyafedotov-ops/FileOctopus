@@ -121,7 +121,10 @@ export function rowHeightForDensity(density: DensityPreference): number {
 }
 
 export function viewModeFromPreference(value: string): ViewMode {
-  return value === "list" || value === "icons" || value === "columns"
+  return value === "list" ||
+    value === "compact" ||
+    value === "icons" ||
+    value === "columns"
     ? value
     : "details";
 }

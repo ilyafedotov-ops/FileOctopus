@@ -6,6 +6,12 @@ const RESIZER_WIDTH = 4;
 const COLLAPSED_RAIL_WIDTH = 44;
 const LAYOUT_NARROW = 820;
 const LAYOUT_MEDIUM = 1040;
+const LAYOUT_TIER_XS = 700;
+const LAYOUT_TIER_SM = 900;
+const LAYOUT_TIER_MD = 1100;
+const LAYOUT_TIER_LG = 1400;
+
+export type WorkspaceLayoutTier = "xs" | "sm" | "md" | "lg" | "xl";
 
 export type WorkspaceLayoutMode = "wide" | "medium" | "narrow";
 
@@ -59,9 +65,22 @@ export function useWorkspaceLayout({
             ? "medium"
             : "wide";
 
+      const layoutTier: WorkspaceLayoutTier =
+        width < LAYOUT_TIER_XS
+          ? "xs"
+          : width < LAYOUT_TIER_SM
+            ? "sm"
+            : width < LAYOUT_TIER_MD
+              ? "md"
+              : width < LAYOUT_TIER_LG
+                ? "lg"
+                : "xl";
+
       element.dataset.workspace = width < required ? "compact" : "comfortable";
       element.dataset.layout = layout;
+      element.dataset.layoutTier = layoutTier;
       document.documentElement.dataset.shellLayout = layout;
+      document.documentElement.dataset.shellLayoutTier = layoutTier;
 
       if (
         width < required &&

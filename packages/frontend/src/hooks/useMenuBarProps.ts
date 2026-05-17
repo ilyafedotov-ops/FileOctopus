@@ -71,6 +71,9 @@ export interface UseMenuBarPropsParams {
   setSettingsOpen: (v: boolean) => void;
   setShortcutsOpen: (v: boolean) => void;
   setDiagnosticsOpen: (v: boolean) => void;
+  setAboutOpen: (v: boolean) => void;
+  setGoToLocationOpen: (v: boolean) => void;
+  setManageFavoritesOpen: (v: boolean) => void;
   setActivityCollapsed: (v: boolean) => void;
 }
 
@@ -106,12 +109,14 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     toggleHidden,
     updatePreference,
     pushToast,
-    setPathFocusToken,
     setFilterFocusToken,
     setRecursiveSearchFocusToken,
     setSettingsOpen,
     setShortcutsOpen,
     setDiagnosticsOpen,
+    setAboutOpen,
+    setGoToLocationOpen,
+    setManageFavoritesOpen,
     setActivityCollapsed,
   } = params;
 
@@ -127,7 +132,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
       if (upUri) void navigatePanel(panelId, upUri);
     },
     onHome: () => void navigatePanel(panelId, homeUri()),
-    onGoToLocation: () => setPathFocusToken((v) => v + 1),
+    onGoToLocation: () => setGoToLocationOpen(true),
     goStandardLocation: (loc: string) => {
       const match = locations.find(
         (l) => l.id.toLowerCase() === loc.toLowerCase(),
@@ -222,7 +227,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
           pushToast({ tone: "error", title: normalizeIpcError(error).message }),
         );
     },
-    onManageFavorites: () => setSettingsOpen(true),
+    onManageFavorites: () => setManageFavoritesOpen(true),
     onFilter: () => setFilterFocusToken((v) => v + 1),
     onSearchRecursive: () => setRecursiveSearchFocusToken((v) => v + 1),
     onJobActivity: () => {
@@ -257,12 +262,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
         "_blank",
       );
     },
-    onAbout: () =>
-      pushToast({
-        tone: "info",
-        title: "FileOctopus",
-        detail: "Rust-powered desktop file manager",
-      }),
+    onAbout: () => setAboutOpen(true),
     onSettings: () => setSettingsOpen(true),
     onExit: () => globalThis.close(),
     canGoBack: tab.backStack.length > 0,

@@ -250,6 +250,31 @@ export function useMutationHandlers(
     }
   }
 
+  async function submitInlineRename(
+    panelId: PanelId,
+    entry: FileEntryDto,
+    name: string,
+  ) {
+    const trimmed = name.trim();
+    if (!isValidName(trimmed)) {
+      setDialog({
+        type: "rename",
+        panelId,
+        entry,
+        name: trimmed,
+        error: "Enter a name without path separators.",
+      });
+      return;
+    }
+    if (trimmed === entry.name) {
+      return;
+    }
+    const ok = await startOperation("rename", [entry.uri], undefined, trimmed);
+    if (ok) {
+      refreshVisiblePanels();
+    }
+  }
+
   return {
     handleCreateFolder,
     handleCreateFile,
@@ -260,6 +285,7 @@ export function useMutationHandlers(
     submitCreateFolder,
     submitCreateFile,
     submitRename,
+    submitInlineRename,
     submitTrash,
     submitPermanentDelete,
     toggleStarredForEntry,

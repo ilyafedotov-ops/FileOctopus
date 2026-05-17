@@ -5,9 +5,12 @@ interface PaneStateViewProps {
   loadState: PaneLoadState;
   uri: string;
   message: string | null;
+  canPaste?: boolean;
   onRetry: () => void;
   onRefresh: () => void;
   onCreateFolder: () => void;
+  onCreateFile?: () => void;
+  onPaste?: () => void;
 }
 
 const isProductionBuild = Boolean(
@@ -18,29 +21,56 @@ export function PaneStateView({
   loadState,
   uri,
   message,
+  canPaste = false,
   onRetry,
   onRefresh,
   onCreateFolder,
+  onCreateFile,
+  onPaste,
 }: PaneStateViewProps) {
-  if (
-    loadState === "loading" ||
-    loadState === "loaded" ||
-    loadState === "idle"
-  ) {
+  const pathLabel = uri.replace(/^local:\/\//, "");
+
+  if (loadState === "loading") {
+    return (
+      <section
+        className="fo-pane-state fo-pane-state-loading"
+        aria-live="polite"
+      >
+        <span className="fo-pane-state-spinner" aria-hidden="true" />
+        <strong>Loading folder</strong>
+        <span className="fo-pane-state-path">{pathLabel}</span>
+      </section>
+    );
+  }
+
+  if (loadState === "loaded" || loadState === "idle") {
     return null;
   }
 
-  const pathLabel = uri.replace(/^local:\/\//, "");
-
   if (loadState === "empty") {
     return (
-      <div className="fo-pane-state fo-pane-state-empty">
+      <section className="fo-pane-state fo-pane-state-empty">
         <strong>This folder is empty</strong>
         <span className="fo-pane-state-path">{pathLabel}</span>
         <div className="fo-pane-state-actions">
           <Button type="button" variant="ghost" size="sm" onClick={onRefresh}>
             Refresh
           </Button>
+          {canPaste && onPaste ? (
+            <Button type="button" variant="ghost" size="sm" onClick={onPaste}>
+              Paste
+            </Button>
+          ) : null}
+          {onCreateFile ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onCreateFile}
+            >
+              New File
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="primary"
@@ -50,7 +80,7 @@ export function PaneStateView({
             New Folder
           </Button>
         </div>
-      </div>
+      </section>
     );
   }
 
@@ -71,7 +101,7 @@ export function PaneStateView({
         : null;
 
   return (
-    <div className="fo-pane-state fo-pane-state-error">
+    <section className="fo-pane-state fo-pane-state-error">
       <strong>{title}</strong>
       <span className="fo-pane-state-path">{pathLabel}</span>
       {message ? (
@@ -82,7 +112,7 @@ export function PaneStateView({
       ) : null}
       {!isProductionBuild && message ? (
         <details className="fo-pane-state-details">
-          <summary>Technical details</summary>
+          <summary>Show details</summary>
           <pre>{message}</pre>
         </details>
       ) : null}
@@ -94,6 +124,6 @@ export function PaneStateView({
           Refresh
         </Button>
       </div>
-    </div>
+    </section>
   );
 }

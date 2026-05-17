@@ -16,6 +16,11 @@ import {
   OperationDialogView,
   type OperationDialog,
 } from "../dialogs/OperationDialogView";
+import { AboutDialog } from "./dialogs/AboutDialog";
+import { GoToLocationDialog } from "./dialogs/GoToLocationDialog";
+import { ManageFavoritesDialog } from "./dialogs/ManageFavoritesDialog";
+import { ErrorDetailsDialog } from "./dialogs/ErrorDetailsDialog";
+import type { FavoriteEntryDto } from "@fileoctopus/ts-api";
 
 export interface DialogOverlayGroupProps {
   preferences: UserPreferencesDto | null;
@@ -24,6 +29,13 @@ export interface DialogOverlayGroupProps {
   commandPaletteOpen: boolean;
   previewOpen: boolean;
   diagnosticsOpen: boolean;
+  aboutOpen: boolean;
+  goToLocationOpen: boolean;
+  manageFavoritesOpen: boolean;
+  errorDetailsOpen: boolean;
+  goToLocationInitialUri: string;
+  favorites: FavoriteEntryDto[];
+  operationError: string | null;
   dialog: OperationDialog | null;
   autostart: AutostartStatusDto | null;
   commandEntries: CommandEntry[];
@@ -42,6 +54,14 @@ export interface DialogOverlayGroupProps {
   setShortcutsOpen: (open: boolean) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   setDiagnosticsOpen: (open: boolean) => void;
+  setAboutOpen: (open: boolean) => void;
+  setGoToLocationOpen: (open: boolean) => void;
+  setManageFavoritesOpen: (open: boolean) => void;
+  setErrorDetailsOpen: (open: boolean) => void;
+  setOperationError: (message: string | null) => void;
+  onNavigateActivePane: (uri: string) => void;
+  onRemoveFavorite: (id: number) => void;
+  onRenameFavorite: (id: number, label: string) => void;
   setPreviewOpen: (open: boolean) => void;
   setDialog: (dialog: OperationDialog | null) => void;
   setDiagnosticsDestination: (value: string) => void;
@@ -75,6 +95,13 @@ export function DialogOverlayGroup({
   commandPaletteOpen,
   previewOpen,
   diagnosticsOpen,
+  aboutOpen,
+  goToLocationOpen,
+  manageFavoritesOpen,
+  errorDetailsOpen,
+  goToLocationInitialUri,
+  favorites,
+  operationError,
   dialog,
   autostart,
   commandEntries,
@@ -93,6 +120,14 @@ export function DialogOverlayGroup({
   setShortcutsOpen,
   setCommandPaletteOpen,
   setDiagnosticsOpen,
+  setAboutOpen,
+  setGoToLocationOpen,
+  setManageFavoritesOpen,
+  setErrorDetailsOpen,
+  setOperationError,
+  onNavigateActivePane,
+  onRemoveFavorite,
+  onRenameFavorite,
   setPreviewOpen,
   setDialog,
   setDiagnosticsDestination,
@@ -137,6 +172,31 @@ export function DialogOverlayGroup({
           onClose={() => setPreviewOpen(false)}
         />
       )}
+      <AboutDialog
+        open={aboutOpen}
+        appInfo={appInfo}
+        onClose={() => setAboutOpen(false)}
+      />
+      <GoToLocationDialog
+        open={goToLocationOpen}
+        initialUri={goToLocationInitialUri}
+        onClose={() => setGoToLocationOpen(false)}
+        onNavigate={onNavigateActivePane}
+      />
+      <ManageFavoritesDialog
+        open={manageFavoritesOpen}
+        favorites={favorites}
+        onClose={() => setManageFavoritesOpen(false)}
+        onNavigate={onNavigateActivePane}
+        onRemove={onRemoveFavorite}
+        onRename={onRenameFavorite}
+      />
+      <ErrorDetailsDialog
+        open={errorDetailsOpen}
+        message={operationError}
+        onClose={() => setErrorDetailsOpen(false)}
+        onClear={() => setOperationError(null)}
+      />
       <DiagnosticsDialog
         open={diagnosticsOpen}
         appInfo={appInfo}

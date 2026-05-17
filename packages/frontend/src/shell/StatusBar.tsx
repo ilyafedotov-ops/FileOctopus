@@ -11,6 +11,7 @@ interface StatusBarProps {
   activeJobCount: number;
   operationError: string | null;
   onOpenActivity: () => void;
+  onShowErrorDetails?: () => void;
   logPath?: string | null;
   showLogPath?: boolean;
 }
@@ -59,6 +60,7 @@ export function StatusBar({
   activeJobCount,
   operationError,
   onOpenActivity,
+  onShowErrorDetails,
   logPath,
   showLogPath = false,
 }: StatusBarProps) {
@@ -87,6 +89,15 @@ export function StatusBar({
         {activeJobCount} active job{activeJobCount === 1 ? "" : "s"}
         {operationError ? " - Errors" : " - No errors"}
       </button>
+      {operationError && onShowErrorDetails ? (
+        <button
+          type="button"
+          className="fo-status-segment fo-status-button fo-status-error"
+          onClick={onShowErrorDetails}
+        >
+          View error
+        </button>
+      ) : null}
       {showLogPath && logPath ? (
         <span className="fo-status-segment fo-status-log" title={logPath}>
           {logPath}

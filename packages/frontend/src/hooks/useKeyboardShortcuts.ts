@@ -53,7 +53,7 @@ export interface UseKeyboardShortcutsDeps {
     entry: FileEntryDto | null,
   ) => Promise<void>;
   handleCreateFolder: (panelId: PanelId) => void;
-  handleRename: (panelId: PanelId) => void;
+  startInlineRename: (panelId: PanelId) => void;
   handleTrash: (panelId: PanelId) => void;
   handlePermanentDelete: (panelId: PanelId) => void;
   copySelectionToFileClipboard: (
@@ -93,7 +93,7 @@ export function createKeyboardShortcutsHandler(
       toggleHidden,
       handleProperties,
       handleCreateFolder,
-      handleRename,
+      startInlineRename,
       handleTrash,
       handlePermanentDelete,
       copySelectionToFileClipboard,
@@ -258,7 +258,7 @@ export function createKeyboardShortcutsHandler(
 
     if (event.key === "F2") {
       event.preventDefault();
-      handleRename(panelId);
+      startInlineRename(panelId);
       return;
     }
 

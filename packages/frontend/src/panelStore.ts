@@ -18,7 +18,7 @@ export type SortField =
   | "permissions"
   | "owner";
 export type SortDirection = "asc" | "desc";
-export type ViewMode = "details" | "list" | "icons" | "columns";
+export type ViewMode = "details" | "list" | "compact" | "icons" | "columns";
 
 export interface SortState {
   field: SortField;
@@ -126,218 +126,13 @@ export function createInitialState(
   };
 }
 
+import { reducePanelAction } from "./state/paneReducer";
+
 export function panelReducer(
   state: FileOctopusState,
   action: PanelAction,
 ): FileOctopusState {
-  switch (action.type) {
-    case "setActivePanel":
-      return {
-        ...state,
-        activePanelId: action.panelId,
-      };
-    case "navigate":
-      return updatePanel(state, action.panelId, (tab) =>
-        applyNavigation(tab, normalizeLocalInput(action.uri), {
-          replace: action.replace,
-          softRefresh: action.softRefresh,
-        }),
-      );
-    case "goBack":
-      return updatePanel(state, action.panelId, (tab) => {
-        const uri = tab.backStack[tab.backStack.length - 1];
-
-        if (!uri) {
-          return tab;
-        }
-
-        return applyNavigation(tab, uri, {
-          replace: true,
-          backStack: tab.backStack.slice(0, -1),
-          forwardStack: [tab.uri, ...tab.forwardStack],
-        });
-      });
-    case "goForward":
-      return updatePanel(state, action.panelId, (tab) => {
-        const [uri, ...rest] = tab.forwardStack;
-
-        if (!uri) {
-          return tab;
-        }
-
-        return applyNavigation(tab, uri, {
-          replace: true,
-          backStack: [...tab.backStack, tab.uri],
-          forwardStack: rest,
-        });
-      });
-    case "startSession":
-      return updatePanel(state, action.panelId, (tab) => {
-        return {
-          ...tab,
-          sessionId: action.sessionId,
-          activeRequestId: action.requestId,
-          loadState: "loading",
-          error: null,
-          errorCode: null,
-        };
-      });
-    case "applyBatch":
-      return applyBatch(state, action.batch);
-    case "setSelection":
-      return updatePanel(state, action.panelId, (tab) => ({
-        ...tab,
-        selectedIds: action.entryId ? [action.entryId] : [],
-        selectedId: action.entryId,
-        focusedId: action.entryId,
-        anchorId: action.entryId,
-      }));
-    case "selectAll":
-      return updatePanel(state, action.panelId, (tab) => {
-        const ids = selectVisibleEntries(tab).map((entry) => entry.uri);
-
-        return {
-          ...tab,
-          selectedIds: ids,
-          selectedId: ids[0] ?? null,
-          focusedId: ids[0] ?? null,
-          anchorId: ids[0] ?? null,
-        };
-      });
-    case "invertSelection":
-      return updatePanel(state, action.panelId, (tab) => {
-        const selected = new Set(tab.selectedIds);
-        const ids = selectVisibleEntries(tab)
-          .map((entry) => entry.uri)
-          .filter((id) => !selected.has(id));
-
-        return {
-          ...tab,
-          selectedIds: ids,
-          selectedId: ids[0] ?? null,
-          focusedId: ids[0] ?? null,
-          anchorId: ids[0] ?? null,
-        };
-      });
-    case "clearSelection":
-      return updatePanel(state, action.panelId, (tab) => ({
-        ...tab,
-        selectedIds: [],
-        selectedId: null,
-        focusedId: null,
-        anchorId: null,
-      }));
-    case "selectEntry":
-      return updatePanel(state, action.panelId, (tab) =>
-        selectEntry(tab, action.entryId, action.mode),
-      );
-    case "moveSelection":
-      return updatePanel(state, action.panelId, (tab) =>
-        moveSelection(tab, action.delta),
-      );
-    case "setPaneError":
-      return updatePanel(state, action.panelId, (tab) => ({
-        ...tab,
-        error: action.error,
-        errorCode: action.errorCode ?? null,
-        loadState: action.loadState ?? (action.error ? "error" : tab.loadState),
-      }));
-    case "setFilter":
-      return updatePanel(state, action.panelId, (tab) => ({
-        ...tab,
-        filter: action.filter,
-      }));
-    case "setRecursiveQuery":
-      return updatePanel(state, action.panelId, (tab) => ({
-        ...tab,
-        recursiveQuery: action.query,
-      }));
-    case "setSort":
-      return updatePanel(state, action.panelId, (tab) => {
-        const direction: SortDirection =
-          tab.sort.field === action.field && tab.sort.direction === "asc"
-            ? "desc"
-            : "asc";
-        const sort = {
-          ...tab.sort,
-          field: action.field,
-          direction,
-        };
-
-        persistJson("fileoctopus.sort", sort);
-
-        return {
-          ...tab,
-          sort,
-        };
-      });
-    case "setViewMode":
-      persistValue("fileoctopus.viewMode", action.viewMode);
-
-      return updatePanel(state, action.panelId, (tab) => ({
-        ...tab,
-        viewMode: action.viewMode,
-      }));
-    case "toggleHidden":
-      return updatePanel(state, action.panelId, (tab) => {
-        const showHidden = !tab.showHidden;
-
-        persistValue("fileoctopus.showHidden", String(showHidden));
-
-        return {
-          ...tab,
-          showHidden,
-          entriesById: {},
-          orderedEntryIds: [],
-          selectedIds: [],
-          selectedId: null,
-          focusedId: null,
-          anchorId: null,
-          sessionId: null,
-          activeRequestId: null,
-          loadState: "loading",
-          error: null,
-          errorCode: null,
-        };
-      });
-    case "hydratePreferences":
-      persistValue("fileoctopus.viewMode", action.viewMode);
-      persistValue("fileoctopus.showHidden", String(action.showHidden));
-
-      return {
-        ...state,
-        panels: (Object.keys(state.panels) as PanelId[]).reduce(
-          (panels, panelId) => {
-            const panel = state.panels[panelId];
-
-            panels[panelId] = {
-              ...panel,
-              tabs: {
-                ...panel.tabs,
-                [panel.activeTabId]: {
-                  ...activeTab(panel),
-                  showHidden: action.showHidden,
-                  viewMode: action.viewMode,
-                },
-              },
-            };
-
-            return panels;
-          },
-          { ...state.panels },
-        ),
-      };
-    case "setHash":
-      return updatePanel(state, action.panelId, (tab) => ({
-        ...tab,
-        hashMap: {
-          ...tab.hashMap,
-          [action.entryId]: action.hashState,
-        },
-      }));
-    default:
-      return state;
-  }
+  return reducePanelAction(state, action);
 }
 
 export function activeTab(panel: PanelState): PanelTabState {
@@ -415,7 +210,7 @@ function createPanel(id: PanelId, uri: string): PanelState {
   };
 }
 
-function applyNavigation(
+export function applyNavigation(
   tab: PanelTabState,
   uri: string,
   options: {
@@ -462,7 +257,7 @@ function applyNavigation(
   };
 }
 
-function updatePanel(
+export function updatePanel(
   state: FileOctopusState,
   panelId: PanelId,
   update: (tab: PanelTabState) => PanelTabState,
@@ -485,7 +280,7 @@ function updatePanel(
   };
 }
 
-function applyBatch(
+export function applyBatch(
   state: FileOctopusState,
   batch: DirectoryBatchEventDto,
 ): FileOctopusState {
@@ -551,7 +346,7 @@ function applyBatch(
   });
 }
 
-function selectEntry(
+export function selectEntry(
   tab: PanelTabState,
   entryId: string,
   mode: "single" | "toggle" | "range",
@@ -621,7 +416,10 @@ function findPanelBySession(
   return null;
 }
 
-function moveSelection(tab: PanelTabState, delta: number): PanelTabState {
+export function moveSelection(
+  tab: PanelTabState,
+  delta: number,
+): PanelTabState {
   const visible = selectVisibleEntries(tab);
 
   if (visible.length === 0) {
@@ -731,7 +529,11 @@ function dateValue(value?: string | null): number {
 function storedViewMode(): ViewMode {
   const value = readValue("fileoctopus.viewMode");
 
-  return value === "list" || value === "icons" || value === "details"
+  return value === "list" ||
+    value === "compact" ||
+    value === "icons" ||
+    value === "columns" ||
+    value === "details"
     ? value
     : "details";
 }
@@ -769,14 +571,6 @@ function readValue(key: string): string | null {
     : null;
 }
 
-function persistValue(key: string, value: string) {
-  const storage = globalThis.localStorage;
-
-  if (storage && typeof storage.setItem === "function") {
-    storage.setItem(key, value);
-  }
-}
-
 function readJson<T>(key: string): T | null {
   const value = readValue(key);
 
@@ -789,10 +583,6 @@ function readJson<T>(key: string): T | null {
   } catch {
     return null;
   }
-}
-
-function persistJson(key: string, value: unknown) {
-  persistValue(key, JSON.stringify(value));
 }
 
 export function homeUri(): string {

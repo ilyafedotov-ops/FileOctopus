@@ -2,6 +2,7 @@ import { screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { PaneStateView } from "../src/components/PaneStateView";
 import { DiagnosticsDialog } from "../src/components/DiagnosticsDialog";
+import { AboutDialog } from "../src/components/dialogs/AboutDialog";
 import { SettingsDialog } from "../src/components/SettingsDialog";
 import { ShortcutsDialog } from "../src/components/ShortcutsDialog";
 import { FileTable } from "../src/pane/FileTable";
@@ -187,6 +188,34 @@ describe("visual state fixtures", () => {
     expect(
       screen.getByRole("heading", { name: "File operations" }),
     ).toBeTruthy();
+    view.restore();
+  });
+
+  it("renders about dialog", () => {
+    const view = renderVisualState(
+      <AboutDialog open appInfo={sampleAppInfo} onClose={noop} />,
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "About FileOctopus" }),
+    ).toBeTruthy();
+    expect(screen.getByText("0.1.0")).toBeTruthy();
+    view.restore();
+  });
+
+  it("renders pane loading state", () => {
+    const view = renderVisualState(
+      <PaneStateView
+        loadState="loading"
+        uri="local:///Users/ilya/Documents"
+        message={null}
+        onRetry={noop}
+        onRefresh={noop}
+        onCreateFolder={noop}
+      />,
+    );
+
+    expect(screen.getByText("Loading folder")).toBeTruthy();
     view.restore();
   });
 
