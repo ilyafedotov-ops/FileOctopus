@@ -65,7 +65,7 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 | Item                                                  | Spec source                 | Notes                                                                                                           |
 | ----------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Application menu bar (full wiring)                    | Menu & Modal Spec §4        | Core File/Edit/View/Go/Tools items on dispatch; sort/theme/density/favorites-add still local; no native OS menu |
-| Global shortcuts on command registry                  | commands/registry.ts        | `useKeyboardShortcuts.ts` still hard-coded; palette uses registry                                               |
+| Shortcut help text vs registry drift                  | shortcuts.ts + registry     | Help dialog uses `shortcuts.ts`; keys route via `runCommand` / dispatch                                         |
 | Toolbar on command registry                           | commands/bindings.ts        | Toolbar/context menu mostly direct handlers                                                                     |
 | Operations / Shortcuts / Advanced settings tabs       | UI Design Spec §Preferences | Merged into existing tabs or separate dialogs                                                                   |
 | Remember last used panes (setting + restore)          | UI Design Spec              | No preference or boot restore                                                                                   |
