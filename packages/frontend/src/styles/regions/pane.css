@@ -488,6 +488,35 @@
   font-size: 14px;
 }
 
+.fo-empty-directory-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.fo-empty-action {
+  padding: 6px 14px;
+  border: 1px solid var(--fo-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-surface);
+  color: var(--fo-text);
+  font-size: 13px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.fo-empty-action:hover {
+  background: var(--fo-accent-soft);
+  border-color: var(--fo-accent);
+  color: var(--fo-accent);
+}
+
+.fo-empty-action:active {
+  background: color-mix(in srgb, var(--fo-accent-soft) 70%, transparent);
+}
+
 .fo-file-skeleton {
   display: grid;
   gap: 4px;

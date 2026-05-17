@@ -28,6 +28,8 @@ export interface FileTableProps {
   inlineRenameUri?: string | null;
   onSubmitInlineRename?: (entryUri: string, newName: string) => void;
   onCancelInlineRename?: () => void;
+  onCreateFolder?: () => void;
+  onCreateFile?: () => void;
   onSelect: (entryId: string | null) => void;
   onEntrySelect: (entryId: string, mode: "single" | "toggle" | "range") => void;
   onMove: (delta: number) => void;
@@ -54,6 +56,8 @@ export function FileTable({
   inlineRenameUri,
   onSubmitInlineRename,
   onCancelInlineRename,
+  onCreateFolder,
+  onCreateFile,
   onSelect,
   onEntrySelect,
   onMove,
@@ -193,6 +197,28 @@ export function FileTable({
                 ? `No matches for "${filterQuery.trim()}"`
                 : "This folder is empty"}
             </span>
+            {!filterQuery.trim() && (
+              <div className="fo-empty-directory-actions">
+                {onCreateFolder && (
+                  <button
+                    type="button"
+                    className="fo-empty-action fo-empty-action--folder"
+                    onClick={onCreateFolder}
+                  >
+                    New Folder
+                  </button>
+                )}
+                {onCreateFile && (
+                  <button
+                    type="button"
+                    className="fo-empty-action fo-empty-action--file"
+                    onClick={onCreateFile}
+                  >
+                    New File
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         ) : (
           <div className="fo-table-spacer" style={{ height: totalHeight }}>
