@@ -394,22 +394,27 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 - **Details columns** — Name, Size, Modified, Created, Type, Extension, Permissions, Owner; Hash on selection
 - **Filesystem watcher** — `fs_watch_start` / `fs_watch_stop` wired to refresh
 - **Overflow toolbar** — Reveal, Calculate Size, Open Terminal (external emulator), Compress/Extract/Checksum menus present
-- **Settings** — General (autostart), Appearance (theme, density, accent, font/icon scale), Files & Folders, Layout
+- **Settings** — General (autostart), Appearance (theme, density, accent, font/icon scale), Files & Folders, Layout, Operations (confirm delete/overwrite, conflict policy, trash behavior), Diagnostics, Shortcuts
 - **Shortcuts** — Ctrl/Cmd+I (properties), Ctrl/Cmd+H alias for hidden files
 
 ### Still not implemented (specified)
 
-- **Application menu bar** (File/Edit/View/Go/…) — see Menu & Modal Spec; title bar Help dropdown only
-- **Compress / Extract** — UI stubs (“coming soon”); no `archive-core` / MVP-ARC-001
-- **Checksum toolbar** — stub toast; hash column uses `fs_compute_hash` on selected file
 - **Embedded terminal panel** — external spawn only (`fs_open_terminal`)
-- **Git branch + file badges** — MVP-GIT-001/002
+- **Git branch + file badges** — MVP-GIT-001/002 (requires `git-intel` crate)
 - **Remember last panes / last-path restore** — no boot restore
 - **First-run overlay** — stretch, not built
 - **Tabs per panel** — `PanelTabState` exists; single tab per pane only
-- **Videos sidebar entry, network locations, “This Week” recent group** — partial (API has `thisWeek` bucket; UI grouping may vary)
+- **Videos sidebar entry, network locations, "This Week" recent group** — partial (API has `thisWeek` bucket; UI grouping may vary)
 - **Title bar sync/health indicator** — optional, not built
-- **Operations / Shortcuts / Advanced settings tabs** as separate nav — consolidated into existing tabs + Shortcuts dialog
+
+### Previously listed as not implemented, now done (2026-05-17)
+
+- **Application menu bar** (File/Edit/View/Go/…) — ✅ implemented (MenuBar component with full dropdown menus)
+- **Compress / Extract** — ✅ wired with real IPC (`useArchiveHandlers.ts` → `planOperation("createArchive"/"extractArchive")` → job system)
+- **Checksum toolbar** — ✅ wired with real IPC (`handleChecksum` → `client.fs.computeHash` → SHA-256 toast + hash column update)
+- **Conflict resolution dialog** — ✅ enhanced with per-item actions, metadata comparison, apply-to-all (§14.8)
+- **Operations settings tab** — ✅ added (confirm trash/permdelete/overwrite, conflict policy, use-trash-by-default)
+- **Settings dialog tabs** — General, Appearance, Files, Layout, Operations, Diagnostics, Shortcuts (7 tabs)
 
 ### Out of MVP scope (unchanged)
 
