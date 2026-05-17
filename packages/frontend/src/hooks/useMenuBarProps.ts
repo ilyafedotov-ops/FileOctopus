@@ -21,6 +21,7 @@ import {
 } from "../applyPreferences";
 import type { FileClipboardState } from "./useFileOpHandlers";
 import type { ToastMessage } from "../components/ToastStack";
+import { viewModeCommandId } from "../commands/viewModeCommands";
 
 export interface UseMenuBarPropsParams {
   state: FileOctopusState;
@@ -41,14 +42,6 @@ export interface UseMenuBarPropsParams {
   setDiagnosticsOpen: (v: boolean) => void;
   runCommand: (commandId: string) => void;
 }
-
-const VIEW_MODE_COMMANDS: Record<string, string> = {
-  details: "view.details",
-  list: "view.list",
-  compact: "view.compact",
-  icons: "view.icons",
-  columns: "view.columns",
-};
 
 export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
   const {
@@ -110,7 +103,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onCopyParentPath: () => runCommand("clipboard.copyParent"),
     onCopyResourceUri: () => runCommand("clipboard.copyUri"),
     onViewMode: (mode: string) => {
-      const commandId = VIEW_MODE_COMMANDS[mode];
+      const commandId = viewModeCommandId(mode);
       if (commandId) {
         runCommand(commandId);
         return;

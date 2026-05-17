@@ -183,7 +183,7 @@ describe("visual state fixtures", () => {
     expect(
       screen.getByRole("heading", { name: "Keyboard shortcuts" }),
     ).toBeTruthy();
-    expect(screen.getByText("Copy selection")).toBeTruthy();
+    expect(screen.getByText("Copy")).toBeTruthy();
     expect(screen.getByRole("heading", { name: "Navigation" })).toBeTruthy();
     expect(
       screen.getByRole("heading", { name: "File operations" }),

@@ -232,8 +232,8 @@ describe("SettingsDialog", () => {
       );
       fireEvent.click(navButton("Shortcuts"));
       expect(screen.getByText("Switch active pane")).toBeTruthy();
-      expect(screen.getByText("Copy selection")).toBeTruthy();
-      expect(screen.getByText("Toggle hidden files")).toBeTruthy();
+      expect(screen.getByText("Copy")).toBeTruthy();
+      expect(screen.getByText("Show Hidden Files")).toBeTruthy();
       const kbds = screen.getAllByRole("presentation");
       expect(kbds.length).toBeGreaterThan(0);
     });

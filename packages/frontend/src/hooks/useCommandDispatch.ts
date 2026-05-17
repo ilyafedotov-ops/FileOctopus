@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import type { PanelId } from "../panelStore";
 import {
   dispatchCommand,
   type CommandDispatchDeps,
@@ -6,14 +7,14 @@ import {
 
 export function useCommandDispatch(deps: CommandDispatchDeps) {
   return useCallback(
-    (id: string) => {
+    (id: string, panelId?: PanelId) => {
       deps.setCommandPaletteOpen(false);
-      const panelId = deps.state.activePanelId;
+      const activePanelId = panelId ?? deps.state.activePanelId;
 
       if (id === "switch-pane") {
         deps.dispatch({
           type: "setActivePanel",
-          panelId: panelId === "left" ? "right" : "left",
+          panelId: deps.state.activePanelId === "left" ? "right" : "left",
         });
         return;
       }
@@ -23,7 +24,7 @@ export function useCommandDispatch(deps: CommandDispatchDeps) {
         return;
       }
 
-      dispatchCommand(id, deps);
+      dispatchCommand(id, deps, { panelId: activePanelId });
     },
     [deps],
   );

@@ -55,7 +55,10 @@ export interface DialogOverlayGroupProps {
   fs: FsClient;
   updatePreference: (key: string, value: string) => void;
   handleSetAutostart: (enabled: boolean) => Promise<void>;
-  handleCommandSelect: (id: string) => void;
+  handleCommandSelect: (
+    id: string,
+    panelId?: import("../panelStore").PanelId,
+  ) => void;
   setSettingsOpen: (open: boolean) => void;
   setShortcutsOpen: (open: boolean) => void;
   setCommandPaletteOpen: (open: boolean) => void;

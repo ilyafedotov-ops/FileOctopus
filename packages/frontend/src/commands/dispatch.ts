@@ -62,18 +62,24 @@ export interface CommandDispatchDeps {
   clearClipboard: () => void;
   setCommandPaletteOpen: (open: boolean) => void;
   handleCopyOrMove: (panelId: PanelId, mode: "copy" | "move") => void;
+  toggleHidden: (panelId: PanelId) => void;
 }
 
 function resolveCommandId(id: string): string {
   return LEGACY_COMMAND_ALIASES[id] ?? id;
 }
 
+export interface DispatchCommandOptions {
+  panelId?: PanelId;
+}
+
 export function dispatchCommand(
   id: string,
   deps: CommandDispatchDeps,
+  options?: DispatchCommandOptions,
 ): boolean {
   const commandId = resolveCommandId(id);
-  const panelId = deps.state.activePanelId;
+  const panelId = options?.panelId ?? deps.state.activePanelId;
   const tab = activeTab(deps.state.panels[panelId]);
   const selection = deps.selectedEntries(panelId);
   const selectedEntry = selection[0] ?? null;
@@ -137,7 +143,7 @@ export function dispatchCommand(
       deps.setManageFavoritesOpen(true);
       return true;
     case "view.toggleHidden":
-      deps.dispatch({ type: "toggleHidden", panelId });
+      deps.toggleHidden(panelId);
       return true;
     case "view.details":
       deps.dispatch({ type: "setViewMode", panelId, viewMode: "details" });

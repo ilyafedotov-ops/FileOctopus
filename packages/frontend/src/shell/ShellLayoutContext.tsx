@@ -115,7 +115,7 @@ export interface ShellLayoutContextValue {
   ) => Promise<void>;
   revealEntry: (panelId: PanelId, entry: FileEntryDto | null) => Promise<void>;
   handleSetAutostart: (enabled: boolean) => Promise<void>;
-  handleCommandSelect: (id: string) => void;
+  handleCommandSelect: (id: string, panelId?: PanelId) => void;
   toasts: ToastMessage[];
   setToasts: React.Dispatch<React.SetStateAction<ToastMessage[]>>;
   contextMenu: ContextMenuState | null;

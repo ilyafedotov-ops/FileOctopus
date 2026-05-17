@@ -101,26 +101,18 @@ export function ShellOverlays() {
         starredUriSet={ctx.starredUriSet}
         dispatch={ctx.dispatch}
         onClose={() => ctx.setContextMenu(null)}
+        runPanelCommand={(panelId, commandId) =>
+          ctx.handleCommandSelect(commandId, panelId)
+        }
         activateEntry={ctx.activateEntry}
-        handleRename={ctx.triggerInlineRename}
-        copySelectionToFileClipboard={ctx.copySelectionToFileClipboard}
-        pasteClipboard={ctx.pasteClipboard}
-        handleTrash={ctx.handleTrash}
         toggleStarredForEntry={ctx.toggleStarredForEntry}
-        handlePermanentDelete={ctx.handlePermanentDelete}
-        copyTextFromSelection={ctx.copyTextFromSelection}
         handleProperties={ctx.handleProperties}
         revealEntry={ctx.revealEntry}
         openTerminal={ctx.openTerminal}
         handleChecksum={ctx.handleChecksum}
         handleCompress={ctx.handleCompress}
         handleExtract={ctx.handleExtract}
-        handleCreateFolder={ctx.handleCreateFolder}
-        handleCreateFile={ctx.handleCreateFile}
-        refreshPanel={ctx.refreshPanel}
-        handleCopyOrMove={ctx.handleCopyOrMove}
         openExternal={ctx.openExternal}
-        toggleHidden={ctx.toggleHidden}
         navigatePanel={ctx.navigatePanel}
         navigateOtherPane={ctx.navigateOtherPane}
         addFavorite={ctx.addFavorite}
