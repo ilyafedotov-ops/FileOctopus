@@ -58,6 +58,7 @@ export type CommandId =
   | "preferences.density"
   | "layout.switchPane"
   | "layout.equalizePanes"
+  | "layout.swapPanes"
   | "selection.selectAll"
   | "selection.clear"
   | "selection.invert"

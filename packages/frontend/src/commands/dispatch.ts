@@ -205,6 +205,9 @@ export function dispatchCommand(
     case "layout.equalizePanes":
       deps.equalizePanes();
       return true;
+    case "layout.swapPanes":
+      deps.dispatch({ type: "swapPanes" });
+      return true;
     case "nav.back":
       void deps.goHistory(panelId, "back");
       return true;
