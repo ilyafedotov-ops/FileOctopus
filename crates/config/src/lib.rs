@@ -11,7 +11,7 @@ pub use navigation::{
     FavoriteEntry, NavigationError, NavigationRepository, RecentBucket, RecentEntry, StarredEntry,
 };
 
-pub const SCHEMA_VERSION: u32 = 6;
+pub const SCHEMA_VERSION: u32 = 7;
 
 #[derive(Debug, Error)]
 pub enum PreferencesError {
@@ -43,6 +43,8 @@ pub struct UserPreferences {
     pub icon_scale: String,
     pub confirm_overwrite: bool,
     pub sidebar_visible: bool,
+    pub status_bar_visible: bool,
+    pub toolbar_visible: bool,
     pub pane_mode: String,
     pub job_drawer_behavior: String,
 }
@@ -67,6 +69,8 @@ impl Default for UserPreferences {
             icon_scale: "medium".to_string(),
             confirm_overwrite: true,
             sidebar_visible: true,
+            status_bar_visible: true,
+            toolbar_visible: true,
             pane_mode: "dual".to_string(),
             job_drawer_behavior: "manual".to_string(),
         }
@@ -161,6 +165,11 @@ impl PreferencesRepository {
 
         if user_version < 6 {
             self.backfill_v6_keys(&connection)?;
+            connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
+        if user_version < 7 {
+            self.backfill_v7_keys(&connection)?;
             connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         }
 
@@ -263,6 +272,25 @@ impl PreferencesRepository {
         Ok(())
     }
 
+    fn backfill_v7_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [
+            ("statusBarVisible", defaults.status_bar_visible.to_string()),
+            ("toolbarVisible", defaults.toolbar_visible.to_string()),
+        ];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
+        }
+
+        Ok(())
+    }
+
     fn seed_defaults(&self, connection: &Connection) -> Result<(), PreferencesError> {
         let defaults = UserPreferences::default();
         let now = chrono_lite_now();
@@ -351,6 +379,8 @@ impl UserPreferences {
             ("iconScale", self.icon_scale.clone()),
             ("confirmOverwrite", self.confirm_overwrite.to_string()),
             ("sidebarVisible", self.sidebar_visible.to_string()),
+            ("statusBarVisible", self.status_bar_visible.to_string()),
+            ("toolbarVisible", self.toolbar_visible.to_string()),
             ("paneMode", self.pane_mode.clone()),
             ("jobDrawerBehavior", self.job_drawer_behavior.clone()),
         ]
@@ -422,6 +452,12 @@ fn apply_value(
         }
         "sidebarVisible" => {
             preferences.sidebar_visible = parse_bool(value, key)?;
+        }
+        "statusBarVisible" => {
+            preferences.status_bar_visible = parse_bool(value, key)?;
+        }
+        "toolbarVisible" => {
+            preferences.toolbar_visible = parse_bool(value, key)?;
         }
         "paneMode" => {
             preferences.pane_mode = parse_pane_mode(value)?;
@@ -577,6 +613,8 @@ mod tests {
         assert_eq!(defaults.icon_scale, "medium");
         assert!(defaults.confirm_overwrite);
         assert!(defaults.sidebar_visible);
+        assert!(defaults.status_bar_visible);
+        assert!(defaults.toolbar_visible);
         assert_eq!(defaults.pane_mode, "dual");
         assert_eq!(defaults.job_drawer_behavior, "manual");
         assert!(!defaults.activity_panel_visible);
@@ -591,6 +629,8 @@ mod tests {
         assert_eq!(rows["iconScale"], "medium");
         assert_eq!(rows["confirmOverwrite"], "true");
         assert_eq!(rows["sidebarVisible"], "true");
+        assert_eq!(rows["statusBarVisible"], "true");
+        assert_eq!(rows["toolbarVisible"], "true");
         assert_eq!(rows["paneMode"], "dual");
         assert_eq!(rows["jobDrawerBehavior"], "manual");
     }
@@ -706,6 +746,63 @@ mod tests {
         let version: u32 = connection
             .query_row("pragma user_version", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(version, 6);
+        assert_eq!(version, SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn round_trips_chrome_visibility_preferences() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("preferences.sqlite");
+        let repository = PreferencesRepository::new(path.clone()).unwrap();
+        repository.set("statusBarVisible", "false").unwrap();
+        repository.set("toolbarVisible", "false").unwrap();
+        let reloaded = PreferencesRepository::new(path).unwrap().get_all().unwrap();
+        assert!(!reloaded.status_bar_visible);
+        assert!(!reloaded.toolbar_visible);
+    }
+
+    #[test]
+    fn migrates_v6_database_to_current_schema_with_chrome_defaults() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("preferences.sqlite");
+
+        {
+            let connection = Connection::open(&path).unwrap();
+            connection
+                .execute(
+                    "create table if not exists preferences (
+                        key text primary key,
+                        value text not null,
+                        updated_at text not null
+                    )",
+                    [],
+                )
+                .unwrap();
+            connection
+                .execute(
+                    "insert into preferences (key, value, updated_at) values
+                        ('theme', 'dark', '0'),
+                        ('paneMode', 'single', '0')",
+                    [],
+                )
+                .unwrap();
+            connection
+                .pragma_update(None, "user_version", 6u32)
+                .unwrap();
+        }
+
+        let repository = PreferencesRepository::new(path.clone()).unwrap();
+        let prefs = repository.get_all().unwrap();
+
+        assert_eq!(prefs.theme, "dark");
+        assert_eq!(prefs.pane_mode, "single");
+        assert!(prefs.status_bar_visible);
+        assert!(prefs.toolbar_visible);
+
+        let connection = Connection::open(&path).unwrap();
+        let version: u32 = connection
+            .query_row("pragma user_version", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, SCHEMA_VERSION);
     }
 }
