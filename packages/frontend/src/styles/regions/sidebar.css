@@ -6,16 +6,16 @@
 .fo-sidebar {
   display: grid;
   align-content: start;
-  gap: 12px;
+  gap: 4px;
   min-width: 0;
   overflow: auto;
   border-radius: 10px;
-  padding: 10px;
+  padding: 4px;
 }
 
 .fo-sidebar-section {
   display: grid;
-  gap: 4px;
+  gap: 2px;
 }
 
 .fo-sidebar-section-title {
@@ -28,7 +28,7 @@
 }
 
 .fo-sidebar-group-label {
-  margin: 6px 0 2px;
+  margin: 4px 0 1px;
   padding-left: 0.25rem;
   color: var(--fo-muted-text);
   font-size: 10px;
@@ -46,10 +46,10 @@
 .fo-sidebar-item {
   display: flex;
   width: 100%;
-  min-height: 26px;
+  min-height: 22px;
   justify-content: flex-start;
-  gap: 8px;
-  padding: 0 9px;
+  gap: 6px;
+  padding: 0 8px;
   border: 1px solid transparent;
   border-radius: 7px;
   text-align: left;

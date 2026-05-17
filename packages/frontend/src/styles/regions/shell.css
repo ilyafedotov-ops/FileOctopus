@@ -3,7 +3,7 @@
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 0;
   min-height: 100vh;
-  padding: 10px;
+  padding: 4px;
   background: var(--fo-app-bg);
   outline: none;
 }
@@ -11,7 +11,7 @@
 .fo-shell-frame {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
-  min-height: calc(100vh - 20px);
+  min-height: calc(100vh - 8px);
   border: 1px solid var(--fo-border);
   border-radius: 14px;
   background: var(--fo-surface);
@@ -28,7 +28,7 @@
   gap: 0;
   min-height: 0;
   min-width: 0;
-  padding: 8px;
+  padding: 4px;
   background: var(--fo-workspace-bg);
   overflow: hidden;
 }
@@ -61,7 +61,7 @@
       0,
       var(--fo-right-pane-fr, 1fr)
     );
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
@@ -75,10 +75,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  min-height: 42px;
+  gap: 8px;
+  min-height: 28px;
   min-width: 0;
-  padding: 0 14px;
+  padding: 0 8px;
   border-width: 0 0 1px;
   border-radius: 0;
   background: var(--fo-strip-bg);
@@ -188,34 +188,6 @@
 
 .fo-resizer:hover {
   background: var(--fo-accent-soft);
-}
-
-.fo-status {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: var(--fo-statusbar-height, 28px);
-  padding: 4px 8px;
-  color: var(--fo-body-muted);
-  font-size: 11px;
-  white-space: nowrap;
-  overflow: hidden;
-}
-
-.fo-status-segment {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.fo-status-readiness::before {
-  content: "";
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  margin-right: 6px;
-  border-radius: 999px;
-  background: var(--fo-success);
 }
 
 .fo-workspace[data-workspace="compact"] .fo-dual-pane {
@@ -334,22 +306,34 @@
   margin-top: 2px;
 }
 
+/* ── Status bar ── */
+
 .fo-status {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 24px;
-  padding: 4px 8px;
+  gap: 8px;
+  min-height: var(--fo-statusbar-height, 22px);
+  padding: 2px 8px;
   color: var(--fo-muted-text);
   font-size: 11px;
-  overflow: hidden;
   white-space: nowrap;
+  overflow: hidden;
 }
 
 .fo-status-segment {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.fo-status-readiness::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 999px;
+  background: var(--fo-success);
 }
 
 .fo-status-button {
@@ -367,18 +351,6 @@
   text-underline-offset: 2px;
 }
 
-.fo-status-readiness {
-  color: var(--fo-text);
-  font-weight: 700;
-}
-
-.fo-status-pane {
-  flex: 1 1 12rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .fo-status-log {
   flex: 1 1 100%;
   overflow: hidden;
@@ -392,6 +364,18 @@
 
 .fo-status-error {
   color: var(--fo-danger, #f38ba8);
+}
+
+.fo-status-separator {
+  width: 1px;
+  height: 12px;
+  background: var(--fo-border);
+  flex-shrink: 0;
+}
+
+.fo-status-spacer {
+  flex: 1 1 auto;
+  min-width: 8px;
 }
 
 :root[data-status-bar="hidden"] .fo-status {

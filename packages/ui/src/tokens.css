@@ -16,7 +16,7 @@
   --fo-activity-width: 320px;
   --fo-left-pane-fr: 1fr;
   --fo-right-pane-fr: 1fr;
-  --fo-row-height: 30px;
+  --fo-row-height: 22px;
   --fo-base-font-size: 14px;
   --fo-icon-size: 16px;
   --fo-success: #24a148;
@@ -222,19 +222,19 @@
   --fo-elevation-drawer: 0 12px 32px rgba(0, 0, 0, 0.14);
 
   /* Component-height tokens (§5.3) */
-  --fo-toolbar-height: 40px;
-  --fo-pathbar-height: 36px;
-  --fo-statusbar-height: 28px;
+  --fo-toolbar-height: 30px;
+  --fo-pathbar-height: 24px;
+  --fo-statusbar-height: 22px;
   --fo-splitter-width: 6px;
   --fo-toast-width: 360px;
   --fo-job-drawer-width: 420px;
 }
 
 :root[data-density="compact"] {
-  --fo-row-height: 24px;
-  --fo-toolbar-height: 34px;
-  --fo-pathbar-height: 30px;
-  --fo-statusbar-height: 24px;
+  --fo-row-height: 20px;
+  --fo-toolbar-height: 28px;
+  --fo-pathbar-height: 22px;
+  --fo-statusbar-height: 20px;
   --fo-splitter-width: 5px;
   --fo-sidebar-width: 220px;
   --fo-toast-width: 320px;
@@ -242,10 +242,10 @@
 }
 
 :root[data-density="comfortable"] {
-  --fo-row-height: 30px;
-  --fo-toolbar-height: 40px;
-  --fo-pathbar-height: 36px;
-  --fo-statusbar-height: 28px;
+  --fo-row-height: 22px;
+  --fo-toolbar-height: 30px;
+  --fo-pathbar-height: 24px;
+  --fo-statusbar-height: 22px;
   --fo-splitter-width: 6px;
   --fo-sidebar-width: 248px;
   --fo-toast-width: 360px;
@@ -253,10 +253,10 @@
 }
 
 :root[data-density="spacious"] {
-  --fo-row-height: 36px;
-  --fo-toolbar-height: 48px;
-  --fo-pathbar-height: 42px;
-  --fo-statusbar-height: 34px;
+  --fo-row-height: 28px;
+  --fo-toolbar-height: 36px;
+  --fo-pathbar-height: 30px;
+  --fo-statusbar-height: 26px;
   --fo-splitter-width: 8px;
   --fo-sidebar-width: 280px;
   --fo-toast-width: 420px;
