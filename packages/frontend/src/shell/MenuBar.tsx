@@ -47,6 +47,7 @@ export interface MenuBarProps {
   onFilter: () => void;
   onSearchRecursive: () => void;
   onJobActivity: () => void;
+  onOperationHistory: () => void;
   onDiagnostics: () => void;
   onExportDiagnostics: () => void;
   onSwitchPane: () => void;
@@ -563,6 +564,11 @@ export function MenuBar(props: MenuBarProps) {
       id: "job-activity",
       label: "Job Activity…",
       onSelect: wrap(props.onJobActivity),
+    },
+    {
+      id: "operation-history",
+      label: "Operation History…",
+      onSelect: wrap(props.onOperationHistory),
     },
     sep("sep-diag"),
     {

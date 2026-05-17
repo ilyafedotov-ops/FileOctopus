@@ -74,6 +74,7 @@ export interface UseMenuBarPropsParams {
   setAboutOpen: (v: boolean) => void;
   setGoToLocationOpen: (v: boolean) => void;
   setManageFavoritesOpen: (v: boolean) => void;
+  setOperationHistoryOpen: (v: boolean) => void;
   setActivityCollapsed: (v: boolean) => void;
 }
 
@@ -117,6 +118,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     setAboutOpen,
     setGoToLocationOpen,
     setManageFavoritesOpen,
+    setOperationHistoryOpen,
     setActivityCollapsed,
   } = params;
 
@@ -228,6 +230,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
         );
     },
     onManageFavorites: () => setManageFavoritesOpen(true),
+    onOperationHistory: () => setOperationHistoryOpen(true),
     onFilter: () => setFilterFocusToken((v) => v + 1),
     onSearchRecursive: () => setRecursiveSearchFocusToken((v) => v + 1),
     onJobActivity: () => {

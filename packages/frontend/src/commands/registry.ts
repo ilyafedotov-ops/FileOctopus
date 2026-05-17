@@ -258,6 +258,11 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     label: "About FileOctopus",
     group: "app",
   },
+  {
+    id: "app.operationHistory",
+    label: "Operation History…",
+    group: "app",
+  },
 ];
 
 const byId = new Map<CommandId, CommandDefinition>(

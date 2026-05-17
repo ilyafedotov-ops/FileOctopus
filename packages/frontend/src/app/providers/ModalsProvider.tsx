@@ -20,6 +20,7 @@ export interface ModalsContextValue {
   goToLocationOpen: boolean;
   manageFavoritesOpen: boolean;
   errorDetailsOpen: boolean;
+  operationHistoryOpen: boolean;
   dialog: OperationDialog | null;
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
   setShortcutsOpen: Dispatch<SetStateAction<boolean>>;
@@ -31,6 +32,7 @@ export interface ModalsContextValue {
   setGoToLocationOpen: Dispatch<SetStateAction<boolean>>;
   setManageFavoritesOpen: Dispatch<SetStateAction<boolean>>;
   setErrorDetailsOpen: Dispatch<SetStateAction<boolean>>;
+  setOperationHistoryOpen: Dispatch<SetStateAction<boolean>>;
   setDialog: Dispatch<SetStateAction<OperationDialog | null>>;
 }
 
@@ -55,6 +57,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
   const [goToLocationOpen, setGoToLocationOpen] = useState(false);
   const [manageFavoritesOpen, setManageFavoritesOpen] = useState(false);
   const [errorDetailsOpen, setErrorDetailsOpen] = useState(false);
+  const [operationHistoryOpen, setOperationHistoryOpen] = useState(false);
   const [dialog, setDialog] = useState<OperationDialog | null>(null);
 
   const value = useMemo<ModalsContextValue>(
@@ -69,6 +72,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       goToLocationOpen,
       manageFavoritesOpen,
       errorDetailsOpen,
+      operationHistoryOpen,
       dialog,
       setSettingsOpen,
       setShortcutsOpen,
@@ -80,6 +84,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       setGoToLocationOpen,
       setManageFavoritesOpen,
       setErrorDetailsOpen,
+      setOperationHistoryOpen,
       setDialog,
     }),
     [
@@ -93,6 +98,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       goToLocationOpen,
       manageFavoritesOpen,
       errorDetailsOpen,
+      operationHistoryOpen,
       dialog,
     ],
   );

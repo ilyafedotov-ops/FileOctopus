@@ -35,16 +35,10 @@ import { operationErrorMessage } from "../dialogs/OperationDialogView";
 import { mergeToast } from "../toastNotifications";
 import { localPathFromUri } from "../utils/paneUtils";
 import { createRequestId, loadStateFromBatchError } from "../paneTypes";
-import {
-  dispatchCommand,
-  type CommandDispatchDeps,
-} from "../commands/dispatch";
-
 export interface UseEventHandlersParams {
   client: FileOctopusClient;
   state: FileOctopusState;
   dispatch: Dispatch<PanelAction>;
-  preferences: UserPreferencesDto | null;
   diagnosticsDestination: string;
   setToasts: Dispatch<SetStateAction<ToastMessage[]>>;
   setPreferences: Dispatch<SetStateAction<UserPreferencesDto | null>>;
@@ -52,15 +46,6 @@ export interface UseEventHandlersParams {
   setActivityCollapsed: Dispatch<SetStateAction<boolean>>;
   setOperationError: Dispatch<SetStateAction<string | null>>;
   setSearch: Dispatch<SetStateAction<SearchState | null>>;
-  setCommandPaletteOpen: Dispatch<SetStateAction<boolean>>;
-  setSettingsOpen: Dispatch<SetStateAction<boolean>>;
-  setShortcutsOpen: Dispatch<SetStateAction<boolean>>;
-  setDiagnosticsOpen: Dispatch<SetStateAction<boolean>>;
-  setAboutOpen: Dispatch<SetStateAction<boolean>>;
-  setGoToLocationOpen: Dispatch<SetStateAction<boolean>>;
-  setManageFavoritesOpen: Dispatch<SetStateAction<boolean>>;
-  setFilterFocusToken: Dispatch<SetStateAction<number>>;
-  markActivityPinnedOpen?: () => void;
   setAutostart: Dispatch<SetStateAction<AutostartStatusDto | null>>;
   setFavorites: Dispatch<SetStateAction<FavoriteEntryDto[]>>;
   setRecentToday: Dispatch<SetStateAction<RecentEntryDto[]>>;
@@ -79,7 +64,6 @@ export function useEventHandlers({
   client,
   state,
   dispatch,
-  preferences,
   diagnosticsDestination,
   setToasts,
   setPreferences,
@@ -87,15 +71,6 @@ export function useEventHandlers({
   setActivityCollapsed,
   setOperationError,
   setSearch,
-  setCommandPaletteOpen,
-  setSettingsOpen,
-  setShortcutsOpen,
-  setDiagnosticsOpen,
-  setAboutOpen,
-  setGoToLocationOpen,
-  setManageFavoritesOpen,
-  setFilterFocusToken,
-  markActivityPinnedOpen,
   setAutostart,
   setFavorites,
   setRecentToday,
@@ -150,44 +125,6 @@ export function useEventHandlers({
     } catch (error) {
       setOperationError(normalizeIpcError(error).message);
     }
-  }
-
-  function handleCommandSelect(id: string) {
-    setCommandPaletteOpen(false);
-    const panelId = state.activePanelId;
-
-    if (id === "switch-pane") {
-      dispatch({
-        type: "setActivePanel",
-        panelId: panelId === "left" ? "right" : "left",
-      });
-      return;
-    }
-
-    if (id === "filter") {
-      setFilterFocusToken((v) => v + 1);
-      return;
-    }
-
-    const dispatchDeps: CommandDispatchDeps = {
-      state,
-      dispatch,
-      preferences,
-      navigatePanel,
-      refreshPanel,
-      updatePreference,
-      setSettingsOpen,
-      setShortcutsOpen,
-      setDiagnosticsOpen,
-      setAboutOpen,
-      setGoToLocationOpen,
-      setManageFavoritesOpen,
-      setFilterFocusToken,
-      setActivityCollapsed,
-      markActivityPinnedOpen,
-    };
-
-    dispatchCommand(id, dispatchDeps);
   }
 
   async function handleSetAutostart(enabled: boolean) {
@@ -479,7 +416,6 @@ export function useEventHandlers({
   return {
     pushToast,
     updatePreference,
-    handleCommandSelect,
     handleSetAutostart,
     navigatePanel,
     refreshNavigation,

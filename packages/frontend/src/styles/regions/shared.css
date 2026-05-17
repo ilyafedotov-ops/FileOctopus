@@ -1,0 +1,307 @@
+button,
+input,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: default;
+}
+
+button:disabled {
+  color: var(--fo-disabled-text);
+}
+
+@container pane-toolbar (max-width: 760px) {
+  .fo-toolbar-priority-low {
+    display: none;
+  }
+}
+
+@container pane-toolbar (max-width: 560px) {
+  .fo-toolbar-priority-medium {
+    display: none;
+  }
+}
+
+.fo-col-hash {
+  min-width: 60px;
+}
+
+@keyframes fo-skeleton-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.fo-empty {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+  color: var(--fo-secondary-text);
+  text-align: center;
+  padding: 24px;
+}
+
+.fo-operation-error {
+  border: 1px solid var(--fo-danger-border);
+  background: var(--fo-danger-bg);
+  color: var(--fo-danger-text);
+  padding: 5px 6px;
+}
+
+.fo-empty-inline {
+  color: var(--fo-secondary-text);
+}
+
+.fo-fatal-error {
+  place-items: center;
+  color: var(--fo-danger-text);
+}
+
+.fo-shortcuts-groups {
+  display: grid;
+  gap: 16px;
+  max-height: min(70vh, 520px);
+  overflow: auto;
+}
+
+.fo-shortcuts-group h3 {
+  margin: 0 0 8px;
+  color: var(--fo-muted-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fo-shortcuts-group .fo-shortcuts-table {
+  width: 100%;
+}
+
+.fo-app-menu {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fo-pane-badge {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.fo-pane-active-label {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--fo-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+.fo-pane-status {
+  border-top: 1px solid var(--fo-border);
+  color: var(--fo-muted-text);
+  font-size: 11px;
+  padding: 6px 8px;
+}
+
+@container pane-toolbar (max-width: 900px) {
+  .fo-toolbar-group-nav .fo-ui-btn span,
+  .fo-toolbar-group-operations .fo-ui-btn span {
+    display: none;
+  }
+}
+
+.fo-accent-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.fo-accent-swatch {
+  position: relative;
+  cursor: pointer;
+}
+
+.fo-accent-swatch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.fo-accent-swatch-dot {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 10%);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.fo-accent-swatch-dot[data-accent="blue"] {
+  background: #3578ff;
+}
+
+.fo-accent-swatch-dot[data-accent="indigo"] {
+  background: #5b6cff;
+}
+
+.fo-accent-swatch-dot[data-accent="violet"] {
+  background: #8b5cf6;
+}
+
+.fo-accent-swatch-dot[data-accent="pink"] {
+  background: #ec4899;
+}
+
+.fo-accent-swatch-dot[data-accent="red"] {
+  background: #dc2626;
+}
+
+.fo-accent-swatch-dot[data-accent="orange"] {
+  background: #ea580c;
+}
+
+.fo-accent-swatch-dot[data-accent="amber"] {
+  background: #d97706;
+}
+
+.fo-accent-swatch-dot[data-accent="green"] {
+  background: #16a34a;
+}
+
+.fo-accent-swatch-active .fo-accent-swatch-dot {
+  border-color: var(--fo-text);
+  box-shadow:
+    0 0 0 2px var(--fo-surface),
+    0 0 0 4px var(--fo-accent);
+}
+
+/* --- Segmented control --- */
+.fo-segmented {
+  display: inline-flex;
+  border: 1px solid var(--fo-border);
+  border-radius: 7px;
+  background: var(--fo-strip-bg);
+  overflow: hidden;
+}
+
+.fo-segmented label {
+  position: relative;
+  cursor: pointer;
+}
+
+.fo-segmented input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.fo-segmented span {
+  display: block;
+  padding: 0.35rem 0.85rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--fo-muted-text);
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+
+.fo-segmented input:checked + span {
+  background: var(--fo-control-bg);
+  color: var(--fo-text);
+  box-shadow: 0 1px 2px rgb(29 42 68 / 10%);
+}
+
+.fo-shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fo-shortcuts-table th,
+.fo-shortcuts-table td {
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--fo-subtle-border);
+  text-align: left;
+}
+
+/* ─── Command Palette ─── */
+.fo-command-palette {
+  max-width: 520px;
+  width: 90vw;
+  padding: 0;
+  border-radius: 8px;
+  top: 15vh;
+}
+
+.fo-command-palette-input {
+  padding: 12px;
+  border-bottom: 1px solid var(--fo-subtle-border);
+}
+
+.fo-command-palette-input input {
+  width: 100%;
+  font-size: 14px;
+  padding: 8px;
+}
+
+.fo-command-palette-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.fo-command-palette-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  gap: 12px;
+}
+
+.fo-command-palette-item:hover,
+.fo-command-palette-item-active {
+  background: var(--fo-selection-bg, rgba(255, 255, 255, 0.08));
+}
+
+.fo-command-palette-label {
+  font-size: 13px;
+}
+
+.fo-command-palette-shortcut {
+  font-size: 11px;
+  opacity: 0.5;
+  font-family: var(--fo-mono, monospace);
+}
+
+.fo-command-palette-empty {
+  padding: 16px;
+  text-align: center;
+  opacity: 0.5;
+  font-size: 13px;
+}
+
+@keyframes fo-preview-slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}

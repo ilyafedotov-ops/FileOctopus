@@ -20,7 +20,11 @@ import { AboutDialog } from "./dialogs/AboutDialog";
 import { GoToLocationDialog } from "./dialogs/GoToLocationDialog";
 import { ManageFavoritesDialog } from "./dialogs/ManageFavoritesDialog";
 import { ErrorDetailsDialog } from "./dialogs/ErrorDetailsDialog";
-import type { FavoriteEntryDto } from "@fileoctopus/ts-api";
+import { OperationHistoryDialog } from "./dialogs/OperationHistoryDialog";
+import type {
+  FavoriteEntryDto,
+  OperationHistoryRecordDto,
+} from "@fileoctopus/ts-api";
 
 export interface DialogOverlayGroupProps {
   preferences: UserPreferencesDto | null;
@@ -33,8 +37,10 @@ export interface DialogOverlayGroupProps {
   goToLocationOpen: boolean;
   manageFavoritesOpen: boolean;
   errorDetailsOpen: boolean;
+  operationHistoryOpen: boolean;
   goToLocationInitialUri: string;
   favorites: FavoriteEntryDto[];
+  history: OperationHistoryRecordDto[];
   operationError: string | null;
   dialog: OperationDialog | null;
   autostart: AutostartStatusDto | null;
@@ -58,7 +64,10 @@ export interface DialogOverlayGroupProps {
   setGoToLocationOpen: (open: boolean) => void;
   setManageFavoritesOpen: (open: boolean) => void;
   setErrorDetailsOpen: (open: boolean) => void;
+  setOperationHistoryOpen: (open: boolean) => void;
   setOperationError: (message: string | null) => void;
+  refreshHistory: () => void;
+  clearHistory: () => void;
   onNavigateActivePane: (uri: string) => void;
   onRemoveFavorite: (id: number) => void;
   onRenameFavorite: (id: number, label: string) => void;
@@ -99,8 +108,10 @@ export function DialogOverlayGroup({
   goToLocationOpen,
   manageFavoritesOpen,
   errorDetailsOpen,
+  operationHistoryOpen,
   goToLocationInitialUri,
   favorites,
+  history,
   operationError,
   dialog,
   autostart,
@@ -124,7 +135,10 @@ export function DialogOverlayGroup({
   setGoToLocationOpen,
   setManageFavoritesOpen,
   setErrorDetailsOpen,
+  setOperationHistoryOpen,
   setOperationError,
+  refreshHistory,
+  clearHistory,
   onNavigateActivePane,
   onRemoveFavorite,
   onRenameFavorite,
@@ -196,6 +210,13 @@ export function DialogOverlayGroup({
         message={operationError}
         onClose={() => setErrorDetailsOpen(false)}
         onClear={() => setOperationError(null)}
+      />
+      <OperationHistoryDialog
+        open={operationHistoryOpen}
+        history={history}
+        onClose={() => setOperationHistoryOpen(false)}
+        onRefresh={() => void refreshHistory()}
+        onClear={() => void clearHistory()}
       />
       <DiagnosticsDialog
         open={diagnosticsOpen}

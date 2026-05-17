@@ -7,6 +7,7 @@ import { useEventHandlers } from "../hooks/useEventHandlers";
 import { useAppInit } from "../hooks/useAppInit";
 import { createKeyboardShortcutsHandler } from "../hooks/useKeyboardShortcuts";
 import { useFileOpHandlers } from "../hooks/useFileOpHandlers";
+import { useCommandDispatch } from "../hooks/useCommandDispatch";
 import type { CommandEntry } from "../components/CommandPalette";
 import { isTextPreviewable } from "../components/PreviewPanel";
 import type { FilePanelProps } from "../pane/FilePanel";
@@ -97,10 +98,12 @@ function FileOctopusAppInner() {
     goToLocationOpen,
     manageFavoritesOpen,
     errorDetailsOpen,
+    operationHistoryOpen,
     setAboutOpen,
     setGoToLocationOpen,
     setManageFavoritesOpen,
     setErrorDetailsOpen,
+    setOperationHistoryOpen,
     dialog,
     setSettingsOpen,
     setShortcutsOpen,
@@ -114,7 +117,6 @@ function FileOctopusAppInner() {
   const {
     pushToast,
     updatePreference,
-    handleCommandSelect,
     handleSetAutostart,
     navigatePanel,
     refreshNavigation,
@@ -134,7 +136,6 @@ function FileOctopusAppInner() {
     client,
     state,
     dispatch,
-    preferences,
     diagnosticsDestination,
     setToasts,
     setPreferences,
@@ -142,11 +143,6 @@ function FileOctopusAppInner() {
     setActivityCollapsed,
     setOperationError,
     setSearch,
-    setCommandPaletteOpen,
-    setSettingsOpen,
-    setShortcutsOpen,
-    setDiagnosticsOpen,
-    setFilterFocusToken,
     setAutostart,
     setFavorites,
     setRecentToday,
@@ -154,10 +150,6 @@ function FileOctopusAppInner() {
     setStarred,
     setLocations,
     setDialog,
-    setAboutOpen,
-    setGoToLocationOpen,
-    setManageFavoritesOpen,
-    markActivityPinnedOpen,
     setHistory,
     setAppInfo,
     setAppHealth,
@@ -302,6 +294,37 @@ function FileOctopusAppInner() {
     [state.panels, handleRename, setRenameFocusToken],
   );
 
+  const handleCommandSelect = useCommandDispatch({
+    state,
+    dispatch,
+    preferences,
+    navigatePanel,
+    goHistory,
+    refreshPanel,
+    updatePreference,
+    setSettingsOpen,
+    setShortcutsOpen,
+    setDiagnosticsOpen,
+    setAboutOpen,
+    setGoToLocationOpen,
+    setManageFavoritesOpen,
+    setOperationHistoryOpen,
+    setFilterFocusToken,
+    setActivityCollapsed,
+    markActivityPinnedOpen,
+    handleCreateFolder,
+    handleCreateFile,
+    startInlineRename: triggerInlineRename,
+    handleTrash,
+    handlePermanentDelete,
+    handleProperties,
+    copySelectionToFileClipboard,
+    pasteClipboard,
+    selectedEntries,
+    activateEntry,
+    setCommandPaletteOpen,
+  });
+
   const handleShellKeyDown = useMemo(
     () =>
       createKeyboardShortcutsHandler({
@@ -409,6 +432,7 @@ function FileOctopusAppInner() {
     setAboutOpen,
     setGoToLocationOpen,
     setManageFavoritesOpen,
+    setOperationHistoryOpen,
     setActivityCollapsed,
   });
 
@@ -521,9 +545,11 @@ function FileOctopusAppInner() {
       goToLocationOpen={goToLocationOpen}
       manageFavoritesOpen={manageFavoritesOpen}
       errorDetailsOpen={errorDetailsOpen}
+      operationHistoryOpen={operationHistoryOpen}
       setGoToLocationOpen={setGoToLocationOpen}
       setManageFavoritesOpen={setManageFavoritesOpen}
       setErrorDetailsOpen={setErrorDetailsOpen}
+      setOperationHistoryOpen={setOperationHistoryOpen}
       dialog={dialog}
       autostart={autostart}
       commandEntries={commandEntries}

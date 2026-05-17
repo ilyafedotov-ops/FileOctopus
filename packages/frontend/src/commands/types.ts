@@ -51,7 +51,8 @@ export type CommandId =
   | "app.shortcuts"
   | "app.diagnostics"
   | "app.commandPalette"
-  | "app.about";
+  | "app.about"
+  | "app.operationHistory";
 
 export interface CommandDefinition {
   id: CommandId;

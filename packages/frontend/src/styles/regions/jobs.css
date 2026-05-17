@@ -1,0 +1,281 @@
+.fo-activity-rail {
+  grid-column: 4;
+  grid-row: 1;
+  min-width: 0;
+  max-width: 360px;
+  overflow: hidden;
+}
+
+.fo-topbar,
+.fo-status,
+.fo-panel,
+.fo-sidebar,
+.fo-activity {
+  border: 1px solid var(--fo-border);
+  background: var(--fo-surface);
+}
+
+.fo-activity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+.fo-activity-collapsed {
+  align-items: stretch;
+  justify-content: center;
+  width: 40px;
+  padding: 6px 4px;
+}
+
+.fo-activity-collapsed .fo-ui-btn {
+  min-width: 30px;
+  min-height: 124px;
+  padding: 8px 0;
+  writing-mode: vertical-rl;
+}
+
+.fo-activity-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--fo-border);
+}
+
+.fo-activity-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+}
+
+.fo-activity-header p {
+  margin: 4px 0 0;
+  color: var(--fo-muted-text);
+  font-size: 11px;
+}
+
+.fo-activity-cards {
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  overflow: auto;
+}
+
+.fo-activity-segmented {
+  margin: 10px 10px 0;
+}
+
+.fo-activity-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.fo-activity-section-title {
+  margin: 0 0 8px;
+  color: var(--fo-muted-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fo-job-card {
+  padding: 10px;
+  border: 1px solid var(--fo-border);
+  border-radius: 8px;
+  background: var(--fo-workspace-bg);
+}
+
+.fo-job-card-running {
+  background: var(--fo-accent-soft);
+}
+
+.fo-job-card-queued {
+  background: #fff8eb;
+  border-color: #f6d58a;
+}
+
+.fo-job-card-completed {
+  background: #ecfdf3;
+  border-color: #9fd8b3;
+}
+
+.fo-job-card-failed {
+  background: var(--fo-danger-bg);
+  border-color: var(--fo-danger-border);
+}
+
+.fo-job-card-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.fo-job-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.fo-job-card-heading span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-job-card-percent {
+  flex: 0 0 auto;
+  color: var(--fo-muted-text);
+  font-size: 11px;
+}
+
+.fo-job-card-item {
+  margin: 4px 0 0;
+  color: var(--fo-muted-text);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-job-card-error {
+  margin: 6px 0 0;
+  color: var(--fo-danger-text);
+  font-size: 11px;
+}
+
+.fo-job-card-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.fo-job-card-bar {
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 999px;
+  background: var(--fo-border);
+  overflow: hidden;
+}
+
+.fo-job-card-bar > div {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--fo-accent);
+}
+
+.fo-job-card-meta {
+  margin: 7px 0 0;
+  color: var(--fo-muted-text);
+}
+
+.fo-job-panel {
+  display: grid;
+  gap: 6px;
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--fo-border);
+  background: var(--fo-surface);
+  padding: 8px;
+  font-size: 12px;
+}
+
+.fo-job-panel header,
+.fo-job-row,
+.fo-history-row {
+  display: grid;
+  grid-template-columns: 140px minmax(100px, 1fr) minmax(0, 2fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.fo-job-panel header {
+  grid-template-columns: 1fr auto;
+}
+
+.fo-job-row span,
+.fo-history-row span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-history {
+  display: grid;
+  gap: 4px;
+  padding: 0 10px 10px;
+}
+
+.fo-history-row {
+  grid-template-columns: 72px 72px minmax(0, 1fr) 88px;
+  min-height: 24px;
+  color: var(--fo-muted-text);
+  font-size: 11px;
+}
+
+.fo-history-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.fo-history-status-completed {
+  color: var(--fo-success);
+}
+
+.fo-history-status-failed {
+  color: var(--fo-danger-text);
+}
+
+.fo-history-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-history-time {
+  color: var(--fo-secondary-text);
+  text-align: right;
+}
+
+.fo-workspace[data-layout="medium"] .fo-activity-rail {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  max-height: min(38vh, 300px);
+  border-radius: 16px;
+}
+
+.fo-workspace[data-layout="medium"] .fo-activity-collapsed {
+  position: fixed;
+  right: 20px;
+  bottom: 52px;
+  z-index: 25;
+  width: auto;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: none;
+}
+
+.fo-workspace[data-layout="medium"] .fo-activity-collapsed .fo-ui-btn {
+  border-radius: 999px;
+  box-shadow: 0 8px 24px var(--fo-menu-shadow);
+}

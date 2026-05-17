@@ -15,6 +15,7 @@ export interface CommandBinding {
 export const COMMAND_BINDINGS: CommandBinding[] = [
   { commandId: "nav.goToLocation", targets: ["menu", "palette"] },
   { commandId: "nav.manageFavorites", targets: ["menu"] },
+  { commandId: "app.operationHistory", targets: ["menu", "palette"] },
   { commandId: "view.toggleSidebar", targets: ["menu", "palette"] },
   { commandId: "view.toggleDualPane", targets: ["menu"] },
   {

@@ -35,6 +35,7 @@ import type { ToastMessage } from "../../components/ToastStack";
 import type { FileClipboardState } from "../../hooks/useFileOpHandlers";
 import type { ContextMenuState } from "../../components/ContextMenu";
 import type { SearchState } from "../../pane/PaneFilterBar";
+import { useLayoutFocusStore } from "../../state/layoutStore";
 
 export interface ShellContextValue {
   client: FileOctopusClient;
@@ -123,10 +124,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   const [clipboard, setClipboard] = useState<FileClipboardState | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [search, setSearch] = useState<SearchState | null>(null);
-  const [pathFocusToken, setPathFocusToken] = useState(0);
-  const [renameFocusToken, setRenameFocusToken] = useState(0);
-  const [filterFocusToken, setFilterFocusToken] = useState(0);
-  const [recursiveSearchFocusToken, setRecursiveSearchFocusToken] = useState(0);
+  const layoutFocus = useLayoutFocusStore();
   const [diagnosticsDestination, setDiagnosticsDestination] = useState(
     "/tmp/fileoctopus-diagnostics.zip",
   );
@@ -154,10 +152,10 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       clipboard,
       contextMenu,
       search,
-      pathFocusToken,
-      renameFocusToken,
-      filterFocusToken,
-      recursiveSearchFocusToken,
+      pathFocusToken: layoutFocus.pathFocusToken,
+      renameFocusToken: layoutFocus.renameFocusToken,
+      filterFocusToken: layoutFocus.filterFocusToken,
+      recursiveSearchFocusToken: layoutFocus.recursiveSearchFocusToken,
       diagnosticsDestination,
       diagnosticsMessage,
       exportingDiagnostics,
@@ -177,10 +175,10 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       setClipboard,
       setContextMenu,
       setSearch,
-      setPathFocusToken,
-      setRenameFocusToken,
-      setFilterFocusToken,
-      setRecursiveSearchFocusToken,
+      setPathFocusToken: layoutFocus.setPathFocusToken,
+      setRenameFocusToken: layoutFocus.setRenameFocusToken,
+      setFilterFocusToken: layoutFocus.setFilterFocusToken,
+      setRecursiveSearchFocusToken: layoutFocus.setRecursiveSearchFocusToken,
       setDiagnosticsDestination,
       setDiagnosticsMessage,
       setExportingDiagnostics,
@@ -202,10 +200,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       clipboard,
       contextMenu,
       search,
-      pathFocusToken,
-      renameFocusToken,
-      filterFocusToken,
-      recursiveSearchFocusToken,
+      layoutFocus,
       diagnosticsDestination,
       diagnosticsMessage,
       exportingDiagnostics,

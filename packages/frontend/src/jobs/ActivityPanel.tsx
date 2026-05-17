@@ -2,16 +2,10 @@ import type {
   JobSnapshot,
   OperationHistoryRecordDto,
 } from "@fileoctopus/ts-api";
-import {
-  Badge,
-  Button,
-  IconButton,
-  Icons,
-  SegmentedControl,
-} from "@fileoctopus/ui";
+import { Badge, Button, IconButton, SegmentedControl } from "@fileoctopus/ui";
 import { useMemo, useState } from "react";
-import { formatDate } from "../pane/fileTableUtils";
 import { JobCard } from "./JobCard";
+import { OperationHistoryList } from "./OperationHistoryList";
 import { jobIdValue } from "./jobCardUtils";
 
 type ActivityTab = "activity" | "history";
@@ -137,53 +131,12 @@ export function ActivityPanel({
             )}
           </section>
         ) : (
-          <section className="fo-history" aria-label="Operation history">
-            <header>
-              <h3 className="fo-activity-section-title">History</h3>
-              <div className="fo-history-actions">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={onRefreshHistory}
-                >
-                  {Icons.refresh()}
-                  Refresh
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={onClearHistory}
-                >
-                  Clear
-                </Button>
-              </div>
-            </header>
-            {history.length === 0 ? (
-              <div className="fo-empty-inline">No recent operations</div>
-            ) : (
-              history.slice(0, 12).map((item) => (
-                <div className="fo-history-row" key={item.jobId}>
-                  <span className="fo-history-kind">{item.operationKind}</span>
-                  <span
-                    className={`fo-history-status fo-history-status-${item.status}`}
-                  >
-                    {item.status}
-                  </span>
-                  <span
-                    className="fo-history-path"
-                    title={item.representativeSourcePath ?? ""}
-                  >
-                    {item.representativeSourcePath ?? "—"}
-                  </span>
-                  <span className="fo-history-time">
-                    {formatDate(item.completedAt ?? item.startedAt)}
-                  </span>
-                </div>
-              ))
-            )}
-          </section>
+          <OperationHistoryList
+            history={history}
+            limit={12}
+            onRefresh={onRefreshHistory}
+            onClear={onClearHistory}
+          />
         )}
       </div>
     </aside>

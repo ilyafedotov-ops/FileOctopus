@@ -28,6 +28,8 @@ export function ShellOverlays() {
         goToLocationInitialUri={ctx.activeTabUri}
         favorites={ctx.favorites}
         operationError={ctx.operationError}
+        operationHistoryOpen={ctx.operationHistoryOpen}
+        history={ctx.history}
         dialog={ctx.dialog}
         autostart={ctx.autostart}
         commandEntries={ctx.commandEntries}
@@ -50,7 +52,10 @@ export function ShellOverlays() {
         setGoToLocationOpen={ctx.setGoToLocationOpen}
         setManageFavoritesOpen={ctx.setManageFavoritesOpen}
         setErrorDetailsOpen={ctx.setErrorDetailsOpen}
+        setOperationHistoryOpen={ctx.setOperationHistoryOpen}
         setOperationError={ctx.setOperationError}
+        refreshHistory={ctx.refreshHistory}
+        clearHistory={ctx.clearHistory}
         onNavigateActivePane={(uri) =>
           void ctx.navigatePanel(ctx.state.activePanelId, uri)
         }
