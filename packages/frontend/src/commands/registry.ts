@@ -50,8 +50,8 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     id: "create.folder",
     label: "New Folder",
     group: "creation",
-    shortcutMac: "⌘⇧N",
-    shortcutWin: "Ctrl+Shift+N",
+    shortcutMac: "⌘N",
+    shortcutWin: "Ctrl+N",
   },
   {
     id: "create.file",
@@ -115,6 +115,8 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     id: "op.properties",
     label: "Properties",
     group: "operation",
+    shortcutMac: "⌘I",
+    shortcutWin: "Ctrl+I",
   },
   {
     id: "op.reveal",
@@ -162,6 +164,8 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     id: "view.toggleHidden",
     label: "Show Hidden Files",
     group: "view",
+    shortcutMac: "⌘. or ⌘H",
+    shortcutWin: "Ctrl+. or Ctrl+H",
   },
   {
     id: "view.toggleSidebar",

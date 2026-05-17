@@ -36,6 +36,7 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
     clearClipboard: vi.fn(),
     setCommandPaletteOpen: vi.fn(),
     handleCopyOrMove: vi.fn(),
+    toggleHidden: vi.fn(),
     ...overrides,
   };
 }
@@ -91,5 +92,14 @@ describe("dispatchCommand", () => {
       type: "invertSelection",
       panelId: "left",
     });
+  });
+
+  it("honors panelId override", () => {
+    const startInlineRename = vi.fn();
+    dispatchCommand("op.rename", baseDeps({ startInlineRename }), {
+      panelId: "right",
+    });
+
+    expect(startInlineRename).toHaveBeenCalledWith("right");
   });
 });

@@ -109,17 +109,18 @@ AppProviders
 
 User actions are converging on a single **command id** vocabulary (`commands/types.ts` + `commands/registry.ts`).
 
-| Layer                             | Role                                                                                                      |
-| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `COMMAND_DEFINITIONS`             | Labels, groups, platform shortcuts                                                                        |
-| `dispatchCommand(id, deps)`       | Executes app/nav/view/op/clipboard/selection commands; legacy aliases (`settings` → `app.settings`, etc.) |
-| `buildPaletteEntries()`           | Palette rows from registry + legacy `switch-pane` / `filter`                                              |
-| `useCommandDispatch`              | Closes palette, handles `switch-pane` / `filter`, then dispatch                                           |
-| `useMenuBarProps({ runCommand })` | Most menu items call `runCommand("…")`                                                                    |
+| Layer                                     | Role                                                                                                |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `COMMAND_DEFINITIONS`                     | Labels, groups, platform shortcuts                                                                  |
+| `dispatchCommand(id, deps, { panelId? })` | Executes commands for active or overridden pane; legacy aliases (`settings` → `app.settings`, etc.) |
+| `buildPaletteEntries()`                   | Palette rows from registry + legacy `switch-pane` / `filter`                                        |
+| `buildShortcutHelpEntries()`              | Shortcuts dialog + Settings → Shortcuts (registry + supplemental rows)                              |
+| `useCommandDispatch(id, panelId?)`        | Closes palette, handles `switch-pane` / `filter`, then dispatch                                     |
+| `useMenuBarProps({ runCommand })`         | Most menu items call `runCommand("…")`                                                              |
 
-**Wired through dispatch today:** app modals, navigation, view modes/toggles, create folder/file, copy/cut/paste/trash/delete, properties, open/reveal/open-default, clipboard copy variants, selection select/clear/invert, copy-to/move-to, operation history.
+**Wired through dispatch today:** app modals, navigation, view modes/toggles (hidden files refreshes listing), create folder/file, copy/cut/paste/trash/delete, properties, open/reveal/open-default, clipboard copy variants, selection select/clear/invert, copy-to/move-to, operation history; **pane toolbar**, **context menu** (`runPanelCommand`), and **global keyboard** shortcuts.
 
-**Still direct handlers (not dispatch):** path/recursive-search focus tokens and text preview (Space) in `useKeyboardShortcuts.ts`; many context-menu actions (via `ContextMenuOverlay` props); toolbar buttons; sidebar; drag-and-drop; sort/theme/density menu paths; favorites add; diagnostics export bundle; menu `onSwitchPane`.
+**Still direct handlers (not dispatch):** path/recursive-search focus and text preview (Space); compress/extract/checksum/terminal/calculate-size; context-menu properties when a specific entry is passed; sort submenu; sidebar; drag-and-drop; theme/density; favorites add; diagnostics export; menu `onSwitchPane`.
 
 When adding a user-visible action, prefer: register in `registry.ts` → implement in `dispatch.ts` → bind in `bindings.ts` / menu / palette / shortcuts.
 

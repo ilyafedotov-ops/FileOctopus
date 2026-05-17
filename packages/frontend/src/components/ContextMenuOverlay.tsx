@@ -1,6 +1,7 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
-import type { PanelId, FileOctopusState } from "../panelStore";
+import type { PanelId, FileOctopusState, PanelAction } from "../panelStore";
 import { activeTab } from "../panelStore";
+import { viewModeCommandId } from "../commands/viewModeCommands";
 import { ContextMenu, type ContextMenuState } from "./ContextMenu";
 
 interface FileClipboardState {
@@ -15,37 +16,21 @@ export interface ContextMenuOverlayProps {
   state: FileOctopusState;
   clipboard: FileClipboardState | null;
   starredUriSet: Set<string>;
-  dispatch: React.Dispatch<import("../panelStore").PanelAction>;
+  dispatch: React.Dispatch<PanelAction>;
   onClose: () => void;
+  runPanelCommand: (panelId: PanelId, commandId: string) => void;
   activateEntry: (panelId: PanelId, entry: FileEntryDto | null) => void;
-  handleRename: (panelId: PanelId) => void;
-  copySelectionToFileClipboard: (
-    panelId: PanelId,
-    mode: "copy" | "move",
-  ) => void;
-  pasteClipboard: (panelId: PanelId) => Promise<void>;
-  handleTrash: (panelId: PanelId) => void;
   toggleStarredForEntry: (entry: FileEntryDto) => Promise<void>;
-  handlePermanentDelete: (panelId: PanelId) => void;
-  copyTextFromSelection: (
-    panelId: PanelId,
-    kind: "path" | "name" | "parentPath" | "uri",
-  ) => Promise<void>;
   handleProperties: (
     panelId: PanelId,
     entry: FileEntryDto | null,
   ) => Promise<void>;
-  revealEntry: (panelId: PanelId, entry: FileEntryDto | null) => Promise<void>;
+  handleCompress: (panelId: PanelId) => void;
+  handleExtract: (panelId: PanelId) => void;
   openTerminal: (uri: string) => void;
   handleChecksum: (panelId: PanelId) => Promise<void>;
-  handleCompress: (panelId: PanelId) => Promise<void>;
-  handleExtract: (panelId: PanelId) => Promise<void>;
-  handleCreateFolder: (panelId: PanelId) => void;
-  handleCreateFile: (panelId: PanelId) => void;
-  refreshPanel: (panelId: PanelId) => void;
-  handleCopyOrMove: (panelId: PanelId, mode: "copy" | "move") => void;
+  revealEntry: (panelId: PanelId, entry: FileEntryDto | null) => Promise<void>;
   openExternal: (entry: FileEntryDto) => Promise<void>;
-  toggleHidden: (panelId: PanelId) => void;
   navigatePanel: (panelId: PanelId, uri: string) => void;
   navigateOtherPane: (uri: string) => void;
   addFavorite: (uri: string) => void;
@@ -58,30 +43,23 @@ export function ContextMenuOverlay({
   starredUriSet,
   dispatch,
   onClose,
+  runPanelCommand,
   activateEntry,
-  handleRename,
-  copySelectionToFileClipboard,
-  pasteClipboard,
-  handleTrash,
   toggleStarredForEntry,
-  handlePermanentDelete,
-  copyTextFromSelection,
   handleProperties,
-  revealEntry,
-  openTerminal,
-  handleChecksum,
   handleCompress,
   handleExtract,
-  handleCreateFolder,
-  handleCreateFile,
-  refreshPanel,
-  handleCopyOrMove,
+  openTerminal,
+  handleChecksum,
+  revealEntry,
   openExternal,
-  toggleHidden,
   navigatePanel,
   navigateOtherPane,
   addFavorite,
 }: ContextMenuOverlayProps) {
+  const panelId = menu?.panelId ?? "left";
+  const run = (commandId: string) => runPanelCommand(panelId, commandId);
+
   return (
     <ContextMenu
       menu={menu}
@@ -91,50 +69,53 @@ export function ContextMenuOverlay({
         menu?.panelId ? activeTab(state.panels[menu.panelId]).showHidden : false
       }
       onClose={onClose}
-      onToggleHidden={(panelId) => toggleHidden(panelId)}
-      onOpen={(panelId, entry) => activateEntry(panelId, entry)}
-      onRename={handleRename}
-      onCopy={(panelId) => copySelectionToFileClipboard(panelId, "copy")}
-      onCut={(panelId) => copySelectionToFileClipboard(panelId, "move")}
-      onPaste={(panelId) => void pasteClipboard(panelId)}
-      onTrash={handleTrash}
+      onToggleHidden={() => run("view.toggleHidden")}
+      onOpen={(pid, entry) => activateEntry(pid, entry)}
+      onRename={() => run("op.rename")}
+      onCopy={() => run("op.copy")}
+      onCut={() => run("op.cut")}
+      onPaste={() => run("op.paste")}
+      onTrash={() => run("op.trash")}
       onToggleStarred={(_, entry) => void toggleStarredForEntry(entry)}
-      onPermanentDelete={handlePermanentDelete}
-      onCopyPath={(panelId) => void copyTextFromSelection(panelId, "path")}
-      onCopyName={(panelId) => void copyTextFromSelection(panelId, "name")}
-      onProperties={(panelId, entry) => void handleProperties(panelId, entry)}
-      onReveal={(panelId, entry) => void revealEntry(panelId, entry)}
-      onCompress={(panelId) => void handleCompress(panelId)}
-      onExtract={(panelId) => void handleExtract(panelId)}
-      onOpenTerminal={(panelId) =>
-        openTerminal(activeTab(state.panels[panelId]).uri)
-      }
-      onChecksum={(panelId) => void handleChecksum(panelId)}
-      onCreateFolder={handleCreateFolder}
-      onCreateFile={handleCreateFile}
-      onRefresh={refreshPanel}
-      onSelectAll={(panelId) => dispatch({ type: "selectAll", panelId })}
-      onViewMode={(panelId, viewMode) =>
-        dispatch({ type: "setViewMode", panelId, viewMode })
-      }
-      onSort={(panelId, field) => dispatch({ type: "setSort", panelId, field })}
-      onOpenWithDefaultApp={(panelId) => {
-        if (menu?.panelId !== panelId) return;
-        const entry = menu?.entry;
-        if (entry && entry.kind !== "directory") void openExternal(entry);
+      onPermanentDelete={() => run("op.deletePermanent")}
+      onCopyPath={() => run("clipboard.copyPath")}
+      onCopyName={() => run("clipboard.copyName")}
+      onProperties={(pid, entry) => void handleProperties(pid, entry)}
+      onReveal={(pid, entry) => void revealEntry(pid, entry)}
+      onCompress={(pid) => void handleCompress(pid)}
+      onExtract={(pid) => void handleExtract(pid)}
+      onOpenTerminal={(pid) => openTerminal(activeTab(state.panels[pid]).uri)}
+      onChecksum={(pid) => void handleChecksum(pid)}
+      onCreateFolder={() => run("create.folder")}
+      onCreateFile={() => run("create.file")}
+      onRefresh={() => run("nav.refresh")}
+      onSelectAll={() => run("selection.selectAll")}
+      onViewMode={(pid, viewMode) => {
+        const commandId = viewModeCommandId(viewMode);
+        if (commandId) {
+          runPanelCommand(pid, commandId);
+          return;
+        }
+        dispatch({ type: "setViewMode", panelId: pid, viewMode });
       }}
-      onCopyTo={(panelId) => handleCopyOrMove(panelId, "copy")}
-      onMoveTo={(panelId) => handleCopyOrMove(panelId, "move")}
-      onCopyParentPath={(panelId) =>
-        void copyTextFromSelection(panelId, "parentPath")
+      onSort={(pid, field) =>
+        dispatch({ type: "setSort", panelId: pid, field })
       }
-      onCopyResourceUri={(panelId) =>
-        void copyTextFromSelection(panelId, "uri")
-      }
-      onClearSelection={(panelId) =>
-        dispatch({ type: "clearSelection", panelId })
-      }
-      onNavigateTo={(panelId, uri) => navigatePanel(panelId, uri)}
+      onOpenWithDefaultApp={(pid) => {
+        if (menu?.panelId !== pid) return;
+        const entry = menu?.entry;
+        if (entry && entry.kind !== "directory") {
+          void openExternal(entry);
+          return;
+        }
+        run("op.openDefault");
+      }}
+      onCopyTo={() => run("op.copyTo")}
+      onMoveTo={() => run("op.moveTo")}
+      onCopyParentPath={() => run("clipboard.copyParent")}
+      onCopyResourceUri={() => run("clipboard.copyUri")}
+      onClearSelection={() => run("selection.clear")}
+      onNavigateTo={(pid, uri) => navigatePanel(pid, uri)}
       onNavigateOtherPane={(uri) => navigateOtherPane(uri)}
       onCopyBreadcrumbPath={(path) => {
         void navigator.clipboard.writeText(path);

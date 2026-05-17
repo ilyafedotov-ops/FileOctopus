@@ -28,15 +28,15 @@
 
 ## MVP acceptance criteria (summary)
 
-| Area                     | IDs             | Status                                                                                                                           |
-| ------------------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Core FS navigation & ops | MVP-FS-001–008  | **Met** (local dual-pane, large dirs, copy/move/rename/mkdir/trash, conflicts via plan)                                          |
-| Jobs                     | MVP-JOB-001–004 | **Mostly met** — queue UI, cancel, failures, history after restart; full job SQLite schema in spec not fully mirrored            |
-| Git                      | MVP-GIT-001–002 | **Not met**                                                                                                                      |
-| Archives                 | MVP-ARC-001–002 | **Partial** — zip create/extract via `createArchive`/`extractArchive`; tar not implemented; zip-slip tests pass                  |
-| Terminal                 | MVP-TERM-001    | **Partial** — `fs_open_terminal` spawns external emulator in cwd; no embedded xterm panel                                        |
-| UI keyboard              | MVP-UI-001      | **Partial** — shortcuts + registry-driven command palette; menu bar mostly on `dispatchCommand`; global keys not yet on registry |
-| Security                 | MVP-SEC-001     | **Met** — ADR-0002, typed IPC only                                                                                               |
+| Area                     | IDs             | Status                                                                                                                                       |
+| ------------------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Core FS navigation & ops | MVP-FS-001–008  | **Met** (local dual-pane, large dirs, copy/move/rename/mkdir/trash, conflicts via plan)                                                      |
+| Jobs                     | MVP-JOB-001–004 | **Mostly met** — queue UI, cancel, failures, history after restart; full job SQLite schema in spec not fully mirrored                        |
+| Git                      | MVP-GIT-001–002 | **Not met**                                                                                                                                  |
+| Archives                 | MVP-ARC-001–002 | **Partial** — zip create/extract via `createArchive`/`extractArchive`; tar not implemented; zip-slip tests pass                              |
+| Terminal                 | MVP-TERM-001    | **Partial** — `fs_open_terminal` spawns external emulator in cwd; no embedded xterm panel                                                    |
+| UI keyboard              | MVP-UI-001      | **Partial** — palette, menu, toolbar, context menu, and global keys on `dispatchCommand`; Help shortcuts from registry via `shortcutHelp.ts` |
+| Security                 | MVP-SEC-001     | **Met** — ADR-0002, typed IPC only                                                                                                           |
 
 Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not formally signed off**.
 
@@ -65,8 +65,7 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 | Item                                                  | Spec source                 | Notes                                                                                                           |
 | ----------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Application menu bar (full wiring)                    | Menu & Modal Spec §4        | Core File/Edit/View/Go/Tools items on dispatch; sort/theme/density/favorites-add still local; no native OS menu |
-| Shortcut help text vs registry drift                  | shortcuts.ts + registry     | Help dialog uses `shortcuts.ts`; keys route via `runCommand` / dispatch                                         |
-| Toolbar on command registry                           | commands/bindings.ts        | Toolbar/context menu mostly direct handlers                                                                     |
+| Toolbar-only actions on registry                      | commands/bindings.ts        | Compress, checksum, terminal, calculate size still direct                                                       |
 | Operations / Shortcuts / Advanced settings tabs       | UI Design Spec §Preferences | Merged into existing tabs or separate dialogs                                                                   |
 | Remember last used panes (setting + restore)          | UI Design Spec              | No preference or boot restore                                                                                   |
 | Diagnostics export location preference                | UI Design Spec              | Export path chosen at export time                                                                               |
@@ -187,14 +186,14 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 
 ### Operations & misc
 
-| Document                                                           | Status                                                                     |
-| ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
-| [usage.md](../usage.md)                                            | **Updated** — shortcuts from `shortcuts.ts`; palette from command registry |
-| [build.md](../build.md)                                            | Current                                                                    |
-| [security/README.md](../security/README.md)                        | Placeholder / minimal                                                      |
-| [plans/CRON\_\*.md](../plans/CRON_STATUS.md)                       | Agent automation log — not product spec                                    |
-| [apps/desktop-tauri/README.md](../../apps/desktop-tauri/README.md) | **Updated** — was Tauri template                                           |
-| [apps/cli/README.md](../../apps/cli/README.md)                     | Current placeholder                                                        |
+| Document                                                           | Status                                                                       |
+| ------------------------------------------------------------------ | ---------------------------------------------------------------------------- |
+| [usage.md](../usage.md)                                            | **Updated** — shortcuts help from registry; keys via `runCommand` / dispatch |
+| [build.md](../build.md)                                            | Current                                                                      |
+| [security/README.md](../security/README.md)                        | Placeholder / minimal                                                        |
+| [plans/CRON\_\*.md](../plans/CRON_STATUS.md)                       | Agent automation log — not product spec                                      |
+| [apps/desktop-tauri/README.md](../../apps/desktop-tauri/README.md) | **Updated** — was Tauri template                                             |
+| [apps/cli/README.md](../../apps/cli/README.md)                     | Current placeholder                                                          |
 
 ## Recommended doc maintenance
 

@@ -13,6 +13,7 @@ import { isTextPreviewable } from "../components/PreviewPanel";
 import type { FilePanelProps } from "../pane/FilePanel";
 import { ShellLayout } from "../shell/ShellLayout";
 import { buildPaletteEntries } from "../commands/paletteEntries";
+import { viewModeCommandId } from "../commands/viewModeCommands";
 import {
   AppProviders,
   useJobs,
@@ -307,6 +308,7 @@ function FileOctopusAppInner() {
     clearClipboard: () => setClipboard(null),
     setCommandPaletteOpen,
     handleCopyOrMove,
+    toggleHidden,
   });
 
   const handleShellKeyDown = useMemo(
@@ -369,6 +371,8 @@ function FileOctopusAppInner() {
 
   function makeFilePanelProps(pid: "left" | "right"): FilePanelProps {
     const tab = activeTab(state.panels[pid]);
+    const runPanel = (commandId: string) => handleCommandSelect(commandId, pid);
+
     return {
       panelId: pid,
       title: pid === "left" ? "Left" : "Right",
@@ -376,24 +380,24 @@ function FileOctopusAppInner() {
       active: state.activePanelId === pid,
       onActivate: () => dispatch({ type: "setActivePanel", panelId: pid }),
       onNavigate: (uri) => navigatePanel(pid, uri),
-      onBack: () => void goHistory(pid, "back"),
-      onForward: () => void goHistory(pid, "forward"),
+      onBack: () => runPanel("nav.back"),
+      onForward: () => runPanel("nav.forward"),
       onSelect: (entryId) =>
         dispatch({ type: "setSelection", panelId: pid, entryId }),
       onEntrySelect: (entryId, mode) =>
         dispatch({ type: "selectEntry", panelId: pid, entryId, mode }),
-      onCreateFolder: () => handleCreateFolder(pid),
-      onCreateFile: () => handleCreateFile(pid),
-      onRename: () => triggerInlineRename(pid),
-      onCopy: () => copySelectionToFileClipboard(pid, "copy"),
-      onCut: () => copySelectionToFileClipboard(pid, "move"),
-      onCopyOperation: () => handleCopyOrMove(pid, "copy"),
-      onMoveOperation: () => handleCopyOrMove(pid, "move"),
-      onPaste: () => void pasteClipboard(pid),
-      onTrash: () => handleTrash(pid),
-      onPermanentDelete: () => handlePermanentDelete(pid),
-      onCopyPath: () => void copyTextFromSelection(pid, "path"),
-      onCopyName: () => void copyTextFromSelection(pid, "name"),
+      onCreateFolder: () => runPanel("create.folder"),
+      onCreateFile: () => runPanel("create.file"),
+      onRename: () => runPanel("op.rename"),
+      onCopy: () => runPanel("op.copy"),
+      onCut: () => runPanel("op.cut"),
+      onCopyOperation: () => runPanel("op.copyTo"),
+      onMoveOperation: () => runPanel("op.moveTo"),
+      onPaste: () => runPanel("op.paste"),
+      onTrash: () => runPanel("op.trash"),
+      onPermanentDelete: () => runPanel("op.deletePermanent"),
+      onCopyPath: () => runPanel("clipboard.copyPath"),
+      onCopyName: () => runPanel("clipboard.copyName"),
       onProperties: (entry) => void handleProperties(pid, entry),
       onReveal: (entry) => void revealEntry(pid, entry),
       onCalculateSize: (entry) => void calculateSize(pid, entry),
@@ -401,9 +405,9 @@ function FileOctopusAppInner() {
       onExtract: () => void handleExtract(pid),
       onOpenTerminal: () => openTerminal(tab.uri),
       onChecksum: () => void handleChecksum(pid),
-      onRefresh: () => refreshPanel(pid),
-      onToggleHidden: () => toggleHidden(pid),
-      onSelectAll: () => dispatch({ type: "selectAll", panelId: pid }),
+      onRefresh: () => runPanel("nav.refresh"),
+      onToggleHidden: () => runPanel("view.toggleHidden"),
+      onSelectAll: () => runPanel("selection.selectAll"),
       onMove: (delta) =>
         dispatch({ type: "moveSelection", panelId: pid, delta }),
       onSort: (field) => dispatch({ type: "setSort", panelId: pid, field }),
@@ -412,8 +416,14 @@ function FileOctopusAppInner() {
       onRecursiveQuery: (query) =>
         dispatch({ type: "setRecursiveQuery", panelId: pid, query }),
       onRecursiveSearch: () => void runRecursiveSearch(pid),
-      onViewMode: (viewMode) =>
-        dispatch({ type: "setViewMode", panelId: pid, viewMode }),
+      onViewMode: (viewMode) => {
+        const commandId = viewModeCommandId(viewMode);
+        if (commandId) {
+          runPanel(commandId);
+          return;
+        }
+        dispatch({ type: "setViewMode", panelId: pid, viewMode });
+      },
       canPaste: Boolean(clipboard),
       pathFocusToken,
       renameFocusToken,
