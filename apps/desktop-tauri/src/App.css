@@ -244,7 +244,7 @@ button:disabled {
 }
 
 .fo-resizer {
-  width: 4px;
+  width: var(--fo-splitter-width, 6px);
   cursor: col-resize;
   background: transparent;
 }
@@ -328,7 +328,9 @@ button:disabled {
 
 .fo-panel-active {
   border-color: var(--fo-accent);
-  box-shadow: 0 0 0 1px var(--fo-accent);
+  box-shadow:
+    inset 3px 0 0 0 var(--fo-accent),
+    0 0 0 1px var(--fo-accent);
 }
 
 .fo-panel-header {
@@ -909,7 +911,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 24px;
+  min-height: var(--fo-statusbar-height, 28px);
   padding: 4px 8px;
   color: var(--fo-body-muted);
   font-size: 11px;
@@ -1782,6 +1784,9 @@ button:disabled {
 :root[data-density="spacious"] {
   --fo-row-height: 36px;
 }
+
+/* Note: Full density token definitions (toolbar/pathbar/statusbar heights, splitter,
+   sidebar, toast, job-drawer widths) live in packages/ui/src/tokens.css */
 
 .fo-app-menu {
   display: flex;

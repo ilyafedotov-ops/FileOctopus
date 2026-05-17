@@ -108,3 +108,64 @@
   --fo-accent: #16a34a;
   --fo-accent-soft: #dcf3e2;
 }
+
+:root {
+  /* Spacing tokens (§20.2) */
+  --fo-spacing-xs: 2px;
+  --fo-spacing-sm: 4px;
+  --fo-spacing-md: 8px;
+  --fo-spacing-lg: 12px;
+  --fo-spacing-xl: 16px;
+  --fo-spacing-2xl: 24px;
+
+  /* Radius tokens (§20.2) */
+  --fo-radius-sm: 6px;
+  --fo-radius-md: 10px;
+  --fo-radius-lg: 14px;
+
+  /* Elevation tokens (§20.2) */
+  --fo-elevation-popover: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --fo-elevation-modal: 0 14px 36px rgba(0, 0, 0, 0.18);
+  --fo-elevation-drawer: 0 12px 32px rgba(0, 0, 0, 0.14);
+
+  /* Component-height tokens (§5.3) */
+  --fo-toolbar-height: 40px;
+  --fo-pathbar-height: 36px;
+  --fo-statusbar-height: 28px;
+  --fo-splitter-width: 6px;
+  --fo-toast-width: 360px;
+  --fo-job-drawer-width: 420px;
+}
+
+:root[data-density="compact"] {
+  --fo-row-height: 24px;
+  --fo-toolbar-height: 34px;
+  --fo-pathbar-height: 30px;
+  --fo-statusbar-height: 24px;
+  --fo-splitter-width: 5px;
+  --fo-sidebar-width: 220px;
+  --fo-toast-width: 320px;
+  --fo-job-drawer-width: 380px;
+}
+
+:root[data-density="comfortable"] {
+  --fo-row-height: 30px;
+  --fo-toolbar-height: 40px;
+  --fo-pathbar-height: 36px;
+  --fo-statusbar-height: 28px;
+  --fo-splitter-width: 6px;
+  --fo-sidebar-width: 248px;
+  --fo-toast-width: 360px;
+  --fo-job-drawer-width: 420px;
+}
+
+:root[data-density="spacious"] {
+  --fo-row-height: 36px;
+  --fo-toolbar-height: 48px;
+  --fo-pathbar-height: 42px;
+  --fo-statusbar-height: 34px;
+  --fo-splitter-width: 8px;
+  --fo-sidebar-width: 280px;
+  --fo-toast-width: 420px;
+  --fo-job-drawer-width: 480px;
+}
