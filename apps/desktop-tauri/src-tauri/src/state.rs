@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
-use app_ipc::{job_event_name, job_event_payload, IpcError};
+use app_ipc::IpcError;
 use chrono::Utc;
 use jobs::{CancellationToken, JobEvent, JobId, JobProgressEvent, JobSnapshot, JobStatus};
 use tauri::AppHandle;
 use vfs::{FileOperationError, FileOperationKind, ListCancellation};
 
-use crate::emit::emit_with_eval;
+use crate::emit::emit_job;
 
 #[derive(Default)]
 pub(crate) struct WatchState {
@@ -186,10 +186,4 @@ pub(crate) fn update_metadata_job_progress(
             updated_at,
         }),
     );
-}
-
-fn emit_job(app: &AppHandle, event: JobEvent) {
-    let name = job_event_name(&event);
-    let payload = job_event_payload(event);
-    emit_with_eval(app, name, payload);
 }
