@@ -42,7 +42,8 @@ export function preferenceValue(
     key === "activityPanelVisible" ||
     key === "confirmDelete" ||
     key === "confirmPermanentDelete" ||
-    key === "useTrashByDefault"
+    key === "useTrashByDefault" ||
+    key === "sidebarVisible"
   ) {
     return value === "true";
   }
