@@ -719,9 +719,18 @@ describe("FileOctopusShell", () => {
     });
     fireEvent.click(screen.getByText("Create"));
 
-    await waitFor(() => expect(createFile).toHaveBeenCalledTimes(1));
-    expect(createFile).toHaveBeenCalledWith({
-      uri: "local:///Users/ilya/notes.txt",
+    await waitFor(() => expect(startFileOperation).toHaveBeenCalledTimes(1));
+    expect(planFileOperation).toHaveBeenCalledWith({
+      operation: {
+        kind: "createFile",
+        sources: [],
+        destination: "local:///Users/ilya/notes.txt",
+        newName: undefined,
+        conflictPolicy: "fail",
+      },
+    });
+    expect(startFileOperation).toHaveBeenCalledWith({
+      operationId: "operation-1",
     });
   });
 
