@@ -8,7 +8,7 @@
 .fo-search-strip button,
 .fo-context-menu button,
 .fo-search-row button,
-.fo-breadcrumb button {
+.fo-breadcrumb button:not(.fo-ui-btn) {
   min-height: 30px;
   border: 1px solid var(--fo-control-border);
   background: var(--fo-control-bg);
