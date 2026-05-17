@@ -7,9 +7,16 @@ export interface PathBarProps {
   error: string | null;
   focusToken: number;
   onSubmit: (value: string) => void;
+  onBreadcrumbContextMenu?: (path: string, event: React.MouseEvent) => void;
 }
 
-export function PathBar({ value, error, focusToken, onSubmit }: PathBarProps) {
+export function PathBar({
+  value,
+  error,
+  focusToken,
+  onSubmit,
+  onBreadcrumbContextMenu,
+}: PathBarProps) {
   const [draft, setDraft] = useState(value);
   const [editing, setEditing] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -43,6 +50,11 @@ export function PathBar({ value, error, focusToken, onSubmit }: PathBarProps) {
           }))}
           onNavigate={onSubmit}
           onEditPath={() => setEditing(true)}
+          onSegmentContextMenu={
+            onBreadcrumbContextMenu
+              ? (segment, e) => onBreadcrumbContextMenu(segment.path, e)
+              : undefined
+          }
         />
       </div>
     );

@@ -8,6 +8,7 @@ export interface ContextMenuState {
   x: number;
   y: number;
   entry: FileEntryDto | null;
+  breadcrumbPath?: string;
 }
 
 interface ContextMenuProps {
@@ -45,6 +46,11 @@ interface ContextMenuProps {
   onCopyParentPath: (panelId: PanelId) => void;
   onCopyResourceUri: (panelId: PanelId) => void;
   onClearSelection: (panelId: PanelId) => void;
+  onNavigateTo: (panelId: PanelId, uri: string) => void;
+  onNavigateOtherPane: (uri: string) => void;
+  onCopyBreadcrumbPath: (path: string) => void;
+  onRevealBreadcrumb: (path: string) => void;
+  onAddFavorite: (uri: string) => void;
 }
 
 function ContextMenuItem({
@@ -110,6 +116,11 @@ export function ContextMenu({
   onCopyParentPath,
   onCopyResourceUri,
   onClearSelection,
+  onNavigateTo,
+  onNavigateOtherPane,
+  onCopyBreadcrumbPath,
+  onRevealBreadcrumb,
+  onAddFavorite,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{
@@ -192,6 +203,46 @@ export function ContextMenu({
         }
         onClick={(event) => event.stopPropagation()}
       >
+        {/* Breadcrumb context menu — spec §13.6 */}
+        {menu.breadcrumbPath ? (
+          <>
+            <ContextMenuItem
+              onClick={() =>
+                run(() => onNavigateTo(menu.panelId, menu.breadcrumbPath!))
+              }
+            >
+              Open This Location
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() =>
+                run(() => onNavigateOtherPane(menu.breadcrumbPath!))
+              }
+            >
+              Open in Other Pane
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onClick={() =>
+                run(() => onCopyBreadcrumbPath(menu.breadcrumbPath!))
+              }
+            >
+              Copy Path
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() =>
+                run(() => onRevealBreadcrumb(menu.breadcrumbPath!))
+              }
+            >
+              Reveal in File Manager
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onClick={() => run(() => onAddFavorite(menu.breadcrumbPath!))}
+            >
+              Add to Favorites
+            </ContextMenuItem>
+          </>
+        ) : null}
         {/* File actions */}
         <ContextMenuItem
           disabled={!itemMenu}

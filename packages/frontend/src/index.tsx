@@ -419,6 +419,16 @@ export function FileOctopusShell() {
       search: search?.panelId === pid ? search : null,
       onContextMenu: setContextMenu,
       onEntryActivate: (entry) => activateEntry(pid, entry),
+      onBreadcrumbContextMenu: (path, event) => {
+        event.preventDefault();
+        setContextMenu({
+          panelId: pid,
+          x: event.clientX,
+          y: event.clientY,
+          entry: null,
+          breadcrumbPath: path,
+        });
+      },
     };
   }
 
@@ -508,6 +518,19 @@ export function FileOctopusShell() {
       openExternal={openExternal}
       toggleHidden={toggleHidden}
       navigatePanel={navigatePanel}
+      navigateOtherPane={(uri) => {
+        const otherPanel: "left" | "right" =
+          state.activePanelId === "left" ? "right" : "left";
+        navigatePanel(otherPanel, uri);
+      }}
+      addFavorite={async (uri) => {
+        try {
+          const label = uri.split("/").pop() || uri;
+          await client.navigation.addFavorite({ uri, label });
+        } catch {
+          /* ignore */
+        }
+      }}
       refreshNavigation={refreshNavigation}
       setOperationError={setOperationError}
       applySplitRatioFn={applySplitRatio}

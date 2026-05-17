@@ -143,6 +143,8 @@ export interface ShellLayoutProps {
   openExternal: (entry: FileEntryDto) => Promise<void>;
   toggleHidden: (panelId: PanelId) => void;
   navigatePanel: (panelId: PanelId, uri: string) => void;
+  navigateOtherPane: (uri: string) => void;
+  addFavorite: (uri: string) => void;
   refreshNavigation: () => Promise<void>;
   setOperationError: (error: string | null) => void;
   applySplitRatioFn: (ratio: number) => number;
@@ -233,6 +235,8 @@ export function ShellLayout({
   openExternal,
   toggleHidden,
   navigatePanel,
+  navigateOtherPane,
+  addFavorite,
   refreshNavigation,
   setOperationError,
   applySplitRatioFn,
@@ -405,6 +409,9 @@ export function ShellLayout({
             handleCopyOrMove={handleCopyOrMove}
             openExternal={openExternal}
             toggleHidden={toggleHidden}
+            navigatePanel={navigatePanel}
+            navigateOtherPane={navigateOtherPane}
+            addFavorite={addFavorite}
           />
           <StatusBarSection
             state={state}

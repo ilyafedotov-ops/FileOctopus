@@ -46,6 +46,9 @@ export interface ContextMenuOverlayProps {
   handleCopyOrMove: (panelId: PanelId, mode: "copy" | "move") => void;
   openExternal: (entry: FileEntryDto) => Promise<void>;
   toggleHidden: (panelId: PanelId) => void;
+  navigatePanel: (panelId: PanelId, uri: string) => void;
+  navigateOtherPane: (uri: string) => void;
+  addFavorite: (uri: string) => void;
 }
 
 export function ContextMenuOverlay({
@@ -75,6 +78,9 @@ export function ContextMenuOverlay({
   handleCopyOrMove,
   openExternal,
   toggleHidden,
+  navigatePanel,
+  navigateOtherPane,
+  addFavorite,
 }: ContextMenuOverlayProps) {
   return (
     <ContextMenu
@@ -128,6 +134,15 @@ export function ContextMenuOverlay({
       onClearSelection={(panelId) =>
         dispatch({ type: "clearSelection", panelId })
       }
+      onNavigateTo={(panelId, uri) => navigatePanel(panelId, uri)}
+      onNavigateOtherPane={(uri) => navigateOtherPane(uri)}
+      onCopyBreadcrumbPath={(path) => {
+        void navigator.clipboard.writeText(path);
+      }}
+      onRevealBreadcrumb={() => {
+        /* no-op: reveal needs full entry metadata from backend */
+      }}
+      onAddFavorite={(uri) => addFavorite(uri)}
     />
   );
 }

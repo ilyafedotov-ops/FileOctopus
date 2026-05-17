@@ -10,12 +10,17 @@ export interface BreadcrumbPathProps {
   segments: BreadcrumbSegment[];
   onNavigate: (path: string) => void;
   onEditPath: () => void;
+  onSegmentContextMenu?: (
+    segment: BreadcrumbSegment,
+    event: React.MouseEvent,
+  ) => void;
 }
 
 export function BreadcrumbPath({
   segments,
   onNavigate,
   onEditPath,
+  onSegmentContextMenu,
 }: BreadcrumbPathProps) {
   return (
     <div className="fo-breadcrumb">
@@ -33,6 +38,11 @@ export function BreadcrumbPath({
             }
             title={segment.path}
             onClick={() => onNavigate(segment.path)}
+            onContextMenu={
+              onSegmentContextMenu
+                ? (e) => onSegmentContextMenu(segment, e)
+                : undefined
+            }
           >
             {segment.label}
           </Button>

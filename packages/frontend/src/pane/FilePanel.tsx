@@ -78,6 +78,7 @@ export interface FilePanelProps {
   rowHeight: number;
   search: SearchState | null;
   onContextMenu: (menu: ContextMenuState | null) => void;
+  onBreadcrumbContextMenu?: (path: string, event: React.MouseEvent) => void;
 }
 
 export function FilePanel({
@@ -127,6 +128,7 @@ export function FilePanel({
   rowHeight,
   search,
   onContextMenu,
+  onBreadcrumbContextMenu,
 }: FilePanelProps) {
   const entries = selectVisibleEntries(tab);
 
@@ -191,6 +193,7 @@ export function FilePanel({
             error={tab.error}
             focusToken={pathFocusToken}
             onSubmit={onNavigate}
+            onBreadcrumbContextMenu={onBreadcrumbContextMenu}
           />
           <span className={active ? "fo-pane-active-label" : "fo-pane-label"}>
             {title.toUpperCase()}
