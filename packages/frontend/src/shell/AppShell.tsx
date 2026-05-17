@@ -4,10 +4,12 @@ import { TitleBar } from "./TitleBar";
 import { useShellLayout } from "./ShellLayoutContext";
 
 export function AppShell({
+  toolbar,
   workspace,
   overlays,
   statusBar,
 }: {
+  toolbar: ReactNode;
   workspace: ReactNode;
   overlays: ReactNode;
   statusBar: ReactNode;
@@ -23,6 +25,7 @@ export function AppShell({
             onSettings={() => setSettingsOpen(true)}
             menuBarProps={menuBarProps}
           />
+          {toolbar}
           {workspace}
           {overlays}
           {statusBar}

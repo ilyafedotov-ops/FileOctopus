@@ -13,7 +13,7 @@ import { isTextPreviewable } from "../components/PreviewPanel";
 import type { FilePanelProps } from "../pane/FilePanel";
 import { ShellLayout } from "../shell/ShellLayout";
 import { buildPaletteEntries } from "../commands/paletteEntries";
-import { viewModeCommandId } from "../commands/viewModeCommands";
+
 import {
   AppProviders,
   useJobs,
@@ -440,35 +440,16 @@ function FileOctopusAppInner() {
       active: state.activePanelId === pid,
       onActivate: () => dispatch({ type: "setActivePanel", panelId: pid }),
       onNavigate: (uri) => navigatePanel(pid, uri),
-      onBack: () => runPanel("nav.back"),
-      onForward: () => runPanel("nav.forward"),
       onSelect: (entryId) =>
         dispatch({ type: "setSelection", panelId: pid, entryId }),
       onEntrySelect: (entryId, mode) =>
         dispatch({ type: "selectEntry", panelId: pid, entryId, mode }),
       onCreateFolder: () => runPanel("create.folder"),
       onCreateFile: () => runPanel("create.file"),
-      onRename: () => runPanel("op.rename"),
-      onCopy: () => runPanel("op.copy"),
-      onCut: () => runPanel("op.cut"),
-      onCopyOperation: () => runPanel("op.copyTo"),
-      onMoveOperation: () => runPanel("op.moveTo"),
       onPaste: () => runPanel("op.paste"),
-      onTrash: () => runPanel("op.trash"),
-      onPermanentDelete: () => runPanel("op.deletePermanent"),
-      onCopyPath: () => runPanel("clipboard.copyPath"),
-      onCopyName: () => runPanel("clipboard.copyName"),
       onProperties: (entry) => handleCommandSelect("op.properties", pid, entry),
       onReveal: (entry) => void revealEntry(pid, entry),
-      onCalculateSize: (entry) =>
-        void handleCommandSelect("op.calculateSize", pid, entry ?? null),
-      onCompress: () => runPanel("op.compress"),
-      onExtract: () => runPanel("op.extract"),
-      onOpenTerminal: () => runPanel("op.openTerminal"),
-      onChecksum: () => void runPanel("op.checksum"),
       onRefresh: () => runPanel("nav.refresh"),
-      onToggleHidden: () => runPanel("view.toggleHidden"),
-      onSelectAll: () => runPanel("selection.selectAll"),
       onMove: (delta) =>
         dispatch({ type: "moveSelection", panelId: pid, delta }),
       onSort: (field) => runPanel("view.sort", { sortField: field }),
@@ -477,15 +458,8 @@ function FileOctopusAppInner() {
       onRecursiveQuery: (query) =>
         dispatch({ type: "setRecursiveQuery", panelId: pid, query }),
       onRecursiveSearch: () => void runRecursiveSearch(pid),
-      onViewMode: (viewMode) => {
-        const commandId = viewModeCommandId(viewMode);
-        if (commandId) {
-          runPanel(commandId);
-          return;
-        }
-        dispatch({ type: "setViewMode", panelId: pid, viewMode });
-      },
       canPaste: Boolean(clipboard),
+      onEntryActivate: (entry) => activateEntry(pid, entry),
       pathFocusToken,
       renameFocusToken,
       filterFocusToken,
@@ -493,7 +467,6 @@ function FileOctopusAppInner() {
       rowHeight,
       search: search?.panelId === pid ? search : null,
       onContextMenu: setContextMenu,
-      onEntryActivate: (entry) => activateEntry(pid, entry),
       onBreadcrumbContextMenu: (path, event) => {
         event.preventDefault();
         setContextMenu({

@@ -1,16 +1,13 @@
-import { useRef, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   selectVisibleEntries,
-  parentUri,
   homeUri,
   type PanelId,
   type SortField,
-  type ViewMode,
   type PanelTabState,
 } from "../panelStore";
-import { SegmentedControl, Button, cx } from "@fileoctopus/ui";
-import { FilterInput, type SearchState } from "./PaneFilterBar";
-import { OperationToolbar } from "./OperationToolbar";
+import { cx } from "@fileoctopus/ui";
+import { type SearchState } from "./PaneFilterBar";
 import { FileTable } from "./FileTable";
 import { ColumnsView } from "./ColumnsView";
 import { RecursiveSearchPanel } from "./PaneFilterBar";
@@ -32,8 +29,6 @@ export interface FilePanelProps {
   active: boolean;
   onActivate: () => void;
   onNavigate: (uri: string) => void;
-  onBack: () => void;
-  onForward: () => void;
   onSelect: (entryId: string | null) => void;
   onEntrySelect: (entryId: string, mode: "single" | "toggle" | "range") => void;
   onMove: (delta: number) => void;
@@ -41,30 +36,13 @@ export interface FilePanelProps {
   onFilter: (filter: string) => void;
   onRecursiveQuery: (query: string) => void;
   onRecursiveSearch: () => void;
-  onViewMode: (viewMode: ViewMode) => void;
   onEntryActivate: (entry: FileEntryDto | null) => void;
   onCreateFolder: () => void;
   onCreateFile: () => void;
-  onRename: () => void;
-  onCopy: () => void;
-  onCut: () => void;
-  onCopyOperation: () => void;
-  onMoveOperation: () => void;
   onPaste: () => void;
-  onTrash: () => void;
-  onPermanentDelete: () => void;
-  onCopyPath: () => void;
-  onCopyName: () => void;
   onProperties: (entry: FileEntryDto | null) => void;
   onReveal: (entry: FileEntryDto | null) => void;
-  onCalculateSize: (entry: FileEntryDto | null) => void;
-  onCompress: () => void;
-  onExtract: () => void;
-  onOpenTerminal: () => void;
-  onChecksum: () => void;
   onRefresh: () => void;
-  onToggleHidden: () => void;
-  onSelectAll: () => void;
   canPaste: boolean;
   pathFocusToken: number;
   renameFocusToken: number;
@@ -84,69 +62,32 @@ export function FilePanel({
   active,
   onActivate,
   onNavigate,
-  onBack,
-  onForward,
   onSelect,
   onEntrySelect,
   onMove,
   onSort,
-  onFilter,
-  onRecursiveQuery,
-  onRecursiveSearch,
-  onViewMode,
   onEntryActivate,
   onCreateFolder,
   onCreateFile,
-  onRename,
-  onCopy,
-  onCut,
-  onCopyOperation,
-  onMoveOperation,
   onPaste,
-  onTrash,
-  onPermanentDelete,
-  onCopyPath,
-  onCopyName,
-  onProperties,
   onReveal,
-  onCalculateSize,
-  onCompress,
-  onExtract,
-  onOpenTerminal,
-  onChecksum,
-  onRefresh,
-  onToggleHidden,
-  onSelectAll,
+  onProperties,
   canPaste,
   pathFocusToken,
   renameFocusToken,
-  filterFocusToken,
-  recursiveSearchFocusToken,
   rowHeight,
   search,
   onContextMenu,
   onBreadcrumbContextMenu,
   onSubmitInlineRename,
+  onRefresh,
 }: FilePanelProps) {
   const entries = selectVisibleEntries(tab);
 
   const selectedEntry =
     entries.find((entry) => entry.uri === tab.selectedId) ?? null;
-  const upUri = parentUri(tab.uri);
-  const recursiveSearchRef = useRef<HTMLInputElement | null>(null);
   const [inlineRenameUri, setInlineRenameUri] = useState<string | null>(null);
   const { dragOver, reset, dragTargetProps } = useFileOctopusDragTarget();
-  const visibleCount = entries.length;
-  const filteredCount = tab.filter.trim()
-    ? selectVisibleEntries(tab).length
-    : visibleCount;
-
-  useEffect(() => {
-    if (recursiveSearchFocusToken > 0 && active) {
-      recursiveSearchRef.current?.focus();
-      recursiveSearchRef.current?.select();
-    }
-  }, [active, recursiveSearchFocusToken]);
 
   useEffect(() => {
     if (renameFocusToken > 0 && active && tab.selectedIds.length === 1) {
@@ -162,8 +103,6 @@ export function FilePanel({
       onFocus={onActivate}
     >
       <PaneHeader
-        title={title}
-        active={active}
         uri={tab.uri}
         pathError={tab.error}
         pathFocusToken={pathFocusToken}
@@ -191,97 +130,6 @@ export function FilePanel({
             </span>
           </div>
         ) : null}
-        <OperationToolbar
-          selectedCount={tab.selectedIds.length}
-          canRename={tab.selectedIds.length === 1}
-          canPaste={canPaste}
-          showHidden={tab.showHidden}
-          viewMode={tab.viewMode}
-          canGoBack={tab.backStack.length > 0}
-          canGoForward={tab.forwardStack.length > 0}
-          canGoUp={Boolean(upUri)}
-          onBack={onBack}
-          onForward={onForward}
-          onUp={() => upUri && onNavigate(upUri)}
-          onCreateFolder={onCreateFolder}
-          onCreateFile={onCreateFile}
-          onRename={() => {
-            if (tab.selectedIds.length === 1) {
-              setInlineRenameUri(tab.selectedIds[0] ?? null);
-              return;
-            }
-            onRename();
-          }}
-          onCopy={onCopy}
-          onCut={onCut}
-          onCopyOperation={onCopyOperation}
-          onMove={onMoveOperation}
-          onPaste={onPaste}
-          onTrash={onTrash}
-          onPermanentDelete={onPermanentDelete}
-          onCopyPath={onCopyPath}
-          onCopyName={onCopyName}
-          onProperties={() => onProperties(selectedEntry)}
-          onRevealInFileManager={() => onReveal(selectedEntry)}
-          onCalculateSize={() => onCalculateSize(selectedEntry)}
-          onCompress={onCompress}
-          onExtract={onExtract}
-          onOpenTerminal={onOpenTerminal}
-          onChecksum={onChecksum}
-          onRefresh={onRefresh}
-          onToggleHidden={onToggleHidden}
-          onSelectAll={onSelectAll}
-          onViewMode={onViewMode}
-        />
-        <div className="fo-panel-filter-row">
-          <FilterInput
-            panelId={panelId}
-            value={tab.filter}
-            focusToken={filterFocusToken}
-            onChange={onFilter}
-          />
-          {tab.filter.trim() ? (
-            <span className="fo-filter-match-count" aria-live="polite">
-              {filteredCount} match{filteredCount === 1 ? "" : "es"}
-            </span>
-          ) : null}
-          <SegmentedControl
-            aria-label={`${panelId} view mode`}
-            value={tab.viewMode}
-            options={[
-              { value: "details", label: "Details" },
-              { value: "list", label: "List" },
-              { value: "icons", label: "Icons" },
-              { value: "columns", label: "Columns" },
-            ]}
-            onChange={onViewMode}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onToggleHidden}
-          >
-            {tab.showHidden ? "Hide Hidden" : "Show Hidden"}
-          </Button>
-        </div>
-        <div className="fo-search-strip">
-          <input
-            ref={recursiveSearchRef}
-            aria-label={`${panelId} recursive search`}
-            value={tab.recursiveQuery}
-            placeholder="Search in subfolders..."
-            onChange={(event) => onRecursiveQuery(event.target.value)}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={onRecursiveSearch}
-          >
-            Search
-          </Button>
-        </div>
         <PaneStateView
           loadState={tab.loadState}
           uri={tab.uri}
