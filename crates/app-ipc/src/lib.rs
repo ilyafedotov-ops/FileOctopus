@@ -48,6 +48,8 @@ pub struct UserPreferencesDto {
     pub icon_scale: String,
     pub confirm_overwrite: bool,
     pub sidebar_visible: bool,
+    pub status_bar_visible: bool,
+    pub toolbar_visible: bool,
     pub pane_mode: String,
     pub job_drawer_behavior: String,
 }
@@ -743,6 +745,8 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             icon_scale: value.icon_scale,
             confirm_overwrite: value.confirm_overwrite,
             sidebar_visible: value.sidebar_visible,
+            status_bar_visible: value.status_bar_visible,
+            toolbar_visible: value.toolbar_visible,
             pane_mode: value.pane_mode,
             job_drawer_behavior: value.job_drawer_behavior,
         }
