@@ -15,7 +15,7 @@ The RC is a high-performance local dual-pane file manager with safe job-based fi
 | Jobs & persistence         | **Partial**   | In-memory jobs, progress events, cancel; SQLite `operation_history`                                                                               | Full `job` / `job_item_result` schema (§9.2)                                    |
 | Git                        | **Deferred**  | —                                                                                                                                                 | `git-intel`, branch/badges (MVP-GIT-\*)                                         |
 | Terminal                   | **Partial**   | `fs_open_terminal` (external emulator in active folder)                                                                                           | Embedded xterm panel, `terminal-core`                                           |
-| UI                         | **Partial**   | Command palette, context menus, activity/history, preview, theme prefs, `MenuBar` shell                                                           | Full menu-bar wiring (many items stub); Menu spec parity                        |
+| UI                         | **Partial**   | Command palette (registry-driven), context menus, activity rail, preview, theme prefs, `MenuBar` on dispatch                                      | Keyboard/toolbar on registry; native menu; Menu spec parity                     |
 | Platform & release         | **Partial**   | Windows/macOS/Linux CI builds                                                                                                                     | Formal RC sign-off (§16, [mvp-rc-checklist.md](../release/mvp-rc-checklist.md)) |
 
 **Authoritative references:**
@@ -371,12 +371,11 @@ fileoctopus/
 
   packages/
     frontend/src/
-      index.tsx            # FileOctopusShell
-      panelStore.ts
-      shell/               # ShellLayout, TitleBar, MenuBar
-      pane/                # FilePanel, OperationToolbar, FileTable, …
-      hooks/fileOps/       # useArchiveHandlers, useTransferHandlers, …
-      components/, dialogs/
+      index.tsx            # re-export FileOctopusApp
+      app/FileOctopusApp.tsx
+      commands/, state/, jobs/, menus/context/, styles/regions/
+      panelStore.ts, shell/, pane/, hooks/fileOps/
+      components/dialogs/, dialogs/OperationDialogView.tsx
     ui/
     ts-api/src/
       client.ts, commandMap.ts, events.ts
@@ -1577,29 +1576,25 @@ Rules:
 
 ## 11. Frontend Engineering Design
 
-See [`modules/frontend.md`](modules/frontend.md). Entry point: `FileOctopusShell` in `packages/frontend/src/index.tsx`.
+See [`modules/frontend.md`](modules/frontend.md). Entry: `packages/frontend/src/index.tsx` re-exports `FileOctopusApp` (`FileOctopusShell` alias).
 
 ## 11.1 Frontend package layout (RC)
 
 ```text
 packages/frontend/src/
-  index.tsx              # FileOctopusShell, wiring, dialogs
-  panelStore.ts          # panelReducer, tabs, selection, sort/filter
-  shell/
-    ShellLayout.tsx
-    TitleBar.tsx
-    MenuBar.tsx          # File/Edit/View/Go/Tools/Window/Help (partial stubs)
-  pane/
-    FilePanel.tsx
-    OperationToolbar.tsx
-    FileTable.tsx
-    PathBar.tsx
-  hooks/
-    useFileOpHandlers.ts
-    fileOps/             # useArchiveHandlers, useTransferHandlers, …
-    useMenuBarProps.ts
-  components/            # ContextMenu, JobActivityPanel, ToastStack, …
-  dialogs/               # OperationDialogView, settings, shortcuts, diagnostics
+  index.tsx              # re-export FileOctopusApp
+  app/FileOctopusApp.tsx # orchestration
+  app/providers/         # Shell, Jobs, Modals
+  panelStore.ts          # types + reducePanelAction
+  state/                 # paneReducer + slices + layoutStore
+  commands/              # registry, dispatch, paletteEntries, bindings
+  shell/                 # AppShell, MenuBar, PaneWorkspace, overlays
+  pane/                  # FilePanel, FileTable, OperationToolbar, …
+  jobs/                  # ActivityPanel, JobCard, OperationHistoryList
+  menus/context/         # context menu builders
+  hooks/                 # useFileOpHandlers, useCommandDispatch, useMenuBarProps, fileOps/*
+  components/dialogs/    # About, GoTo, Favorites, History, Properties, …
+  styles/regions/        # fo-* CSS (imported via apps/desktop-tauri App.css)
 ```
 
 ## 11.2 Panel State Model
@@ -1636,17 +1631,17 @@ export interface SelectionState {
 
 ## 11.3 UI Components
 
-| Component             | Responsibility                            |
-| --------------------- | ----------------------------------------- |
-| `DualPaneLayout`      | Layout container and active panel focus.  |
-| `FilePanel`           | Panel state binding.                      |
-| `FileTable`           | Virtualized file list.                    |
-| `PathBar`             | Breadcrumb and path input.                |
-| `MenuBar`             | Application menu (partial wiring).        |
-| `JobActivityPanel`    | Running jobs + operation history.         |
-| `OperationDialogView` | Conflict resolution for planned ops.      |
-| `CommandPalette`      | Keyboard-accessible command execution.    |
-| `PreviewPanel`        | Basic text preview (Space on text files). |
+| Component             | Responsibility                                     |
+| --------------------- | -------------------------------------------------- |
+| `DualPaneLayout`      | Layout container and active panel focus.           |
+| `FilePanel`           | Panel state binding.                               |
+| `FileTable`           | Virtualized file list.                             |
+| `PathBar`             | Breadcrumb and path input.                         |
+| `MenuBar`             | Application menu (most items → `dispatchCommand`). |
+| `ActivityPanel`       | Jobs rail + history snippet.                       |
+| `OperationDialogView` | Conflict resolution for planned ops.               |
+| `CommandPalette`      | Keyboard-accessible command execution.             |
+| `PreviewPanel`        | Basic text preview (Space on text files).          |
 
 ---
 

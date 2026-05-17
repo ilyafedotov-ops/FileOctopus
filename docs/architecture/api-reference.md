@@ -537,7 +537,7 @@ interface IpcError {
 }
 ```
 
-The `code` is stable and is what the UI branches on (`packages/frontend/src/index.tsx::operationErrorMessage`). All current codes:
+The `code` is stable and is what the UI branches on (`packages/frontend/src/dialogs/OperationDialogView.tsx::operationErrorMessage`). All current codes:
 
 | Code                    | Origin                           | Meaning                                                             |
 | ----------------------- | -------------------------------- | ------------------------------------------------------------------- |

@@ -5,15 +5,15 @@
 
 ## Document roles
 
-| Document                                                                  | Role                                          | Trust for “what exists today”                                   |
-| ------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------- |
-| [API reference](../architecture/api-reference.md)                         | Runtime IPC contract (commands, events, DTOs) | **Highest** — update with every boundary change                 |
-| [RC engineering spec](../architecture/rc-engineering-spec.md)             | RC scope, milestones, crate design            | Scope & acceptance criteria; see §1 delivery matrix in spec     |
-| [UI Design Spec](../FileOctopus_UI_Design_Spec.md)                        | Visual/layout/UX direction post–Sprint 5      | Target UX; partial delivery                                     |
-| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) | Full desktop menu bar + modal catalog         | **Target** — `MenuBar` shell exists; many actions still stubbed |
-| [UI Feature Inventory](./UI_FEATURE_INVENTORY.md)                         | Checklist of specified UI elements            | Good for coverage matrix; §13 updated from this page            |
-| [E2E audit](../qa/e2e-audit-report.md)                                    | Manual QA snapshot (2026-05-16)               | **Partially stale** — many “missing” items fixed same day       |
-| Gap analysis (`~/.hermes/.../gap-analysis-2026-05.md`)                    | Agent implementation tracker                  | Working notes; sync from this page                              |
+| Document                                                                  | Role                                          | Trust for “what exists today”                                                                                            |
+| ------------------------------------------------------------------------- | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| [API reference](../architecture/api-reference.md)                         | Runtime IPC contract (commands, events, DTOs) | **Highest** — update with every boundary change                                                                          |
+| [RC engineering spec](../architecture/rc-engineering-spec.md)             | RC scope, milestones, crate design            | Scope & acceptance criteria; see §1 delivery matrix in spec                                                              |
+| [UI Design Spec](../FileOctopus_UI_Design_Spec.md)                        | Visual/layout/UX direction post–Sprint 5      | Target UX; partial delivery                                                                                              |
+| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) | Full desktop menu bar + modal catalog         | **Target** — `MenuBar` wired via `dispatchCommand`; some items still direct (sort, theme, favorites add, external links) |
+| [UI Feature Inventory](./UI_FEATURE_INVENTORY.md)                         | Checklist of specified UI elements            | Good for coverage matrix; §13 updated from this page                                                                     |
+| [E2E audit](../qa/e2e-audit-report.md)                                    | Manual QA snapshot (2026-05-16)               | **Partially stale** — many “missing” items fixed same day                                                                |
+| Gap analysis (`~/.hermes/.../gap-analysis-2026-05.md`)                    | Agent implementation tracker                  | Working notes; sync from this page                                                                                       |
 
 ## Engineering milestones (RC spec §5)
 
@@ -28,15 +28,15 @@
 
 ## MVP acceptance criteria (summary)
 
-| Area                     | IDs             | Status                                                                                                                |
-| ------------------------ | --------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Core FS navigation & ops | MVP-FS-001–008  | **Met** (local dual-pane, large dirs, copy/move/rename/mkdir/trash, conflicts via plan)                               |
-| Jobs                     | MVP-JOB-001–004 | **Mostly met** — queue UI, cancel, failures, history after restart; full job SQLite schema in spec not fully mirrored |
-| Git                      | MVP-GIT-001–002 | **Not met**                                                                                                           |
-| Archives                 | MVP-ARC-001–002 | **Partial** — zip create/extract via `createArchive`/`extractArchive`; tar not implemented; zip-slip tests pass       |
-| Terminal                 | MVP-TERM-001    | **Partial** — `fs_open_terminal` spawns external emulator in cwd; no embedded xterm panel                             |
-| UI keyboard              | MVP-UI-001      | **Partial** — shortcuts + command palette; `MenuBar` shell with stubbed menu actions                                  |
-| Security                 | MVP-SEC-001     | **Met** — ADR-0002, typed IPC only                                                                                    |
+| Area                     | IDs             | Status                                                                                                                           |
+| ------------------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Core FS navigation & ops | MVP-FS-001–008  | **Met** (local dual-pane, large dirs, copy/move/rename/mkdir/trash, conflicts via plan)                                          |
+| Jobs                     | MVP-JOB-001–004 | **Mostly met** — queue UI, cancel, failures, history after restart; full job SQLite schema in spec not fully mirrored            |
+| Git                      | MVP-GIT-001–002 | **Not met**                                                                                                                      |
+| Archives                 | MVP-ARC-001–002 | **Partial** — zip create/extract via `createArchive`/`extractArchive`; tar not implemented; zip-slip tests pass                  |
+| Terminal                 | MVP-TERM-001    | **Partial** — `fs_open_terminal` spawns external emulator in cwd; no embedded xterm panel                                        |
+| UI keyboard              | MVP-UI-001      | **Partial** — shortcuts + registry-driven command palette; menu bar mostly on `dispatchCommand`; global keys not yet on registry |
+| Security                 | MVP-SEC-001     | **Met** — ADR-0002, typed IPC only                                                                                               |
 
 Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not formally signed off**.
 
@@ -52,30 +52,35 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 - Settings: General (autostart), Appearance (theme, density, accent, font/icon scale), Files & Folders, Layout (sidebar/activity visibility)
 - Help: Keyboard shortcuts, Diagnostics + export bundle
 - Filesystem watcher → debounced refresh
-- Command palette (Ctrl/Cmd+P), text preview panel (Space for text files)
+- Command palette (Ctrl/Cmd+P) built from `COMMAND_DEFINITIONS` (`commands/paletteEntries.ts`), text preview panel (Space for text files)
+- Standalone modals: About, Go to Location, Manage Favorites, Operation History, Error Details, Properties, Conflict resolution
+- Application menu bar routed through `useMenuBarProps` → `dispatchCommand` for nav, file ops, clipboard, view modes, app dialogs
+- Context menu builders split under `menus/context/`; shell styles in `packages/frontend/src/styles/regions/`
 - Shortcuts: Ctrl/Cmd+I properties, Ctrl/Cmd+H and Ctrl/Cmd+. for hidden files
 - Application menu bar shell (`MenuBar` in title bar)
 - Zip compress/extract via toolbar and context menu (`useArchiveHandlers`)
 
 ### Specified but not implemented (or stub only)
 
-| Item                                                  | Spec source                 | Notes                                                                        |
-| ----------------------------------------------------- | --------------------------- | ---------------------------------------------------------------------------- |
-| Application menu bar (full wiring)                    | Menu & Modal Spec §4        | `MenuBar` present; Copy To…, diagnostics from menu, etc. still stubbed       |
-| Operations / Shortcuts / Advanced settings tabs       | UI Design Spec §Preferences | Merged into existing tabs or separate dialogs                                |
-| Remember last used panes (setting + restore)          | UI Design Spec              | No preference or boot restore                                                |
-| Diagnostics export location preference                | UI Design Spec              | Export path chosen at export time                                            |
-| Tar / non-zip archive formats                         | RC spec §3.2                | Zip only at RC (`fs-core/file_ops/archive.rs`)                               |
-| Checksum toolbar action                               | UI §4                       | `fs_compute_hash` exists; toolbar still stub; hash column fills on selection |
-| Embedded terminal panel                               | MVP §Embedded Terminal      | External terminal spawn only                                                 |
-| Git branch + status badges                            | MVP-GIT-\*                  | No `git-intel`                                                               |
-| Title bar sync/health indicator                       | UI §1                       | Optional; not built                                                          |
-| Sidebar: Videos shortcut, network locations           | UI §2 / Sprint 4            | Not in sidebar model                                                         |
-| First-run overlay                                     | Sprint 5 stretch            | Not built                                                                    |
-| Last-path restore on startup                          | Sprint 5 FO-0243            | Not built                                                                    |
-| Tabs per panel (multiple tabs)                        | MVP §3.1                    | `PanelTabState` ready; single tab per pane                                   |
-| Full conflict dialog (Compare metadata, Apply to all) | UI Design Spec              | Plan/start conflict policy in copy/move dialog; not full spec matrix         |
-| Pause on jobs                                         | UI §6                       | Cancel only                                                                  |
+| Item                                                  | Spec source                 | Notes                                                                                                           |
+| ----------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Application menu bar (full wiring)                    | Menu & Modal Spec §4        | Core File/Edit/View/Go/Tools items on dispatch; sort/theme/density/favorites-add still local; no native OS menu |
+| Global shortcuts on command registry                  | commands/registry.ts        | `useKeyboardShortcuts.ts` still hard-coded; palette uses registry                                               |
+| Toolbar on command registry                           | commands/bindings.ts        | Toolbar/context menu mostly direct handlers                                                                     |
+| Operations / Shortcuts / Advanced settings tabs       | UI Design Spec §Preferences | Merged into existing tabs or separate dialogs                                                                   |
+| Remember last used panes (setting + restore)          | UI Design Spec              | No preference or boot restore                                                                                   |
+| Diagnostics export location preference                | UI Design Spec              | Export path chosen at export time                                                                               |
+| Tar / non-zip archive formats                         | RC spec §3.2                | Zip only at RC (`fs-core/file_ops/archive.rs`)                                                                  |
+| Checksum toolbar action                               | UI §4                       | `fs_compute_hash` exists; toolbar still stub; hash column fills on selection                                    |
+| Embedded terminal panel                               | MVP §Embedded Terminal      | External terminal spawn only                                                                                    |
+| Git branch + status badges                            | MVP-GIT-\*                  | No `git-intel`                                                                                                  |
+| Title bar sync/health indicator                       | UI §1                       | Optional; not built                                                                                             |
+| Sidebar: Videos shortcut, network locations           | UI §2 / Sprint 4            | Not in sidebar model                                                                                            |
+| First-run overlay                                     | Sprint 5 stretch            | Not built                                                                                                       |
+| Last-path restore on startup                          | Sprint 5 FO-0243            | Not built                                                                                                       |
+| Tabs per panel (multiple tabs)                        | MVP §3.1                    | `PanelTabState` ready; single tab per pane                                                                      |
+| Full conflict dialog (Compare metadata, Apply to all) | UI Design Spec              | Plan/start conflict policy in copy/move dialog; not full spec matrix                                            |
+| Pause on jobs                                         | UI §6                       | Cancel only                                                                                                     |
 
 ### Intentionally deferred (RC spec §3.3)
 
@@ -128,7 +133,7 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 | [jobs](modules/jobs.md)                   | Current     | —                                                                                       |
 | [app-core](modules/app-core.md)           | Current     | Reflects `runtime` / `history` / `paths` split (2026-05-17)                             |
 | [app-ipc](modules/app-ipc.md)             | Partial     | DTO count grew; spot-check when adding IPC                                              |
-| [frontend](modules/frontend.md)           | **Partial** | Component tree still simplified; `hooks/fileOps/` layout documented (2026-05-17)        |
+| [frontend](modules/frontend.md)           | **Current** | Decomposed shell, commands, jobs/, styles (2026-05-17)                                  |
 | [desktop-tauri](modules/desktop-tauri.md) | Current     | `commands/*` layout; full registry in [api-reference](../architecture/api-reference.md) |
 | [ts-api](modules/ts-api.md)               | Current     | `commandMap.ts`, `clients/*`, `transports/*` (2026-05-17)                               |
 | [ui](modules/ui.md)                       | Current     | Small package                                                                           |
@@ -150,7 +155,7 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 | ------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | [FileOctopus_UI_Design_Spec.md](../FileOctopus_UI_Design_Spec.md)               | Target + status banner                                                                                      |
 | [FileOctopus_UI_Elements_Inventory.md](../FileOctopus_UI_Elements_Inventory.md) | Target only — duplicate of UI Design Spec; use [UI_FEATURE_INVENTORY](./UI_FEATURE_INVENTORY.md) for status |
-| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md)       | Target; app menu bar not built                                                                              |
+| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md)       | Target; in-app `MenuBar` built; native menu (Tauri `menu.rs`) not built                                     |
 | [UI_FEATURE_INVENTORY](./UI_FEATURE_INVENTORY.md)                               | Current §13                                                                                                 |
 
 ### Planning & sprint backlogs
@@ -182,19 +187,19 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 
 ### Operations & misc
 
-| Document                                                           | Status                                                        |
-| ------------------------------------------------------------------ | ------------------------------------------------------------- |
-| [usage.md](../usage.md)                                            | **Updated** — shortcuts from `shortcuts.ts` + palette/preview |
-| [build.md](../build.md)                                            | Current                                                       |
-| [security/README.md](../security/README.md)                        | Placeholder / minimal                                         |
-| [plans/CRON\_\*.md](../plans/CRON_STATUS.md)                       | Agent automation log — not product spec                       |
-| [apps/desktop-tauri/README.md](../../apps/desktop-tauri/README.md) | **Updated** — was Tauri template                              |
-| [apps/cli/README.md](../../apps/cli/README.md)                     | Current placeholder                                           |
+| Document                                                           | Status                                                                     |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------- |
+| [usage.md](../usage.md)                                            | **Updated** — shortcuts from `shortcuts.ts`; palette from command registry |
+| [build.md](../build.md)                                            | Current                                                                    |
+| [security/README.md](../security/README.md)                        | Placeholder / minimal                                                      |
+| [plans/CRON\_\*.md](../plans/CRON_STATUS.md)                       | Agent automation log — not product spec                                    |
+| [apps/desktop-tauri/README.md](../../apps/desktop-tauri/README.md) | **Updated** — was Tauri template                                           |
+| [apps/cli/README.md](../../apps/cli/README.md)                     | Current placeholder                                                        |
 
 ## Recommended doc maintenance
 
 1. After any IPC or UI milestone, update **API reference** and this page’s tables.
-2. Treat **Menu & Modal Spec** as the backlog for menu-bar work until `AppMenuBar` exists.
+2. Treat **Menu & Modal Spec** as the backlog for remaining menu gaps (native menu, sort submenu parity, stub toolbar items) — in-app `MenuBar` exists.
 3. Mark **E2E audit** sections with date; link here when bulk fixes land.
 4. Keep **UI Feature Inventory §13** in sync with this page (not the reverse).
 5. Use RC spec §17 and the milestone table above for planning (not the old MVP §17 list).

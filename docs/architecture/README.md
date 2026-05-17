@@ -25,7 +25,7 @@ Desktop shell:
 TypeScript workspace (`packages/`):
 
 - [`@fileoctopus/ts-api`](modules/ts-api.md) — Typed frontend IPC client and transports.
-- [`@fileoctopus/frontend`](modules/frontend.md) — `FileOctopusShell` component and `panelStore` reducer.
+- [`@fileoctopus/frontend`](modules/frontend.md) — `FileOctopusApp` shell, command dispatch, `panelStore` + slices, jobs rail, regional CSS.
 - [`@fileoctopus/ui`](modules/ui.md) — Shared React primitives package.
 
 ## Placeholders
