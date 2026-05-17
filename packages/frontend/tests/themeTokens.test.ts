@@ -13,6 +13,7 @@ describe("Design token architecture", () => {
     "--fo-text",
     "--fo-app-bg",
     "--fo-surface",
+    "--fo-surface-elevated",
     "--fo-border",
     "--fo-strip-bg",
     "--fo-control-bg",

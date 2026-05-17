@@ -5,6 +5,7 @@
   --fo-disabled-text: #8b96a7;
   --fo-border: #d9e0ec;
   --fo-surface: #ffffff;
+  --fo-surface-elevated: #ffffff;
   --fo-muted-text: #5e6b80;
   --fo-strong-border: #c3ccd8;
   --fo-control-bg: #ffffff;
@@ -78,6 +79,7 @@
   --fo-workspace-bg: var(--fo-dark-app-bg);
   --fo-border: var(--fo-dark-border);
   --fo-surface: var(--fo-dark-surface);
+  --fo-surface-elevated: var(--fo-dark-strip-bg);
   --fo-muted-text: var(--fo-dark-muted-text);
   --fo-strip-bg: var(--fo-dark-strip-bg);
   --fo-control-bg: var(--fo-dark-control-bg);
@@ -108,6 +110,7 @@
     --fo-workspace-bg: var(--fo-dark-app-bg);
     --fo-border: var(--fo-dark-border);
     --fo-surface: var(--fo-dark-surface);
+    --fo-surface-elevated: var(--fo-dark-strip-bg);
     --fo-muted-text: var(--fo-dark-muted-text);
     --fo-strip-bg: var(--fo-dark-strip-bg);
     --fo-control-bg: var(--fo-dark-control-bg);
