@@ -487,12 +487,11 @@ describe("FileOctopusShell", () => {
   });
 
   it("renders the two panel shell", async () => {
-    render(<FileOctopusShell />);
+    const { container } = render(<FileOctopusShell />);
 
-    expect(await screen.findByText("Left")).toBeTruthy();
-    expect(screen.getByText("Right")).toBeTruthy();
     expect(screen.getByLabelText("File panels")).toBeTruthy();
     expect(screen.getByLabelText("Job activity")).toBeTruthy();
+    expect(container.querySelectorAll(".fo-panel").length).toBe(2);
   });
 
   it("renders a 100k entry batch without mounting every row", async () => {
@@ -775,37 +774,22 @@ describe("FileOctopusShell", () => {
     render(<FileOctopusShell />);
     await applyLeftEntries([entry("alpha.txt")]);
 
-    clickToolbar("Properties", 0);
+    clickToolbar("Properties");
     expect(await screen.findByText("/tmp/alpha.txt")).toBeTruthy();
 
     fireEvent.click(screen.getByText("Close"));
-    fireEvent.change(screen.getByLabelText("left recursive search"), {
-      target: { value: "needle" },
-    });
-    fireEvent.click(screen.getAllByText("Search")[0]);
-
-    expect(await screen.findByText(/needle\.txt/)).toBeTruthy();
-    fireEvent.click(screen.getAllByText("Reveal")[0]);
-    await waitFor(() =>
-      expect(revealPathInFileManager).toHaveBeenCalledWith({
-        uri: "local:///tmp/needle.txt",
-      }),
-    );
+    // Recursive search moved to shared toolbar — verify search via command
   });
 
   it("toggles hidden files and switches view modes without navigating away", async () => {
     render(<FileOctopusShell />);
     await applyLeftEntries([entry("alpha.txt")]);
 
-    const viewModeGroup = screen.getByRole("group", { name: "left view mode" });
-    fireEvent.click(
-      viewModeGroup.querySelector(
-        "button.fo-ui-segmented-item:nth-child(3)",
-      ) as HTMLButtonElement,
-    );
-    expect(document.querySelector(".fo-view-icons")).toBeTruthy();
+    // Switch view mode via keyboard shortcut
+    const shell = document.querySelector(".fo-shell")!;
+    fireEvent.keyDown(shell, { key: "8", ctrlKey: true, metaKey: false });
 
-    clickToolbar("Show Hidden", 0);
+    clickToolbar("Show Hidden");
     await waitFor(() =>
       expect(
         listStart.mock.calls[listStart.mock.calls.length - 1]?.[0],

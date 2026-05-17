@@ -44,6 +44,11 @@ export function StatusBarSection({
     (job) => job.status === "queued" || job.status === "running",
   ).length;
 
+  const totalBytes = statusTab.orderedEntryIds.reduce((sum, id) => {
+    const entry = statusTab.entriesById[id];
+    return sum + (entry?.size ?? 0);
+  }, 0);
+
   return (
     <StatusBar
       activePanelLabel={
@@ -61,10 +66,12 @@ export function StatusBarSection({
       }
       activeJobCount={activeJobCount}
       operationError={operationError}
+      showHidden={statusTab.showHidden}
       onOpenActivity={onOpenActivity}
       onShowErrorDetails={onShowErrorDetails}
       logPath={appHealth?.logDir ?? null}
       showLogPath={diagnosticsOpen}
+      totalSizeLabel={formatSize(totalBytes)}
     />
   );
 }
