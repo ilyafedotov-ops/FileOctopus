@@ -26,6 +26,30 @@ import type {
   OperationHistoryRecordDto,
 } from "@fileoctopus/ts-api";
 
+const FALLBACK_PREFERENCES: UserPreferencesDto = {
+  theme: "system",
+  density: "comfortable",
+  defaultViewMode: "details",
+  showHiddenFiles: false,
+  sidebarWidth: 240,
+  splitRatio: 0.5,
+  activityPanelVisible: false,
+  activityPanelWidth: 288,
+  confirmDelete: true,
+  confirmPermanentDelete: true,
+  useTrashByDefault: true,
+  defaultConflictPolicy: "fail",
+  accentColor: "blue",
+  fontScale: "medium",
+  iconScale: "medium",
+  confirmOverwrite: true,
+  sidebarVisible: true,
+  statusBarVisible: true,
+  toolbarVisible: true,
+  paneMode: "dual",
+  jobDrawerBehavior: "manual",
+};
+
 export interface DialogOverlayGroupProps {
   preferences: UserPreferencesDto | null;
   settingsOpen: boolean;
@@ -162,16 +186,14 @@ export function DialogOverlayGroup({
 }: DialogOverlayGroupProps) {
   return (
     <>
-      {preferences ? (
-        <SettingsDialog
-          open={settingsOpen}
-          preferences={preferences}
-          autostart={autostart}
-          onClose={() => setSettingsOpen(false)}
-          onChange={(key, value) => void updatePreference(key, value)}
-          onSetAutostart={handleSetAutostart}
-        />
-      ) : null}
+      <SettingsDialog
+        open={settingsOpen}
+        preferences={preferences ?? FALLBACK_PREFERENCES}
+        autostart={autostart}
+        onClose={() => setSettingsOpen(false)}
+        onChange={(key, value) => void updatePreference(key, value)}
+        onSetAutostart={handleSetAutostart}
+      />
       <ShortcutsDialog
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}

@@ -110,15 +110,6 @@ export function MenuBar(props: MenuBarProps) {
   useEffect(() => {
     if (openMenu === null) return;
 
-    const onPointerDown = (event: MouseEvent) => {
-      if (
-        menubarRef.current &&
-        !menubarRef.current.contains(event.target as Node)
-      ) {
-        closeAll();
-      }
-    };
-
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         closeAll();
@@ -134,10 +125,8 @@ export function MenuBar(props: MenuBarProps) {
       }
     };
 
-    window.addEventListener("mousedown", onPointerDown);
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      window.removeEventListener("mousedown", onPointerDown);
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [openMenu, closeAll]);

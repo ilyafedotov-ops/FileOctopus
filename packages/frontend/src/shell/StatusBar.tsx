@@ -24,9 +24,12 @@ function pluralItems(n: number): string {
 }
 
 export function StatusBar({
+  activePanelLabel,
+  pathLabel,
   loadState,
   selectedCount,
   entryCount,
+  filterActive,
   selectedSizeLabel,
   activeJobCount,
   operationError,
@@ -47,9 +50,16 @@ export function StatusBar({
     selectedCount === 0
       ? "No selection"
       : `${selectedCount} ${pluralItems(selectedCount)}${selectedSizeLabel ? ` (${selectedSizeLabel})` : ""}`;
+  const paneLabelText = filterActive
+    ? `${activePanelLabel} - ${pathLabel} - Filtered`
+    : `${activePanelLabel} - ${pathLabel}`;
 
   return (
     <footer className="fo-status" aria-label="Application status">
+      <span className="fo-status-segment fo-status-pane" title={pathLabel}>
+        {paneLabelText}
+      </span>
+      <span className="fo-status-separator" aria-hidden="true" />
       {isLoading ? (
         <span className="fo-status-segment">Loading…</span>
       ) : (
@@ -66,16 +76,16 @@ export function StatusBar({
         </>
       )}
       <span className="fo-status-spacer" />
-      {activeJobCount > 0 && (
-        <button
-          type="button"
-          className="fo-status-segment fo-status-button"
-          onClick={onOpenActivity}
-        >
-          {activeJobCount} active job{activeJobCount === 1 ? "" : "s"}
-          {operationError ? " - Errors" : ""}
-        </button>
-      )}
+      <button
+        type="button"
+        className="fo-status-segment fo-status-button"
+        onClick={onOpenActivity}
+        title="Open Jobs & Activity panel"
+      >
+        {activeJobCount > 0
+          ? `${activeJobCount} active job${activeJobCount === 1 ? "" : "s"}${operationError ? " - Errors" : ""}`
+          : `0 active jobs${operationError ? " - Errors" : " - No errors"}`}
+      </button>
       {operationError && onShowErrorDetails ? (
         <button
           type="button"
