@@ -1,6 +1,7 @@
 import { OperationToolbar } from "../pane/OperationToolbar";
 import { useShellLayout } from "./ShellLayoutContext";
 import { activeTab, selectVisibleEntries, parentUri } from "../panelStore";
+import { viewModeCommandId } from "../commands/viewModeCommands";
 
 export function ShellToolbar() {
   const ctx = useShellLayout();
@@ -56,16 +57,7 @@ export function ShellToolbar() {
       onToggleHidden={() => ctx.toggleHidden(pid)}
       onSelectAll={() => handleCommand("selection.selectAll")}
       onViewMode={(viewMode) => {
-        const commandId =
-          viewMode === "details"
-            ? "view.details"
-            : viewMode === "list"
-              ? "view.list"
-              : viewMode === "icons"
-                ? "view.icons"
-                : viewMode === "columns"
-                  ? "view.columns"
-                  : null;
+        const commandId = viewModeCommandId(viewMode);
         if (commandId) {
           handleCommand(commandId);
         }

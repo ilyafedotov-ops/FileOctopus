@@ -347,6 +347,13 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
             onSelect: () => onViewMode("list"),
           },
           {
+            id: "view-compact",
+            label: "Compact view",
+            icon: Icons.file(),
+            checked: viewMode === "compact",
+            onSelect: () => onViewMode("compact"),
+          },
+          {
             id: "view-icons",
             label: "Icons view",
             icon: Icons.pictures(),

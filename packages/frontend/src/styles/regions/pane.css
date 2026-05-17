@@ -275,7 +275,15 @@
   grid-template-columns: minmax(180px, 1fr);
 }
 
-.fo-view-list .fo-row span:not(:first-child) {
+.fo-view-list .fo-row > span:not(:first-child) {
+  display: none;
+}
+
+.fo-view-compact .fo-row {
+  grid-template-columns: minmax(180px, 1fr) 96px 160px;
+}
+
+.fo-view-compact .fo-row > span:nth-child(3) {
   display: none;
 }
 

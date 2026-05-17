@@ -65,6 +65,8 @@ export function FileRow({
       : entry.extension
         ? entry.extension.toUpperCase()
         : "File";
+  const showMetadata =
+    viewMode === "details" || viewMode === "list" || viewMode === "compact";
 
   return (
     <div
@@ -136,7 +138,7 @@ export function FileRow({
           </span>
         )}
       </span>
-      {viewMode === "details" || viewMode === "list" ? (
+      {showMetadata ? (
         <>
           <span>
             {entry.kind === "directory" ? "—" : formatSize(entry.size)}

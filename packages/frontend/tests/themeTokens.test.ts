@@ -4,10 +4,12 @@ import * as path from "path";
 
 const TOKENS_PATH = path.resolve(__dirname, "../../ui/src/tokens.css");
 const THEMES_PATH = path.resolve(__dirname, "../src/styles/themes.css");
+const PANE_PATH = path.resolve(__dirname, "../src/styles/regions/pane.css");
 
 describe("Design token architecture", () => {
   const tokensContent = fs.readFileSync(TOKENS_PATH, "utf-8");
   const themesContent = fs.readFileSync(THEMES_PATH, "utf-8");
+  const paneContent = fs.readFileSync(PANE_PATH, "utf-8");
 
   const BASE_TOKENS = [
     "--fo-text",
@@ -184,5 +186,20 @@ describe("Design token architecture", () => {
         `Missing accent variant ${accent}`,
       ).toBe(true);
     }
+  });
+
+  it("list view preserves nested row name text", () => {
+    expect(paneContent).toContain(
+      ".fo-view-list .fo-row > span:not(:first-child)",
+    );
+    expect(paneContent).not.toContain(
+      ".fo-view-list .fo-row span:not(:first-child)",
+    );
+  });
+
+  it("compact view hides only the direct type cell", () => {
+    expect(paneContent).toContain(
+      ".fo-view-compact .fo-row > span:nth-child(3)",
+    );
   });
 });
