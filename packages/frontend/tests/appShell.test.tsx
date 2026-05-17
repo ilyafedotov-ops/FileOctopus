@@ -7,16 +7,17 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type {
-  DirectoryBatchEventDto,
-  FileEntryDto,
-  FileOperationRequestDto,
-  FolderSizeCompletedEventDto,
-  JobCompletedEvent,
-  JobProgressEvent,
-  JobStartedEvent,
-  RecursiveSearchCompletedEventDto,
-  RecursiveSearchMatchEventDto,
+import {
+  IPC_ERROR_CODES,
+  type DirectoryBatchEventDto,
+  type FileEntryDto,
+  type FileOperationRequestDto,
+  type FolderSizeCompletedEventDto,
+  type JobCompletedEvent,
+  type JobProgressEvent,
+  type JobStartedEvent,
+  type RecursiveSearchCompletedEventDto,
+  type RecursiveSearchMatchEventDto,
 } from "@fileoctopus/ts-api";
 
 let batchHandler: ((event: DirectoryBatchEventDto) => void) | null = null;
@@ -419,10 +420,10 @@ vi.mock("@fileoctopus/ts-api", () => ({
   normalizeIpcError: (error: unknown) =>
     error && typeof error === "object" && "message" in error
       ? {
-          code: "unknown",
+          code: IPC_ERROR_CODES.UNKNOWN,
           message: String((error as { message: unknown }).message),
         }
-      : { code: "unknown", message: "error" },
+      : { code: IPC_ERROR_CODES.UNKNOWN, message: "error" },
 }));
 
 import { FileOctopusShell } from "../src";

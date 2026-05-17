@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { IPC_ERROR_CODES } from "@fileoctopus/ts-api";
 import {
   activeTab,
   createInitialState,
@@ -182,7 +183,7 @@ describe("panel store", () => {
         entries: [],
         batchIndex: 0,
         isComplete: true,
-        error: { code: "permission_denied", message: "denied" },
+        error: { code: IPC_ERROR_CODES.PERMISSION_DENIED, message: "denied" },
       },
     });
 
@@ -203,7 +204,7 @@ describe("panel store", () => {
         entries: [],
         batchIndex: 0,
         isComplete: true,
-        error: { code: "timeout", message: "timed out" },
+        error: { code: IPC_ERROR_CODES.TIMEOUT, message: "timed out" },
       },
     });
 

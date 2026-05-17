@@ -1,5 +1,7 @@
 import {
+  FILE_OPERATION_WARNING_CODES,
   IPC_ERROR_CODES,
+  type KnownFileOperationWarningCode,
   type KnownIpcErrorCode,
   ConflictPolicy,
   FileEntryDto,
@@ -316,7 +318,7 @@ export function OperationDialogView({
                   ))}
                   {dialog.plan.warnings.slice(0, 3).map((warning) => (
                     <span key={`${warning.code}-${warning.uri ?? ""}`}>
-                      {warning.message}
+                      {operationWarningMessage(warning.code, warning.message)}
                     </span>
                   ))}
                 </div>
@@ -652,6 +654,19 @@ export function operationErrorMessage(code: string, fallback: string): string {
     [IPC_ERROR_CODES.TIMEOUT]: "Directory listing timed out.",
   };
   const key = code as KnownIpcErrorCode | "interrupted";
+
+  return messages[key] ?? fallback;
+}
+
+export function operationWarningMessage(
+  code: string,
+  fallback: string,
+): string {
+  const messages: Partial<Record<KnownFileOperationWarningCode, string>> = {
+    [FILE_OPERATION_WARNING_CODES.METADATA_FAILED]:
+      "Some items could not be inspected and were skipped during planning.",
+  };
+  const key = code as KnownFileOperationWarningCode;
 
   return messages[key] ?? fallback;
 }
