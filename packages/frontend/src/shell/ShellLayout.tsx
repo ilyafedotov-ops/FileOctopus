@@ -241,6 +241,8 @@ export function ShellLayout({
   setOperationError,
   applySplitRatioFn,
 }: ShellLayoutProps) {
+  const paneMode = preferences?.paneMode === "single" ? "single" : "dual";
+
   return (
     <ErrorBoundary>
       <main className="fo-shell" tabIndex={-1} onKeyDown={handleShellKeyDown}>
@@ -307,15 +309,26 @@ export function ShellLayout({
                 />
               </>
             ) : null}
-            <div className="fo-dual-pane" aria-label="File panels">
+            <div
+              className={
+                paneMode === "single"
+                  ? "fo-dual-pane fo-dual-pane-single"
+                  : "fo-dual-pane"
+              }
+              aria-label="File panels"
+            >
               <FilePanel {...makeFilePanelProps("left")} />
-              <SplitResizer
-                onSplitResize={(ratio) => {
-                  const nextRatio = applySplitRatioFn(ratio);
-                  void updatePreference("splitRatio", String(nextRatio));
-                }}
-              />
-              <FilePanel {...makeFilePanelProps("right")} />
+              {paneMode === "dual" ? (
+                <>
+                  <SplitResizer
+                    onSplitResize={(ratio) => {
+                      const nextRatio = applySplitRatioFn(ratio);
+                      void updatePreference("splitRatio", String(nextRatio));
+                    }}
+                  />
+                  <FilePanel {...makeFilePanelProps("right")} />
+                </>
+              ) : null}
             </div>
             <ActivityPanel
               jobs={Object.values(jobs)}
@@ -419,6 +432,11 @@ export function ShellLayout({
             operationError={operationError}
             appHealth={appHealth}
             diagnosticsOpen={diagnosticsOpen}
+            onOpenActivity={() => {
+              markActivityPinnedOpen();
+              setActivityCollapsed(false);
+              void updatePreference("activityPanelVisible", "true");
+            }}
           />
         </div>
       </main>

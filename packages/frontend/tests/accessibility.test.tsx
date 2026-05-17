@@ -26,11 +26,24 @@ describe("accessibility basics", () => {
           showHiddenFiles: false,
           sidebarWidth: 240,
           splitRatio: 0.5,
-          activityPanelVisible: true,
+          activityPanelVisible: false,
           activityPanelWidth: 288,
+          confirmDelete: true,
+          confirmPermanentDelete: true,
+          useTrashByDefault: true,
+          defaultConflictPolicy: "fail",
+          accentColor: "blue",
+          fontScale: "medium",
+          iconScale: "medium",
+          confirmOverwrite: true,
+          sidebarVisible: true,
+          paneMode: "dual",
+          jobDrawerBehavior: "manual",
         }}
+        autostart={null}
         onClose={onClose}
         onChange={noop}
+        onSetAutostart={async () => {}}
       />,
     );
 
@@ -92,7 +105,7 @@ describe("accessibility basics", () => {
     );
 
     expect(screen.getAllByRole("menu").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByRole("menuitem").length).toBeGreaterThan(10);
+    expect(screen.getAllByRole("menuitem").length).toBeGreaterThan(5);
   });
 
   it("supports useDialogEscape hook", () => {

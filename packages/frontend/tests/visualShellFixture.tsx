@@ -51,6 +51,7 @@ export function VisualShellFixture() {
           selectedSizeLabel="128 KB"
           activeJobCount={0}
           operationError={null}
+          onOpenActivity={() => undefined}
         />
       </div>
     </div>

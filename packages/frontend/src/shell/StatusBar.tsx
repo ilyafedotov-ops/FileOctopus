@@ -10,6 +10,7 @@ interface StatusBarProps {
   selectedSizeLabel: string | null;
   activeJobCount: number;
   operationError: string | null;
+  onOpenActivity: () => void;
   logPath?: string | null;
   showLogPath?: boolean;
 }
@@ -57,6 +58,7 @@ export function StatusBar({
   selectedSizeLabel,
   activeJobCount,
   operationError,
+  onOpenActivity,
   logPath,
   showLogPath = false,
 }: StatusBarProps) {
@@ -77,10 +79,14 @@ export function StatusBar({
       <span className="fo-status-segment">
         {entrySummary(loadState, entryCount)}
       </span>
-      <span className="fo-status-segment">
+      <button
+        type="button"
+        className="fo-status-segment fo-status-button"
+        onClick={onOpenActivity}
+      >
         {activeJobCount} active job{activeJobCount === 1 ? "" : "s"}
         {operationError ? " - Errors" : " - No errors"}
-      </span>
+      </button>
       {showLogPath && logPath ? (
         <span className="fo-status-segment fo-status-log" title={logPath}>
           {logPath}

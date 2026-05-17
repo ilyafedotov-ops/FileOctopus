@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import type { PanelId, SortField, ViewMode } from "../panelStore";
@@ -60,7 +66,7 @@ function ContextMenuItem({
 }: {
   disabled?: boolean;
   onClick: () => void;
-  children: string;
+  children: ReactNode;
 }) {
   return (
     <Button
@@ -119,7 +125,6 @@ export function ContextMenu({
   onNavigateTo,
   onNavigateOtherPane,
   onCopyBreadcrumbPath,
-  onRevealBreadcrumb,
   onAddFavorite,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -129,31 +134,26 @@ export function ContextMenu({
     maxHeight?: number;
   } | null>(null);
 
-  // Viewport-aware positioning: adjust so menu stays within window
   useEffect(() => {
     if (!menu || !menuRef.current) {
       setPos(null);
       return;
     }
-    const el = menuRef.current;
+
+    const rect = menuRef.current.getBoundingClientRect();
     const pad = 8;
-    // First render at click position to measure natural size
-    const rect = el.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     let left = menu.x;
     let top = menu.y;
     let maxHeight: number | undefined;
 
-    // Clamp horizontal
     if (left + rect.width > vw - pad) {
       left = Math.max(pad, vw - rect.width - pad);
     }
 
-    // Clamp vertical — compute maxHeight so menu fits below click point
     const availableBelow = vh - top - pad;
     if (rect.height > availableBelow) {
-      // Try shifting up
       const availableAbove = top - pad;
       if (availableAbove > availableBelow) {
         top = Math.max(pad, vh - rect.height - pad);
@@ -167,8 +167,8 @@ export function ContextMenu({
   }, [menu]);
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Escape") {
+    (event: React.KeyboardEvent) => {
+      if (event.key === "Escape") {
         onClose();
       }
     },
@@ -179,13 +179,12 @@ export function ContextMenu({
     return null;
   }
 
-  const itemMenu = Boolean(menu.entry);
   const run = (action: () => void) => {
     action();
     onClose();
   };
 
-  return (
+  const shell = (content: ReactNode) => (
     <div
       className="fo-menu-backdrop"
       onClick={onClose}
@@ -203,103 +202,51 @@ export function ContextMenu({
         }
         onClick={(event) => event.stopPropagation()}
       >
-        {/* Breadcrumb context menu — spec §13.6 */}
-        {menu.breadcrumbPath ? (
-          <>
-            <ContextMenuItem
-              onClick={() =>
-                run(() => onNavigateTo(menu.panelId, menu.breadcrumbPath!))
-              }
-            >
-              Open This Location
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() =>
-                run(() => onNavigateOtherPane(menu.breadcrumbPath!))
-              }
-            >
-              Open in Other Pane
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-              onClick={() =>
-                run(() => onCopyBreadcrumbPath(menu.breadcrumbPath!))
-              }
-            >
-              Copy Path
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() =>
-                run(() => onRevealBreadcrumb(menu.breadcrumbPath!))
-              }
-            >
-              Reveal in File Manager
-            </ContextMenuItem>
-            <ContextMenuSeparator />
-            <ContextMenuItem
-              onClick={() => run(() => onAddFavorite(menu.breadcrumbPath!))}
-            >
-              Add to Favorites
-            </ContextMenuItem>
-          </>
-        ) : null}
-        {/* File actions */}
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onOpen(menu.panelId, menu.entry))}
-        >
-          Open
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onOpenWithDefaultApp(menu.panelId))}
-        >
-          Open With Default App
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onRename(menu.panelId))}
-        >
-          Rename
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onCopyTo(menu.panelId))}
-        >
-          Copy To…
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onMoveTo(menu.panelId))}
-        >
-          Move To…
-        </ContextMenuItem>
+        {content}
+      </div>
+    </div>
+  );
 
+  if (menu.breadcrumbPath) {
+    return shell(
+      <>
+        <ContextMenuItem
+          onClick={() =>
+            run(() => onNavigateTo(menu.panelId, menu.breadcrumbPath!))
+          }
+        >
+          Open This Location
+        </ContextMenuItem>
+        <ContextMenuItem
+          onClick={() => run(() => onNavigateOtherPane(menu.breadcrumbPath!))}
+        >
+          Open in Other Pane
+        </ContextMenuItem>
         <ContextMenuSeparator />
+        <ContextMenuItem
+          onClick={() => run(() => onCopyBreadcrumbPath(menu.breadcrumbPath!))}
+        >
+          Copy Path
+        </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuItem
+          onClick={() => run(() => onAddFavorite(menu.breadcrumbPath!))}
+        >
+          Add to Favorites
+        </ContextMenuItem>
+      </>,
+    );
+  }
 
-        {/* Clipboard */}
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onCopy(menu.panelId))}
-        >
-          Copy
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onCut(menu.panelId))}
-        >
-          Cut
-        </ContextMenuItem>
+  if (!menu.entry) {
+    return shell(
+      <>
         <ContextMenuItem
           disabled={!canPaste}
           onClick={() => run(() => onPaste(menu.panelId))}
         >
           Paste
         </ContextMenuItem>
-
-        <ContextMenuSeparator />
-
-        {/* Create */}
         <ContextMenuItem
           onClick={() => run(() => onCreateFolder(menu.panelId))}
         >
@@ -308,95 +255,7 @@ export function ContextMenu({
         <ContextMenuItem onClick={() => run(() => onCreateFile(menu.panelId))}>
           New File
         </ContextMenuItem>
-
         <ContextMenuSeparator />
-
-        {/* Delete */}
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onTrash(menu.panelId))}
-        >
-          Move to Trash
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onPermanentDelete(menu.panelId))}
-        >
-          Delete Permanently
-        </ContextMenuItem>
-
-        <ContextMenuSeparator />
-
-        {/* Info & tools */}
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onCopyPath(menu.panelId))}
-        >
-          Copy Path
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onCopyName(menu.panelId))}
-        >
-          Copy Name
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onCopyParentPath(menu.panelId))}
-        >
-          Copy Parent Folder Path
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onCopyResourceUri(menu.panelId))}
-        >
-          Copy Resource URI
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onProperties(menu.panelId, menu.entry))}
-        >
-          Properties
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onReveal(menu.panelId, menu.entry))}
-        >
-          Reveal
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onCompress(menu.panelId))}
-        >
-          Compress…
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onExtract(menu.panelId))}
-        >
-          Extract…
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => run(() => onOpenTerminal(menu.panelId))}
-        >
-          Open Terminal
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu}
-          onClick={() => run(() => onChecksum(menu.panelId))}
-        >
-          Checksum…
-        </ContextMenuItem>
-        <ContextMenuItem
-          disabled={!itemMenu || !menu.entry}
-          onClick={() => run(() => onToggleStarred(menu.panelId, menu.entry!))}
-        >
-          {isStarred ? "Remove Star" : "Add Star"}
-        </ContextMenuItem>
-
-        <ContextMenuSeparator />
-
-        {/* View & selection */}
         <ContextMenuItem onClick={() => run(() => onRefresh(menu.panelId))}>
           Refresh
         </ContextMenuItem>
@@ -405,84 +264,186 @@ export function ContextMenu({
         >
           {showHidden ? "Hide Hidden Files" : "Show Hidden Files"}
         </ContextMenuItem>
-        <ContextMenuItem onClick={() => run(() => onSelectAll(menu.panelId))}>
-          Select All
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => run(() => onClearSelection(menu.panelId))}
-        >
-          Clear Selection
-        </ContextMenuItem>
-
-        <ContextMenuSeparator />
-
-        {/* View modes */}
         <ContextMenuItem
           onClick={() => run(() => onViewMode(menu.panelId, "details"))}
         >
           Details View
         </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => run(() => onViewMode(menu.panelId, "list"))}
-        >
-          List View
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => run(() => onViewMode(menu.panelId, "icons"))}
-        >
-          Icon View
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => run(() => onViewMode(menu.panelId, "columns"))}
-        >
-          Columns View
-        </ContextMenuItem>
-
         <ContextMenuSeparator />
-
-        {/* Sort submenu */}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="fo-context-menu-item fo-context-menu-item--submenu"
-          role="menuitem"
+        <ContextMenuItem
+          onClick={() => run(() => onProperties(menu.panelId, null))}
         >
-          Sort by…
-          <div className="fo-context-submenu" role="menu">
+          Current Folder Properties
+        </ContextMenuItem>
+      </>,
+    );
+  }
+
+  const isDirectory = menu.entry.kind === "directory";
+
+  return shell(
+    <>
+      <ContextMenuItem
+        onClick={() => run(() => onOpen(menu.panelId, menu.entry))}
+      >
+        Open
+      </ContextMenuItem>
+      {isDirectory ? (
+        <ContextMenuItem
+          onClick={() => run(() => onNavigateOtherPane(menu.entry!.uri))}
+        >
+          Open in Other Pane
+        </ContextMenuItem>
+      ) : (
+        <ContextMenuItem
+          onClick={() => run(() => onOpenWithDefaultApp(menu.panelId))}
+        >
+          Open With Default App
+        </ContextMenuItem>
+      )}
+      <ContextMenuItem
+        onClick={() => run(() => onReveal(menu.panelId, menu.entry))}
+      >
+        Reveal in System File Manager
+      </ContextMenuItem>
+      {isDirectory ? (
+        <ContextMenuItem
+          onClick={() => run(() => onAddFavorite(menu.entry!.uri))}
+        >
+          Add to Favorites
+        </ContextMenuItem>
+      ) : null}
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={() => run(() => onCut(menu.panelId))}>
+        Cut
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => run(() => onCopy(menu.panelId))}>
+        Copy
+      </ContextMenuItem>
+      <ContextMenuItem
+        disabled={!canPaste}
+        onClick={() => run(() => onPaste(menu.panelId))}
+      >
+        {isDirectory ? "Paste Into Folder" : "Paste"}
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => run(() => onCopyPath(menu.panelId))}>
+        Copy Path
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => run(() => onCopyName(menu.panelId))}>
+        Copy Name
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={() => run(() => onRename(menu.panelId))}>
+        Rename…
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => run(() => onCopyTo(menu.panelId))}>
+        Copy To…
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => run(() => onMoveTo(menu.panelId))}>
+        Move To…
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => run(() => onTrash(menu.panelId))}>
+        Move to Trash…
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={() => run(() => onPermanentDelete(menu.panelId))}
+      >
+        Delete Permanently…
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem
+        onClick={() => run(() => onToggleStarred(menu.panelId, menu.entry!))}
+      >
+        {isStarred ? "Remove Star" : "Add Star"}
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={() => run(() => onProperties(menu.panelId, menu.entry))}
+      >
+        Properties…
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={() => run(() => onCopyParentPath(menu.panelId))}
+      >
+        Copy Parent Folder Path
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={() => run(() => onCopyResourceUri(menu.panelId))}
+      >
+        Copy Resource URI
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => run(() => onCompress(menu.panelId))}>
+        Compress…
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => run(() => onExtract(menu.panelId))}>
+        Extract…
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => run(() => onOpenTerminal(menu.panelId))}>
+        Open Terminal
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => run(() => onChecksum(menu.panelId))}>
+        Checksum…
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem onClick={() => run(() => onRefresh(menu.panelId))}>
+        Refresh
+      </ContextMenuItem>
+      <ContextMenuItem onClick={() => run(() => onSelectAll(menu.panelId))}>
+        Select All
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={() => run(() => onClearSelection(menu.panelId))}
+      >
+        Clear Selection
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem
+        onClick={() => run(() => onViewMode(menu.panelId, "details"))}
+      >
+        Details View
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={() => run(() => onViewMode(menu.panelId, "list"))}
+      >
+        List View
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={() => run(() => onViewMode(menu.panelId, "icons"))}
+      >
+        Icon View
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={() => run(() => onViewMode(menu.panelId, "columns"))}
+      >
+        Columns View
+      </ContextMenuItem>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        className="fo-context-menu-item fo-context-menu-item--submenu"
+        role="menuitem"
+      >
+        Sort by…
+        <div className="fo-context-submenu" role="menu">
+          {(
+            [
+              "name",
+              "modified",
+              "size",
+              "type",
+              "created",
+              "extension",
+            ] as const
+          ).map((field) => (
             <ContextMenuItem
-              onClick={() => run(() => onSort(menu.panelId, "name"))}
+              key={field}
+              onClick={() => run(() => onSort(menu.panelId, field))}
             >
-              Name
+              {field[0].toUpperCase() + field.slice(1)}
             </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => run(() => onSort(menu.panelId, "modified"))}
-            >
-              Modified
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => run(() => onSort(menu.panelId, "size"))}
-            >
-              Size
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => run(() => onSort(menu.panelId, "type"))}
-            >
-              Type
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => run(() => onSort(menu.panelId, "created"))}
-            >
-              Created
-            </ContextMenuItem>
-            <ContextMenuItem
-              onClick={() => run(() => onSort(menu.panelId, "extension"))}
-            >
-              Extension
-            </ContextMenuItem>
-          </div>
-        </Button>
-      </div>
-    </div>
+          ))}
+        </div>
+      </Button>
+    </>,
   );
 }

@@ -324,14 +324,15 @@ exports[`visual regression snapshots > matches the shell chrome structure in dar
     >
       12 items
     </span>
-    <span
-      class="fo-status-segment"
+    <button
+      class="fo-status-segment fo-status-button"
+      type="button"
     >
       0
        active job
       s
        - No errors
-    </span>
+    </button>
   </footer>
 </div>
 `;
@@ -660,14 +661,15 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
     >
       12 items
     </span>
-    <span
-      class="fo-status-segment"
+    <button
+      class="fo-status-segment fo-status-button"
+      type="button"
     >
       0
        active job
       s
        - No errors
-    </span>
+    </button>
   </footer>
 </div>
 `;

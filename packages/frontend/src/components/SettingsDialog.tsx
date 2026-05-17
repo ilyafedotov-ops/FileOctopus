@@ -392,6 +392,30 @@ export function SettingsDialog({
                   />
                   <span>Show activity panel</span>
                 </label>
+                <label className="fo-settings-field">
+                  <span>Pane mode</span>
+                  <select
+                    value={preferences.paneMode}
+                    onChange={(event) =>
+                      onChange("paneMode", event.target.value)
+                    }
+                  >
+                    <option value="dual">Dual pane</option>
+                    <option value="single">Single pane</option>
+                  </select>
+                </label>
+                <label className="fo-settings-field">
+                  <span>Job drawer behavior</span>
+                  <select
+                    value={preferences.jobDrawerBehavior}
+                    onChange={(event) =>
+                      onChange("jobDrawerBehavior", event.target.value)
+                    }
+                  >
+                    <option value="manual">Manual</option>
+                    <option value="openOnError">Open on error</option>
+                  </select>
+                </label>
               </section>
             )}
             {activeSection === "shortcuts" && (

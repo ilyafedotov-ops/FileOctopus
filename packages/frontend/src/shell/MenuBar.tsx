@@ -349,6 +349,11 @@ export function MenuBar(props: MenuBarProps) {
       label: "Icons View",
       onSelect: wrapArg(props.onViewMode, "icons"),
     },
+    {
+      id: "view-columns",
+      label: "Columns View",
+      onSelect: wrapArg(props.onViewMode, "columns"),
+    },
     sep("sep-sort"),
     {
       id: "sort-name",
@@ -368,12 +373,12 @@ export function MenuBar(props: MenuBarProps) {
     {
       id: "sort-date-modified",
       label: "Sort by Date Modified",
-      onSelect: wrapArg(props.onSortBy, "dateModified"),
+      onSelect: wrapArg(props.onSortBy, "modified"),
     },
     {
       id: "sort-date-created",
       label: "Sort by Date Created",
-      onSelect: wrapArg(props.onSortBy, "dateCreated"),
+      onSelect: wrapArg(props.onSortBy, "created"),
     },
     {
       id: "sort-asc",
@@ -429,12 +434,14 @@ export function MenuBar(props: MenuBarProps) {
       id: "toggle-toolbar",
       label: "Show Toolbar",
       checked: props.toolbarVisible,
+      disabled: true,
       onSelect: wrap(props.onToggleToolbar),
     },
     {
       id: "toggle-statusbar",
       label: "Show Status Bar",
       checked: props.statusBarVisible,
+      disabled: true,
       onSelect: wrap(props.onToggleStatusBar),
     },
     {
@@ -587,7 +594,7 @@ export function MenuBar(props: MenuBarProps) {
     {
       id: "swap-panes",
       label: "Swap Panes",
-      disabled: !props.dualPane,
+      disabled: true,
       onSelect: wrap(props.onSwapPanes),
     },
     {
