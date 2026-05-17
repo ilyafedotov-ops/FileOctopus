@@ -11,7 +11,7 @@ pub use navigation::{
     FavoriteEntry, NavigationError, NavigationRepository, RecentBucket, RecentEntry, StarredEntry,
 };
 
-pub const SCHEMA_VERSION: u32 = 5;
+pub const SCHEMA_VERSION: u32 = 6;
 
 #[derive(Debug, Error)]
 pub enum PreferencesError {
@@ -43,6 +43,8 @@ pub struct UserPreferences {
     pub icon_scale: String,
     pub confirm_overwrite: bool,
     pub sidebar_visible: bool,
+    pub pane_mode: String,
+    pub job_drawer_behavior: String,
 }
 
 impl Default for UserPreferences {
@@ -54,7 +56,7 @@ impl Default for UserPreferences {
             show_hidden_files: false,
             sidebar_width: 240,
             split_ratio: 0.5,
-            activity_panel_visible: true,
+            activity_panel_visible: false,
             activity_panel_width: 288,
             confirm_delete: true,
             confirm_permanent_delete: true,
@@ -65,6 +67,8 @@ impl Default for UserPreferences {
             icon_scale: "medium".to_string(),
             confirm_overwrite: true,
             sidebar_visible: true,
+            pane_mode: "dual".to_string(),
+            job_drawer_behavior: "manual".to_string(),
         }
     }
 }
@@ -155,6 +159,11 @@ impl PreferencesRepository {
             connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         }
 
+        if user_version < 6 {
+            self.backfill_v6_keys(&connection)?;
+            connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
         Ok(())
     }
 
@@ -222,6 +231,25 @@ impl PreferencesRepository {
             ("iconScale", defaults.icon_scale.clone()),
             ("confirmOverwrite", defaults.confirm_overwrite.to_string()),
             ("sidebarVisible", defaults.sidebar_visible.to_string()),
+        ];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
+        }
+
+        Ok(())
+    }
+
+    fn backfill_v6_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [
+            ("paneMode", defaults.pane_mode.clone()),
+            ("jobDrawerBehavior", defaults.job_drawer_behavior.clone()),
         ];
 
         for (key, value) in rows {
@@ -323,6 +351,8 @@ impl UserPreferences {
             ("iconScale", self.icon_scale.clone()),
             ("confirmOverwrite", self.confirm_overwrite.to_string()),
             ("sidebarVisible", self.sidebar_visible.to_string()),
+            ("paneMode", self.pane_mode.clone()),
+            ("jobDrawerBehavior", self.job_drawer_behavior.clone()),
         ]
     }
 }
@@ -393,6 +423,12 @@ fn apply_value(
         "sidebarVisible" => {
             preferences.sidebar_visible = parse_bool(value, key)?;
         }
+        "paneMode" => {
+            preferences.pane_mode = parse_pane_mode(value)?;
+        }
+        "jobDrawerBehavior" => {
+            preferences.job_drawer_behavior = parse_job_drawer_behavior(value)?;
+        }
         _ => {}
     }
 
@@ -434,6 +470,26 @@ fn parse_conflict_policy(value: &str) -> Result<String, PreferencesError> {
         "fail" | "skip" | "overwrite" | "renameNew" | "renameExisting" => Ok(value.to_string()),
         other => Err(invalid_value(
             "defaultConflictPolicy",
+            format!("unsupported value `{other}`"),
+        )),
+    }
+}
+
+fn parse_pane_mode(value: &str) -> Result<String, PreferencesError> {
+    match value {
+        "dual" | "single" => Ok(value.to_string()),
+        other => Err(invalid_value(
+            "paneMode",
+            format!("unsupported value `{other}`"),
+        )),
+    }
+}
+
+fn parse_job_drawer_behavior(value: &str) -> Result<String, PreferencesError> {
+    match value {
+        "manual" | "openOnError" => Ok(value.to_string()),
+        other => Err(invalid_value(
+            "jobDrawerBehavior",
             format!("unsupported value `{other}`"),
         )),
     }
@@ -514,13 +570,16 @@ mod tests {
     }
 
     #[test]
-    fn defaults_include_new_v5_fields() {
+    fn defaults_include_new_ui_fields() {
         let defaults = UserPreferences::default();
         assert_eq!(defaults.accent_color, "blue");
         assert_eq!(defaults.font_scale, "medium");
         assert_eq!(defaults.icon_scale, "medium");
         assert!(defaults.confirm_overwrite);
         assert!(defaults.sidebar_visible);
+        assert_eq!(defaults.pane_mode, "dual");
+        assert_eq!(defaults.job_drawer_behavior, "manual");
+        assert!(!defaults.activity_panel_visible);
     }
 
     #[test]
@@ -532,6 +591,8 @@ mod tests {
         assert_eq!(rows["iconScale"], "medium");
         assert_eq!(rows["confirmOverwrite"], "true");
         assert_eq!(rows["sidebarVisible"], "true");
+        assert_eq!(rows["paneMode"], "dual");
+        assert_eq!(rows["jobDrawerBehavior"], "manual");
     }
 
     #[test]
@@ -587,11 +648,22 @@ mod tests {
     }
 
     #[test]
-    fn migrates_v4_database_to_v5_with_new_defaults() {
+    fn round_trips_layout_behavior_preferences() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("preferences.sqlite");
+        let repository = PreferencesRepository::new(path.clone()).unwrap();
+        repository.set("paneMode", "single").unwrap();
+        repository.set("jobDrawerBehavior", "openOnError").unwrap();
+        let reloaded = PreferencesRepository::new(path).unwrap().get_all().unwrap();
+        assert_eq!(reloaded.pane_mode, "single");
+        assert_eq!(reloaded.job_drawer_behavior, "openOnError");
+    }
+
+    #[test]
+    fn migrates_v4_database_to_current_schema_with_new_defaults() {
         let dir = tempdir().unwrap();
         let path = dir.path().join("preferences.sqlite");
 
-        // Simulate a v4 DB: open, set pragma user_version=4, seed only legacy keys.
         {
             let connection = Connection::open(&path).unwrap();
             connection
@@ -617,25 +689,23 @@ mod tests {
                 .unwrap();
         }
 
-        // Open via repository; migration should run.
         let repository = PreferencesRepository::new(path.clone()).unwrap();
         let prefs = repository.get_all().unwrap();
 
-        // Existing values preserved.
         assert_eq!(prefs.theme, "dark");
         assert_eq!(prefs.density, "compact");
-        // New v5 defaults applied.
         assert_eq!(prefs.accent_color, "blue");
         assert_eq!(prefs.font_scale, "medium");
         assert_eq!(prefs.icon_scale, "medium");
         assert!(prefs.confirm_overwrite);
         assert!(prefs.sidebar_visible);
+        assert_eq!(prefs.pane_mode, "dual");
+        assert_eq!(prefs.job_drawer_behavior, "manual");
 
-        // user_version is now 5.
         let connection = Connection::open(&path).unwrap();
         let version: u32 = connection
             .query_row("pragma user_version", [], |row| row.get(0))
             .unwrap();
-        assert_eq!(version, 5);
+        assert_eq!(version, 6);
     }
 }

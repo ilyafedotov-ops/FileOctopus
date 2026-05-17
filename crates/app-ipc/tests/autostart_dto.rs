@@ -22,7 +22,8 @@ fn preferences_dto_includes_new_fields() {
         "confirmDelete":true,"confirmPermanentDelete":true,
         "useTrashByDefault":true,"defaultConflictPolicy":"fail",
         "accentColor":"violet","fontScale":"large","iconScale":"small",
-        "confirmOverwrite":false,"sidebarVisible":true
+        "confirmOverwrite":false,"sidebarVisible":true,
+        "paneMode":"single","jobDrawerBehavior":"openOnError"
     }"#;
     let dto: UserPreferencesDto = serde_json::from_str(json).unwrap();
     assert_eq!(dto.accent_color, "violet");
@@ -30,4 +31,6 @@ fn preferences_dto_includes_new_fields() {
     assert_eq!(dto.icon_scale, "small");
     assert!(!dto.confirm_overwrite);
     assert!(dto.sidebar_visible);
+    assert_eq!(dto.pane_mode, "single");
+    assert_eq!(dto.job_drawer_behavior, "openOnError");
 }

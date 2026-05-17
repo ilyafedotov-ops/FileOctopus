@@ -436,8 +436,10 @@ describe("FileOctopusClient", () => {
               showHiddenFiles: false,
               sidebarWidth: 240,
               splitRatio: 0.5,
-              activityPanelVisible: true,
+              activityPanelVisible: false,
               activityPanelWidth: 288,
+              paneMode: "dual",
+              jobDrawerBehavior: "manual",
             },
           } as TResponse;
         }
@@ -450,8 +452,10 @@ describe("FileOctopusClient", () => {
             showHiddenFiles: false,
             sidebarWidth: 240,
             splitRatio: 0.5,
-            activityPanelVisible: true,
+            activityPanelVisible: false,
             activityPanelWidth: 288,
+            paneMode: "dual",
+            jobDrawerBehavior: "manual",
           },
         } as TResponse;
       },

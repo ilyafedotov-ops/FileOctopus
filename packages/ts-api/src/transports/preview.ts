@@ -28,7 +28,7 @@ export function createPreviewTransport(): IpcTransport {
     showHiddenFiles: false,
     sidebarWidth: 240,
     splitRatio: 0.5,
-    activityPanelVisible: true,
+    activityPanelVisible: false,
     activityPanelWidth: 288,
     confirmDelete: true,
     confirmPermanentDelete: true,
@@ -39,6 +39,8 @@ export function createPreviewTransport(): IpcTransport {
     iconScale: "medium",
     confirmOverwrite: true,
     sidebarVisible: true,
+    paneMode: "dual",
+    jobDrawerBehavior: "manual",
   };
   const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
   const folderSizeHandlers = new Set<
