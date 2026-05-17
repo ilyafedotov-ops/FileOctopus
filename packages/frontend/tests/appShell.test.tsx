@@ -62,8 +62,19 @@ const preferencesGet = vi.fn(async () => ({
     showHiddenFiles: false,
     sidebarWidth: 240,
     splitRatio: 0.5,
-    activityPanelVisible: true,
+    activityPanelVisible: false,
     activityPanelWidth: 288,
+    confirmDelete: true,
+    confirmPermanentDelete: true,
+    useTrashByDefault: true,
+    defaultConflictPolicy: "fail",
+    accentColor: "blue",
+    fontScale: "medium",
+    iconScale: "medium",
+    confirmOverwrite: true,
+    sidebarVisible: true,
+    paneMode: "dual",
+    jobDrawerBehavior: "manual",
   },
 }));
 const preferencesSet = vi.fn(async () => preferencesGet());
@@ -642,6 +653,7 @@ describe("FileOctopusShell", () => {
       });
     });
 
+    fireEvent.click(screen.getByText("Activity"));
     expect(screen.getByText(/copying/i)).toBeTruthy();
     fireEvent.click(screen.getAllByText("Cancel")[0]);
     expect(cancelJob).toHaveBeenCalledWith({ jobId: "job-live" });

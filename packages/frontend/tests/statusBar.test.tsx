@@ -15,6 +15,7 @@ describe("StatusBar", () => {
         selectedSizeLabel="4.2 MB"
         activeJobCount={0}
         operationError={null}
+        onOpenActivity={() => {}}
       />,
     );
 
@@ -38,6 +39,7 @@ describe("StatusBar", () => {
         selectedSizeLabel={null}
         activeJobCount={1}
         operationError="copy failed"
+        onOpenActivity={() => {}}
       />,
     );
 
@@ -60,6 +62,7 @@ describe("StatusBar", () => {
         selectedSizeLabel={null}
         activeJobCount={0}
         operationError={null}
+        onOpenActivity={() => {}}
       />,
     );
 

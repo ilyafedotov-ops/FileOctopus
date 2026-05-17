@@ -84,7 +84,7 @@ export function FileOctopusShell() {
   const [recentToday, setRecentToday] = useState<RecentEntryDto[]>([]);
   const [recentWeek, setRecentWeek] = useState<RecentEntryDto[]>([]);
   const [starred, setStarred] = useState<StarredEntryDto[]>([]);
-  const [activityCollapsed, setActivityCollapsed] = useState(false);
+  const [activityCollapsed, setActivityCollapsed] = useState(true);
 
   const {
     pushToast,
@@ -141,7 +141,7 @@ export function FileOctopusShell() {
     workspaceRef,
     sidebarWidth: preferences?.sidebarWidth ?? 240,
     activityCollapsed,
-    activityPanelVisible: preferences?.activityPanelVisible ?? true,
+    activityPanelVisible: preferences?.activityPanelVisible ?? false,
     onCollapseActivity: () => {
       setActivityCollapsed(true);
       void updatePreference("activityPanelVisible", "false");
@@ -159,6 +159,7 @@ export function FileOctopusShell() {
     left,
     right,
     density,
+    preferences,
     starred,
     pushToast,
     refreshPanel,
@@ -167,6 +168,7 @@ export function FileOctopusShell() {
     refreshLocations,
     refreshNavigation,
     refreshDiagnostics,
+    updatePreference,
     navigatePanel,
     applyFolderSizeCompleted,
     applyRecursiveSearchMatch,
@@ -340,6 +342,7 @@ export function FileOctopusShell() {
     navigatePanel,
     refreshPanel,
     refreshNavigation,
+    exportDiagnostics,
     activateEntry,
     selectedEntries,
     openExternal,
@@ -349,6 +352,7 @@ export function FileOctopusShell() {
     handleRename,
     handleTrash,
     handlePermanentDelete,
+    handleCopyOrMove,
     handleProperties,
     copySelectionToFileClipboard,
     pasteClipboard,
@@ -362,6 +366,7 @@ export function FileOctopusShell() {
     setSettingsOpen,
     setShortcutsOpen,
     setDiagnosticsOpen,
+    setActivityCollapsed,
   });
 
   function makeFilePanelProps(pid: "left" | "right"): FilePanelProps {

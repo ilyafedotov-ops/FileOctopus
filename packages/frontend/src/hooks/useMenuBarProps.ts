@@ -19,6 +19,7 @@ import {
 import type { MenuBarProps } from "../shell/MenuBar";
 import {
   type DensityPreference,
+  applySplitRatio,
   applyDensityPreference,
 } from "../applyPreferences";
 import type { FileClipboardState } from "./useFileOpHandlers";
@@ -37,6 +38,7 @@ export interface UseMenuBarPropsParams {
   navigatePanel: (panelId: PanelId, uri: string) => void;
   refreshPanel: (panelId: PanelId) => void;
   refreshNavigation: () => void;
+  exportDiagnostics: () => Promise<void>;
   activateEntry: (panelId: PanelId, entry: FileEntryDto | null) => void;
   selectedEntries: (panelId: PanelId) => FileEntryDto[];
   openExternal: (entry: FileEntryDto) => Promise<void>;
@@ -46,6 +48,7 @@ export interface UseMenuBarPropsParams {
   handleRename: (panelId: PanelId) => void;
   handleTrash: (panelId: PanelId) => void;
   handlePermanentDelete: (panelId: PanelId) => void;
+  handleCopyOrMove: (panelId: PanelId, mode: "copy" | "move") => void;
   handleProperties: (
     panelId: PanelId,
     entry: FileEntryDto | null,
@@ -68,6 +71,7 @@ export interface UseMenuBarPropsParams {
   setSettingsOpen: (v: boolean) => void;
   setShortcutsOpen: (v: boolean) => void;
   setDiagnosticsOpen: (v: boolean) => void;
+  setActivityCollapsed: (v: boolean) => void;
 }
 
 export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
@@ -84,6 +88,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     navigatePanel,
     refreshPanel,
     refreshNavigation,
+    exportDiagnostics,
     activateEntry,
     selectedEntries,
     openExternal,
@@ -93,6 +98,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     handleRename,
     handleTrash,
     handlePermanentDelete,
+    handleCopyOrMove,
     handleProperties,
     copySelectionToFileClipboard,
     pasteClipboard,
@@ -106,6 +112,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     setSettingsOpen,
     setShortcutsOpen,
     setDiagnosticsOpen,
+    setActivityCollapsed,
   } = params;
 
   const panelId = state.activePanelId;
@@ -142,8 +149,8 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
       if (entry) void revealEntry(panelId, entry);
     },
     onRename: () => handleRename(panelId),
-    onCopyTo: () => pushToast({ tone: "info", title: "Copy To… coming soon" }),
-    onMoveTo: () => pushToast({ tone: "info", title: "Move To… coming soon" }),
+    onCopyTo: () => handleCopyOrMove(panelId, "copy"),
+    onMoveTo: () => handleCopyOrMove(panelId, "move"),
     onTrash: () => handleTrash(panelId),
     onDeletePermanently: () => handlePermanentDelete(panelId),
     onProperties: () => void handleProperties(panelId, null),
@@ -153,8 +160,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onClearClipboard: () => setClipboard(null),
     onSelectAll: () => dispatch({ type: "selectAll", panelId }),
     onClearSelection: () => dispatch({ type: "clearSelection", panelId }),
-    onInvertSelection: () =>
-      pushToast({ tone: "info", title: "Invert Selection coming soon" }),
+    onInvertSelection: () => dispatch({ type: "invertSelection", panelId }),
     onCopyPath: () => void copyTextFromSelection(panelId, "path"),
     onCopyName: () => void copyTextFromSelection(panelId, "name"),
     onCopyParentPath: () => void copyTextFromSelection(panelId, "parentPath"),
@@ -198,12 +204,11 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
         String(preferences?.sidebarVisible === false),
       );
     },
-    onToggleToolbar: () =>
-      pushToast({ tone: "info", title: "Toggle Toolbar coming soon" }),
-    onToggleStatusBar: () =>
-      pushToast({ tone: "info", title: "Toggle Status Bar coming soon" }),
+    onToggleToolbar: () => undefined,
+    onToggleStatusBar: () => undefined,
     onToggleDualPane: () => {
-      pushToast({ tone: "info", title: "Dual Pane coming soon" });
+      const next = preferences?.paneMode === "single" ? "dual" : "single";
+      void updatePreference("paneMode", next);
     },
     onToggleHidden: () => toggleHidden(panelId),
     onRefresh: () => refreshPanel(panelId),
@@ -220,20 +225,25 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onManageFavorites: () => setSettingsOpen(true),
     onFilter: () => setFilterFocusToken((v) => v + 1),
     onSearchRecursive: () => setRecursiveSearchFocusToken((v) => v + 1),
-    onJobActivity: () =>
-      pushToast({ tone: "info", title: "Job Activity coming soon" }),
+    onJobActivity: () => {
+      setActivityCollapsed(false);
+      void updatePreference("activityPanelVisible", "true");
+    },
     onDiagnostics: () => setDiagnosticsOpen(true),
-    onExportDiagnostics: () =>
-      pushToast({ tone: "info", title: "Export Diagnostics coming soon" }),
+    onExportDiagnostics: () => {
+      setDiagnosticsOpen(true);
+      void exportDiagnostics();
+    },
     onSwitchPane: () =>
       dispatch({
         type: "setActivePanel",
         panelId: panelId === "left" ? "right" : "left",
       }),
-    onSwapPanes: () =>
-      pushToast({ tone: "info", title: "Swap Panes coming soon" }),
-    onEqualizePanes: () =>
-      pushToast({ tone: "info", title: "Equalize Panes coming soon" }),
+    onSwapPanes: () => undefined,
+    onEqualizePanes: () => {
+      applySplitRatio(0.5);
+      void updatePreference("splitRatio", "0.5");
+    },
     onShortcuts: () => setShortcutsOpen(true),
     onDocumentation: () => {
       void globalThis.open(
@@ -248,9 +258,13 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
       );
     },
     onAbout: () =>
-      pushToast({ tone: "info", title: "About FileOctopus coming soon" }),
+      pushToast({
+        tone: "info",
+        title: "FileOctopus",
+        detail: "Rust-powered desktop file manager",
+      }),
     onSettings: () => setSettingsOpen(true),
-    onExit: () => pushToast({ tone: "info", title: "Exit coming soon" }),
+    onExit: () => globalThis.close(),
     canGoBack: tab.backStack.length > 0,
     canGoForward: tab.forwardStack.length > 0,
     hasSelection: tab.selectedIds.length > 0,
@@ -258,7 +272,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     sidebarVisible: preferences?.sidebarVisible !== false,
     toolbarVisible: true,
     statusBarVisible: true,
-    dualPane: false,
+    dualPane: preferences?.paneMode !== "single",
     showHidden: tab.showHidden,
   };
 }

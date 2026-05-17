@@ -117,6 +117,10 @@ button:disabled {
   overflow: hidden;
 }
 
+.fo-dual-pane-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .fo-activity-rail {
   grid-column: 4;
   grid-row: 1;
@@ -2008,6 +2012,27 @@ button:disabled {
   min-width: 0;
 }
 
+.fo-toolbar-group-nav,
+.fo-toolbar-group-view {
+  flex: 0 1 auto;
+}
+
+.fo-toolbar-group-operations {
+  flex: 0 1 auto;
+  overflow: hidden;
+}
+
+.fo-toolbar-danger {
+  color: var(--fo-danger-text);
+}
+
+@container pane-toolbar (max-width: 900px) {
+  .fo-toolbar-group-nav .fo-ui-btn span,
+  .fo-toolbar-group-operations .fo-ui-btn span {
+    display: none;
+  }
+}
+
 .fo-toolbar-overflow {
   position: relative;
 }
@@ -2069,6 +2094,21 @@ button:disabled {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.fo-status-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+.fo-status-button:hover,
+.fo-status-button:focus-visible {
+  color: var(--fo-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .fo-status-readiness {

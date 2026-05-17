@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type MutableRefObject,
@@ -54,6 +55,7 @@ export interface UseAppInitParams {
   left: PanelTabState;
   right: PanelTabState;
   density: DensityPreference;
+  preferences: UserPreferencesDto | null;
   starred: StarredEntryDto[];
   pushToast: (toast: Omit<ToastMessage, "id">) => void;
   refreshPanel: (
@@ -69,6 +71,7 @@ export interface UseAppInitParams {
   refreshLocations: () => Promise<void>;
   refreshNavigation: () => Promise<void>;
   refreshDiagnostics: () => void;
+  updatePreference: (key: string, value: string) => Promise<void>;
   navigatePanel: (
     panelId: PanelId,
     input: string,
@@ -123,6 +126,7 @@ export function useAppInit({
   left,
   right,
   density,
+  preferences,
   starred,
   pushToast,
   refreshPanel,
@@ -131,6 +135,7 @@ export function useAppInit({
   refreshLocations,
   refreshNavigation,
   refreshDiagnostics,
+  updatePreference,
   navigatePanel,
   applyFolderSizeCompleted,
   applyRecursiveSearchMatch,
@@ -148,6 +153,7 @@ export function useAppInit({
   setDensity,
   setActivityCollapsed,
 }: UseAppInitParams): UseAppInitReturn {
+  const preferencesRef = useRef(preferences);
   const [jobMetrics, setJobMetrics] = useState<
     Record<
       string,
@@ -166,6 +172,10 @@ export function useAppInit({
     () => new Set(starred.map((entry) => entry.uri)),
     [starred],
   );
+
+  useEffect(() => {
+    preferencesRef.current = preferences;
+  }, [preferences]);
 
   const previewEntry = useMemo(() => {
     const tab = activeTab(state.panels[state.activePanelId]);
@@ -205,15 +215,6 @@ export function useAppInit({
     let disposed = false;
     client.fs
       .onDirectoryBatch((event) => {
-        console.log("[FO][batch]", {
-          sessionId: event.sessionId,
-          requestId: event.requestId,
-          uri: event.uri,
-          batchIndex: event.batchIndex,
-          isComplete: event.isComplete,
-          entries: event.entries.length,
-          error: event.error ?? null,
-        });
         dispatch({ type: "applyBatch", batch: event });
       })
       .then((value) => {
@@ -345,6 +346,10 @@ export function useAppInit({
           actionLabel: "View details",
           onAction: () => setOperationError(event.message),
         });
+        if (preferencesRef.current?.jobDrawerBehavior === "openOnError") {
+          setActivityCollapsed(false);
+          void updatePreference("activityPanelVisible", "true");
+        }
         setSearch((current) =>
           current?.jobId === jobIdValue(event.jobId)
             ? { ...current, running: false, error: event.message }

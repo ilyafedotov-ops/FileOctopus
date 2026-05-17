@@ -265,8 +265,6 @@ export function useEventHandlers({
   ) {
     const requestId = createRequestId();
 
-    console.log("[FO][listStart→]", { panelId, uri, requestId, includeHidden });
-
     try {
       const response = await client.fs.listStart({
         uri,
@@ -276,11 +274,6 @@ export function useEventHandlers({
         includeHidden,
       });
 
-      console.log("[FO][listStart←]", {
-        panelId,
-        sessionId: response.sessionId,
-        requestId: response.requestId,
-      });
       dispatch({
         type: "startSession",
         panelId,

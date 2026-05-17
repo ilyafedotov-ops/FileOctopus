@@ -22,7 +22,7 @@ function makePreferences(
     showHiddenFiles: false,
     sidebarWidth: 240,
     splitRatio: 0.5,
-    activityPanelVisible: true,
+    activityPanelVisible: false,
     activityPanelWidth: 288,
     confirmDelete: true,
     confirmPermanentDelete: true,
@@ -33,6 +33,8 @@ function makePreferences(
     iconScale: "medium",
     confirmOverwrite: true,
     sidebarVisible: true,
+    paneMode: "dual",
+    jobDrawerBehavior: "manual",
     ...overrides,
   };
 }
@@ -115,6 +117,29 @@ describe("SettingsDialog", () => {
     fireEvent.click(navButton("Layout"));
     fireEvent.click(screen.getByLabelText("Show sidebar"));
     expect(onChange).toHaveBeenCalledWith("sidebarVisible", "false");
+  });
+
+  it("fires onChange for pane mode and job drawer behavior", () => {
+    const onChange = vi.fn();
+    render(
+      <SettingsDialog
+        open
+        preferences={makePreferences()}
+        autostart={null}
+        onClose={() => {}}
+        onChange={onChange}
+        onSetAutostart={async () => {}}
+      />,
+    );
+    fireEvent.click(navButton("Layout"));
+    fireEvent.change(screen.getByLabelText("Pane mode"), {
+      target: { value: "single" },
+    });
+    fireEvent.change(screen.getByLabelText("Job drawer behavior"), {
+      target: { value: "openOnError" },
+    });
+    expect(onChange).toHaveBeenCalledWith("paneMode", "single");
+    expect(onChange).toHaveBeenCalledWith("jobDrawerBehavior", "openOnError");
   });
 
   it("disables autostart switch when platform is unsupported", () => {

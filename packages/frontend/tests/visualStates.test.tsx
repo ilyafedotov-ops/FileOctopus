@@ -20,8 +20,19 @@ const defaultPreferences = {
   showHiddenFiles: false,
   sidebarWidth: 240,
   splitRatio: 0.5,
-  activityPanelVisible: true,
+  activityPanelVisible: false,
   activityPanelWidth: 288,
+  confirmDelete: true,
+  confirmPermanentDelete: true,
+  useTrashByDefault: true,
+  defaultConflictPolicy: "fail",
+  accentColor: "blue",
+  fontScale: "medium",
+  iconScale: "medium",
+  confirmOverwrite: true,
+  sidebarVisible: true,
+  paneMode: "dual",
+  jobDrawerBehavior: "manual",
 };
 
 describe("visual state fixtures", () => {
@@ -152,8 +163,10 @@ describe("visual state fixtures", () => {
       <SettingsDialog
         open
         preferences={defaultPreferences}
+        autostart={null}
         onClose={noop}
         onChange={noop}
+        onSetAutostart={async () => {}}
       />,
       { theme: "dark" },
     );

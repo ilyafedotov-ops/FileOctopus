@@ -8,13 +8,7 @@ import {
   type ViewMode,
   type PanelTabState,
 } from "../panelStore";
-import {
-  IconButton,
-  Icons,
-  SegmentedControl,
-  Button,
-  cx,
-} from "@fileoctopus/ui";
+import { SegmentedControl, Button, cx } from "@fileoctopus/ui";
 import { PathBar } from "./PanePathBar";
 import { FilterInput, type SearchState } from "./PaneFilterBar";
 import { OperationToolbar } from "./OperationToolbar";
@@ -132,15 +126,6 @@ export function FilePanel({
 }: FilePanelProps) {
   const entries = selectVisibleEntries(tab);
 
-  console.log("[FO][FilePanel render]", {
-    panelId,
-    uri: tab.uri,
-    loadState: tab.loadState,
-    orderedCount: tab.orderedEntryIds.length,
-    visibleCount: entries.length,
-    sessionId: tab.sessionId,
-    activeRequestId: tab.activeRequestId,
-  });
   const selectedEntry =
     entries.find((entry) => entry.uri === tab.selectedId) ?? null;
   const upUri = parentUri(tab.uri);
@@ -162,32 +147,6 @@ export function FilePanel({
       <header className="fo-panel-header">
         <div className="fo-panel-title-row">
           <span className="fo-pane-badge">{title}</span>
-          <div className="fo-panel-nav">
-            <IconButton
-              label={`${panelId} back`}
-              size="sm"
-              disabled={tab.backStack.length === 0}
-              onClick={onBack}
-            >
-              {Icons.chevronLeft()}
-            </IconButton>
-            <IconButton
-              label={`${panelId} forward`}
-              size="sm"
-              disabled={tab.forwardStack.length === 0}
-              onClick={onForward}
-            >
-              {Icons.chevronRight()}
-            </IconButton>
-            <IconButton
-              label={`${panelId} up`}
-              size="sm"
-              disabled={!upUri}
-              onClick={() => upUri && onNavigate(upUri)}
-            >
-              {Icons.arrowUp()}
-            </IconButton>
-          </div>
           <PathBar
             value={tab.uri}
             error={tab.error}
@@ -227,6 +186,12 @@ export function FilePanel({
           canPaste={canPaste}
           showHidden={tab.showHidden}
           viewMode={tab.viewMode}
+          canGoBack={tab.backStack.length > 0}
+          canGoForward={tab.forwardStack.length > 0}
+          canGoUp={Boolean(upUri)}
+          onBack={onBack}
+          onForward={onForward}
+          onUp={() => upUri && onNavigate(upUri)}
           onCreateFolder={onCreateFolder}
           onCreateFile={onCreateFile}
           onRename={onRename}

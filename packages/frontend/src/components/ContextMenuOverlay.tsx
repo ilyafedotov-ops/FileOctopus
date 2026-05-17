@@ -139,9 +139,7 @@ export function ContextMenuOverlay({
       onCopyBreadcrumbPath={(path) => {
         void navigator.clipboard.writeText(path);
       }}
-      onRevealBreadcrumb={() => {
-        /* no-op: reveal needs full entry metadata from backend */
-      }}
+      onRevealBreadcrumb={() => undefined}
       onAddFavorite={(uri) => addFavorite(uri)}
     />
   );

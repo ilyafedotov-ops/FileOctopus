@@ -288,6 +288,40 @@ describe("panel store", () => {
     ]);
   });
 
+  it("inverts visible selection", () => {
+    let state = createInitialState("local:///left", "local:///right");
+
+    state = panelReducer(state, {
+      type: "startSession",
+      panelId: "left",
+      sessionId: "session",
+      requestId: "request",
+    });
+    state = panelReducer(state, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "session",
+        requestId: "request",
+        uri: "local:///left",
+        entries: [entry("a.txt"), entry("b.txt"), entry("c.txt")],
+        batchIndex: 0,
+        isComplete: true,
+      },
+    });
+    state = panelReducer(state, {
+      type: "selectEntry",
+      panelId: "left",
+      entryId: "local:///tmp/b.txt",
+      mode: "single",
+    });
+    state = panelReducer(state, { type: "invertSelection", panelId: "left" });
+
+    expect(activeTab(state.panels.left).selectedIds).toEqual([
+      "local:///tmp/a.txt",
+      "local:///tmp/c.txt",
+    ]);
+  });
+
   it("hydrates both panes from persisted preferences", () => {
     let state = createInitialState("local:///left", "local:///right");
 

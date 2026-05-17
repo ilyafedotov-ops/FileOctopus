@@ -9,6 +9,12 @@ export interface OperationToolbarProps {
   canPaste: boolean;
   showHidden: boolean;
   viewMode: ViewMode;
+  canGoBack: boolean;
+  canGoForward: boolean;
+  canGoUp: boolean;
+  onBack: () => void;
+  onForward: () => void;
+  onUp: () => void;
   onCreateFolder: () => void;
   onCreateFile: () => void;
   onRename: () => void;
@@ -40,6 +46,12 @@ export function OperationToolbar({
   canPaste,
   showHidden,
   viewMode,
+  canGoBack,
+  canGoForward,
+  canGoUp,
+  onBack,
+  onForward,
+  onUp,
   onCreateFolder,
   onCreateFile,
   onRename,
@@ -65,73 +77,123 @@ export function OperationToolbar({
   onChecksum,
 }: OperationToolbarProps) {
   const [overflowOpen, setOverflowOpen] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
 
   return (
     <div className="fo-operation-toolbar" aria-label="File operations">
-      <div className="fo-toolbar-actions">
-        {/* Creation group */}
-        <ToolbarButton
-          primary
-          className="fo-toolbar-priority-high"
-          onClick={onCreateFolder}
+      <div className="fo-toolbar-group fo-toolbar-group-nav">
+        <ToolbarButton disabled={!canGoBack} onClick={onBack}>
+          {Icons.chevronLeft()}
+          <span>Back</span>
+        </ToolbarButton>
+        <ToolbarButton disabled={!canGoForward} onClick={onForward}>
+          {Icons.chevronRight()}
+          <span>Forward</span>
+        </ToolbarButton>
+        <ToolbarButton disabled={!canGoUp} onClick={onUp}>
+          {Icons.arrowUp()}
+          <span>Up</span>
+        </ToolbarButton>
+        <ToolbarButton onClick={onRefresh}>
+          {Icons.refresh()}
+          <span>Refresh</span>
+        </ToolbarButton>
+      </div>
+      <span className="fo-toolbar-separator" aria-hidden="true" />
+      <div className="fo-toolbar-group fo-toolbar-group-create">
+        <DropdownMenu
+          label="New"
+          open={newOpen}
+          onOpenChange={setNewOpen}
+          items={[
+            {
+              id: "new-folder",
+              label: "New Folder",
+              icon: Icons.folderPlus(),
+              shortcut: "Cmd+N",
+              onSelect: onCreateFolder,
+            },
+            {
+              id: "new-file",
+              label: "New File",
+              icon: Icons.filePlus(),
+              onSelect: onCreateFile,
+            },
+          ]}
         >
           {Icons.folderPlus()}
-          <span>New Folder</span>
-        </ToolbarButton>
-        <ToolbarButton
-          className="fo-toolbar-priority-high"
-          onClick={onCreateFile}
-        >
-          {Icons.filePlus()}
-          <span>New File</span>
-        </ToolbarButton>
-        <span className="fo-toolbar-separator" aria-hidden="true" />
-        {/* Operation group */}
-        <ToolbarButton
-          className="fo-toolbar-priority-high"
-          disabled={!canRename}
-          onClick={onRename}
-        >
-          {Icons.pencil()}
-          <span>Rename</span>
-        </ToolbarButton>
-        <ToolbarButton
-          className="fo-toolbar-priority-medium"
-          disabled={selectedCount === 0}
-          onClick={onCopy}
-        >
+          <span>New</span>
+        </DropdownMenu>
+      </div>
+      <span className="fo-toolbar-separator" aria-hidden="true" />
+      <div className="fo-toolbar-group fo-toolbar-group-operations">
+        <ToolbarButton disabled={selectedCount === 0} onClick={onCopyOperation}>
           {Icons.copy()}
-          <span>Copy</span>
+          <span>Copy To…</span>
         </ToolbarButton>
-        <ToolbarButton
-          className="fo-toolbar-priority-medium"
-          disabled={selectedCount === 0}
-          onClick={onMove}
-        >
+        <ToolbarButton disabled={selectedCount === 0} onClick={onMove}>
           {Icons.move()}
-          <span>Move</span>
+          <span>Move To…</span>
         </ToolbarButton>
-        {canPaste ? (
-          <ToolbarButton
-            className="fo-toolbar-priority-medium"
-            onClick={onPaste}
-          >
-            {Icons.copy()}
-            <span>Paste</span>
-          </ToolbarButton>
-        ) : null}
         <ToolbarButton
-          className="fo-toolbar-priority-low"
+          className="fo-toolbar-danger"
           disabled={selectedCount === 0}
           onClick={onTrash}
         >
           {Icons.trash()}
           <span>Trash</span>
         </ToolbarButton>
-        <ToolbarButton className="fo-toolbar-priority-low" onClick={onRefresh}>
-          {Icons.refresh()}
-          <span>Refresh</span>
-        </ToolbarButton>
+      </div>
+      <span className="fo-toolbar-separator" aria-hidden="true" />
+      <div className="fo-toolbar-group fo-toolbar-group-view">
+        <DropdownMenu
+          label="View"
+          open={viewOpen}
+          onOpenChange={setViewOpen}
+          items={[
+            {
+              id: "view-details",
+              label: "Details view",
+              icon: Icons.file(),
+              checked: viewMode === "details",
+              onSelect: () => onViewMode("details"),
+            },
+            {
+              id: "view-list",
+              label: "List view",
+              icon: Icons.file(),
+              checked: viewMode === "list",
+              onSelect: () => onViewMode("list"),
+            },
+            {
+              id: "view-icons",
+              label: "Icons view",
+              icon: Icons.pictures(),
+              checked: viewMode === "icons",
+              onSelect: () => onViewMode("icons"),
+            },
+            {
+              id: "view-columns",
+              label: "Columns view",
+              icon: Icons.folder(),
+              checked: viewMode === "columns",
+              onSelect: () => onViewMode("columns"),
+            },
+            {
+              id: "hidden",
+              label: showHidden ? "Hide Hidden" : "Show Hidden",
+              icon: Icons.file(),
+              shortcut: "Cmd+.",
+              checked: showHidden,
+              separatorBefore: true,
+              onSelect: onToggleHidden,
+            },
+          ]}
+        >
+          {Icons.pictures()}
+          <span>View</span>
+        </DropdownMenu>
       </div>
       <span className="fo-toolbar-spacer" aria-hidden="true" />
       <DropdownMenu
@@ -141,11 +203,26 @@ export function OperationToolbar({
         align="end"
         items={[
           {
+            id: "new-folder",
+            label: "New Folder",
+            icon: Icons.folderPlus(),
+            shortcut: "Cmd+N",
+            onSelect: onCreateFolder,
+          },
+          {
             id: "new-file",
             label: "New File",
             icon: Icons.filePlus(),
             shortcut: "Cmd+N",
             onSelect: onCreateFile,
+          },
+          {
+            id: "copy",
+            label: "Copy",
+            icon: Icons.copy(),
+            shortcut: "Cmd+C",
+            disabled: selectedCount === 0,
+            onSelect: onCopy,
           },
           {
             id: "rename",

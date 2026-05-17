@@ -80,6 +80,7 @@ export type PanelAction =
   | { type: "applyBatch"; batch: DirectoryBatchEventDto }
   | { type: "setSelection"; panelId: PanelId; entryId: string | null }
   | { type: "selectAll"; panelId: PanelId }
+  | { type: "invertSelection"; panelId: PanelId }
   | { type: "clearSelection"; panelId: PanelId }
   | {
       type: "selectEntry";
@@ -172,15 +173,6 @@ export function panelReducer(
       });
     case "startSession":
       return updatePanel(state, action.panelId, (tab) => {
-        console.log("[FO][startSession reducer]", {
-          panelId: action.panelId,
-          sessionId: action.sessionId,
-          requestId: action.requestId,
-          previousSessionId: tab.sessionId,
-          previousRequestId: tab.activeRequestId,
-          previousEntries: tab.orderedEntryIds.length,
-          previousLoadState: tab.loadState,
-        });
         return {
           ...tab,
           sessionId: action.sessionId,
@@ -203,6 +195,21 @@ export function panelReducer(
     case "selectAll":
       return updatePanel(state, action.panelId, (tab) => {
         const ids = selectVisibleEntries(tab).map((entry) => entry.uri);
+
+        return {
+          ...tab,
+          selectedIds: ids,
+          selectedId: ids[0] ?? null,
+          focusedId: ids[0] ?? null,
+          anchorId: ids[0] ?? null,
+        };
+      });
+    case "invertSelection":
+      return updatePanel(state, action.panelId, (tab) => {
+        const selected = new Set(tab.selectedIds);
+        const ids = selectVisibleEntries(tab)
+          .map((entry) => entry.uri)
+          .filter((id) => !selected.has(id));
 
         return {
           ...tab,
@@ -485,25 +492,12 @@ function applyBatch(
   const target = findPanelBySession(state, batch.sessionId);
 
   if (!target) {
-    console.log("[FO][batch-drop] no panel for sessionId", {
-      batchSessionId: batch.sessionId,
-      batchRequestId: batch.requestId,
-      leftSessionId: activeTab(state.panels.left).sessionId,
-      leftRequestId: activeTab(state.panels.left).activeRequestId,
-      rightSessionId: activeTab(state.panels.right).sessionId,
-      rightRequestId: activeTab(state.panels.right).activeRequestId,
-    });
     return state;
   }
 
   const tab = activeTab(state.panels[target]);
 
   if (!shouldApplyBatch(tab.activeRequestId, batch)) {
-    console.log("[FO][batch-drop] requestId mismatch", {
-      target,
-      tabRequestId: tab.activeRequestId,
-      batchRequestId: batch.requestId,
-    });
     return state;
   }
 
@@ -527,16 +521,6 @@ function applyBatch(
 
       entriesById[entry.uri] = entry;
     }
-
-    console.log("[FO][applyBatch reducer]", {
-      target,
-      addedEntries: batch.entries.length,
-      totalEntries: orderedEntryIds.length,
-      isComplete: batch.isComplete,
-      finalLoadState: batch.isComplete
-        ? terminalLoadState(orderedEntryIds.length, batch.error)
-        : "loading",
-    });
 
     const retainedSelection = current.selectedIds.filter(
       (id) => entriesById[id],
