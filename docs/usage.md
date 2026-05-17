@@ -1,6 +1,6 @@
 # FileOctopus — Usage
 
-Keyboard shortcuts below match `packages/frontend/src/shortcuts.ts` plus shell handlers in `index.tsx`. Open **Help → Keyboard Shortcuts** in the app for the platform-formatted list.
+Keyboard shortcuts below match `packages/frontend/src/shortcuts.ts` plus `hooks/useKeyboardShortcuts.ts` in `FileOctopusApp`. The command palette (Ctrl/Cmd+P) lists commands from `commands/registry.ts` via `buildPaletteEntries()`. Open **Help → Keyboard Shortcuts** in the app for the platform-formatted list.
 
 Shortcuts are ignored while typing in inputs, text areas, or contenteditable fields.
 
@@ -36,7 +36,8 @@ Arrow keys, Page Up/Down, Home, and End move selection in the file table.
 
 - Navigate via sidebar, breadcrumbs, path entry, or history buttons.
 - Open folders in-app; open files with the OS default application.
-- Use toolbar, context menu, or shortcuts for copy, move, rename, new folder/file, trash, and properties.
+- Use menu bar, toolbar, context menu, command palette, or shortcuts for copy, move, rename, new folder/file, trash, and properties.
+- **Tools → Operation History** opens the full operation history dialog.
 - Long operations show progress in the activity panel; cancel from the job card when running.
 - **Help → Diagnostics** exports a redacted bundle for bug reports.
 

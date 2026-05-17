@@ -59,7 +59,7 @@ pub struct JobSnapshot {
 }
 ```
 
-`total_bytes` is `None` when the plan could not compute a byte total (directories, missing metadata). The frontend renders an indeterminate progress in that case (see `packages/frontend/src/index.tsx`, `JobActivityPanel`).
+`total_bytes` is `None` when the plan could not compute a byte total (directories, missing metadata). The frontend renders an indeterminate progress in that case (see `packages/frontend/src/jobs/JobCard.tsx` / `ActivityPanel.tsx`).
 
 `error_code` mirrors `FileOperationError::code()` for failed jobs and is the value the UI branches on. `message` is the human-readable `user_message()`.
 

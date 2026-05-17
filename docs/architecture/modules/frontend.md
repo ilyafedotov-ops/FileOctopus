@@ -1,22 +1,20 @@
 # `@fileoctopus/frontend` — React shell
 
-> **Doc freshness (2026-05-16):** This page describes an earlier shell layout. The live UI is in `packages/frontend/src/index.tsx` (sidebar, settings/shortcuts/diagnostics dialogs, command palette, preview panel, columns view, expanded `SortField`, etc.). For status vs specs see [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
+> **Doc freshness (2026-05-17):** Shell decomposed from the former monolith (`index.tsx` + `App.css`). Entry is `FileOctopusApp`; styles live in `packages/frontend/src/styles/` and are imported by `apps/desktop-tauri/src/App.css`. For delivery vs UI specs see [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
 
-`packages/frontend` is the **product UI**: the two-panel file manager, the operation toolbar, the job activity panel, and the operation dialogs. It is a pure React 19 component package — no application bootstrap, no Tauri import. The desktop shell mounts it; the React build can also run in a plain browser against the preview transport in `@fileoctopus/ts-api`.
+`packages/frontend` is the **product UI**: dual-pane file manager, sidebar, menu bar, operation toolbar, jobs/activity rail, modals, and command palette. It is a pure React 19 package — no Tauri import. The desktop shell mounts it; Vitest runs against the preview transport in `@fileoctopus/ts-api`.
 
-- Source: `packages/frontend/src/{index,panelStore}.{tsx,ts}`, `packages/frontend/src/hooks/useFileOpHandlers.ts`, `packages/frontend/src/hooks/fileOps/*.ts`
-- Depends on: `@fileoctopus/ts-api`, `@fileoctopus/ui`, `react` (peer).
-- Used by: `apps/desktop-tauri/src/App.tsx`.
+- **Source:** `packages/frontend/src/`
+- **Depends on:** `@fileoctopus/ts-api`, `@fileoctopus/ui`, `react` (peer)
+- **Used by:** `apps/desktop-tauri/src/App.tsx`
 
 ## Public surface
 
-A single component is exported:
-
 ```ts
-export function FileOctopusShell(): JSX.Element;
+export { FileOctopusApp, FileOctopusShell } from "./app/FileOctopusApp";
 ```
 
-Plus the panel store primitives, which are exported for tests:
+`FileOctopusShell` is an alias for `FileOctopusApp`. Panel store primitives remain exported for tests:
 
 ```ts
 export {
@@ -27,172 +25,176 @@ export {
   parentUri,
   selectVisibleEntries,
 } from "./panelStore";
-export type { PanelId, PanelTabState, SortField } from "./panelStore";
+export type { PanelId, PanelTabState, SortField, ViewMode } from "./panelStore";
 ```
+
+## Package layout
+
+```text
+packages/frontend/src/
+  index.tsx                 # re-exports FileOctopusApp / FileOctopusShell
+  app/
+    FileOctopusApp.tsx      # orchestration: IPC effects, handlers, shell context
+    providers/
+      AppProviders.tsx      # ShellProvider → JobsProvider → ModalsProvider
+      ShellProvider.tsx     # client, preferences, navigation, toasts, layout chrome
+      JobsProvider.tsx      # live jobs map + history refresh
+      ModalsProvider.tsx    # settings, shortcuts, diagnostics, about, go-to, favorites, operation history
+  shell/
+    AppShell.tsx            # grid: sidebar, workspace, activity rail, status bar
+    ShellLayout.tsx         # composes title bar, menu, panes, overlays
+    ShellLayoutContext.tsx  # props bag for overlays and pane workspace
+    PaneWorkspace.tsx       # dual/single pane + resizers
+    MenuBar.tsx             # application menu (wired via useMenuBarProps + dispatch)
+    ShellOverlays.tsx       # dialogs, palette, context menu, preview
+    ShellStatusBar.tsx
+  pane/                     # FilePanel, FileTable, OperationToolbar, path/filter bars
+  sidebar/
+  jobs/                     # ActivityPanel, JobCard, OperationHistoryList (was activity/)
+  components/
+    dialogs/                # About, GoToLocation, ManageFavorites, Properties, Conflict, ErrorDetails, OperationHistory
+    CommandPalette.tsx
+    ContextMenu.tsx         # thin shell; menu bodies in menus/context/*
+  menus/context/
+    ContextMenuPrimitives.tsx
+    buildBreadcrumbMenu.tsx
+    buildPaneBackgroundMenu.tsx
+    buildFileEntryMenu.tsx
+  commands/
+    types.ts                # CommandId, CommandGroup
+    registry.ts             # COMMAND_DEFINITIONS + shortcut formatting
+    bindings.ts             # COMMAND_BINDINGS (menu / toolbar / palette targets)
+    dispatch.ts             # dispatchCommand + CommandDispatchDeps
+    paletteEntries.ts       # buildPaletteEntries() for CommandPalette
+  state/
+    paneReducer.ts          # composes navigation, listing, selection, sort/filter slices
+    slices/                 # navigationSlice, listingSlice, selectionSlice, sortFilterSlice
+    layoutStore.ts          # focus tokens (path, filter, rename, recursive search)
+  hooks/
+    useFileOpHandlers.ts    # facade over hooks/fileOps/*
+    useCommandDispatch.ts   # palette + legacy switch-pane/filter → dispatchCommand
+    useMenuBarProps.ts      # MenuBar callbacks → runCommand where possible
+    useKeyboardShortcuts.ts # global keymap (not yet on command registry)
+    useWorkspaceLayout.ts   # data-layout / data-layout-tier on shell
+    fileOps/                # clipboard, mutations, transfers, metadata, archive
+  styles/
+    app.css                 # entry: density, themes, regions/layout.css
+    regions/                # base, shell, sidebar, pane, jobs, dialogs, shared
+  panelStore.ts             # types, selectors, reducePanelAction delegate
+```
+
+Styling uses the `fo-*` class prefix. **Do not add CSS under `apps/desktop-tauri/src/`** except `App.css` importing `@fileoctopus/frontend/styles/app.css`.
 
 ## Component tree
 
 ```
-FileOctopusShell
- ├── <header>  topbar (active panel indicator)
- ├── <section> fo-panels
- │     ├── FilePanel (left)        ── PathBar, OperationToolbar, FileTable
- │     └── FilePanel (right)       ── PathBar, OperationToolbar, FileTable
- ├── JobActivityPanel               (live jobs + recent history)
- ├── OperationDialogView            (modal for create/rename/copy-move/trash)
- └── <footer> status (selection + entry counts)
-
-ErrorBoundary wraps the whole tree to catch render-time exceptions.
+AppProviders
+ └── FileOctopusApp
+      ├── AppShell
+      │    ├── TitleBar + MenuBar
+      │    ├── Sidebar
+      │    ├── PaneWorkspace → FilePanel × (1|2)
+      │    ├── ActivityPanel (jobs rail; pinned open per product choice vs overlay drawer in UI spec §15)
+      │    └── ShellStatusBar
+      └── ShellOverlays
+           ├── DialogOverlayGroup (settings, shortcuts, diagnostics, about, go-to, favorites, operation history, operation dialog)
+           ├── CommandPalette
+           ├── ContextMenuOverlay → ContextMenu
+           └── PreviewPanel
 ```
 
-The shell owns:
+`ErrorBoundary` wraps the tree. Live job state and operation history come from `JobsProvider`; modal open flags from `ModalsProvider`; navigation/client/preferences from `ShellProvider`.
 
-- `state` (panel state, via `useReducer(panelReducer)`).
-- `jobs` (live `Record<jobId, JobSnapshot>`).
-- `history` (`OperationHistoryRecordDto[]` from `operationHistory.listRecentOperations`).
-- `operationError` (string | null) — the last user-facing IPC error.
-- `dialog` (`OperationDialog | null`) — the active modal.
+## Command system
 
-These are all `useState` / `useReducer` locals; there is no global store. Persistence between sessions, if needed, would land in `panelStore` (currently `homeUri()` reads a `localStorage` key as a hint).
+User actions are converging on a single **command id** vocabulary (`commands/types.ts` + `commands/registry.ts`).
+
+| Layer                             | Role                                                                                                      |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `COMMAND_DEFINITIONS`             | Labels, groups, platform shortcuts                                                                        |
+| `dispatchCommand(id, deps)`       | Executes app/nav/view/op/clipboard/selection commands; legacy aliases (`settings` → `app.settings`, etc.) |
+| `buildPaletteEntries()`           | Palette rows from registry + legacy `switch-pane` / `filter`                                              |
+| `useCommandDispatch`              | Closes palette, handles `switch-pane` / `filter`, then dispatch                                           |
+| `useMenuBarProps({ runCommand })` | Most menu items call `runCommand("…")`                                                                    |
+
+**Wired through dispatch today:** app modals, navigation, view modes/toggles, create folder/file, copy/cut/paste/trash/delete, properties, open/reveal/open-default, clipboard copy variants, selection select/clear/invert, copy-to/move-to, operation history.
+
+**Still direct handlers (not dispatch):** keyboard shortcuts (`useKeyboardShortcuts.ts`), many context-menu actions (via `ContextMenuOverlay` props), toolbar buttons, sidebar, drag-and-drop, sort/theme/density menu paths, favorites add, diagnostics export bundle, pane switch via menu `onSwitchPane`.
+
+When adding a user-visible action, prefer: register in `registry.ts` → implement in `dispatch.ts` → bind in `bindings.ts` / menu / palette / shortcuts.
+
+## State
+
+### Panel state (`panelStore.ts` + `state/paneReducer.ts`)
+
+`FileOctopusState` holds `activePanelId` and `panels.left` / `panels.right`. Each panel has tabs; today only `"main"` is used. `reducePanelAction` delegates to slices:
+
+- **navigation** — `navigate`, history stacks
+- **listing** — `startSession`, `applyBatch`, loading/error
+- **selection** — single/range/toggle, select all, invert, clear
+- **sort/filter** — `setSort`, `setFilter`, `toggleHidden`, `setViewMode`
+
+Selectors: `activeTab`, `selectVisibleEntries`, `parentUri`, `normalizeLocalInput`.
+
+### Layout focus (`state/layoutStore.ts`)
+
+Zustand store for UI focus tokens consumed by path bar, filter bar, inline rename, and recursive search — not persisted preferences.
+
+### Jobs and modals
+
+- **Jobs:** `Record<jobId, JobSnapshot>` + `operationHistory.listRecentOperations` in `JobsProvider`.
+- **Modals:** boolean flags in `ModalsProvider` (settings, shortcuts, diagnostics, about, go-to location, manage favorites, operation history).
 
 ## File-operation handlers
 
-`hooks/useFileOpHandlers.ts` is a thin facade that composes domain hooks from `hooks/fileOps/`:
+`hooks/useFileOpHandlers.ts` composes:
 
-| Hook file                 | Responsibility                                          |
-| ------------------------- | ------------------------------------------------------- |
-| `useOperationCore.ts`     | Shared dialog state, plan/start wiring, error surfacing |
-| `useClipboardHandlers.ts` | Copy/cut/paste clipboard flows                          |
-| `useMutationHandlers.ts`  | Create, rename, delete/trash                            |
-| `useTransferHandlers.ts`  | Copy/move dialog submit                                 |
-| `useMetadataHandlers.ts`  | Properties, hash, folder size                           |
-| `useArchiveHandlers.ts`   | Archive extract/compress                                |
+| Hook                      | Responsibility                            |
+| ------------------------- | ----------------------------------------- |
+| `useOperationCore.ts`     | Dialog state, plan/start, error surfacing |
+| `useClipboardHandlers.ts` | Copy/cut/paste clipboard                  |
+| `useMutationHandlers.ts`  | Create, rename, trash, permanent delete   |
+| `useTransferHandlers.ts`  | Copy/move dialog                          |
+| `useMetadataHandlers.ts`  | Properties, hash, folder size             |
+| `useArchiveHandlers.ts`   | Compress/extract                          |
 
-`FileOctopusShell` imports the composed hook once; callers do not need to know about the split.
+`FileOctopusApp` wires these into shell context and dispatch deps once.
 
 ## Lifecycle and effects
 
-`FileOctopusShell` runs three effects:
+`FileOctopusApp` (via `useAppInit` / shell effects):
 
-1. **Directory-batch subscription**, on mount and on each `client` change (memoized once). Dispatches `applyBatch` actions to the reducer.
-2. **Job event subscriptions** for all five `fileOperation:job:*` events. Each callback merges its event into the `jobs` map; terminal events also refresh the visible panels and reload history. Effect re-runs when `left.uri` / `right.uri` change so subscriptions follow the active panels.
-3. **Initial navigation** runs once on mount: triggers `navigatePanel` for left and right, plus the first `refreshHistory` and diagnostics calls.
+1. **Directory-batch subscription** — dispatches `applyBatch` by `sessionId`.
+2. **Job event subscriptions** — merge into jobs map; terminal events refresh panels and history.
+3. **Initial navigation** — both panes, history, diagnostics.
 
-`navigatePanel` is the operation that wires together URI normalization, the reducer dispatch, and the `fs.list_start` call:
-
-```
-normalizeLocalInput(input) ─► dispatch "navigate" ─► client.fs.listStart(...) ─► dispatch "startSession"
-```
-
-The reducer keys the panel by the returned `sessionId`; subsequent `directory:batch` events are routed by matching their `sessionId` to the panel.
-
-## `panelStore`
-
-`src/panelStore.ts` is a pure reducer module — no React imports.
-
-```ts
-type PanelId = "left" | "right";
-type SortField = "name" | "type" | "size" | "modified";
-
-interface PanelTabState {
-  uri: string;
-  entriesById: Record<string, FileEntryDto>;
-  orderedEntryIds: string[];
-  selectedIds: string[];
-  selectedId: string | null;
-  focusedId: string | null;
-  anchorId: string | null;
-  sessionId: string | null;
-  loading: boolean;
-  error: string | null;
-  filter: string;
-  sort: SortState;
-}
-
-interface PanelState {
-  id: PanelId;
-  activeTabId: string;
-  tabs: Record<string, PanelTabState>;
-}
-interface FileOctopusState {
-  activePanelId: PanelId;
-  panels: Record<PanelId, PanelState>;
-}
-```
-
-A panel is a list of tabs keyed by id; the active tab is tracked by `activeTabId`. Today only one tab (`"main"`) is created per panel, but the shape is ready for multi-tab navigation.
-
-### Actions
-
-| Action                                           | Effect                                                                                                                                                               |
-| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `setActivePanel`                                 | Updates `activePanelId`.                                                                                                                                             |
-| `navigate`                                       | Clears entries/selection, sets the new URI, marks `loading: true`, clears any prior `sessionId`.                                                                     |
-| `startSession`                                   | Stores the `sessionId` returned by `fs.list_start`. Subsequent batches with that id are routed here.                                                                 |
-| `applyBatch`                                     | Merges incoming entries into `entriesById` + `orderedEntryIds`, preserves selection where possible, clears `loading` on the final batch, surfaces any `batch.error`. |
-| `setSelection`                                   | Single-id selection.                                                                                                                                                 |
-| `selectEntry`                                    | Multi-id selection with `mode: "single" \| "toggle" \| "range"`. Range mode walks the visible (sorted+filtered) entry list between `anchorId` and the clicked id.    |
-| `moveSelection`                                  | Keyboard navigation (Up/Down/PageUp/PageDown/Home/End).                                                                                                              |
-| `setLoading`, `setError`, `setFilter`, `setSort` | Field updates.                                                                                                                                                       |
-
-### Selectors
-
-- `activeTab(panel)` — returns the active `PanelTabState`.
-- `selectVisibleEntries(tab)` — applies the filter (case-insensitive substring on `name`) and the sort. Directories first by default (`sort.directoriesFirst`); the field comparator is name (numeric+base), type, size, or modified time.
-- `parentUri(uri)` — strips one `/<segment>` from a `local://` URI; returns `null` at the root.
-- `normalizeLocalInput(value)` — accepts a `local://` URI, an absolute POSIX path, or a Windows drive path. Anything else passes through unchanged; the UI checks for `startsWith("local://")` and surfaces a friendly error if it isn't.
-
-### Conventions
-
-- **No reducer side effects.** The reducer is pure; all I/O is in `FileOctopusShell`. Action handlers in the shell are responsible for sequencing dispatches with `client.*` calls.
-- **Entries are keyed by URI.** `entriesById` and `selectedIds` both store `FileEntryDto.uri`. Renames cause a fresh URI on the next batch — that's why `applyBatch` falls back to the first id if the previously-selected URI is gone.
-- **Selection is derived, not authoritative.** The visible/sorted/filtered order is recomputed on every render via `selectVisibleEntries`. Don't cache it in state.
+`navigatePanel`: `normalizeLocalInput` → dispatch `navigate` → `client.fs.listStart` → dispatch `startSession`.
 
 ## Operations UX
 
-Five operation entry points are exposed through `OperationToolbar`:
+Toolbar and dialogs expose create/rename/copy-move/trash/archive flows. `operationErrorMessage` in `FileOctopusApp` maps stable IPC codes to user strings.
 
-- **New Folder** — opens the `createFolder` dialog. Validates the name (`isValidName` rejects empty, path separators, NULs). On submit, calls `startOperation("createDirectory", [], joinLocalUri(uri, name))`.
-- **Rename** — only enabled when exactly one entry is selected. Opens the `rename` dialog pre-filled with the current name.
-- **Copy / Move** — opens the `copyMove` dialog with the other panel's URI as the default destination and `ConflictPolicy = "fail"`. The dialog has a two-step submit: **Plan** calls `client.fileOperations.planFileOperation` and renders the plan summary (item count, first 3 conflicts, first 3 warnings); **Start** uses the cached plan via `startPlannedOperation`.
-- **Move to Trash** — opens the `trash` dialog with a confirmation summary; submit calls `startOperation("deleteToTrash", uris)`.
+Inline rename: F2 / toolbar when one item selected; invalid names fall back to the rename dialog.
 
-`operationErrorMessage(code, fallback)` maps common error codes (`permission_denied`, `not_found`, `destination_missing`, `destination_conflict`, `invalid_name`, `unsupported_symlink`, `unsupported_trash`, `cancelled`, `interrupted`) to friendly strings. Any other code falls back to `message`.
+## Jobs / activity rail
 
-## Job activity
-
-`JobActivityPanel` reads from the `jobs` map and the `history` array:
-
-- Active jobs (`queued` or `running`) are shown with a progress bar driven by `completedBytes/totalBytes` (falling back to `completedItems/totalItems` when `totalBytes` is null) and a Cancel button.
-- The five most recent terminal jobs (`completed`/`failed`/`cancelled`) are shown below.
-- The history section lists rows from `operationHistory.listRecentOperations({ limit: 20 })`.
-
-`refreshHistory` is called on initial mount, after every terminal job event, and on the Refresh button click.
+`jobs/ActivityPanel.tsx` shows active jobs with cancel, recent terminal jobs, and a short history list. Full history: **Tools → Operation History** → `OperationHistoryDialog` (shared `OperationHistoryList`).
 
 ## Virtualization
 
-`FileTable` implements a simple row virtualizer:
-
-- Fixed `rowHeight = 30`, `overscan = 8`.
-- The viewport's `scrollTop` is captured via `onScroll`; the visible window is `[startIndex, startIndex + visibleCount)`.
-- Rows are positioned absolutely via `transform: translateY(top)`.
-- Keyboard handling (`handleKeyDown`) dispatches `moveSelection` for Up/Down/Page/Home/End and `onActivate` for Enter; `useEffect` keeps the focused row inside the viewport.
-
-This is intentionally lightweight — no `react-virtual` or similar dependency. The Sprint 1 perf protocol (`docs/testing/large-directory-performance.md`) validates that 100k entry lists scroll cleanly under this implementation.
+`FileTable` uses a fixed row height virtualizer (no `react-virtual`). See `docs/testing/large-directory-performance.md`.
 
 ## Conventions
 
-- **Use `@fileoctopus/ts-api` for all IPC.** Never import `@tauri-apps/api` here.
-- **Render is a function of state.** Avoid `useEffect` for derived data; use `useMemo` or recompute on render.
-- **Friendly errors come from `operationErrorMessage`.** When you introduce a new error code, add a mapping here.
-- **No CSS-in-JS.** Styling lives in `apps/desktop-tauri/src/App.css`. Class names use the `fo-*` prefix.
-- **Tabs are first-class even though there's one today.** Reach `PanelTabState` through `activeTab(panel)` rather than `panel.tabs.main`.
+- **IPC only through `@fileoctopus/ts-api`.** No `@tauri-apps/api` in this package.
+- **`local://` URIs** at persistence and IPC boundaries (ADR-0003).
+- **Pure reducer** — no I/O in `panelStore` / slices.
+- **Render from state** — prefer `useMemo` over effect-derived data.
+- **Tests:** `packages/frontend/tests/` — `panelStore.test.ts`, `appShell.test.tsx`, `commands.*.test.ts`. Run: `pnpm --filter @fileoctopus/frontend test`.
 
-## Tests
+## Related docs
 
-`packages/frontend/tests/`:
-
-- `panelStore.test.ts` — exhaustive reducer/selector coverage (navigate, applyBatch, multi-select modes, sort/filter, parent URI math).
-- `appShell.test.tsx` — Vitest + `@testing-library/react` renders against a mock `IpcTransport`, asserts that initial navigation triggers the right invokes and the shell renders entries from a stubbed batch.
-
-Run with `pnpm --filter @fileoctopus/frontend test`.
+- [API reference](../api-reference.md) — IPC contract (update when boundary changes)
+- [UI Design Spec](../../FileOctopus_UI_Design_and_Layout_Specification-1.md) — target layout/UX
+- [Menu & Modal Spec](../../plans/FileOctopus_Menu_and_Modal_Specification.md) — menu catalog; many items now routed via dispatch
+- [Pane lifecycle](../pane-lifecycle.md) — list sessions and batch streaming

@@ -8,12 +8,13 @@
 
 ## Current State Summary
 
-- **Frontend:** 48 TypeScript/TSX files across `packages/frontend/src/`
-- **CSS:** `apps/desktop-tauri/src/App.css` — 2586 lines, 289 `--fo-*` variables
-- **Tests:** 97 Vitest + 152 Playwright E2E
+- **Frontend:** ~100 TS/TSX files; entry `index.tsx` → `app/FileOctopusApp.tsx` (see [modules/frontend.md](../architecture/modules/frontend.md))
+- **CSS:** `packages/frontend/src/styles/regions/*.css` imported by `apps/desktop-tauri/src/App.css` (monolithic `App.css` removed from app package)
+- **Tests:** 114 Vitest (frontend) + Playwright E2E
+- **Commands:** `commands/{registry,dispatch,paletteEntries}`; menu bar → `dispatchCommand`; palette from registry
 - **Themes:** Dark/Light with `data-theme` attribute
-- **Density:** 3 modes (`compact`/`comfortable`/`spacious`) — only `--fo-row-height` varies
-- **Decomposition:** index.tsx reduced from 3628 → 515 lines (-86%)
+- **Density:** 3 modes (`compact`/`comfortable`/`spacious`)
+- **Activity UI:** pinned jobs rail (`jobs/ActivityPanel`) — not overlay drawer (product choice vs spec §15)
 
 ### Already Implemented (from spec §30)
 
