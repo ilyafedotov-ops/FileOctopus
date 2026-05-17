@@ -1,9 +1,7 @@
 import type { Dispatch } from "react";
-import {
-  normalizeIpcError,
-  type FileOctopusClient,
-  type StandardLocationDto,
-  type UserPreferencesDto,
+import type {
+  StandardLocationDto,
+  UserPreferencesDto,
 } from "@fileoctopus/ts-api";
 import {
   activeTab,
@@ -15,21 +13,17 @@ import {
 } from "../panelStore";
 import type { MenuBarProps } from "../shell/MenuBar";
 import type { FileClipboardState } from "./useFileOpHandlers";
-import type { ToastMessage } from "../components/ToastStack";
 import { viewModeCommandId } from "../commands/viewModeCommands";
 
 export interface UseMenuBarPropsParams {
   state: FileOctopusState;
   dispatch: Dispatch<PanelAction>;
-  client: FileOctopusClient;
   locations: StandardLocationDto[];
   clipboard: FileClipboardState | null;
   preferences: UserPreferencesDto | null;
   navigatePanel: (panelId: PanelId, uri: string) => void;
-  refreshNavigation: () => void;
   exportDiagnostics: () => Promise<void>;
   handleRename: (panelId: PanelId) => void;
-  pushToast: (toast: Omit<ToastMessage, "id">) => void;
   setFilterFocusToken: (fn: (v: number) => number) => void;
   setRecursiveSearchFocusToken: (fn: (v: number) => number) => void;
   setDiagnosticsOpen: (v: boolean) => void;
@@ -46,15 +40,12 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
   const {
     state,
     dispatch,
-    client,
     locations,
     clipboard,
     preferences,
     navigatePanel,
-    refreshNavigation,
     exportDiagnostics,
     handleRename,
-    pushToast,
     setFilterFocusToken,
     setRecursiveSearchFocusToken,
     setDiagnosticsOpen,
@@ -132,16 +123,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onToggleDualPane: () => runCommand("view.toggleDualPane"),
     onToggleHidden: () => runCommand("view.toggleHidden"),
     onRefresh: () => runCommand("nav.refresh"),
-    onAddFavorite: () => {
-      const uri = tab.uri;
-      const name = uri.split("/").filter(Boolean).pop() ?? "Untitled";
-      void client.navigation
-        .addFavorite({ uri, label: name })
-        .then(() => refreshNavigation())
-        .catch((error) =>
-          pushToast({ tone: "error", title: normalizeIpcError(error).message }),
-        );
-    },
+    onAddFavorite: () => runCommand("nav.addFavorite", panelId),
     onManageFavorites: () => runCommand("nav.manageFavorites"),
     onOperationHistory: () => runCommand("app.operationHistory"),
     onFilter: () => setFilterFocusToken((v) => v + 1),

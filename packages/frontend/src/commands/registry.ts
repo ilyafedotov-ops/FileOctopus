@@ -52,6 +52,16 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     group: "navigation",
   },
   {
+    id: "nav.openUri",
+    label: "Open Location",
+    group: "navigation",
+  },
+  {
+    id: "nav.revealUri",
+    label: "Reveal in File Manager",
+    group: "navigation",
+  },
+  {
     id: "create.folder",
     label: "New Folder",
     group: "creation",

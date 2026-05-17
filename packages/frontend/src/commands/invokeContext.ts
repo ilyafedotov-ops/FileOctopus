@@ -3,6 +3,7 @@ import type { SortField } from "../panelStore";
 
 export interface CommandInvokeContext {
   entry?: FileEntryDto | null;
+  targetUri?: string;
   sortField?: SortField;
   sortAscending?: boolean;
   preferenceValue?: string;
@@ -17,7 +18,8 @@ function isFileEntryDto(value: unknown): value is FileEntryDto {
     "uri" in value &&
     "kind" in value &&
     !("sortField" in value) &&
-    !("preferenceValue" in value)
+    !("preferenceValue" in value) &&
+    !("targetUri" in value)
   );
 }
 

@@ -57,7 +57,9 @@ export function ShellOverlays() {
         refreshHistory={ctx.refreshHistory}
         clearHistory={ctx.clearHistory}
         onNavigateActivePane={(uri) =>
-          void ctx.navigatePanel(ctx.state.activePanelId, uri)
+          ctx.handleCommandSelect("nav.openUri", ctx.state.activePanelId, {
+            targetUri: uri,
+          })
         }
         onRemoveFavorite={(id) => {
           void ctx.client.navigation

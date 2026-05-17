@@ -65,11 +65,13 @@ packages/frontend/src/
     registry.ts             # COMMAND_DEFINITIONS + shortcut formatting
     bindings.ts             # COMMAND_BINDINGS (menu / toolbar / palette targets)
     dispatch.ts             # dispatchCommand + CommandDispatchDeps
+    invokeContext.ts        # CommandInvokeContext / CommandInvokeArg (entry, targetUri, sort, prefs)
     paletteEntries.ts       # buildPaletteEntries() for CommandPalette
   state/
     paneReducer.ts          # composes navigation, listing, selection, sort/filter slices
     slices/                 # navigationSlice, listingSlice, selectionSlice, sortFilterSlice
     layoutStore.ts          # focus tokens (path, filter, rename, recursive search)
+    chromeStore.ts          # status bar / toolbar visibility (localStorage + data-* on <html>)
   hooks/
     useFileOpHandlers.ts    # facade over hooks/fileOps/*
     useCommandDispatch.ts   # palette + legacy switch-pane/filter → dispatchCommand
@@ -109,20 +111,20 @@ AppProviders
 
 User actions are converging on a single **command id** vocabulary (`commands/types.ts` + `commands/registry.ts`).
 
-| Layer                                     | Role                                                                                                |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `COMMAND_DEFINITIONS`                     | Labels, groups, platform shortcuts                                                                  |
-| `dispatchCommand(id, deps, { panelId? })` | Executes commands for active or overridden pane; legacy aliases (`settings` → `app.settings`, etc.) |
-| `buildPaletteEntries()`                   | Palette rows from registry + legacy `switch-pane` / `filter`                                        |
-| `buildShortcutHelpEntries()`              | Shortcuts dialog + Settings → Shortcuts (registry + supplemental rows)                              |
-| `useCommandDispatch(id, panelId?)`        | Closes palette, handles `switch-pane` / `filter`, then dispatch                                     |
-| `useMenuBarProps({ runCommand })`         | Most menu items call `runCommand("…")`                                                              |
+| Layer                                        | Role                                                                                                |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `COMMAND_DEFINITIONS`                        | Labels, groups, platform shortcuts                                                                  |
+| `dispatchCommand(id, deps, { panelId? })`    | Executes commands for active or overridden pane; legacy aliases (`settings` → `app.settings`, etc.) |
+| `buildPaletteEntries()`                      | Palette rows from registry + legacy `switch-pane` / `filter`                                        |
+| `buildShortcutHelpEntries()`                 | Shortcuts dialog + Settings → Shortcuts (registry + supplemental rows)                              |
+| `useCommandDispatch(id, panelId?, context?)` | Closes palette, handles `filter`, normalizes `CommandInvokeArg`, then `dispatchCommand`             |
+| `useMenuBarProps({ runCommand })`            | Menu items call `runCommand` (sort, theme, density, chrome toggles, favorites, etc.)                |
 
-**Wired through dispatch today:** app modals, navigation, view modes/toggles (hidden files refreshes listing), create folder/file, copy/cut/paste/trash/delete, properties, open/reveal/open-default, clipboard copy variants, selection select/clear/invert, copy-to/move-to, operation history; **pane toolbar**, **context menu** (`runPanelCommand`), and **global keyboard** shortcuts.
+**Wired through dispatch today:** app modals; navigation (back/forward/up/home/refresh/go-to/manage favorites, `nav.openUri` for sidebar/go-to dialogs, `nav.revealUri`, `nav.addFavorite` with optional `targetUri`); view modes and toggles (sidebar, dual pane, hidden files, activity rail, status bar, toolbar); sort (`view.sort` + direction); theme/density preferences; layout (`layout.switchPane`, `layout.equalizePanes`); create/copy/cut/paste/trash/delete; properties, compress/extract/checksum/terminal/size/starred; open/reveal/open-default; clipboard and selection; **pane toolbar**, **context menu** (`runPanelCommand`), **menu bar**, and **global keyboard** shortcuts.
 
-**Still direct handlers (not dispatch):** path/recursive-search focus and text preview (Space); context-menu open/reveal with explicit `FileEntryDto`; breadcrumb “add favorite” (arbitrary URI); sort submenu; sidebar; drag-and-drop; theme/density; diagnostics export; menu `onSwitchPane`.
+**Still direct handlers (not dispatch):** path/recursive-search focus and text preview (Space); context-menu open/reveal with explicit `FileEntryDto` when entry is known; breadcrumb “add favorite” with arbitrary path string; sidebar favorite rename/remove (IPC by favorite id); drag-and-drop; diagnostics export; activity rail collapse (preference write); sidebar width / split ratio resizers.
 
-When adding a user-visible action, prefer: register in `registry.ts` → implement in `dispatch.ts` → bind in `bindings.ts` / menu / palette / shortcuts.
+When adding a user-visible action, prefer: register in `registry.ts` → implement in `dispatch.ts` → bind in `bindings.ts` / menu / palette / shortcuts. Pass pane-specific data via `CommandInvokeContext` (`entry`, `targetUri`, `sortField`, `preferenceValue`).
 
 ## State
 
@@ -140,6 +142,10 @@ Selectors: `activeTab`, `selectVisibleEntries`, `parentUri`, `normalizeLocalInpu
 ### Layout focus (`state/layoutStore.ts`)
 
 Zustand store for UI focus tokens consumed by path bar, filter bar, inline rename, and recursive search — not persisted preferences.
+
+### Chrome layout (`state/chromeStore.ts`)
+
+Status bar and pane toolbar visibility persist in `localStorage` and mirror to `data-status-bar` / `data-toolbar-hidden` on `<html>` (see `styles/regions/shell.css`). Toggled via `view.toggleStatusBar` / `view.toggleToolbar` — not yet in `UserPreferencesDto` IPC.
 
 ### Jobs and modals
 

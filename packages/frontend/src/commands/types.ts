@@ -36,6 +36,8 @@ export type CommandId =
   | "op.calculateSize"
   | "op.toggleStarred"
   | "nav.addFavorite"
+  | "nav.openUri"
+  | "nav.revealUri"
   | "view.details"
   | "view.list"
   | "view.compact"

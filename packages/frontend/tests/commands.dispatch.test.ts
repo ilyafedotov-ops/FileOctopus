@@ -44,6 +44,12 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
     calculateSize: vi.fn(),
     toggleStarredForEntry: vi.fn(),
     addFavorite: vi.fn(),
+    setTheme: vi.fn(),
+    setDensity: vi.fn(),
+    equalizePanes: vi.fn(),
+    toggleStatusBar: vi.fn(),
+    toggleToolbar: vi.fn(),
+    revealUri: vi.fn(),
     ...overrides,
   };
 }
@@ -117,5 +123,48 @@ describe("dispatchCommand", () => {
     });
 
     expect(handleCompress).toHaveBeenCalledWith("right");
+  });
+
+  it("navigates with nav.openUri and targetUri", () => {
+    const navigatePanel = vi.fn();
+    const handled = dispatchCommand(
+      "nav.openUri",
+      baseDeps({ navigatePanel }),
+      { panelId: "right", targetUri: "local:///tmp" },
+    );
+
+    expect(handled).toBe(true);
+    expect(navigatePanel).toHaveBeenCalledWith("right", "local:///tmp");
+  });
+
+  it("adds favorite with targetUri and label", () => {
+    const addFavorite = vi.fn();
+    dispatchCommand("nav.addFavorite", baseDeps({ addFavorite }), {
+      targetUri: "local:///home",
+      preferenceValue: "Home",
+    });
+
+    expect(addFavorite).toHaveBeenCalledWith("left", "local:///home", "Home");
+  });
+
+  it("sorts with view.sort and sortField", () => {
+    const dispatch = vi.fn();
+    dispatchCommand("view.sort", baseDeps({ dispatch }), {
+      panelId: "left",
+      sortField: "size",
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "setSort",
+      panelId: "left",
+      field: "size",
+    });
+  });
+
+  it("toggles status bar via view.toggleStatusBar", () => {
+    const toggleStatusBar = vi.fn();
+    dispatchCommand("view.toggleStatusBar", baseDeps({ toggleStatusBar }));
+
+    expect(toggleStatusBar).toHaveBeenCalled();
   });
 });

@@ -21,6 +21,8 @@ const PALETTE_EXCLUDED = new Set<string>([
   "preferences.density",
   "layout.switchPane",
   "layout.equalizePanes",
+  "nav.openUri",
+  "nav.revealUri",
 ]);
 
 const PALETTE_LEGACY: CommandEntry[] = [

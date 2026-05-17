@@ -25,16 +25,20 @@ export function PaneWorkspace() {
             starred={ctx.starred}
             activeUri={ctx.activeTabUri}
             onNavigate={(uri) =>
-              ctx.navigatePanel(ctx.state.activePanelId, uri)
+              ctx.handleCommandSelect("nav.openUri", ctx.state.activePanelId, {
+                targetUri: uri,
+              })
             }
-            onAddFavorite={(uri, label) => {
-              void ctx.client.navigation
-                .addFavorite({ uri, label })
-                .then(() => ctx.refreshNavigation())
-                .catch((error) =>
-                  ctx.setOperationError(normalizeIpcError(error).message),
-                );
-            }}
+            onAddFavorite={(uri, label) =>
+              ctx.handleCommandSelect(
+                "nav.addFavorite",
+                ctx.state.activePanelId,
+                {
+                  targetUri: uri,
+                  preferenceValue: label,
+                },
+              )
+            }
             onRemoveFavorite={(id) => {
               void ctx.client.navigation
                 .removeFavorite({ id })
@@ -51,13 +55,15 @@ export function PaneWorkspace() {
                   ctx.setOperationError(normalizeIpcError(error).message),
                 );
             }}
-            onRevealFavorite={(uri) => {
-              void ctx.client.fs
-                .revealPathInFileManager({ uri })
-                .catch((error: unknown) =>
-                  ctx.setOperationError(normalizeIpcError(error).message),
-                );
-            }}
+            onRevealFavorite={(uri) =>
+              ctx.handleCommandSelect(
+                "nav.revealUri",
+                ctx.state.activePanelId,
+                {
+                  targetUri: uri,
+                },
+              )
+            }
           />
           <SidebarResizer
             onSidebarResize={(width) => {

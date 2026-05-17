@@ -75,7 +75,12 @@ export interface CommandDispatchDeps {
     entry: FileEntryDto | null,
   ) => Promise<void>;
   toggleStarredForEntry: (entry: FileEntryDto) => Promise<void>;
-  addFavorite: (panelId: PanelId, uri?: string) => Promise<void>;
+  addFavorite: (
+    panelId: PanelId,
+    uri?: string,
+    label?: string,
+  ) => Promise<void>;
+  revealUri: (uri: string) => Promise<void>;
   setTheme: (theme: string) => void;
   setDensity: (density: DensityPreference) => void;
   equalizePanes: () => void;
@@ -210,6 +215,22 @@ export function dispatchCommand(
     case "nav.refresh":
       deps.refreshPanel(panelId);
       return true;
+    case "nav.openUri": {
+      const uri = options?.targetUri;
+      if (uri) {
+        void deps.navigatePanel(panelId, uri);
+        return true;
+      }
+      return false;
+    }
+    case "nav.revealUri": {
+      const uri = options?.targetUri;
+      if (uri) {
+        void deps.revealUri(uri);
+        return true;
+      }
+      return false;
+    }
     case "nav.goToLocation":
       deps.setGoToLocationOpen(true);
       return true;
@@ -281,9 +302,13 @@ export function dispatchCommand(
         void deps.toggleStarredForEntry(selectedEntry);
       }
       return true;
-    case "nav.addFavorite":
-      void deps.addFavorite(panelId, selectedEntry?.uri ?? tab.uri);
+    case "nav.addFavorite": {
+      const uri = options?.targetUri ?? selectedEntry?.uri ?? tab.uri;
+      const label =
+        options?.preferenceValue ?? uri.split("/").filter(Boolean).pop() ?? uri;
+      void deps.addFavorite(panelId, uri, label);
       return true;
+    }
     case "op.copyTo":
       deps.handleCopyOrMove(panelId, "copy");
       return true;

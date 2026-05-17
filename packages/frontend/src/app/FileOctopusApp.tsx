@@ -320,11 +320,23 @@ function FileOctopusAppInner() {
       openTerminal(activeTab(state.panels[panelId]).uri),
     calculateSize,
     toggleStarredForEntry,
-    addFavorite: async (panelId, uri) => {
+    addFavorite: async (panelId, uri, label) => {
       const target = uri ?? activeTab(state.panels[panelId]).uri;
+      const favoriteLabel =
+        label ?? target.split("/").filter(Boolean).pop() ?? target;
       try {
-        const label = target.split("/").pop() || target;
-        await client.navigation.addFavorite({ uri: target, label });
+        await client.navigation.addFavorite({
+          uri: target,
+          label: favoriteLabel,
+        });
+        refreshNavigation();
+      } catch {
+        /* ignore */
+      }
+    },
+    revealUri: async (uri) => {
+      try {
+        await client.fs.revealPathInFileManager({ uri });
       } catch {
         /* ignore */
       }
@@ -380,15 +392,12 @@ function FileOctopusAppInner() {
   const menuBarProps = useMenuBarProps({
     state,
     dispatch,
-    client,
     locations,
     clipboard,
     preferences,
     navigatePanel,
-    refreshNavigation,
     exportDiagnostics,
     handleRename,
-    pushToast,
     setFilterFocusToken,
     setRecursiveSearchFocusToken,
     setDiagnosticsOpen,
