@@ -323,6 +323,8 @@ export function FilePanel({
               }
               setInlineRenameUri(null);
             }}
+            onCreateFolder={onCreateFolder}
+            onCreateFile={onCreateFile}
             onSelect={onSelect}
             onEntrySelect={onEntrySelect}
             onMove={onMove}
