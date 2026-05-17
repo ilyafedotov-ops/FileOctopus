@@ -1,6 +1,6 @@
 # `apps/desktop-tauri` — Tauri v2 desktop shell
 
-> **Doc freshness (2026-05-17):** Handler bodies live under `src-tauri/src/commands/`; `lib.rs` only boots and registers them. The live command list is in the [API reference catalog](../api-reference.md#full-registry-2026-05-16) (count with `grep` on `generate_handler!` in `lib.rs` if the doc lags).
+> **Doc freshness (2026-05-17):** Handler bodies live under `src-tauri/src/commands/`; `lib.rs` only boots and registers them. The live command list is in the [API reference catalog](../api-reference.md#full-registry-2026-05-17) (37 commands as of 2026-05-17; re-count with `grep` on `generate_handler!` in `lib.rs` if the doc lags).
 
 The desktop shell is the **only place Rust and TypeScript meet at runtime**. It is a Tauri v2 application that boots `AppCore`, registers the IPC command surface, emits asynchronous events, and hosts the React `FileOctopusShell` component as its only WebView content. The trust boundary documented across the rest of this directory is enforced here.
 

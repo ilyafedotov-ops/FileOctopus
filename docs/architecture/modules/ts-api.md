@@ -66,7 +66,7 @@ Two ship in-box:
 
 ## `commandMap`
 
-Dotted method names → snake_case Tauri command names. **Source of truth:** `packages/ts-api/src/commandMap.ts` (imported by `transports/tauri.ts`). The [API reference](../api-reference.md#full-registry-2026-05-16) lists the full registry.
+Dotted method names → snake_case Tauri command names. **Source of truth:** `packages/ts-api/src/commandMap.ts` (imported by `transports/tauri.ts`). The [API reference](../api-reference.md#full-registry-2026-05-17) lists the full registry.
 
 The Tauri transport translates dotted names before `invoke` — e.g. `fileOperation.plan` → `plan_file_operation`. Mock transports in tests only see the dotted name.
 
