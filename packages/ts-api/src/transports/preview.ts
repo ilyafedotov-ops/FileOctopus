@@ -1,0 +1,437 @@
+import { IPC_ERROR_CODES } from "../types";
+import type {
+  DirectoryBatchEventDto,
+  FileEntryDto,
+  FolderSizeCompletedEventDto,
+  FolderSizeRequest,
+  IpcError,
+  IpcTransport,
+  ListStartRequest,
+  PathPropertiesRequest,
+  RecursiveSearchCompletedEventDto,
+  RecursiveSearchRequest,
+  SetPreferenceRequest,
+  UserPreferencesDto,
+} from "../types";
+import { preferenceValue } from "../clients/preferences";
+import {
+  DIRECTORY_BATCH_EVENT,
+  FOLDER_SIZE_COMPLETED_EVENT,
+  RECURSIVE_SEARCH_COMPLETED_EVENT,
+} from "../events";
+export function createPreviewTransport(): IpcTransport {
+  let sessionIndex = 0;
+  let previewPreferences: UserPreferencesDto = {
+    theme: "system",
+    density: "comfortable",
+    defaultViewMode: "details",
+    showHiddenFiles: false,
+    sidebarWidth: 240,
+    splitRatio: 0.5,
+    activityPanelVisible: true,
+    activityPanelWidth: 288,
+    confirmDelete: true,
+    confirmPermanentDelete: true,
+    useTrashByDefault: true,
+    defaultConflictPolicy: "fail",
+    accentColor: "blue",
+    fontScale: "medium",
+    iconScale: "medium",
+    confirmOverwrite: true,
+    sidebarVisible: true,
+  };
+  const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
+  const folderSizeHandlers = new Set<
+    (payload: FolderSizeCompletedEventDto) => void
+  >();
+  const recursiveSearchCompletedHandlers = new Set<
+    (payload: RecursiveSearchCompletedEventDto) => void
+  >();
+
+  return {
+    async invoke<TResponse>(command: string, args?: Record<string, unknown>) {
+      if (command === "app.get_info") {
+        return {
+          name: "FileOctopus",
+          version: "0.1.0",
+          buildProfile: "preview",
+          commitSha: null,
+          targetOs: "browser",
+        } as TResponse;
+      }
+
+      if (command === "diagnostics.appDataHealth") {
+        return {
+          configDir: "~/.fileoctopus/config",
+          dataDir: "~/.fileoctopus",
+          logDir: "~/.fileoctopus/logs",
+          databasePath: "~/.fileoctopus/operation-history.sqlite",
+          databaseExists: false,
+          schemaVersion: 0,
+          missingDirectories: [],
+          startupRecoveryCount: 0,
+        } as TResponse;
+      }
+
+      if (command === "operationHistory.clear") {
+        return { deletedCount: 0 } as TResponse;
+      }
+
+      if (command === "operationHistory.listRecent") {
+        return { operations: [] } as TResponse;
+      }
+
+      if (command === "preferences.get") {
+        return { preferences: previewPreferences } as TResponse;
+      }
+
+      if (command === "preferences.set") {
+        const request = args?.request as
+          | Partial<SetPreferenceRequest>
+          | undefined;
+        const value = request?.value ?? "";
+
+        previewPreferences = {
+          ...previewPreferences,
+          [request?.key ?? ""]: preferenceValue(request?.key, value),
+        };
+
+        return { preferences: previewPreferences } as TResponse;
+      }
+
+      if (command === "autostart.get" || command === "autostart.set") {
+        return { enabled: false, supported: false } as TResponse;
+      }
+
+      if (command === "navigation.listFavorites") {
+        return { favorites: [] } as TResponse;
+      }
+
+      if (command === "navigation.listRecent") {
+        return { entries: [] } as TResponse;
+      }
+
+      if (command === "navigation.listStarred") {
+        return { entries: [] } as TResponse;
+      }
+
+      if (
+        command === "navigation.recordVisit" ||
+        command === "navigation.removeFavorite" ||
+        command === "navigation.toggleStarred"
+      ) {
+        return { ok: true } as TResponse;
+      }
+
+      if (command === "diagnostics.exportBundle") {
+        return {
+          path: "preview-diagnostics.zip",
+          files: ["app-info.json", "app-data-health.json"],
+        } as TResponse;
+      }
+
+      if (command === "fs.standard_locations") {
+        return {
+          locations: [
+            {
+              id: "home",
+              name: "Home",
+              uri: "local:///Users/ilya",
+              section: "Favorites",
+            },
+            {
+              id: "documents",
+              name: "Documents",
+              uri: "local:///Users/ilya/Documents",
+              section: "User folders",
+            },
+            {
+              id: "desktop",
+              name: "Desktop",
+              uri: "local:///Users/ilya/Desktop",
+              section: "User folders",
+            },
+            {
+              id: "downloads",
+              name: "Downloads",
+              uri: "local:///Users/ilya/Downloads",
+              section: "User folders",
+            },
+            {
+              id: "pictures",
+              name: "Pictures",
+              uri: "local:///Users/ilya/Pictures",
+              section: "User folders",
+            },
+            {
+              id: "macintosh-hd",
+              name: "Macintosh HD",
+              uri: "local:///",
+              section: "Devices/Volumes",
+            },
+          ],
+        } as TResponse;
+      }
+
+      if (
+        command === "fs.open_default" ||
+        command === "fs.reveal" ||
+        command === "fs.watch_start" ||
+        command === "fs.watch_stop"
+      ) {
+        return { ok: true } as TResponse;
+      }
+
+      if (command === "fs.properties") {
+        const request = args?.request as
+          | Partial<PathPropertiesRequest>
+          | undefined;
+        const uri = request?.uri ?? "local:///Users/ilya";
+        return {
+          properties: {
+            uri,
+            name: uri.split("/").filter(Boolean).slice(-1)[0] ?? uri,
+            kind: "directory",
+            size: null,
+            totalSize: 0,
+            itemCount: 0,
+            fileCount: 0,
+            directoryCount: 0,
+            modifiedAt: null,
+            createdAt: null,
+            accessedAt: null,
+            isHidden: false,
+            isSymlink: false,
+            symlinkTarget: null,
+            readonly: false,
+            warnings: [],
+          },
+        } as TResponse;
+      }
+
+      if (command === "fs.folder_size") {
+        return {
+          summary: {
+            totalSize: 0,
+            itemCount: 0,
+            fileCount: 0,
+            directoryCount: 0,
+            warnings: [],
+            incomplete: false,
+          },
+        } as TResponse;
+      }
+
+      if (command === "fs.folder_size_start") {
+        const request = args?.request as Partial<FolderSizeRequest> | undefined;
+        const now = new Date().toISOString();
+        const jobId = `preview-folder-size-${Date.now()}`;
+        const summary = {
+          totalSize: 0,
+          itemCount: 0,
+          fileCount: 0,
+          directoryCount: 0,
+          warnings: [],
+          incomplete: false,
+        };
+
+        globalThis.setTimeout(() => {
+          for (const handler of folderSizeHandlers) {
+            handler({
+              jobId,
+              uri: request?.uri ?? "local:///Users/ilya",
+              summary,
+            });
+          }
+        }, 0);
+
+        return {
+          job: {
+            jobId,
+            operationKind: "folderSize",
+            status: "running",
+            completedItems: 0,
+            totalItems: 0,
+            completedBytes: 0,
+            totalBytes: null,
+            startedAt: now,
+            updatedAt: now,
+          },
+        } as TResponse;
+      }
+
+      if (command === "fs.recursive_search") {
+        return {
+          result: {
+            matches: [],
+            warnings: [],
+            incomplete: false,
+          },
+        } as TResponse;
+      }
+
+      if (command === "fs.recursive_search_start") {
+        const request = args?.request as
+          | Partial<RecursiveSearchRequest>
+          | undefined;
+        const now = new Date().toISOString();
+        const jobId = `preview-recursive-search-${Date.now()}`;
+        const result = {
+          matches: [],
+          warnings: [],
+          incomplete: false,
+        };
+
+        globalThis.setTimeout(() => {
+          for (const handler of recursiveSearchCompletedHandlers) {
+            handler({
+              jobId,
+              uri: request?.uri ?? "local:///Users/ilya",
+              query: request?.query ?? "",
+              result,
+            });
+          }
+        }, 0);
+
+        return {
+          job: {
+            jobId,
+            operationKind: "recursiveSearch",
+            status: "running",
+            completedItems: 0,
+            totalItems: 0,
+            completedBytes: 0,
+            totalBytes: null,
+            startedAt: now,
+            updatedAt: now,
+          },
+        } as TResponse;
+      }
+
+      if (command === "fs.list_start") {
+        sessionIndex += 1;
+        const sessionId = `preview-${sessionIndex}`;
+        const request = args?.request as Partial<ListStartRequest> | undefined;
+
+        const requestId = request?.requestId ?? `preview-${sessionIndex}`;
+
+        globalThis.setTimeout(() => {
+          for (const handler of batchHandlers) {
+            handler({
+              sessionId,
+              requestId,
+              uri: request?.uri ?? "local:///",
+              entries: previewEntriesForUri(request?.uri ?? "local:///"),
+              batchIndex: 0,
+              isComplete: true,
+              totalHint: previewEntriesForUri(request?.uri ?? "local:///")
+                .length,
+              error: null,
+            });
+          }
+        }, 0);
+
+        return { sessionId, requestId } as TResponse;
+      }
+
+      throw {
+        code: IPC_ERROR_CODES.TAURI_UNAVAILABLE,
+        message: "Tauri IPC is unavailable in browser preview",
+      } satisfies IpcError;
+    },
+    async listen<TPayload>(
+      event: string,
+      handler: (payload: TPayload) => void,
+    ) {
+      if (event === FOLDER_SIZE_COMPLETED_EVENT) {
+        const typedHandler = handler as (
+          payload: FolderSizeCompletedEventDto,
+        ) => void;
+
+        folderSizeHandlers.add(typedHandler);
+
+        return () => folderSizeHandlers.delete(typedHandler);
+      }
+
+      if (event === RECURSIVE_SEARCH_COMPLETED_EVENT) {
+        const typedHandler = handler as (
+          payload: RecursiveSearchCompletedEventDto,
+        ) => void;
+
+        recursiveSearchCompletedHandlers.add(typedHandler);
+
+        return () => recursiveSearchCompletedHandlers.delete(typedHandler);
+      }
+
+      if (event !== DIRECTORY_BATCH_EVENT) {
+        return () => undefined;
+      }
+
+      const typedHandler = handler as (payload: DirectoryBatchEventDto) => void;
+
+      batchHandlers.add(typedHandler);
+
+      return () => batchHandlers.delete(typedHandler);
+    },
+  };
+}
+
+function previewEntriesForUri(uri: string): FileEntryDto[] {
+  const now = "2026-05-15T12:00:00.000Z";
+  const base = uri.replace(/\/$/, "");
+
+  const entry = (
+    name: string,
+    kind: FileEntryDto["kind"],
+    size: number | null,
+    extension: string | null = null,
+  ): FileEntryDto => ({
+    uri: `${base}/${name}`,
+    name,
+    extension,
+    kind,
+    size,
+    modifiedAt: now,
+    createdAt: now,
+    accessedAt: now,
+    isHidden: name.startsWith("."),
+    isSymlink: false,
+    symlinkTarget: null,
+    providerId: "preview",
+    canRead: true,
+    canList: kind === "directory",
+    canWrite: true,
+    canDelete: true,
+    canRename: true,
+  });
+
+  if (uri.includes("/Documents")) {
+    return [
+      entry("Projects", "directory", null),
+      entry("Reports", "directory", null),
+      entry("Invoices", "directory", null),
+      entry("Budget.xlsx", "file", 245000, "xlsx"),
+      entry("Notes.txt", "file", 3200, "txt"),
+      entry("Presentation.pptx", "file", 5800000, "pptx"),
+    ];
+  }
+
+  if (uri.includes("/Pictures")) {
+    return [
+      entry("Camera Roll", "directory", null),
+      entry("Screenshots", "directory", null),
+      entry("Wallpapers", "directory", null),
+      entry("IMG_2024_0001.jpg", "file", 3200000, "jpg"),
+      entry("photo_edit.psd", "file", 45600000, "psd"),
+    ];
+  }
+
+  return [
+    entry("Desktop", "directory", null),
+    entry("Documents", "directory", null),
+    entry("Downloads", "directory", null),
+    entry("Pictures", "directory", null),
+    entry("FileOctopus", "directory", null),
+    entry("README.md", "file", 8200, "md"),
+  ];
+}
