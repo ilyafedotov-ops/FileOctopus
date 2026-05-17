@@ -32,6 +32,8 @@ const defaultPreferences = {
   iconScale: "medium",
   confirmOverwrite: true,
   sidebarVisible: true,
+  statusBarVisible: true,
+  toolbarVisible: true,
   paneMode: "dual",
   jobDrawerBehavior: "manual",
 };
