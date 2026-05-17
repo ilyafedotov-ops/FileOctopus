@@ -69,14 +69,21 @@ export function FileTable({
   const [scrollTop, setScrollTop] = useState(0);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const viewportHeight = viewportRef.current?.clientHeight ?? 420;
-  const startIndex = Math.max(0, Math.floor(scrollTop / rowHeight) - overscan);
-  const visibleCount = Math.ceil(viewportHeight / rowHeight) + overscan * 2;
-  const visibleEntries = entries.slice(startIndex, startIndex + visibleCount);
-  const totalHeight = entries.length * rowHeight;
+  const virtualize = viewMode !== "icons";
+  const startIndex = virtualize
+    ? Math.max(0, Math.floor(scrollTop / rowHeight) - overscan)
+    : 0;
+  const visibleCount = virtualize
+    ? Math.ceil(viewportHeight / rowHeight) + overscan * 2
+    : entries.length;
+  const visibleEntries = virtualize
+    ? entries.slice(startIndex, startIndex + visibleCount)
+    : entries;
+  const totalHeight = virtualize ? entries.length * rowHeight : undefined;
   const loading = isPaneLoading(loadState);
 
   useEffect(() => {
-    if (!focusedId || !viewportRef.current) {
+    if (!virtualize || !focusedId || !viewportRef.current) {
       return;
     }
 
@@ -96,7 +103,7 @@ export function FileTable({
     } else if (bottom > viewBottom) {
       viewportRef.current.scrollTop = bottom - viewportRef.current.clientHeight;
     }
-  }, [entries, focusedId, rowHeight]);
+  }, [entries, focusedId, rowHeight, virtualize]);
 
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     switch (event.key) {
@@ -229,7 +236,12 @@ export function FileTable({
             )}
           </div>
         ) : (
-          <div className="fo-table-spacer" style={{ height: totalHeight }}>
+          <div
+            className="fo-table-spacer"
+            style={
+              totalHeight === undefined ? undefined : { height: totalHeight }
+            }
+          >
             {visibleEntries.map((entry, offset) => (
               <FileRow
                 key={entry.uri}

@@ -40,6 +40,7 @@
   gap: 3px;
   min-height: 0;
   padding: 0;
+  overflow: hidden;
   background: var(--fo-surface);
 }
 
@@ -214,6 +215,10 @@
 .fo-breadcrumb-edit {
   flex: 0 0 auto;
   margin-left: 4px;
+}
+
+.fo-panel-title-row .fo-breadcrumb-edit span:not(.fo-ui-icon) {
+  display: none;
 }
 
 .fo-path-error-wrap .fo-breadcrumb {
@@ -426,6 +431,7 @@
   color: var(--fo-text);
   padding: 0;
   text-align: left;
+  overflow: hidden;
 }
 
 .fo-row > span {
@@ -508,6 +514,8 @@
 
 .fo-row-icon svg {
   display: block;
+  width: var(--fo-icon-size);
+  height: var(--fo-icon-size);
 }
 
 .fo-row-text {
