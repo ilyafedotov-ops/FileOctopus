@@ -6,15 +6,15 @@ This document translates the FileOctopus technical architecture into an implemen
 
 The MVP is intentionally focused on a high-performance local dual-pane file manager. Advanced capabilities such as peer-to-peer synchronization, full local AI indexing, and broad cloud provider support are deferred, but the MVP architecture must not block them.
 
-### Implementation status (2026-05-16)
+### Implementation status (2026-05-17)
 
-| Area                               | Delivered                                                                       | Not delivered                                                                      |
-| ---------------------------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Core navigation & file ops         | Dual pane, streamed listing, virtualization, plan/start jobs, operation history | Multi-tab per panel                                                                |
-| Jobs & persistence                 | In-memory jobs + SQLite operation history                                       | Full `job` / `job_item_result` schema from §9                                      |
-| Git / archives / embedded terminal | —                                                                               | `git-intel`, `archive-core`, `terminal-core` crates; MVP-GIT/ARC/embedded terminal |
-| UI (MVP §3.1)                      | Command palette, context menus, activity panel, preview, theme prefs            | App menu bar per Menu spec                                                         |
-| Platform                           | Windows/macOS/Linux builds in CI                                                | Formal MVP §16 release sign-off                                                    |
+| Area                               | Delivered                                                                                                                                              | Not delivered                                                                      |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| Core navigation & file ops         | Dual pane, streamed listing, virtualization, plan/start jobs, operation history; decomposed `fs-core`/`app-core`/Tauri `commands/*`/ts-api `clients/*` | Multi-tab per panel                                                                |
+| Jobs & persistence                 | In-memory jobs + SQLite operation history                                                                                                              | Full `job` / `job_item_result` schema from §9                                      |
+| Git / archives / embedded terminal | —                                                                                                                                                      | `git-intel`, `archive-core`, `terminal-core` crates; MVP-GIT/ARC/embedded terminal |
+| UI (MVP §3.1)                      | Command palette, context menus, activity panel, preview, theme prefs                                                                                   | App menu bar per Menu spec                                                         |
+| Platform                           | Windows/macOS/Linux builds in CI                                                                                                                       | Formal MVP §16 release sign-off                                                    |
 
 Authoritative cross-doc matrix: [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md). Runtime IPC: [api-reference.md](api-reference.md).
 
@@ -1182,18 +1182,24 @@ pub async fn export_diagnostics(request: DiagnosticsRequest) -> Result<Diagnosti
 
 The frontend should consume a typed API wrapper rather than calling raw Tauri commands directly throughout the UI.
 
+**As implemented (2026-05-17):**
+
 ```text
-packages/ts-api/
-  src/
-    client.ts
-    fs.ts
-    jobs.ts
-    git.ts
-    archive.ts
-    terminal.ts
-    settings.ts
-    events.ts
-    types.ts
+packages/ts-api/src/
+  client.ts              # FileOctopusClient facade + re-exports
+  commandMap.ts
+  events.ts
+  normalizeError.ts
+  types.ts
+  clients/               # fs, fileOperations, jobs, history, diagnostics,
+                         # preferences, navigation, autostart
+  transports/            # tauri.ts, preview.ts
+```
+
+**Target (post-MVP)** — additional clients when `git-intel`, `archive-core`, and `terminal-core` land:
+
+```text
+  clients/git.ts, archive.ts, terminal.ts  # not present yet
 ```
 
 ### Client Example
@@ -1201,19 +1207,23 @@ packages/ts-api/
 ```ts
 export class FileOctopusClient {
   fs: FsClient;
+  fileOperations: FileOperationsClient;
   jobs: JobsClient;
-  git: GitClient;
-  archive: ArchiveClient;
-  terminal: TerminalClient;
-  settings: SettingsClient;
+  operationHistory: OperationHistoryClient;
+  diagnostics: DiagnosticsClient;
+  preferences: PreferencesClient;
+  navigation: NavigationClient;
+  autostart: AutostartClient;
 
   constructor(private transport: IpcTransport) {
     this.fs = new FsClient(transport);
+    this.fileOperations = new FileOperationsClient(transport);
     this.jobs = new JobsClient(transport);
-    this.git = new GitClient(transport);
-    this.archive = new ArchiveClient(transport);
-    this.terminal = new TerminalClient(transport);
-    this.settings = new SettingsClient(transport);
+    this.operationHistory = new OperationHistoryClient(transport);
+    this.diagnostics = new DiagnosticsClient(transport);
+    this.preferences = new PreferencesClient(transport);
+    this.navigation = new NavigationClient(transport);
+    this.autostart = new AutostartClient(transport);
   }
 }
 ```
