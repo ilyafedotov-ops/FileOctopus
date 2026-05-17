@@ -2,6 +2,13 @@ use app_ipc::{job_event_name, job_event_payload};
 use jobs::JobEvent;
 use tauri::{AppHandle, Emitter, Manager};
 
+/// Emit a Tauri event AND replay it via `webview.eval()` as a fallback for
+/// WebKitGTK-headless environments where `app.emit()` does not deliver events
+/// to the WebView. The eval path pushes the payload onto a per-event JS queue
+/// and drains it through any handler registered via `__FO_EVENT_HANDLERS__`,
+/// then dispatches a `fo-event-<name>` CustomEvent for redundancy. A
+/// `setTimeout(0)` defers delivery one macrotask so any in-flight `invoke()`
+/// response promise resolves first (avoiding a sessionId race in panel state).
 pub(crate) fn emit_with_eval<S: serde::Serialize + Clone>(
     app: &AppHandle,
     event: &str,
