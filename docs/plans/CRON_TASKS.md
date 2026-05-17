@@ -22,7 +22,7 @@
 | -------------- | -------------------------------------------------------------------- | ----- | ----- | --- |
 | **Status**     | `done`                                                               |
 | **Priority**   | P2                                                                   |
-| **Spec**       | MVP engineering spec §3.1 archives; UI Design Spec §4                |
+| **Spec**       | RC engineering spec §3.1 archives; UI Design Spec §4                 |
 | **Acceptance** | **MVP-ARC-001** (create archive)                                     |
 | **Micro-spec** | Reuse zip 0.6, add handler in `commands/*.rs` + register in `lib.rs` |
 | **Commit**     | `6aad4e5`                                                            |

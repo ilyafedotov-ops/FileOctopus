@@ -53,7 +53,7 @@ Trust order for “what should exist” vs “what exists today”:
 | Priority | Document                                                                      | Use for                                                                                |
 | -------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | 1        | `docs/architecture/api-reference.md`                                          | Commands, events, DTOs, error codes                                                    |
-| 2        | `docs/architecture/mvp-engineering-spec.md`                                   | MVP scope, milestones (§5), acceptance IDs (§4), testing (§13)                         |
+| 2        | `docs/architecture/rc-engineering-spec.md`                                    | RC scope, milestones (§5), acceptance IDs (§4), testing (§13)                          |
 | 3        | `docs/planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md`                           | Current delivery vs specs                                                              |
 | 4        | `docs/plans/FileOctopus_Menu_and_Modal_Specification.md`                      | Menus, modals, shortcuts                                                               |
 | 5        | `docs/FileOctopus_UI_Design_and_Layout_Specification-1.md`                    | Layout architecture, visible surfaces, acceptance (§27), implementation priority (§28) |

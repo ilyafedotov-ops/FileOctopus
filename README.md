@@ -4,7 +4,7 @@ FileOctopus is a Tauri v2 desktop file manager with a Rust-owned filesystem boun
 
 ## Current status
 
-**Post–Sprint 5 (2026-05-16).** Milestones M0–M3 of the [MVP engineering spec](docs/architecture/mvp-engineering-spec.md) are largely complete on `main`. Milestone M4 (Git, archive jobs, embedded terminal) is not started.
+**Release Candidate (v0.1.0).** Milestones M0–M3 of the [RC engineering spec](docs/architecture/rc-engineering-spec.md) are largely complete on `main`. M4 is partial (zip archives in `fs-core`; Git and embedded terminal deferred).
 
 For a full doc ↔ code matrix, see **[docs/planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md](docs/planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md)**.
 
@@ -20,12 +20,12 @@ For a full doc ↔ code matrix, see **[docs/planning/PROJECT_STATUS_AND_DOC_ALIG
 - **Polish**: command palette (Ctrl/Cmd+P), text preview (Space), filesystem watcher refresh, diagnostics export, shortcuts dialog
 - **Platform helpers**: open with default app, reveal in file manager, external terminal in folder (`fs_open_terminal`), folder size job, file hash (`fs_compute_hash`)
 
-### Not in MVP yet
+### Not in RC yet
 
-- Application menu bar (File/Edit/View/Go — see [Menu spec](docs/plans/FileOctopus_Menu_and_Modal_Specification.md))
+- Full application menu bar wiring (shell exists — see [Menu spec](docs/plans/FileOctopus_Menu_and_Modal_Specification.md))
 - Git status badges and branch display
-- Archive compress/extract as jobs (toolbar entries are stubs)
-- Embedded terminal panel (external emulator only)
+- Tar and non-zip archive formats
+- Embedded terminal panel (external emulator via `fs_open_terminal` works)
 - Multi-tab per pane, cloud/remote providers, plugins, AI search
 
 ## Prerequisites

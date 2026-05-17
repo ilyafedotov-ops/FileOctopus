@@ -5,26 +5,26 @@
 
 ## Document roles
 
-| Document                                                                  | Role                                          | Trust for “what exists today”                                              |
-| ------------------------------------------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------- |
-| [API reference](../architecture/api-reference.md)                         | Runtime IPC contract (commands, events, DTOs) | **Highest** — update with every boundary change                            |
-| [MVP engineering spec](../architecture/mvp-engineering-spec.md)           | Target MVP scope, milestones, crate design    | Scope & acceptance criteria; see §Implementation status below for delivery |
-| [UI Design Spec](../FileOctopus_UI_Design_Spec.md)                        | Visual/layout/UX direction post–Sprint 5      | Target UX; partial delivery                                                |
-| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) | Full desktop menu bar + modal catalog         | **Target** — most File/Edit/View/Go menus not built yet                    |
-| [UI Feature Inventory](./UI_FEATURE_INVENTORY.md)                         | Checklist of specified UI elements            | Good for coverage matrix; §13 updated from this page                       |
-| [E2E audit](../qa/e2e-audit-report.md)                                    | Manual QA snapshot (2026-05-16)               | **Partially stale** — many “missing” items fixed same day                  |
-| Gap analysis (`~/.hermes/.../gap-analysis-2026-05.md`)                    | Agent implementation tracker                  | Working notes; sync from this page                                         |
+| Document                                                                  | Role                                          | Trust for “what exists today”                                   |
+| ------------------------------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------- |
+| [API reference](../architecture/api-reference.md)                         | Runtime IPC contract (commands, events, DTOs) | **Highest** — update with every boundary change                 |
+| [RC engineering spec](../architecture/rc-engineering-spec.md)             | RC scope, milestones, crate design            | Scope & acceptance criteria; see §1 delivery matrix in spec     |
+| [UI Design Spec](../FileOctopus_UI_Design_Spec.md)                        | Visual/layout/UX direction post–Sprint 5      | Target UX; partial delivery                                     |
+| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) | Full desktop menu bar + modal catalog         | **Target** — `MenuBar` shell exists; many actions still stubbed |
+| [UI Feature Inventory](./UI_FEATURE_INVENTORY.md)                         | Checklist of specified UI elements            | Good for coverage matrix; §13 updated from this page            |
+| [E2E audit](../qa/e2e-audit-report.md)                                    | Manual QA snapshot (2026-05-16)               | **Partially stale** — many “missing” items fixed same day       |
+| Gap analysis (`~/.hermes/.../gap-analysis-2026-05.md`)                    | Agent implementation tracker                  | Working notes; sync from this page                              |
 
-## Engineering milestones (MVP spec §5)
+## Engineering milestones (RC spec §5)
 
-| Milestone                      | Status          | Evidence                                                                           |
-| ------------------------------ | --------------- | ---------------------------------------------------------------------------------- |
-| M0 — Repo & build foundation   | **Done**        | Tauri v2, pnpm workspace, CI, `cargo test` / Vitest                                |
-| M1 — Local navigation slice    | **Done**        | `fs.list_start` streaming, dual pane, virtualization, 100k perf protocol           |
-| M2 — Durable job engine        | **Mostly done** | Plan/start copy/move/rename/mkdir/trash, progress events, SQLite operation history |
-| M3 — Conflict & safety         | **Mostly done** | Planning, conflict policies, trash path; UI conflict dialog for planned ops        |
-| M4 — Git, archive, terminal v1 | **Not started** | No `git-intel`, `archive-core`, or `terminal-core` crates                          |
-| M5 — MVP hardening             | **In progress** | Diagnostics export, preferences, cross-platform QA docs                            |
+| Milestone                      | Status          | Evidence                                                                                                    |
+| ------------------------------ | --------------- | ----------------------------------------------------------------------------------------------------------- |
+| M0 — Repo & build foundation   | **Done**        | Tauri v2, pnpm workspace, CI, `cargo test` / Vitest                                                         |
+| M1 — Local navigation slice    | **Done**        | `fs.list_start` streaming, dual pane, virtualization, 100k perf protocol                                    |
+| M2 — Durable job engine        | **Mostly done** | Plan/start copy/move/rename/mkdir/trash, progress events, SQLite operation history                          |
+| M3 — Conflict & safety         | **Mostly done** | Planning, conflict policies, trash path; UI conflict dialog for planned ops                                 |
+| M4 — Git, archive, terminal v1 | **Partial**     | Zip create/extract in `fs-core/file_ops`; external terminal; no `git-intel` / embedded PTY                  |
+| M5 — RC hardening              | **In progress** | Diagnostics export, preferences, cross-platform QA docs, [mvp-rc-checklist](../release/mvp-rc-checklist.md) |
 
 ## MVP acceptance criteria (summary)
 
@@ -33,9 +33,9 @@
 | Core FS navigation & ops | MVP-FS-001–008  | **Met** (local dual-pane, large dirs, copy/move/rename/mkdir/trash, conflicts via plan)                               |
 | Jobs                     | MVP-JOB-001–004 | **Mostly met** — queue UI, cancel, failures, history after restart; full job SQLite schema in spec not fully mirrored |
 | Git                      | MVP-GIT-001–002 | **Not met**                                                                                                           |
-| Archives                 | MVP-ARC-001–002 | **Not met** — UI stubs only; no extract job                                                                           |
+| Archives                 | MVP-ARC-001–002 | **Partial** — zip create/extract via `createArchive`/`extractArchive`; tar not implemented; zip-slip tests pass       |
 | Terminal                 | MVP-TERM-001    | **Partial** — `fs_open_terminal` spawns external emulator in cwd; no embedded xterm panel                             |
-| UI keyboard              | MVP-UI-001      | **Mostly met** — shortcuts + command palette (Ctrl/Cmd+P); no app menu bar                                            |
+| UI keyboard              | MVP-UI-001      | **Partial** — shortcuts + command palette; `MenuBar` shell with stubbed menu actions                                  |
 | Security                 | MVP-SEC-001     | **Met** — ADR-0002, typed IPC only                                                                                    |
 
 Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not formally signed off**.
@@ -54,43 +54,45 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 - Filesystem watcher → debounced refresh
 - Command palette (Ctrl/Cmd+P), text preview panel (Space for text files)
 - Shortcuts: Ctrl/Cmd+I properties, Ctrl/Cmd+H and Ctrl/Cmd+. for hidden files
+- Application menu bar shell (`MenuBar` in title bar)
+- Zip compress/extract via toolbar and context menu (`useArchiveHandlers`)
 
 ### Specified but not implemented (or stub only)
 
-| Item                                                       | Spec source                 | Notes                                                                        |
-| ---------------------------------------------------------- | --------------------------- | ---------------------------------------------------------------------------- |
-| Application menu bar (File/Edit/View/Go/Tools/Window/Help) | Menu & Modal Spec §4        | Title bar uses Settings + Help dropdown only                                 |
-| Operations / Shortcuts / Advanced settings tabs            | UI Design Spec §Preferences | Merged into existing tabs or separate dialogs                                |
-| Remember last used panes (setting + restore)               | UI Design Spec              | No preference or boot restore                                                |
-| Diagnostics export location preference                     | UI Design Spec              | Export path chosen at export time                                            |
-| Compress / Extract archive jobs                            | MVP-ARC-001, UI §4          | Toolbar/context entries show “coming soon” toast                             |
-| Checksum toolbar action                                    | UI §4                       | `fs_compute_hash` exists; toolbar still stub; hash column fills on selection |
-| Embedded terminal panel                                    | MVP §Embedded Terminal      | External terminal spawn only                                                 |
-| Git branch + status badges                                 | MVP-GIT-\*                  | No `git-intel`                                                               |
-| Title bar sync/health indicator                            | UI §1                       | Optional; not built                                                          |
-| Sidebar: Videos shortcut, network locations                | UI §2 / Sprint 4            | Not in sidebar model                                                         |
-| First-run overlay                                          | Sprint 5 stretch            | Not built                                                                    |
-| Last-path restore on startup                               | Sprint 5 FO-0243            | Not built                                                                    |
-| Tabs per panel (multiple tabs)                             | MVP §3.1                    | `PanelTabState` ready; single tab per pane                                   |
-| Full conflict dialog (Compare metadata, Apply to all)      | UI Design Spec              | Plan/start conflict policy in copy/move dialog; not full spec matrix         |
-| Pause on jobs                                              | UI §6                       | Cancel only                                                                  |
+| Item                                                  | Spec source                 | Notes                                                                        |
+| ----------------------------------------------------- | --------------------------- | ---------------------------------------------------------------------------- |
+| Application menu bar (full wiring)                    | Menu & Modal Spec §4        | `MenuBar` present; Copy To…, diagnostics from menu, etc. still stubbed       |
+| Operations / Shortcuts / Advanced settings tabs       | UI Design Spec §Preferences | Merged into existing tabs or separate dialogs                                |
+| Remember last used panes (setting + restore)          | UI Design Spec              | No preference or boot restore                                                |
+| Diagnostics export location preference                | UI Design Spec              | Export path chosen at export time                                            |
+| Tar / non-zip archive formats                         | RC spec §3.2                | Zip only at RC (`fs-core/file_ops/archive.rs`)                               |
+| Checksum toolbar action                               | UI §4                       | `fs_compute_hash` exists; toolbar still stub; hash column fills on selection |
+| Embedded terminal panel                               | MVP §Embedded Terminal      | External terminal spawn only                                                 |
+| Git branch + status badges                            | MVP-GIT-\*                  | No `git-intel`                                                               |
+| Title bar sync/health indicator                       | UI §1                       | Optional; not built                                                          |
+| Sidebar: Videos shortcut, network locations           | UI §2 / Sprint 4            | Not in sidebar model                                                         |
+| First-run overlay                                     | Sprint 5 stretch            | Not built                                                                    |
+| Last-path restore on startup                          | Sprint 5 FO-0243            | Not built                                                                    |
+| Tabs per panel (multiple tabs)                        | MVP §3.1                    | `PanelTabState` ready; single tab per pane                                   |
+| Full conflict dialog (Compare metadata, Apply to all) | UI Design Spec              | Plan/start conflict policy in copy/move dialog; not full spec matrix         |
+| Pause on jobs                                         | UI §6                       | Cancel only                                                                  |
 
-### Intentionally deferred (MVP spec §3.2)
+### Intentionally deferred (RC spec §3.3)
 
 P2P sync, AI search, cloud providers, plugins, diff/merge, mobile, ACL editor, etc.
 
-## IPC surface vs MVP spec §8
+## IPC surface vs RC spec §8
 
-The [API reference](../architecture/api-reference.md) is authoritative. Notable **extras** beyond the MVP spec’s minimal list:
+The [API reference](../architecture/api-reference.md) is authoritative. Notable **extras** beyond the original MVP minimal list:
 
 - Navigation: favorites, recent, starred, record visit, standard locations
 - FS helpers: `fs_read_text_file`, `fs_compute_hash`, `fs_open_terminal`, watch start/stop, folder size, recursive search, properties, create file, permanent delete, reveal, open default
 - Preferences + autostart
 - Diagnostics health + export bundle
 
-**Not present** (still in MVP spec): `git.*`, `archive.plan_extract` / `archive.start_extract`, embedded `terminal.write` / `terminal.resize` / output events, `settings.get`/`update` as monolithic settings (replaced by `get_preferences` / `set_preference`).
+**Not present:** `git.*`, separate `archive.*` IPC (RC uses `file_operations.*` with `createArchive`/`extractArchive`), embedded `terminal.write` / `terminal.resize` / output events.
 
-## Crate layout vs MVP spec §6–7
+## Crate layout vs RC spec §6–7
 
 **Present:** `vfs`, `fs-core`, `jobs`, `app-core`, `app-ipc`, `telemetry`, `config`, `platform` (minimal), `test-support`, `apps/cli` (placeholder).
 
@@ -114,7 +116,8 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 | ------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------- |
 | [architecture/README.md](../architecture/README.md)                | **Current**         | Links this page                                                                                         |
 | [api-reference.md](../architecture/api-reference.md)               | **Partial**         | Full registry (37 cmds, 2026-05-17); per-command detail sections still sparse for navigation/FS helpers |
-| [mvp-engineering-spec.md](../architecture/mvp-engineering-spec.md) | **Target + status** | MVP scope; §17 historical                                                                               |
+| [rc-engineering-spec.md](../architecture/rc-engineering-spec.md)   | **Target + status** | RC scope; §17 post-RC priorities                                                                        |
+| [mvp-engineering-spec.md](../architecture/mvp-engineering-spec.md) | **Redirect**        | Stub → rc-engineering-spec                                                                              |
 | [pane-lifecycle.md](../architecture/pane-lifecycle.md)             | **Current**         | `requestId`, `loadState`, 30s timeout                                                                   |
 | [modules/\*.md](../architecture/modules/)                          | **Mixed**           | See module table below                                                                                  |
 
@@ -194,7 +197,7 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 2. Treat **Menu & Modal Spec** as the backlog for menu-bar work until `AppMenuBar` exists.
 3. Mark **E2E audit** sections with date; link here when bulk fixes land.
 4. Keep **UI Feature Inventory §13** in sync with this page (not the reverse).
-5. MVP spec §17 “Immediate next steps” is historical; use milestone table above for planning.
+5. Use RC spec §17 and the milestone table above for planning (not the old MVP §17 list).
 
 ## Test signal (2026-05-16)
 
