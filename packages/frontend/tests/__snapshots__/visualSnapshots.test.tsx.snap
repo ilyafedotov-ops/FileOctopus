@@ -302,37 +302,24 @@ exports[`visual regression snapshots > matches the shell chrome structure in dar
     class="fo-status"
   >
     <span
-      class="fo-status-segment fo-status-readiness"
+      class="fo-status-segment"
     >
-      Ready
+      Selected: 
+      1 item (128 KB)
     </span>
     <span
-      class="fo-status-segment fo-status-pane"
-      title="/Users/ilya/Documents"
-    >
-      Left pane
-       - 
-      /Users/ilya/Documents
-    </span>
+      aria-hidden="true"
+      class="fo-status-separator"
+    />
     <span
       class="fo-status-segment"
     >
-      1 selected - 128 KB
-    </span>
-    <span
-      class="fo-status-segment"
-    >
+      Total: 
       12 items
     </span>
-    <button
-      class="fo-status-segment fo-status-button"
-      type="button"
-    >
-      0
-       active job
-      s
-       - No errors
-    </button>
+    <span
+      class="fo-status-spacer"
+    />
   </footer>
 </div>
 `;
@@ -639,37 +626,24 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
     class="fo-status"
   >
     <span
-      class="fo-status-segment fo-status-readiness"
+      class="fo-status-segment"
     >
-      Ready
+      Selected: 
+      1 item (128 KB)
     </span>
     <span
-      class="fo-status-segment fo-status-pane"
-      title="/Users/ilya/Documents"
-    >
-      Left pane
-       - 
-      /Users/ilya/Documents
-    </span>
+      aria-hidden="true"
+      class="fo-status-separator"
+    />
     <span
       class="fo-status-segment"
     >
-      1 selected - 128 KB
-    </span>
-    <span
-      class="fo-status-segment"
-    >
+      Total: 
       12 items
     </span>
-    <button
-      class="fo-status-segment fo-status-button"
-      type="button"
-    >
-      0
-       active job
-      s
-       - No errors
-    </button>
+    <span
+      class="fo-status-spacer"
+    />
   </footer>
 </div>
 `;
