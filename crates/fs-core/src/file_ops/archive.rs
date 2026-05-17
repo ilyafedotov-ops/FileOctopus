@@ -152,6 +152,7 @@ pub(super) fn archive_entry_name(
 ) -> Result<String, FileOperationError> {
     for root_uri in &plan.sources {
         let root_path = root_uri.to_local_path()?;
+        let root_path = root_path.canonicalize().unwrap_or(root_path);
 
         if root_path.is_file() && root_path == source_path {
             return Ok(source_path
