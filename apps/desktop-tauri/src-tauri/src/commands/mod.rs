@@ -1,0 +1,10 @@
+pub mod app_info;
+pub mod autostart;
+pub mod diagnostics;
+pub mod file_operations;
+pub mod folder_size;
+pub mod fs;
+pub mod navigation;
+pub mod preferences;
+pub mod recursive_search;
+pub mod watch;

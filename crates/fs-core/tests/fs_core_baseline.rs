@@ -1,10 +1,12 @@
 use std::fs;
 
-use fs_core::sprint4::{
-    calculate_folder_size, calculate_folder_size_with_progress, create_empty_file,
-    open_path_with_default_app, path_properties, recursive_search, recursive_search_with_progress,
-    reveal_path_in_file_manager, standard_locations,
+use fs_core::direct_ops::create_empty_file;
+use fs_core::external_open::{open_path_with_default_app, reveal_path_in_file_manager};
+use fs_core::locations::standard_locations;
+use fs_core::metadata::{
+    calculate_folder_size, calculate_folder_size_with_progress, path_properties,
 };
+use fs_core::search::{recursive_search, recursive_search_with_progress};
 use jobs::CancellationToken;
 use tempfile::tempdir;
 use vfs::{FileKind, ResourceUri};

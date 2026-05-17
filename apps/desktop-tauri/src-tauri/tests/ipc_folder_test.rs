@@ -2,7 +2,7 @@
 
 use std::path::{Path, PathBuf};
 
-use fs_core::sprint4;
+use fs_core::metadata;
 use vfs::ResourceUri;
 
 fn temp_dir(prefix: &str) -> PathBuf {
@@ -26,7 +26,7 @@ fn fs_folder_size_calculates_total_bytes() {
     std::fs::write(dir.join("f2.txt"), "67890").unwrap();
 
     let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
-    let summary = sprint4::calculate_folder_size(&uri).unwrap();
+    let summary = metadata::calculate_folder_size(&uri).unwrap();
 
     assert!(summary.total_size >= 10);
     assert!(summary.file_count >= 2);
@@ -43,7 +43,7 @@ fn fs_folder_size_empty_directory() {
     std::fs::create_dir_all(&sub).unwrap();
 
     let uri = ResourceUri::parse(&local_uri(&sub)).unwrap();
-    let summary = sprint4::calculate_folder_size(&uri).unwrap();
+    let summary = metadata::calculate_folder_size(&uri).unwrap();
 
     assert_eq!(summary.total_size, 0);
     assert_eq!(summary.file_count, 0);
@@ -64,7 +64,7 @@ fn fs_folder_size_nested_directories() {
     std::fs::write(sub2.join("deep.txt"), "ccccccc").unwrap();
 
     let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
-    let summary = sprint4::calculate_folder_size(&uri).unwrap();
+    let summary = metadata::calculate_folder_size(&uri).unwrap();
 
     // root.txt=3, mid.txt=5, deep.txt=7 = 15 bytes total
     assert!(summary.total_size >= 15);
@@ -81,7 +81,7 @@ fn fs_folder_size_on_file_returns_file_metadata() {
     std::fs::write(&file_path, "content").unwrap();
 
     let uri = ResourceUri::parse(&local_uri(&file_path)).unwrap();
-    let result = sprint4::calculate_folder_size(&uri);
+    let result = metadata::calculate_folder_size(&uri);
 
     // calculate_folder_size on a file succeeds but reports file metadata
     assert!(result.is_ok());
@@ -99,7 +99,7 @@ fn fs_folder_size_rejects_nonexistent_path() {
     let missing = dir.join("does-not-exist");
 
     let uri = ResourceUri::parse(&local_uri(&missing)).unwrap();
-    let result = sprint4::calculate_folder_size(&uri);
+    let result = metadata::calculate_folder_size(&uri);
 
     assert!(result.is_err());
 
@@ -113,7 +113,7 @@ fn fs_folder_size_counts_hidden_files() {
     std::fs::write(dir.join("visible.txt"), "public").unwrap();
 
     let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
-    let summary = sprint4::calculate_folder_size(&uri).unwrap();
+    let summary = metadata::calculate_folder_size(&uri).unwrap();
 
     // Both hidden and visible files should be counted
     assert!(summary.file_count >= 2);
