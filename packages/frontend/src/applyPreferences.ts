@@ -106,6 +106,23 @@ export function applyLayoutPreferences(preferences: UserPreferencesDto) {
   } else {
     root.dataset.sidebarHidden = "true";
   }
+  applyChromeLayout(
+    preferences.statusBarVisible !== false,
+    preferences.toolbarVisible !== false,
+  );
+}
+
+export function applyChromeLayout(
+  statusBarVisible: boolean,
+  toolbarVisible: boolean,
+) {
+  const root = document.documentElement;
+  root.dataset.statusBar = statusBarVisible ? "visible" : "hidden";
+  if (toolbarVisible) {
+    delete root.dataset.toolbarHidden;
+  } else {
+    root.dataset.toolbarHidden = "true";
+  }
 }
 
 export function rowHeightForDensity(density: DensityPreference): number {

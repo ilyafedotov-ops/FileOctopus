@@ -48,10 +48,6 @@ function FileOctopusAppInner() {
     renameFocusToken,
     filterFocusToken,
     recursiveSearchFocusToken,
-    statusBarVisible,
-    toolbarVisible,
-    toggleStatusBar,
-    toggleToolbar,
     diagnosticsDestination,
     diagnosticsMessage,
     exportingDiagnostics,
@@ -278,6 +274,9 @@ function FileOctopusAppInner() {
     [state.panels, handleRename, setRenameFocusToken],
   );
 
+  const statusBarVisible = preferences?.statusBarVisible !== false;
+  const toolbarVisible = preferences?.toolbarVisible !== false;
+
   const handleCommandSelect = useCommandDispatch({
     state,
     dispatch,
@@ -364,8 +363,12 @@ function FileOctopusAppInner() {
       applySplitRatio(0.5);
       void updatePreference("splitRatio", "0.5");
     },
-    toggleStatusBar,
-    toggleToolbar,
+    toggleStatusBar: () => {
+      void updatePreference("statusBarVisible", String(!statusBarVisible));
+    },
+    toggleToolbar: () => {
+      void updatePreference("toolbarVisible", String(!toolbarVisible));
+    },
   });
 
   const handleShellKeyDown = useMemo(

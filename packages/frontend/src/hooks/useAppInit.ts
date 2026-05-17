@@ -33,6 +33,7 @@ import {
   viewModeFromPreference,
   type DensityPreference,
 } from "../applyPreferences";
+import { migrateLegacyChromePreferences } from "../state/chromeStore";
 import { formatSize } from "../pane/fileTableUtils";
 import type { ToastMessage } from "../components/ToastStack";
 import type { OperationDialog } from "../dialogs/OperationDialogView";
@@ -528,18 +529,25 @@ export function useAppInit({
 
       try {
         const response = await client.preferences.get();
-        setPreferences(response.preferences);
-        applyAllPreferences(response.preferences);
-        applyLayoutPreferences(response.preferences);
-        setDensity(applyDensityPreference(response.preferences.density));
-        setActivityCollapsed(!response.preferences.activityPanelVisible);
-        showHidden = response.preferences.showHiddenFiles;
+        let loadedPreferences = response.preferences;
+        try {
+          loadedPreferences = await migrateLegacyChromePreferences(
+            client,
+            loadedPreferences,
+          );
+        } catch {
+          /* keep loaded preferences */
+        }
+        setPreferences(loadedPreferences);
+        applyAllPreferences(loadedPreferences);
+        applyLayoutPreferences(loadedPreferences);
+        setDensity(applyDensityPreference(loadedPreferences.density));
+        setActivityCollapsed(!loadedPreferences.activityPanelVisible);
+        showHidden = loadedPreferences.showHiddenFiles;
         dispatch({
           type: "hydratePreferences",
           showHidden,
-          viewMode: viewModeFromPreference(
-            response.preferences.defaultViewMode,
-          ),
+          viewMode: viewModeFromPreference(loadedPreferences.defaultViewMode),
         });
       } catch {
         // Fall back to localStorage-backed defaults in panelStore.

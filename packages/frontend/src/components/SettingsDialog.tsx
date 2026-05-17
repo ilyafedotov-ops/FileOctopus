@@ -416,6 +416,32 @@ export function SettingsDialog({
                   />
                   <span>Show activity panel</span>
                 </label>
+                <label className="fo-settings-switch">
+                  <input
+                    type="checkbox"
+                    checked={preferences.statusBarVisible !== false}
+                    onChange={(event) =>
+                      onChange(
+                        "statusBarVisible",
+                        event.target.checked ? "true" : "false",
+                      )
+                    }
+                  />
+                  <span>Show status bar</span>
+                </label>
+                <label className="fo-settings-switch">
+                  <input
+                    type="checkbox"
+                    checked={preferences.toolbarVisible !== false}
+                    onChange={(event) =>
+                      onChange(
+                        "toolbarVisible",
+                        event.target.checked ? "true" : "false",
+                      )
+                    }
+                  />
+                  <span>Show pane toolbar</span>
+                </label>
                 <label className="fo-settings-field">
                   <span>Pane mode</span>
                   <select
