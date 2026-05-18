@@ -1,7 +1,9 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
@@ -49,6 +51,24 @@ export function JobsProvider({ children }: { children: ReactNode }) {
   const [activityCollapsed, setActivityCollapsed] = useState(true);
   const [jobMetrics] = useState<Record<string, JobMetrics>>({});
   const pinnedOpenRef = useMemo(() => ({ current: false }), []);
+
+  const jobsRef = useRef(jobs);
+  jobsRef.current = jobs;
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      const current = jobsRef.current;
+      const hasActive = Object.values(current).some(
+        (j) => j.status === "running" || j.status === "queued",
+      );
+      if (hasActive) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
 
   const markActivityPinnedOpen = () => {
     pinnedOpenRef.current = true;
