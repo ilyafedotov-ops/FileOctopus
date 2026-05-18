@@ -30,12 +30,12 @@ export function isParentDirectoryEntry(
   entry: FileEntryDto,
   currentUri: string,
 ): boolean {
+  return isParentDirectoryUri(entry.uri, currentUri);
+}
+
+export function isParentDirectoryUri(uri: string, currentUri: string): boolean {
   const parent = parentUri(currentUri);
-  return (
-    entry.name === PARENT_DIRECTORY_NAME &&
-    parent !== null &&
-    entry.uri === parent
-  );
+  return parent !== null && uri === parent;
 }
 
 export function prependParentDirectoryEntry(

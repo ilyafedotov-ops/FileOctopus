@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  countOperationalSelection,
   countVisibleEntries,
   parentUri,
   selectDisplayedEntries,
@@ -124,6 +125,7 @@ export function FilePanel({
 }: FilePanelProps) {
   const displayedEntries = selectDisplayedEntries(tab);
   const itemCount = countVisibleEntries(tab);
+  const selectedCount = countOperationalSelection(tab);
 
   const selectedEntry =
     displayedEntries.find((entry) => entry.uri === tab.selectedId) ?? null;
@@ -320,7 +322,7 @@ export function FilePanel({
           onProperties={onProperties}
         />
         <footer className="fo-pane-status">
-          {tab.selectedIds.length} selected - {itemCount} items
+          {selectedCount} selected - {itemCount} items
         </footer>
       </div>
     </section>

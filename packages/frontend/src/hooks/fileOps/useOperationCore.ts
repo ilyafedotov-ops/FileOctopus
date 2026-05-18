@@ -7,6 +7,7 @@ import type {
 import { normalizeIpcError } from "@fileoctopus/ts-api";
 import type { PanelId } from "../../panelStore";
 import { activeTab, normalizeLocalInput } from "../../panelStore";
+import { isParentDirectoryUri } from "../../utils/parentEntry";
 import {
   jobIdValue,
   operationErrorMessage,
@@ -113,10 +114,20 @@ export function useOperationCore(deps: UseFileOpHandlersDeps) {
 
   function selectedEntries(panelId: PanelId): FileEntryDto[] {
     const tab = activeTab(state.panels[panelId]);
-
-    return tab.selectedIds
+    const entries = tab.selectedIds
       .map((id) => tab.entriesById[id])
       .filter((entry): entry is FileEntryDto => Boolean(entry));
+
+    if (
+      entries.length === 0 &&
+      tab.selectedIds.some((id) => isParentDirectoryUri(id, tab.uri))
+    ) {
+      setOperationError(
+        "This action does not apply to the parent folder entry.",
+      );
+    }
+
+    return entries;
   }
 
   return {

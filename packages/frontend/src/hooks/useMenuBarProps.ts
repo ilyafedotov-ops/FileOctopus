@@ -6,6 +6,7 @@ import type {
 } from "@fileoctopus/ts-api";
 import {
   activeTab,
+  countOperationalSelection,
   type FileOctopusState,
   type PanelAction,
   type PanelId,
@@ -171,7 +172,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     },
     canGoBack: tab.backStack.length > 0,
     canGoForward: tab.forwardStack.length > 0,
-    hasSelection: tab.selectedIds.length > 0,
+    hasSelection: countOperationalSelection(tab) > 0,
     hasClipboard: clipboard !== null,
     sidebarVisible: preferences?.sidebarVisible !== false,
     toolbarVisible,

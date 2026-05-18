@@ -1,13 +1,18 @@
 import { OperationToolbar } from "../pane/OperationToolbar";
 import { useShellLayout } from "./ShellLayoutContext";
-import { activeTab, selectVisibleEntries, parentUri } from "../panelStore";
+import {
+  activeTab,
+  countOperationalSelection,
+  selectVisibleEntries,
+  parentUri,
+} from "../panelStore";
 import { viewModeCommandId } from "../commands/viewModeCommands";
 
 export function ShellToolbar() {
   const ctx = useShellLayout();
   const pid = ctx.state.activePanelId;
   const tab = activeTab(ctx.state.panels[pid]);
-  const selectedCount = tab.selectedIds.length;
+  const selectedCount = countOperationalSelection(tab);
   const canPaste = Boolean(ctx.clipboard);
   const upUri = parentUri(tab.uri);
   const locationStrip = ctx.locations.filter(

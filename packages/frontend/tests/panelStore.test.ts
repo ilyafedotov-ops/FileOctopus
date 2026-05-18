@@ -9,7 +9,9 @@ import {
   selectVisibleEntries,
   selectDisplayedEntries,
   countVisibleEntries,
+  countOperationalSelection,
   moveSelection,
+  selectEntry,
 } from "../src/panelStore";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 
@@ -410,5 +412,73 @@ describe("panel store", () => {
 
     expect(movedUp.selectedId).toBe("local:///tmp");
     expect(movedUp.focusedId).toBe("local:///tmp");
+  });
+
+  it("excludes parent entry from range and toggle multi-selection", () => {
+    const tab = activeTab(
+      createInitialState("local:///tmp/nested").panels.left,
+    );
+    const withEntries = {
+      ...tab,
+      uri: "local:///tmp/nested",
+      orderedEntryIds: [entry("a.txt").uri, entry("b.txt").uri],
+      entriesById: {
+        [entry("a.txt").uri]: entry("a.txt"),
+        [entry("b.txt").uri]: entry("b.txt"),
+      },
+      loadState: "loaded" as const,
+      anchorId: entry("a.txt").uri,
+      focusedId: entry("a.txt").uri,
+      selectedIds: [entry("a.txt").uri],
+    };
+
+    const ranged = selectEntry(withEntries, entry("b.txt").uri, "range");
+
+    expect(ranged.selectedIds).toEqual([
+      entry("a.txt").uri,
+      entry("b.txt").uri,
+    ]);
+
+    const fromParent = selectEntry(
+      {
+        ...withEntries,
+        anchorId: "local:///tmp",
+        focusedId: "local:///tmp",
+        selectedIds: ["local:///tmp"],
+      },
+      entry("b.txt").uri,
+      "range",
+    );
+
+    expect(fromParent.selectedIds).toEqual([entry("b.txt").uri]);
+
+    const toggled = selectEntry(
+      {
+        ...withEntries,
+        selectedIds: [entry("a.txt").uri],
+        anchorId: entry("a.txt").uri,
+        focusedId: entry("a.txt").uri,
+      },
+      entry("b.txt").uri,
+      "toggle",
+    );
+
+    expect(toggled.selectedIds).toEqual([
+      entry("a.txt").uri,
+      entry("b.txt").uri,
+    ]);
+  });
+
+  it("counts only operational selections for status and toolbar", () => {
+    const tab = activeTab(
+      createInitialState("local:///tmp/nested").panels.left,
+    );
+    const withParentSelected = {
+      ...tab,
+      uri: "local:///tmp/nested",
+      selectedIds: ["local:///tmp"],
+    };
+
+    expect(countOperationalSelection(withParentSelected)).toBe(0);
   });
 });

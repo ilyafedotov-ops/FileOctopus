@@ -1,6 +1,6 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import type { PanelId, PanelTabState } from "../panelStore";
-import { selectVisibleEntries } from "../panelStore";
+import { countOperationalSelection, selectVisibleEntries } from "../panelStore";
 
 export interface CommanderActionsDeps {
   panelId: PanelId;
@@ -33,7 +33,7 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
   const selectedEntry =
     selectVisibleEntries(tab).find((entry) => entry.uri === tab.selectedId) ??
     null;
-  const hasSelection = tab.selectedIds.length > 0;
+  const hasSelection = countOperationalSelection(tab) > 0;
 
   return {
     selectedEntry,
@@ -58,7 +58,7 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
     delete: () => handleTrash(panelId),
     terminal: () => handleCommandSelect("op.openTerminal", panelId),
     canEdit: Boolean(selectedEntry),
-    canRename: tab.selectedIds.length === 1,
+    canRename: countOperationalSelection(tab) === 1,
     canCopy: hasSelection,
     canMove: hasSelection,
     canDelete: hasSelection,

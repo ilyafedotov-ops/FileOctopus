@@ -6,7 +6,10 @@ import {
   terminalLoadState,
 } from "./paneTypes";
 import { parentUri as resolveParentUri } from "./utils/paneUtils";
-import { prependParentDirectoryEntry } from "./utils/parentEntry";
+import {
+  isParentDirectoryUri,
+  prependParentDirectoryEntry,
+} from "./utils/parentEntry";
 
 export type { PaneLoadState } from "./paneTypes";
 export type PanelId = "left" | "right";
@@ -169,6 +172,14 @@ export function selectDisplayedEntries(tab: PanelTabState): FileEntryDto[] {
 
 export function countVisibleEntries(tab: PanelTabState): number {
   return selectVisibleEntries(tab).length;
+}
+
+export function operationalSelectionIds(tab: PanelTabState): string[] {
+  return tab.selectedIds.filter((id) => Boolean(tab.entriesById[id]));
+}
+
+export function countOperationalSelection(tab: PanelTabState): number {
+  return operationalSelectionIds(tab).length;
 }
 
 export function normalizeLocalInput(input: string): string {
@@ -376,7 +387,13 @@ export function selectEntry(
   }
 
   if (mode === "toggle") {
-    const selected = new Set(tab.selectedIds);
+    if (isParentDirectoryUri(entryId, tab.uri)) {
+      return selectEntry(tab, entryId, "single");
+    }
+
+    const selected = new Set(
+      tab.selectedIds.filter((id) => !isParentDirectoryUri(id, tab.uri)),
+    );
 
     if (selected.has(entryId)) {
       selected.delete(entryId);
@@ -395,7 +412,9 @@ export function selectEntry(
     };
   }
 
-  const visible = selectDisplayedEntries(tab).map((entry) => entry.uri);
+  const visible = selectDisplayedEntries(tab)
+    .map((entry) => entry.uri)
+    .filter((id) => !isParentDirectoryUri(id, tab.uri));
   const anchor = tab.anchorId ?? tab.focusedId ?? entryId;
   const anchorIndex = visible.indexOf(anchor);
   const entryIndex = visible.indexOf(entryId);
@@ -407,6 +426,10 @@ export function selectEntry(
   const start = Math.min(anchorIndex, entryIndex);
   const end = Math.max(anchorIndex, entryIndex);
   const selectedIds = visible.slice(start, end + 1);
+
+  if (selectedIds.length === 0) {
+    return selectEntry(tab, entryId, "single");
+  }
 
   return {
     ...tab,

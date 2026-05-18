@@ -3,6 +3,7 @@ import type { FileEntryDto } from "@fileoctopus/ts-api";
 import {
   createParentDirectoryEntry,
   isParentDirectoryEntry,
+  isParentDirectoryUri,
   prependParentDirectoryEntry,
 } from "../src/utils/parentEntry";
 
@@ -49,6 +50,9 @@ describe("parentEntry", () => {
     const parent = createParentDirectoryEntry("local:///tmp/nested")!;
 
     expect(isParentDirectoryEntry(parent, "local:///tmp/nested")).toBe(true);
+    expect(isParentDirectoryUri("local:///tmp", "local:///tmp/nested")).toBe(
+      true,
+    );
     expect(
       isParentDirectoryEntry(fileEntry("readme.txt"), "local:///tmp/nested"),
     ).toBe(false);
