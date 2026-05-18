@@ -61,6 +61,7 @@ FileOctopus RC should prove three things:
 - Dual-pane file browsing with per-pane tabs.
 - Breadcrumb navigation and editable path bar.
 - Back/forward history; sidebar (favorites, devices, pinned, recent, starred).
+- Standard locations and navigation persistence for favorites, recent locations, and starred items.
 - Keyboard navigation, shortcuts dialog, command palette (Ctrl/Cmd+P).
 - Hidden file toggle; sort and filter in current directory.
 - View modes: details, list, icons, columns; recursive search job.
@@ -72,13 +73,24 @@ FileOctopus RC should prove three things:
 - Move files and directories.
 - Rename file or directory.
 - Create directory.
-- Trash/delete file or directory.
+- Create file.
+- Trash/delete file or directory, including permanent delete with explicit confirmation.
 - Conflict detection.
 - Conflict policy: ask, skip, replace, keep both.
 - Progress reporting.
 - Cancellation.
-- Durable job records.
+- Durable operation history records.
 - Failed job inspection.
+
+### Filesystem helpers
+
+- Read text file for preview.
+- Compute file hash.
+- File/folder properties, including optional folder summary.
+- Folder size job.
+- Open with default application.
+- Reveal in platform file manager.
+- Open external terminal in active panel directory.
 
 ### Large Directory Handling
 
@@ -110,10 +122,12 @@ FileOctopus RC should prove three things:
 ### UI/UX
 
 - Two-pane layout, resizable split, status bar, toasts.
-- Application menu bar shell (`MenuBar` in title bar); many menu actions still stubbed (§3.2).
-- Context menus, operation dialogs, settings/shortcuts/diagnostics dialogs.
+- Application menu bar shell (`MenuBar` in title bar); core actions route through `dispatchCommand`, with remaining parity gaps in §3.2.
+- Context menus, operation dialogs, settings/shortcuts/about/favorites/history/properties/diagnostics dialogs.
 - Job activity / operation history panel; text preview (Space on text files).
-- Theme, density, accent, font/icon scale preferences.
+- Theme, density, accent, font/icon scale, layout, file-operation, and job drawer preferences.
+- Diagnostics health check and diagnostics bundle export.
+- Autostart preference where supported.
 
 ### Platform Support
 
@@ -131,6 +145,11 @@ Items from the original MVP §3.1 that are **not** required for RC sign-off but 
 - Embedded terminal panel (xterm.js + PTY); RC uses external emulator only.
 - Tar and non-zip archive formats (RC ships zip create/extract only).
 - Native OS menu integration and remaining [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) parity work (the in-app `MenuBar` shell is present).
+- Advanced session restore and tab persistence polish.
+- Last-path restore on startup.
+- Full conflict dialog parity (metadata compare and apply-to-all flow).
+- Pause/resume jobs; RC supports cancel only.
+- Checksum toolbar action parity; `fs_compute_hash` exists and hash is computed on selection.
 - Full `job` / `job_item_result` SQLite schema and per-item recovery.
 - Formal performance and RC checklist sign-off (MVP-PERF-\*, §16).
 
@@ -469,8 +488,10 @@ Typed command and event boundary between the Tauri shell and Rust domain service
 - Define IPC DTOs.
 - Define command request/response structures.
 - Convert domain errors into frontend-safe errors.
-- Register command handlers.
-- Emit typed app events.
+- Define event-name constants and job-event serialization helpers.
+- Keep Rust DTOs aligned with `packages/ts-api/src/types.ts`.
+
+Command handlers live in `apps/desktop-tauri/src-tauri/src/commands/*` and are registered from `apps/desktop-tauri/src-tauri/src/lib.rs`.
 
 ### Example Error DTO
 
@@ -479,8 +500,6 @@ Typed command and event boundary between the Tauri shell and Rust domain service
 pub struct IpcError {
     pub code: String,
     pub message: String,
-    pub details: Option<serde_json::Value>,
-    pub retryable: bool,
 }
 ```
 
@@ -508,19 +527,19 @@ fs.stat, fs.list_start, fs.read_text_file, fs.compute_hash, fs.open_terminal, �
 fs.watch_start, fs.watch_stop, fs.folder_size, fs.recursive_search_start, …
 
 # File operations (includes archives at RC)
-file_operations.plan, file_operations.start, file_operations.cancel
-  # kinds: copy, move, rename, createDirectory, createFile, trash,
-  #        deletePermanent, createArchive, extractArchive
+fileOperation.plan, fileOperation.start
+  # kinds: copy, move, rename, createDirectory, createFile, deleteToTrash,
+  #        deletePermanently, createArchive, extractArchive
 
 # Jobs & history
-jobs.list, jobs.get, jobs.cancel
-operation_history.list_recent, operation_history.get
+job.cancel, job.status
+operationHistory.listRecent, operationHistory.clear
 
 # Preferences, navigation, diagnostics, autostart
 preferences.get, preferences.set, navigation.*, diagnostics.*, …
 ```
 
-**Post-RC (not registered):** `git.*`, `archive.plan_extract` / `archive.start_extract` as separate domains, embedded `terminal.write` / `terminal.resize` / output events. Archives use `file_operations.*` with `createArchive` / `extractArchive` kinds.
+**Post-RC (not registered):** `git.*`, `archive.plan_extract` / `archive.start_extract` as separate domains, embedded `terminal.write` / `terminal.resize` / output events. Archives use `fileOperation.*` with `createArchive` / `extractArchive` kinds.
 
 ---
 
@@ -536,8 +555,8 @@ Unified abstraction over local filesystem, archive contents, and future remote/c
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ResourceUri(String);
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct ProviderId(pub &'static str);
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ProviderId(String);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileEntry {
@@ -552,8 +571,10 @@ pub struct FileEntry {
     pub is_hidden: bool,
     pub is_symlink: bool,
     pub symlink_target: Option<ResourceUri>,
-    pub provider_id: String,
+    pub provider_id: ProviderId,
     pub capabilities: EntryCapabilities,
+    pub permissions: Option<String>,
+    pub owner: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -570,7 +591,6 @@ pub enum FileKind {
 ### Provider Trait
 
 ```rust
-#[async_trait::async_trait]
 pub trait VfsProvider: Send + Sync {
     fn id(&self) -> ProviderId;
     fn schemes(&self) -> &'static [&'static str];
@@ -584,31 +604,6 @@ pub trait VfsProvider: Send + Sync {
         options: ListOptions,
         sink: DirectorySink,
     ) -> Result<(), VfsError>;
-
-    async fn read(
-        &self,
-        uri: &ResourceUri,
-        range: Option<ByteRange>,
-    ) -> Result<ByteStream, VfsError>;
-
-    async fn create_dir(
-        &self,
-        uri: &ResourceUri,
-        options: CreateDirOptions,
-    ) -> Result<(), VfsError>;
-
-    async fn remove(
-        &self,
-        uri: &ResourceUri,
-        options: RemoveOptions,
-    ) -> Result<(), VfsError>;
-
-    async fn rename(
-        &self,
-        from: &ResourceUri,
-        to: &ResourceUri,
-        options: RenameOptions,
-    ) -> Result<(), VfsError>;
 }
 ```
 
@@ -616,7 +611,7 @@ pub trait VfsProvider: Send + Sync {
 
 ```rust
 pub struct VfsRegistry {
-    providers_by_scheme: DashMap<String, Arc<dyn VfsProvider>>,
+    providers_by_scheme: RwLock<HashMap<String, Arc<dyn VfsProvider>>>,
 }
 
 impl VfsRegistry {
@@ -634,6 +629,7 @@ impl VfsRegistry {
 #[derive(Debug, Clone)]
 pub struct DirectoryBatch {
     pub session_id: ListSessionId,
+    pub request_id: String,
     pub uri: ResourceUri,
     pub entries: Vec<FileEntry>,
     pub batch_index: u64,
@@ -660,22 +656,37 @@ Native local filesystem implementation and low-level safe path operations.
 - Local file read/write helpers.
 - Safe rename/create/remove.
 - Copy primitives.
-- Platform-specific path behavior delegated to `platform` where required.
+- Platform-specific helper behavior for trash, open/reveal, terminal launch, and standard locations.
 
 ### Key APIs
 
 ```rust
-pub struct LocalFsProvider {
-    platform: Arc<PlatformServices>,
-}
-
 impl LocalFsProvider {
-    pub fn new(platform: Arc<PlatformServices>) -> Self;
+    pub fn new() -> Self;
 }
 
-pub fn normalize_local_path(path: &Path) -> Result<PathBuf, FsError>;
-pub fn is_probably_hidden(path: &Path, metadata: &std::fs::Metadata) -> bool;
-pub async fn list_dir_batched(path: PathBuf, options: ListOptions, sink: DirectorySink) -> Result<(), FsError>;
+impl VfsProvider for LocalFsProvider {
+    fn id(&self) -> ProviderId;
+    fn schemes(&self) -> &'static [&'static str];
+    fn capabilities(&self) -> ProviderCapabilities;
+    async fn stat(&self, uri: &ResourceUri) -> Result<FileEntry, VfsError>;
+    async fn list(
+        &self,
+        uri: &ResourceUri,
+        options: ListOptions,
+        sink: DirectorySink,
+    ) -> Result<(), VfsError>;
+}
+
+pub fn plan_file_operation(request: FileOperationRequest)
+    -> Result<FileOperationPlan, FileOperationError>;
+
+pub fn execute_file_operation(
+    plan: &FileOperationPlan,
+    job_id: &JobId,
+    cancel: &CancellationToken,
+    sink: &FileOperationEventSink,
+) -> Result<(), FileOperationError>;
 ```
 
 ### Local URI Mapping
@@ -701,136 +712,72 @@ Rules:
 
 ### Purpose
 
-Durable execution engine for long-running and dangerous operations.
+Shared job model for long-running operations and metadata jobs.
 
-### Responsibilities
+`jobs` is not the durable execution engine at RC. Execution lives in `fs-core/file_ops`; runtime orchestration, cancellation registry, in-memory snapshots, and operation-history persistence live in `app-core::OperationRuntime`.
 
-- Create job records.
-- Plan operations.
-- Execute jobs.
-- Persist job state.
-- Emit job progress events.
-- Support cancellation.
-- Handle conflicts.
-- Track per-item results.
-- Recover incomplete jobs after restart.
+### Responsibilities (RC)
+
+- Define `JobId`.
+- Define `JobStatus`.
+- Define `JobSnapshot`.
+- Define typed job lifecycle events.
+- Provide `CancellationToken`.
+- Keep event payloads serializable for `app-ipc` and `packages/ts-api`.
 
 ### Core Types
 
 ```rust
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub struct JobId(pub Uuid);
+#[serde(transparent)]
+pub struct JobId(String);
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum JobKind {
-    Copy,
-    Move,
-    Rename,
-    CreateDirectory,
-    Trash,
-    DeletePermanent,
-    ExtractArchive,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum JobState {
-    Created,
-    Planned,
+#[serde(rename_all = "camelCase")]
+pub enum JobStatus {
     Queued,
     Running,
     Paused,
-    NeedsDecision,
-    Cancelling,
     Cancelled,
-    Failed,
     Completed,
+    Failed,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct JobProgress {
+#[serde(rename_all = "camelCase")]
+pub struct JobSnapshot {
     pub job_id: JobId,
-    pub state: JobState,
-    pub phase: String,
+    pub operation_kind: FileOperationKind,
+    pub status: JobStatus,
+    pub current_item: Option<String>,
     pub completed_items: u64,
-    pub total_items: Option<u64>,
+    pub total_items: u64,
     pub completed_bytes: u64,
     pub total_bytes: Option<u64>,
-    pub current_item: Option<ResourceUri>,
+    pub error_code: Option<String>,
     pub message: Option<String>,
+    pub started_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 ```
 
-### Operation Request
+### Job events
+
+`JobEvent` is tagged by event kind and maps to the Tauri channels in `app_ipc::job_event_name`:
 
 ```rust
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OperationRequest {
-    pub kind: JobKind,
-    pub sources: Vec<ResourceUri>,
-    pub destination: Option<ResourceUri>,
-    pub options: OperationOptions,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OperationOptions {
-    pub conflict_policy: ConflictPolicy,
-    pub use_trash: bool,
-    pub preserve_timestamps: bool,
-    pub follow_symlinks: bool,
+#[serde(rename_all = "camelCase", tag = "event")]
+pub enum JobEvent {
+    Started(JobStartedEvent),
+    Progress(JobProgressEvent),
+    Completed(JobCompletedEvent),
+    Failed(JobFailedEvent),
+    Cancelled(JobCancelledEvent),
 }
 ```
 
-### Operation Plan
+### Post-RC target
 
-```rust
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct OperationPlan {
-    pub plan_id: Uuid,
-    pub kind: JobKind,
-    pub sources: Vec<ResourceUri>,
-    pub destination: Option<ResourceUri>,
-    pub estimated_items: Option<u64>,
-    pub estimated_bytes: Option<u64>,
-    pub conflicts: Vec<ConflictCandidate>,
-    pub warnings: Vec<OperationWarning>,
-    pub reversible: bool,
-}
-```
-
-### Job Manager API
-
-```rust
-pub struct JobManager {
-    store: Arc<dyn JobStore>,
-    vfs: Arc<VfsRegistry>,
-    events: Arc<EventBus>,
-    executor: JobExecutor,
-}
-
-impl JobManager {
-    pub async fn plan(&self, request: OperationRequest) -> Result<OperationPlan, JobError>;
-    pub async fn start(&self, plan: OperationPlan) -> Result<JobId, JobError>;
-    pub async fn get(&self, id: JobId) -> Result<JobRecord, JobError>;
-    pub async fn list(&self, filter: JobFilter) -> Result<Vec<JobRecord>, JobError>;
-    pub async fn cancel(&self, id: JobId) -> Result<(), JobError>;
-    pub async fn clear_completed(&self) -> Result<(), JobError>;
-    pub async fn recover_incomplete(&self) -> Result<Vec<JobRecord>, JobError>;
-}
-```
-
-### Job Store Trait
-
-```rust
-#[async_trait::async_trait]
-pub trait JobStore: Send + Sync {
-    async fn insert_job(&self, job: &JobRecord) -> Result<(), JobStoreError>;
-    async fn update_job(&self, job: &JobRecord) -> Result<(), JobStoreError>;
-    async fn insert_item_result(&self, item: &JobItemResult) -> Result<(), JobStoreError>;
-    async fn get_job(&self, id: JobId) -> Result<Option<JobRecord>, JobStoreError>;
-    async fn list_jobs(&self, filter: JobFilter) -> Result<Vec<JobRecord>, JobStoreError>;
-    async fn list_incomplete_jobs(&self) -> Result<Vec<JobRecord>, JobStoreError>;
-}
-```
+A full durable job journal, per-item result store, recovery API, and optional `JobManager` facade are post-RC work tracked in §9.2 and §17.
 
 ---
 
@@ -838,45 +785,19 @@ pub trait JobStore: Send + Sync {
 
 ### Purpose
 
-Cross-platform adapter for OS-specific operations.
+Placeholder crate reserved for future cross-platform adapters.
 
-### Responsibilities
+### RC status
 
-- Trash/Recycle Bin integration.
-- Reveal in native file manager.
-- Open file with default application.
-- Resolve default shell.
-- Identify platform-specific paths.
-- File hidden attribute detection.
-- Long-path handling on Windows.
-- macOS bundle and extended attribute helpers where needed.
+At RC, `crates/platform` only exposes a marker function and has no service traits. Platform-specific behavior currently lives closer to the feature implementation:
 
-### API
+- Trash and permanent delete: `fs-core/file_ops`.
+- Open default, reveal, and external terminal: `fs-core` helper modules surfaced through Tauri `fs.*` commands.
+- Standard locations and local path behavior: `fs-core` helpers and `vfs::ResourceUri`.
 
-```rust
-pub struct PlatformServices {
-    trash: Arc<dyn TrashService>,
-    shell: Arc<dyn ShellService>,
-    opener: Arc<dyn OpenService>,
-    paths: Arc<dyn PlatformPathService>,
-}
+### Post-RC target
 
-#[async_trait::async_trait]
-pub trait TrashService: Send + Sync {
-    async fn trash(&self, uris: &[ResourceUri]) -> Result<Vec<TrashResult>, PlatformError>;
-    fn supports_trash(&self, uri: &ResourceUri) -> bool;
-}
-
-#[async_trait::async_trait]
-pub trait OpenService: Send + Sync {
-    async fn reveal(&self, uri: &ResourceUri) -> Result<(), PlatformError>;
-    async fn open_default(&self, uri: &ResourceUri) -> Result<(), PlatformError>;
-}
-
-pub trait ShellService: Send + Sync {
-    fn default_shell(&self) -> Result<ShellSpec, PlatformError>;
-}
-```
+When platform behavior grows, this crate can absorb service traits for trash/recycle bin, native reveal/open, shell resolution, path services, Windows long-path behavior, and macOS-specific helpers.
 
 ---
 
@@ -1088,42 +1009,48 @@ impl IndexService {
 
 ### Purpose
 
-Settings and user preferences.
+SQLite-backed preferences and navigation stores.
 
-### MVP Settings
+### Responsibilities (RC)
+
+- Persist user preferences in `preferences.sqlite`.
+- Validate preference values before storage.
+- Persist navigation data: favorites, recent entries, and starred entries.
+- Expose repositories consumed by `app-core` and Tauri commands.
+
+### Preferences model (RC)
 
 ```rust
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AppSettings {
-    pub ui: UiSettings,
-    pub file_ops: FileOperationSettings,
-    pub terminal: TerminalSettings,
-    pub git: GitSettings,
-    pub privacy: PrivacySettings,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct UiSettings {
+#[serde(rename_all = "camelCase")]
+pub struct UserPreferences {
     pub theme: String,
-    pub density: UiDensity,
+    pub density: String,
+    pub default_view_mode: String,
     pub show_hidden_files: bool,
+    pub sidebar_width: u32,
+    pub split_ratio: f64,
+    pub activity_panel_visible: bool,
+    pub activity_panel_width: u32,
     pub confirm_delete: bool,
     pub confirm_permanent_delete: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FileOperationSettings {
-    pub default_conflict_policy: ConflictPolicy,
     pub use_trash_by_default: bool,
-    pub preserve_timestamps_by_default: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TerminalSettings {
-    pub shell_override: Option<String>,
-    pub start_in_active_panel: bool,
+    pub default_conflict_policy: String,
+    pub accent_color: String,
+    pub font_scale: String,
+    pub icon_scale: String,
+    pub confirm_overwrite: bool,
+    pub sidebar_visible: bool,
+    pub status_bar_visible: bool,
+    pub toolbar_visible: bool,
+    pub pane_mode: String,
+    pub job_drawer_behavior: String,
 }
 ```
+
+Preferences use `pragma user_version` with `SCHEMA_VERSION = 7` at RC. Navigation repository schema is maintained separately in `crates/config/src/navigation.rs`.
+
+Post-RC settings such as embedded terminal, Git, privacy, and provider configuration should be added here only when those features exist.
 
 ---
 
@@ -1153,7 +1080,7 @@ pub async fn export_diagnostics(request: DiagnosticsRequest) -> Result<Diagnosti
 
 **Canonical contract:** [api-reference.md](api-reference.md) — full command registry, events, DTOs, and error catalog. Update that document with every boundary change.
 
-The subsections below retain illustrative DTO samples. Dotted names map through `commandMap.ts` to snake_case Tauri handlers (e.g. `fileOperations.plan` → `file_operations_plan`).
+The subsections below retain illustrative DTO samples. Dotted names map through `commandMap.ts` to snake_case Tauri handlers (e.g. `fileOperation.plan` → `plan_file_operation`).
 
 ## 8.1 IPC TypeScript Client
 
@@ -1228,7 +1155,10 @@ Request:
 ```ts
 export interface ListStartRequest {
   uri: string;
-  options: ListOptionsDto;
+  requestId: string;
+  panelId?: string;
+  batchSize?: number;
+  includeHidden?: boolean;
 }
 ```
 
@@ -1237,44 +1167,46 @@ Response:
 ```ts
 export interface ListStartResponse {
   sessionId: string;
+  requestId: string;
 }
 ```
 
 Directory batches are emitted as events:
 
 ```ts
-export interface DirectoryBatchEvent {
-  type: "directory.batch";
+export interface DirectoryBatchEventDto {
   sessionId: string;
+  requestId: string;
   uri: string;
   entries: FileEntryDto[];
   batchIndex: number;
   isComplete: boolean;
-  totalHint?: number;
+  totalHint?: number | null;
+  error?: IpcError | null;
 }
 ```
 
-### `fileOperations.plan` / `fileOperations.start`
+### `fileOperation.plan` / `fileOperation.start`
 
 At RC, mutations use `FileOperationsClient` (not `fs.plan_operation`). Kinds include `createArchive` and `extractArchive` in addition to copy/move/rename/trash.
 
 Request (plan):
 
 ```ts
-export interface FileOperationPlanRequest {
-  kind:
-    | "copy"
-    | "move"
-    | "rename"
-    | "createDirectory"
-    | "createFile"
-    | "trash"
-    | "deletePermanent"
-    | "createArchive"
-    | "extractArchive";
+export interface PlanFileOperationRequest {
+  operation: FileOperationRequestDto;
+}
+
+export interface FileOperationRequestDto {
+  kind: FileOperationKind;
   sources: string[];
-  destination?: string;
-  options: FileOperationOptionsDto;
+  destination?: string | null;
+  newName?: string | null;
+  conflictPolicy?: ConflictPolicy | null;
+}
+
+export interface StartFileOperationRequest {
+  operationId: string;
 }
 ```
 
@@ -1284,32 +1216,7 @@ Start uses `operationId` from the returned plan. See [api-reference.md § File o
 
 ## 8.3 Jobs IPC
 
-### `jobs.list`
-
-```ts
-export interface JobsListRequest {
-  state?: JobStateDto;
-  limit?: number;
-}
-
-export interface JobsListResponse {
-  jobs: JobSummaryDto[];
-}
-```
-
-### `jobs.get`
-
-```ts
-export interface JobGetRequest {
-  jobId: string;
-}
-
-export interface JobGetResponse {
-  job: JobRecordDto;
-}
-```
-
-### `jobs.cancel`
+### `job.cancel`
 
 ```ts
 export interface JobCancelRequest {
@@ -1317,22 +1224,36 @@ export interface JobCancelRequest {
 }
 ```
 
-### Job Event
+### `job.status`
 
 ```ts
-export interface JobUpdatedEvent {
-  type: "job.updated";
+export interface JobStatusRequest {
   jobId: string;
-  state: JobStateDto;
-  phase: string;
-  completedItems: number;
-  totalItems?: number;
-  completedBytes: number;
-  totalBytes?: number;
-  currentItem?: string;
-  message?: string;
+}
+
+export interface JobStatusResponse {
+  job: JobSnapshot;
 }
 ```
+
+RC does not expose `jobs.list` or `jobs.get`. Recent operation records are read through `operationHistory.listRecent`.
+
+### Job events
+
+```ts
+export interface JobProgressEvent {
+  jobId: string;
+  operationKind: FileOperationKind;
+  currentItem?: string | null;
+  completedItems: number;
+  totalItems: number;
+  completedBytes: number;
+  totalBytes?: number | null;
+  updatedAt: string;
+}
+```
+
+Job lifecycle channels are `fileOperation:job:started`, `fileOperation:job:progress`, `fileOperation:job:completed`, `fileOperation:job:failed`, and `fileOperation:job:cancelled`.
 
 ---
 
@@ -1363,7 +1284,7 @@ export interface GitStatusForDirectoryResponse {
 
 ## 8.5 Archive IPC (superseded at RC)
 
-> At RC use `fileOperations.plan` / `start` with `extractArchive` or `createArchive`. The separate `archive.*` IPC below is a historical target.
+> At RC use `fileOperation.plan` / `start` with `extractArchive` or `createArchive`. The separate `archive.*` IPC below is a historical target.
 
 ### `archive.plan_extract` (target)
 
@@ -1560,9 +1481,9 @@ impl EventBus {
 }
 ```
 
-## 10.2 Tauri Event Bridge
+## 10.2 Tauri Event Bridge (post-RC target)
 
-The Tauri shell subscribes to `EventBus` and forwards frontend-safe events to the active window.
+The Tauri shell may eventually subscribe to a unified internal `EventBus` and forward frontend-safe events to the active window. At RC, commands/listing workers/runtime helpers emit Tauri events directly.
 
 Rules:
 
@@ -1693,9 +1614,12 @@ conflict_policy_keep_both
 conflict_policy_skip
 operation_plan_detects_existing_destination
 job_cancel_copy
-job_store_persists_job
+operation_history_persists_completed_status
 archive_rejects_dotdot_traversal
 archive_rejects_absolute_path
+preferences_validate_values
+navigation_persists_favorites_recent_starred
+diagnostics_bundle_exports
 trash_fallback_behavior
 ```
 
@@ -1713,6 +1637,8 @@ Required scenarios:
 8. Extract safe archive.
 9. Reject malicious archive.
 10. Recover job history after restart.
+11. Create zip archive.
+12. Start and cancel folder size / recursive search metadata jobs.
 
 ## 13.3 Frontend Tests
 
@@ -1727,7 +1653,12 @@ Required tests:
 7. Job progress display.
 8. Conflict dialog selection.
 9. Command palette action execution.
-10. Terminal component mount/unmount.
+10. Text preview opens with Space.
+11. Settings persist through the preferences client.
+12. Diagnostics dialog exports a bundle.
+13. Archive actions call `createArchive` / `extractArchive`.
+
+Post-RC frontend tests should cover embedded terminal mount/unmount when `terminal-core` and the xterm panel exist.
 
 ## 13.4 Performance Tests
 
@@ -1780,22 +1711,19 @@ pub enum AppErrorKind {
 ## 14.2 Frontend Error DTO
 
 ```ts
-export interface AppErrorDto {
+export interface IpcError {
   code: string;
-  category: string;
   message: string;
-  userMessage: string;
-  retryable: boolean;
-  details?: unknown;
 }
 ```
 
 Rules:
 
-1. `message` may be technical.
-2. `userMessage` must be safe and understandable.
+1. `code` must be stable enough for frontend handling.
+2. `message` must be safe to display.
 3. Internal stack traces must not be sent to UI by default.
 4. Logs may contain diagnostic context but must avoid secrets.
+5. If richer error payloads are added post-RC, update `crates/app-ipc`, `packages/ts-api/src/types.ts`, and [api-reference.md](api-reference.md) in the same change.
 
 ---
 
