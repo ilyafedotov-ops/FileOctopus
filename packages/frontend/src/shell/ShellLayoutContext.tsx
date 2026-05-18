@@ -68,10 +68,14 @@ export interface ShellLayoutContextValue {
   aboutOpen: boolean;
   goToLocationOpen: boolean;
   manageFavoritesOpen: boolean;
+  recentLocationsOpen: boolean;
+  clearRecentLocationsOpen: boolean;
   errorDetailsOpen: boolean;
   operationHistoryOpen: boolean;
   setGoToLocationOpen: (v: boolean) => void;
   setManageFavoritesOpen: (v: boolean) => void;
+  setRecentLocationsOpen: (v: boolean) => void;
+  setClearRecentLocationsOpen: (v: boolean) => void;
   setErrorDetailsOpen: (v: boolean) => void;
   setOperationHistoryOpen: (v: boolean) => void;
   dialog: OperationDialog | null;

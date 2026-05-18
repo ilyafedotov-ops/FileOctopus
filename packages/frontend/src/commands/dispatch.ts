@@ -36,6 +36,10 @@ export interface CommandDispatchDeps {
   setAboutOpen: (open: boolean) => void;
   setGoToLocationOpen: (open: boolean) => void;
   setManageFavoritesOpen: (open: boolean) => void;
+  setRecentLocationsOpen: (open: boolean) => void;
+  setClearRecentLocationsOpen: (open: boolean) => void;
+  removeRecentEntry: (uri: string) => Promise<void>;
+  clearRecentEntries: () => Promise<void>;
   setOperationHistoryOpen: (open: boolean) => void;
   setFilterFocusToken: Dispatch<SetStateAction<number>>;
   activityCollapsed: boolean;
@@ -247,6 +251,23 @@ export function dispatchCommand(
     case "nav.manageFavorites":
       deps.setManageFavoritesOpen(true);
       return true;
+    case "nav.recentLocations":
+      deps.setRecentLocationsOpen(true);
+      return true;
+    case "nav.clearRecentLocations":
+      deps.setClearRecentLocationsOpen(true);
+      return true;
+    case "nav.clearRecent":
+      void deps.clearRecentEntries();
+      return true;
+    case "nav.removeRecent": {
+      const uri = options?.targetUri;
+      if (uri) {
+        void deps.removeRecentEntry(uri);
+        return true;
+      }
+      return false;
+    }
     case "view.toggleHidden":
       deps.toggleHidden(panelId);
       return true;

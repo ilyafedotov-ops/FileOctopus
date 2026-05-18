@@ -103,11 +103,15 @@ function FileOctopusAppInner({
     aboutOpen,
     goToLocationOpen,
     manageFavoritesOpen,
+    recentLocationsOpen,
+    clearRecentLocationsOpen,
     errorDetailsOpen,
     operationHistoryOpen,
     setAboutOpen,
     setGoToLocationOpen,
     setManageFavoritesOpen,
+    setRecentLocationsOpen,
+    setClearRecentLocationsOpen,
     setErrorDetailsOpen,
     setOperationHistoryOpen,
     dialog,
@@ -296,6 +300,8 @@ function FileOctopusAppInner({
     setAboutOpen,
     setGoToLocationOpen,
     setManageFavoritesOpen,
+    setRecentLocationsOpen,
+    setClearRecentLocationsOpen,
     setOperationHistoryOpen,
     setFilterFocusToken,
     activityCollapsed,
@@ -374,6 +380,22 @@ function FileOctopusAppInner({
     toggleToolbar: () => {
       void updatePreference("toolbarVisible", String(!toolbarVisible));
     },
+    removeRecentEntry: async (uri: string) => {
+      try {
+        await client.navigation.removeRecent({ uri });
+        refreshNavigation();
+      } catch {
+        /* ignore */
+      }
+    },
+    clearRecentEntries: async () => {
+      try {
+        await client.navigation.clearRecent();
+        refreshNavigation();
+      } catch {
+        /* ignore */
+      }
+    },
   });
 
   const handleShellKeyDown = useMemo(
@@ -438,6 +460,7 @@ function FileOctopusAppInner({
     runCommand: handleCommandSelect,
     statusBarVisible,
     toolbarVisible,
+    recentLocations: [...recentToday, ...recentWeek],
   });
 
   function makeFilePanelProps(pid: "left" | "right"): FilePanelProps {
@@ -560,10 +583,14 @@ function FileOctopusAppInner({
       aboutOpen={aboutOpen}
       goToLocationOpen={goToLocationOpen}
       manageFavoritesOpen={manageFavoritesOpen}
+      recentLocationsOpen={recentLocationsOpen}
+      clearRecentLocationsOpen={clearRecentLocationsOpen}
       errorDetailsOpen={errorDetailsOpen}
       operationHistoryOpen={operationHistoryOpen}
       setGoToLocationOpen={setGoToLocationOpen}
       setManageFavoritesOpen={setManageFavoritesOpen}
+      setRecentLocationsOpen={setRecentLocationsOpen}
+      setClearRecentLocationsOpen={setClearRecentLocationsOpen}
       setErrorDetailsOpen={setErrorDetailsOpen}
       setOperationHistoryOpen={setOperationHistoryOpen}
       dialog={dialog}

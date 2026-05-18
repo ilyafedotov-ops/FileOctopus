@@ -17,6 +17,10 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
     setAboutOpen: vi.fn(),
     setGoToLocationOpen: vi.fn(),
     setManageFavoritesOpen: vi.fn(),
+    setRecentLocationsOpen: vi.fn(),
+    setClearRecentLocationsOpen: vi.fn(),
+    removeRecentEntry: vi.fn(),
+    clearRecentEntries: vi.fn(),
     setOperationHistoryOpen: vi.fn(),
     setFilterFocusToken: vi.fn(),
     activityCollapsed: true,
@@ -200,5 +204,63 @@ describe("dispatchCommand", () => {
     });
 
     expect(removeFavorite).toHaveBeenCalledWith(3);
+  });
+
+  it("opens recent locations dialog", () => {
+    const setRecentLocationsOpen = vi.fn();
+    const handled = dispatchCommand(
+      "nav.recentLocations",
+      baseDeps({ setRecentLocationsOpen }),
+    );
+
+    expect(handled).toBe(true);
+    expect(setRecentLocationsOpen).toHaveBeenCalledWith(true);
+  });
+
+  it("opens clear recent locations confirmation", () => {
+    const setClearRecentLocationsOpen = vi.fn();
+    const handled = dispatchCommand(
+      "nav.clearRecentLocations",
+      baseDeps({ setClearRecentLocationsOpen }),
+    );
+
+    expect(handled).toBe(true);
+    expect(setClearRecentLocationsOpen).toHaveBeenCalledWith(true);
+  });
+
+  it("clears all recent entries", () => {
+    const clearRecentEntries = vi.fn();
+    const handled = dispatchCommand(
+      "nav.clearRecent",
+      baseDeps({ clearRecentEntries }),
+    );
+
+    expect(handled).toBe(true);
+    expect(clearRecentEntries).toHaveBeenCalled();
+  });
+
+  it("removes a recent entry by uri", () => {
+    const removeRecentEntry = vi.fn();
+    const handled = dispatchCommand(
+      "nav.removeRecent",
+      baseDeps({ removeRecentEntry }),
+      { targetUri: "local:///home/user/projects" },
+    );
+
+    expect(handled).toBe(true);
+    expect(removeRecentEntry).toHaveBeenCalledWith(
+      "local:///home/user/projects",
+    );
+  });
+
+  it("does nothing for nav.removeRecent without targetUri", () => {
+    const removeRecentEntry = vi.fn();
+    const handled = dispatchCommand(
+      "nav.removeRecent",
+      baseDeps({ removeRecentEntry }),
+    );
+
+    expect(handled).toBe(false);
+    expect(removeRecentEntry).not.toHaveBeenCalled();
   });
 });

@@ -24,6 +24,8 @@ export function ShellOverlays() {
         aboutOpen={ctx.aboutOpen}
         goToLocationOpen={ctx.goToLocationOpen}
         manageFavoritesOpen={ctx.manageFavoritesOpen}
+        recentLocationsOpen={ctx.recentLocationsOpen}
+        clearRecentLocationsOpen={ctx.clearRecentLocationsOpen}
         errorDetailsOpen={ctx.errorDetailsOpen}
         goToLocationInitialUri={ctx.activeTabUri}
         favorites={ctx.favorites}
@@ -51,6 +53,8 @@ export function ShellOverlays() {
         setAboutOpen={ctx.setAboutOpen}
         setGoToLocationOpen={ctx.setGoToLocationOpen}
         setManageFavoritesOpen={ctx.setManageFavoritesOpen}
+        setRecentLocationsOpen={ctx.setRecentLocationsOpen}
+        setClearRecentLocationsOpen={ctx.setClearRecentLocationsOpen}
         setErrorDetailsOpen={ctx.setErrorDetailsOpen}
         setOperationHistoryOpen={ctx.setOperationHistoryOpen}
         setOperationError={ctx.setOperationError}
@@ -88,6 +92,13 @@ export function ShellOverlays() {
         revealEntry={ctx.revealEntry}
         locations={ctx.locations}
         recentDestinations={[...ctx.recentToday, ...ctx.recentWeek]}
+        recentEntries={[...ctx.recentToday, ...ctx.recentWeek]}
+        onRemoveRecentEntry={(uri) =>
+          ctx.handleCommandSelect("nav.removeRecent", undefined, {
+            targetUri: uri,
+          })
+        }
+        onClearRecentEntries={() => ctx.handleCommandSelect("nav.clearRecent")}
       />
       <ContextMenuOverlay
         menu={ctx.contextMenu}

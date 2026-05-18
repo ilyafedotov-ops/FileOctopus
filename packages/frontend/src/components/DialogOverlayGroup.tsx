@@ -19,6 +19,8 @@ import {
 import { AboutDialog } from "./dialogs/AboutDialog";
 import { GoToLocationDialog } from "./dialogs/GoToLocationDialog";
 import { ManageFavoritesDialog } from "./dialogs/ManageFavoritesDialog";
+import { RecentLocationsDialog } from "./dialogs/RecentLocationsDialog";
+import { ClearRecentLocationsDialog } from "./dialogs/ClearRecentLocationsDialog";
 import { ErrorDetailsDialog } from "./dialogs/ErrorDetailsDialog";
 import { OperationHistoryDialog } from "./dialogs/OperationHistoryDialog";
 import type {
@@ -62,6 +64,8 @@ export interface DialogOverlayGroupProps {
   aboutOpen: boolean;
   goToLocationOpen: boolean;
   manageFavoritesOpen: boolean;
+  recentLocationsOpen: boolean;
+  clearRecentLocationsOpen: boolean;
   errorDetailsOpen: boolean;
   operationHistoryOpen: boolean;
   goToLocationInitialUri: string;
@@ -92,6 +96,8 @@ export interface DialogOverlayGroupProps {
   setAboutOpen: (open: boolean) => void;
   setGoToLocationOpen: (open: boolean) => void;
   setManageFavoritesOpen: (open: boolean) => void;
+  setRecentLocationsOpen: (open: boolean) => void;
+  setClearRecentLocationsOpen: (open: boolean) => void;
   setErrorDetailsOpen: (open: boolean) => void;
   setOperationHistoryOpen: (open: boolean) => void;
   setOperationError: (message: string | null) => void;
@@ -126,6 +132,9 @@ export interface DialogOverlayGroupProps {
   revealEntry: (panelId: PanelId, entry: FileEntryDto | null) => void;
   locations: StandardLocationDto[];
   recentDestinations: RecentEntryDto[];
+  recentEntries: RecentEntryDto[];
+  onRemoveRecentEntry: (uri: string) => void;
+  onClearRecentEntries: () => void;
 }
 
 export function DialogOverlayGroup({
@@ -138,6 +147,8 @@ export function DialogOverlayGroup({
   aboutOpen,
   goToLocationOpen,
   manageFavoritesOpen,
+  recentLocationsOpen,
+  clearRecentLocationsOpen,
   errorDetailsOpen,
   operationHistoryOpen,
   goToLocationInitialUri,
@@ -165,6 +176,8 @@ export function DialogOverlayGroup({
   setAboutOpen,
   setGoToLocationOpen,
   setManageFavoritesOpen,
+  setRecentLocationsOpen,
+  setClearRecentLocationsOpen,
   setErrorDetailsOpen,
   setOperationHistoryOpen,
   setOperationError,
@@ -189,6 +202,9 @@ export function DialogOverlayGroup({
   revealEntry,
   locations,
   recentDestinations,
+  recentEntries,
+  onRemoveRecentEntry,
+  onClearRecentEntries,
 }: DialogOverlayGroupProps) {
   return (
     <>
@@ -235,6 +251,19 @@ export function DialogOverlayGroup({
         onNavigate={onNavigateActivePane}
         onRemove={onRemoveFavorite}
         onRename={onRenameFavorite}
+      />
+      <RecentLocationsDialog
+        open={recentLocationsOpen}
+        entries={recentEntries}
+        onClose={() => setRecentLocationsOpen(false)}
+        onOpen={onNavigateActivePane}
+        onRemove={onRemoveRecentEntry}
+        onClearAll={() => setClearRecentLocationsOpen(true)}
+      />
+      <ClearRecentLocationsDialog
+        open={clearRecentLocationsOpen}
+        onClose={() => setClearRecentLocationsOpen(false)}
+        onConfirm={onClearRecentEntries}
       />
       <ErrorDetailsDialog
         open={errorDetailsOpen}

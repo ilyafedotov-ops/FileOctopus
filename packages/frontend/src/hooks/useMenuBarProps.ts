@@ -1,5 +1,6 @@
 import type { Dispatch } from "react";
 import type {
+  RecentEntryDto,
   StandardLocationDto,
   UserPreferencesDto,
 } from "@fileoctopus/ts-api";
@@ -34,6 +35,7 @@ export interface UseMenuBarPropsParams {
   ) => void;
   statusBarVisible: boolean;
   toolbarVisible: boolean;
+  recentLocations: RecentEntryDto[];
 }
 
 export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
@@ -52,6 +54,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     runCommand,
     statusBarVisible,
     toolbarVisible,
+    recentLocations,
   } = params;
 
   const panelId = state.activePanelId;
@@ -127,6 +130,9 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onRefresh: () => runCommand("nav.refresh"),
     onAddFavorite: () => runCommand("nav.addFavorite", panelId),
     onManageFavorites: () => runCommand("nav.manageFavorites"),
+    onShowRecentLocations: () => runCommand("nav.recentLocations"),
+    onClearRecentLocations: () => runCommand("nav.clearRecentLocations"),
+    recentLocations: recentLocations,
     onOperationHistory: () => runCommand("app.operationHistory"),
     onFilter: () => setFilterFocusToken((v) => v + 1),
     onSearchRecursive: () => setRecursiveSearchFocusToken((v) => v + 1),

@@ -19,6 +19,8 @@ export interface ModalsContextValue {
   aboutOpen: boolean;
   goToLocationOpen: boolean;
   manageFavoritesOpen: boolean;
+  recentLocationsOpen: boolean;
+  clearRecentLocationsOpen: boolean;
   errorDetailsOpen: boolean;
   operationHistoryOpen: boolean;
   dialog: OperationDialog | null;
@@ -31,6 +33,8 @@ export interface ModalsContextValue {
   setAboutOpen: Dispatch<SetStateAction<boolean>>;
   setGoToLocationOpen: Dispatch<SetStateAction<boolean>>;
   setManageFavoritesOpen: Dispatch<SetStateAction<boolean>>;
+  setRecentLocationsOpen: Dispatch<SetStateAction<boolean>>;
+  setClearRecentLocationsOpen: Dispatch<SetStateAction<boolean>>;
   setErrorDetailsOpen: Dispatch<SetStateAction<boolean>>;
   setOperationHistoryOpen: Dispatch<SetStateAction<boolean>>;
   setDialog: Dispatch<SetStateAction<OperationDialog | null>>;
@@ -56,6 +60,9 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
   const [aboutOpen, setAboutOpen] = useState(false);
   const [goToLocationOpen, setGoToLocationOpen] = useState(false);
   const [manageFavoritesOpen, setManageFavoritesOpen] = useState(false);
+  const [recentLocationsOpen, setRecentLocationsOpen] = useState(false);
+  const [clearRecentLocationsOpen, setClearRecentLocationsOpen] =
+    useState(false);
   const [errorDetailsOpen, setErrorDetailsOpen] = useState(false);
   const [operationHistoryOpen, setOperationHistoryOpen] = useState(false);
   const [dialog, setDialog] = useState<OperationDialog | null>(null);
@@ -71,6 +78,8 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       aboutOpen,
       goToLocationOpen,
       manageFavoritesOpen,
+      recentLocationsOpen,
+      clearRecentLocationsOpen,
       errorDetailsOpen,
       operationHistoryOpen,
       dialog,
@@ -83,6 +92,8 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       setAboutOpen,
       setGoToLocationOpen,
       setManageFavoritesOpen,
+      setRecentLocationsOpen,
+      setClearRecentLocationsOpen,
       setErrorDetailsOpen,
       setOperationHistoryOpen,
       setDialog,
@@ -97,6 +108,8 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       aboutOpen,
       goToLocationOpen,
       manageFavoritesOpen,
+      recentLocationsOpen,
+      clearRecentLocationsOpen,
       errorDetailsOpen,
       operationHistoryOpen,
       dialog,

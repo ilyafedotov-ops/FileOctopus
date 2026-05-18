@@ -46,6 +46,9 @@ export interface MenuBarProps {
   onRefresh: () => void;
   onAddFavorite: () => void;
   onManageFavorites: () => void;
+  onShowRecentLocations: () => void;
+  onClearRecentLocations: () => void;
+  recentLocations: ReadonlyArray<{ uri: string; label: string }>;
   onFilter: () => void;
   onSearchRecursive: () => void;
   onChecksum: () => void;
@@ -555,6 +558,29 @@ export function MenuBar(props: MenuBarProps) {
       id: "manage-favorites",
       label: "Manage Favorites…",
       onSelect: wrap(props.onManageFavorites),
+    },
+    sep("sep-recent"),
+    ...props.recentLocations.slice(0, 10).map(
+      (loc): DropdownMenuItem => ({
+        id: "recent-" + loc.uri,
+        label: loc.label,
+        onSelect: wrapArg(props.goStandardLocation, loc.uri),
+      }),
+    ),
+    ...(props.recentLocations.length > 10
+      ? [
+          {
+            id: "show-all-recent",
+            label: "Show All Recent Locations…",
+            onSelect: wrap(props.onShowRecentLocations),
+          },
+        ]
+      : []),
+    {
+      id: "clear-recent",
+      label: "Clear Recent Locations…",
+      disabled: props.recentLocations.length === 0,
+      onSelect: wrap(props.onClearRecentLocations),
     },
   ];
 
