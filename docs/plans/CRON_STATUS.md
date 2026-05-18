@@ -1,80 +1,63 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-18 14:30 UTC
+> Last run: 2026-05-18 17:10 UTC
 
 ## Health Gate
 
 | Check                       | Result                              |
 | --------------------------- | ----------------------------------- |
 | TypeScript (`tsc --noEmit`) | ✅ 0 errors                         |
-| Vitest (frontend)           | ✅ 257/257 tests passing (36 files) |
+| Vitest (frontend)           | ✅ 271/271 tests passing (39 files) |
 | Rust (`cargo check`)        | ✅ clean                            |
 | Clippy                      | ✅ clean (no warnings)              |
 
 ## Work Completed This Run
 
-### P1-5: Collapse Long Breadcrumbs into Overflow Menu
+### P2-2: Add Reusable Focus-Trap for Modal Dialogs
 
-**Commit:** `a8cc7fd`
-
-**What was done:**
-
-- Rewrote `BreadcrumbPath` component with `maxVisible` prop — when segments exceed threshold, first and last segments are preserved with overflow dropdown in between
-- Overflow dropdown uses existing `DropdownMenu` component with `Icons.more()` trigger button
-- Consumer `PanePathBar.tsx` passes `maxVisible={4}` constant
-- Added tooltip showing full path via `title` attribute on breadcrumb container
-- Added CSS for overflow trigger button (`.fo-breadcrumb-overflow`)
-
-**Tests (8 new):**
-
-- `tests/breadcrumbOverflow.test.tsx` — 8 tests:
-  - Basic rendering (3): renders all segments, last segment as button, separators between segments
-  - Overflow behavior (5): hides middle segments when exceeding maxVisible, shows overflow trigger, opens overflow menu with hidden segments, clicking overflow item navigates, shows first+last when many segments
-
-### P2-10: Accessible Row Names for File Entries
-
-**Commit:** `993f879`
+**Commit:** `4d80006`
 
 **What was done:**
 
-- Added `aria-label` to file rows in `FileRow.tsx` with file name, type, size, and modified date
-- Screen readers can now identify file entries without visual context
-- Format: `"report.pdf, PDF, 2.0 MB, May 18, 2026"`
+- Created `useFocusTrap` hook in `src/hooks/useFocusTrap.ts` — traps Tab/Shift+Tab within a container element, auto-focuses first focusable element on open, restores focus to previously active element on close
+- Wired into all 10 dialog components alongside `useDialogEscape`:
+  - ShortcutsDialog, SettingsDialog, DiagnosticsDialog, CommandPalette
+  - AboutDialog, GoToLocationDialog, ManageFavoritesDialog, ErrorDetailsDialog
+  - OperationHistoryDialog, OperationDialogView (uses `<section>` instead of `<dialog>`)
+- Handles edge cases: no focusable elements, disabled elements skipped, cleanup on unmount
 
-**Tests (3 new):**
+**Tests (5 new):**
 
-- `tests/fileRowAccessible.test.tsx` — 3 tests:
-  - Has aria-label with file name, type, and size
-  - Shows directory kind as "Folder"
-  - Includes modified date in accessible name
+- `tests/focusTrap.test.tsx` — 5 tests:
+  - Auto-focuses first focusable element when opened
+  - Traps Tab within the container (wraps from last to first)
+  - Traps Shift+Tab within the container (wraps from first to last)
+  - Restores focus to previously active element on close
+  - Handles container with no focusable elements gracefully
 
-### P2-11: Offline/Unmounted Pane State
+### P2-4: Wire Session Path Persistence on Navigation
 
-**Commit:** `84867c3`
+**Commit:** `d08d97d`
 
 **What was done:**
 
-- Added `DeviceUnavailable` variant to `VfsError` enum with `device_unavailable` code
-- Added `DEVICE_UNAVAILABLE` to IPC error codes in `ts-api/types.ts`
-- Added `"offline"` state to `PaneLoadState` union type
-- Maps `device_unavailable` error code → `"offline"` pane state in `loadStateFromBatchError`
-- `PaneStateView` renders "Device unavailable" title with guidance about reconnecting
-- `From<VfsError> for FileOperationError` maps `DeviceUnavailable` → `PermissionDenied`
+- Added `useEffect` in `ShellProvider` that calls `persistSessionPaths()` whenever left/right panel tab URIs change
+- The `persistSessionPaths` utility and `restoreSessionPaths` already existed but persistence was never called — only restore was wired on startup
+- Paths are now saved to localStorage on every navigation and restored on app restart
+- Fixed `appShell.test.tsx` — added `localStorage.clear()` in beforeEach to prevent cross-test state pollution
 
-**Tests (4 new):**
+**Tests (2 new):**
 
-- `tests/paneOfflineState.test.tsx` — 4 tests:
-  - Renders offline state with device unavailable message
-  - Shows path in offline state
-  - Shows retry and refresh actions
-  - Shows guidance about removing favorites
+- `tests/sessionPaths.test.tsx` — 2 new tests (6 total):
+  - persistSessionPaths overwrites previous paths
+  - persistSessionPaths handles localStorage quota error silently
 
 ## Summary
 
 | Metric      | Value |
 | ----------- | ----- |
-| Tasks done  | 3     |
-| Commits     | 6     |
-| New tests   | 15    |
-| Total tests | 257   |
-| Test files  | 36    |
+| Tasks done  | 2     |
+| Commits     | 4     |
+| New tests   | 7     |
+| Total tests | 271   |
+| Test files  | 39    |
