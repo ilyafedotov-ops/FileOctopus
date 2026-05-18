@@ -14,11 +14,17 @@ import {
   JobFailedEvent,
   JobCancelledEvent,
 } from "@fileoctopus/ts-api";
+import type {
+  StandardLocationDto,
+  FavoriteEntryDto,
+  RecentEntryDto,
+} from "@fileoctopus/ts-api";
 import type { PanelId } from "../panelStore";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
 import { PropertiesDialog } from "../components/dialogs/PropertiesDialog";
 import { ConflictResolutionDialog } from "../components/dialogs/ConflictResolutionDialog";
+import { DestinationChooser } from "./DestinationChooser";
 
 type CopyMoveKind = "copy" | "move";
 
@@ -102,6 +108,9 @@ export interface OperationDialogViewProps {
   ) => void;
   onCopyPath: (panelId: PanelId) => void;
   onReveal: (panelId: PanelId, entry: FileEntryDto | null) => void;
+  locations?: StandardLocationDto[];
+  favorites?: FavoriteEntryDto[];
+  recentDestinations?: RecentEntryDto[];
 }
 
 function operationDialogHeading(dialog: OperationDialog): {
@@ -175,6 +184,9 @@ export function OperationDialogView({
   onSubmitPermanentDelete,
   onCopyPath,
   onReveal,
+  locations,
+  favorites,
+  recentDestinations,
 }: OperationDialogViewProps) {
   useDialogEscape(Boolean(dialog), onClose);
 
@@ -318,69 +330,99 @@ export function OperationDialogView({
                 onSubmitCopyMove(dialog);
               }}
             >
-              <label className="fo-dialog-field">
-                <span>Destination</span>
-                <input
-                  aria-label="Destination local URI"
-                  value={dialog.destination}
-                  onChange={(event) =>
-                    onUpdate({
-                      ...dialog,
-                      destination: event.target.value,
-                      plan: null,
-                      error: null,
-                    })
-                  }
-                />
-              </label>
-              <label className="fo-dialog-field">
-                <span>Conflict policy</span>
-                <select
-                  aria-label="Conflict policy"
-                  value={dialog.conflictPolicy}
-                  onChange={(event) =>
-                    onUpdate({
-                      ...dialog,
-                      conflictPolicy: event.target.value as ConflictPolicy,
-                      plan: null,
-                      error: null,
-                    })
-                  }
-                >
-                  <option value="fail">Fail without changes</option>
-                  <option value="skip">Skip existing destinations</option>
-                  <option value="overwrite">
-                    Overwrite existing destinations
-                  </option>
-                  <option value="renameNew">Rename new items</option>
-                  <option value="renameExisting">Rename existing items</option>
-                </select>
-              </label>
-              <div className="fo-dialog-callout">
-                <strong>{dialog.entries.length} item(s) selected</strong>
-                <OperationItemList entries={dialog.entries.slice(0, 5)} />
-              </div>
-              {dialog.plan ? (
-                <div className="fo-dialog-callout">
-                  <strong>
-                    {dialog.plan.totalItems} planned item(s),{" "}
-                    {dialog.plan.conflicts.length} conflict(s)
-                  </strong>
-                  {dialog.plan.conflicts.slice(0, 3).map((conflict) => (
-                    <span key={`${conflict.source}-${conflict.destination}`}>
-                      {conflict.destination}
-                    </span>
-                  ))}
-                  {dialog.plan.warnings.slice(0, 3).map((warning) => (
-                    <span key={`${warning.code}-${warning.uri ?? ""}`}>
-                      {operationWarningMessage(warning.code, warning.message)}
-                    </span>
-                  ))}
+              <div className="fo-destination-layout">
+                <div className="fo-destination-main">
+                  <label className="fo-dialog-field">
+                    <span>Destination</span>
+                    <input
+                      aria-label="Destination local URI"
+                      value={dialog.destination}
+                      onChange={(event) =>
+                        onUpdate({
+                          ...dialog,
+                          destination: event.target.value,
+                          plan: null,
+                          error: null,
+                        })
+                      }
+                    />
+                  </label>
+                  <label className="fo-dialog-field">
+                    <span>Conflict policy</span>
+                    <select
+                      aria-label="Conflict policy"
+                      value={dialog.conflictPolicy}
+                      onChange={(event) =>
+                        onUpdate({
+                          ...dialog,
+                          conflictPolicy: event.target.value as ConflictPolicy,
+                          plan: null,
+                          error: null,
+                        })
+                      }
+                    >
+                      <option value="fail">Fail without changes</option>
+                      <option value="skip">Skip existing destinations</option>
+                      <option value="overwrite">
+                        Overwrite existing destinations
+                      </option>
+                      <option value="renameNew">Rename new items</option>
+                      <option value="renameExisting">
+                        Rename existing items
+                      </option>
+                    </select>
+                  </label>
+                  <div className="fo-dialog-callout">
+                    <strong>{dialog.entries.length} item(s) selected</strong>
+                    <OperationItemList entries={dialog.entries.slice(0, 5)} />
+                  </div>
+                  {dialog.plan ? (
+                    <div className="fo-dialog-callout">
+                      <strong>
+                        {dialog.plan.totalItems} planned item(s),{" "}
+                        {dialog.plan.conflicts.length} conflict(s)
+                      </strong>
+                      {dialog.plan.conflicts.slice(0, 3).map((conflict) => (
+                        <span
+                          key={`${conflict.source}-${conflict.destination}`}
+                        >
+                          {conflict.destination}
+                        </span>
+                      ))}
+                      {dialog.plan.warnings.slice(0, 3).map((warning) => (
+                        <span key={`${warning.code}-${warning.uri ?? ""}`}>
+                          {operationWarningMessage(
+                            warning.code,
+                            warning.message,
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+                  {dialog.error ? (
+                    <div className="fo-operation-error">{dialog.error}</div>
+                  ) : null}
                 </div>
-              ) : null}
-              {dialog.error ? (
-                <div className="fo-operation-error">{dialog.error}</div>
-              ) : null}
+                {(locations && locations.length > 0) ||
+                (favorites && favorites.length > 0) ||
+                (recentDestinations && recentDestinations.length > 0) ? (
+                  <div className="fo-destination-sidebar">
+                    <DestinationChooser
+                      locations={locations ?? []}
+                      favorites={favorites ?? []}
+                      recent={recentDestinations ?? []}
+                      onSelect={(uri) =>
+                        onUpdate({
+                          ...dialog,
+                          destination: uri,
+                          plan: null,
+                          error: null,
+                        })
+                      }
+                    />
+                  </div>
+                ) : null}
+              </div>
               <div className="fo-dialog-footer">
                 <Button
                   type="button"

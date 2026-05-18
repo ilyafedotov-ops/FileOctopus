@@ -24,6 +24,8 @@ import { OperationHistoryDialog } from "./dialogs/OperationHistoryDialog";
 import type {
   FavoriteEntryDto,
   OperationHistoryRecordDto,
+  StandardLocationDto,
+  RecentEntryDto,
 } from "@fileoctopus/ts-api";
 
 const FALLBACK_PREFERENCES: UserPreferencesDto = {
@@ -122,6 +124,8 @@ export interface DialogOverlayGroupProps {
   ) => void;
   copyTextFromSelection: (panelId: PanelId, kind: "path") => void;
   revealEntry: (panelId: PanelId, entry: FileEntryDto | null) => void;
+  locations: StandardLocationDto[];
+  recentDestinations: RecentEntryDto[];
 }
 
 export function DialogOverlayGroup({
@@ -183,6 +187,8 @@ export function DialogOverlayGroup({
   submitPermanentDelete,
   copyTextFromSelection,
   revealEntry,
+  locations,
+  recentDestinations,
 }: DialogOverlayGroupProps) {
   return (
     <>
@@ -271,6 +277,9 @@ export function DialogOverlayGroup({
         }
         onCopyPath={(panelId) => void copyTextFromSelection(panelId, "path")}
         onReveal={(panelId, entry) => void revealEntry(panelId, entry)}
+        locations={locations}
+        favorites={favorites}
+        recentDestinations={recentDestinations}
       />
     </>
   );

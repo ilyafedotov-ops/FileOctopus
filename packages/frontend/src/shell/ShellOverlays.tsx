@@ -86,6 +86,8 @@ export function ShellOverlays() {
         submitPermanentDelete={ctx.submitPermanentDelete}
         copyTextFromSelection={ctx.copyTextFromSelection}
         revealEntry={ctx.revealEntry}
+        locations={ctx.locations}
+        recentDestinations={[...ctx.recentToday, ...ctx.recentWeek]}
       />
       <ContextMenuOverlay
         menu={ctx.contextMenu}
