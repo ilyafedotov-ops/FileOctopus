@@ -21,6 +21,8 @@ export interface FileRowProps {
   multiSelected: boolean;
   focused: boolean;
   renaming?: boolean;
+  panelId?: string;
+  selectedUris?: string[];
   onSubmitRename?: (newName: string) => void;
   onCancelRename?: () => void;
   onSelect: (entryId: string | null) => void;
@@ -41,6 +43,8 @@ export function FileRow({
   multiSelected,
   focused,
   renaming = false,
+  panelId,
+  selectedUris,
   onSubmitRename,
   onCancelRename,
   onSelect,
@@ -104,6 +108,18 @@ export function FileRow({
           "application/x-fileoctopus-name",
           entry.name,
         );
+        if (panelId) {
+          event.dataTransfer.setData(
+            "application/x-fileoctopus-panel-id",
+            panelId,
+          );
+        }
+        if (selectedUris && selectedUris.length > 1) {
+          event.dataTransfer.setData(
+            "application/x-fileoctopus-selected-uris",
+            JSON.stringify(selectedUris),
+          );
+        }
         event.dataTransfer.effectAllowed = "move";
       }}
       onContextMenu={(event) => {

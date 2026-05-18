@@ -26,6 +26,7 @@ export interface FileTableProps {
   viewMode: ViewMode;
   filterQuery?: string;
   inlineRenameUri?: string | null;
+  panelId?: string;
   onSubmitInlineRename?: (entryUri: string, newName: string) => void;
   onCancelInlineRename?: () => void;
   onCreateFolder?: () => void;
@@ -54,6 +55,7 @@ export function FileTable({
   viewMode,
   filterQuery = "",
   inlineRenameUri,
+  panelId,
   onSubmitInlineRename,
   onCancelInlineRename,
   onCreateFolder,
@@ -255,8 +257,10 @@ export function FileTable({
                 }
                 onCancelRename={onCancelInlineRename}
                 selected={entry.uri === selectedId}
-                multiSelected={selectedIds.includes(entry.uri)}
+                multiSelected={selectedIds.indexOf(entry.uri) !== -1}
                 focused={entry.uri === focusedId}
+                panelId={panelId}
+                selectedUris={selectedIds}
                 onSelect={onSelect}
                 onEntrySelect={onEntrySelect}
                 onEntryActivate={onEntryActivate}

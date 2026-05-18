@@ -15,12 +15,15 @@ import { PaneStateView } from "../components/PaneStateView";
 import { PaneHeader } from "./PaneHeader";
 import {
   readDraggedUri,
+  readDropData,
   useFileOctopusDragTarget,
 } from "../hooks/useFileOctopusDragTarget";
 import { localPathFromUri } from "../utils/paneUtils";
 import { fileIconGlyph } from "./fileTableUtils";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import type { ContextMenuState } from "../components/ContextMenu";
+
+export type CopyMoveKind = "copy" | "move";
 
 export interface FilePanelProps {
   panelId: PanelId;
@@ -53,6 +56,12 @@ export interface FilePanelProps {
   onContextMenu: (menu: ContextMenuState | null) => void;
   onBreadcrumbContextMenu?: (path: string, event: React.MouseEvent) => void;
   onSubmitInlineRename?: (entryUri: string, newName: string) => void;
+  onDropFiles?: (
+    sourceUris: string[],
+    sourcePanelId: PanelId | null,
+    destinationUri: string,
+    kind: CopyMoveKind,
+  ) => void;
 }
 
 export function FilePanel({
@@ -83,6 +92,7 @@ export function FilePanel({
   onBreadcrumbContextMenu,
   onSubmitInlineRename,
   onRefresh,
+  onDropFiles,
 }: FilePanelProps) {
   const entries = selectVisibleEntries(tab);
 
@@ -129,12 +139,25 @@ export function FilePanel({
           }
           event.preventDefault();
           reset();
+          if (onDropFiles) {
+            const dropData = readDropData(event);
+            if (dropData) {
+              const kind = dropData.dropEffect === "copy" ? "copy" : "move";
+              onDropFiles(
+                dropData.uris,
+                dropData.sourcePanelId as PanelId | null,
+                tab.uri,
+                kind,
+              );
+              return;
+            }
+          }
           onNavigate(uri);
         }}
       >
         {dragOver ? (
           <div className="fo-panel-drop-overlay" aria-live="polite">
-            Drop here to open in {title.toLowerCase()} pane
+            Drop here to move to {title.toLowerCase()} pane
             <span className="fo-panel-drop-path">
               {localPathFromUri(tab.uri)}
             </span>
@@ -173,6 +196,7 @@ export function FilePanel({
             viewMode={tab.viewMode}
             filterQuery={tab.filter}
             inlineRenameUri={inlineRenameUri}
+            panelId={panelId}
             onCancelInlineRename={() => setInlineRenameUri(null)}
             onSubmitInlineRename={(entryUri, newName) => {
               const entry = tab.entriesById[entryUri];

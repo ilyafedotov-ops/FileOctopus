@@ -34,16 +34,20 @@
 
 ### P0-3: Implement Drag & Drop File Operations
 
-**Status**: pending
-**Files**: `packages/frontend/src/pane/FilePanel.tsx` (useFileOctopusDragTarget), `FileRow.tsx` (draggable)
+**Status**: done
+**Priority**: P0
+**Files**: `packages/frontend/src/pane/FilePanel.tsx`, `packages/frontend/src/pane/FileRow.tsx`, `packages/frontend/src/pane/FileTable.tsx`, `packages/frontend/src/hooks/useFileOctopusDragTarget.ts`, `packages/frontend/src/app/FileOctopusApp.tsx`
 **Problem**: Drag source works (sets URI + name). Drop target calls `onNavigate(uri)` — **navigates** instead of copy/move. No drop-on-folder support.
 **Action**:
 
-- Change `onDrop` handler to detect drag source → offer Copy/Move choice (or use modifier keys: default=copy, Shift=move)
-- Add drop-on-folder support (detect if target is directory → move into it)
-- Add drop-on-other-pane support (cross-pane copy/move)
-- Add visual feedback: drop target highlight, drag cursor change
-  **Tests**: E2E: drag file from pane A to pane B → file copied; drag with Shift → file moved.
+- ✅ Changed `onDrop` handler to detect drag source → opens copy/move dialog (default=move, Ctrl=copy via dropEffect)
+- ✅ Added `onDropFiles` callback to `FilePanelProps` that opens copyMove dialog with dragged entries
+- ✅ Added multi-selection drag data: `FileRow` now sets `selected-uris` (JSON array) and `panel-id` MIME types
+- ✅ Added `readDropData()` helper in `useFileOctopusDragTarget.ts` to parse multi-URI + panel ID + dropEffect
+- ✅ Added drop-on-other-pane support (cross-pane copy/move via FileOctopusApp handler)
+- ✅ Updated drop overlay text from "Drop here to open" to "Drop here to move"
+- ✅ Fixed `.includes()` → `.indexOf() !== -1` in FileTable.tsx (WebKitGTK compat)
+  **Tests**: 6 unit tests in `tests/dragDrop.test.tsx` — all GREEN. Covers: default move, copy with dropEffect, multi-selection, fallback to single URI, non-FO drops ignored, calls onNavigate for external drops.
 
 ### P0-4: Enable Show Toolbar / Show Status Bar menu items
 

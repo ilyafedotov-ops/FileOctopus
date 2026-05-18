@@ -13,6 +13,7 @@ import { isTextPreviewable } from "../components/PreviewPanel";
 import type { FilePanelProps } from "../pane/FilePanel";
 import { ShellLayout } from "../shell/ShellLayout";
 import { buildPaletteEntries } from "../commands/paletteEntries";
+import type { FileEntryDto } from "@fileoctopus/ts-api";
 
 import {
   AppProviders,
@@ -482,6 +483,26 @@ function FileOctopusAppInner() {
         if (entry) {
           void submitInlineRename(pid, entry, newName);
         }
+      },
+      onDropFiles: (sourceUris, sourcePanelId, destinationUri, kind) => {
+        if (!sourcePanelId) return;
+        const sourceTab = activeTab(state.panels[sourcePanelId]);
+        const entries = sourceUris
+          .map((uri) => sourceTab.entriesById[uri])
+          .filter(Boolean) as FileEntryDto[];
+        if (entries.length === 0) return;
+        setDialog({
+          type: "copyMove",
+          panelId: sourcePanelId,
+          kind,
+          entries,
+          destination: destinationUri,
+          conflictPolicy: "fail",
+          plan: null,
+          planning: false,
+          step: "review",
+          error: null,
+        });
       },
     };
   }
