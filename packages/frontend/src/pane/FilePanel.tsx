@@ -5,6 +5,7 @@ import {
   type PanelId,
   type SortField,
   type PanelTabState,
+  type PanelState,
 } from "../panelStore";
 import { cx } from "@fileoctopus/ui";
 import { type SearchState, FilterInput } from "./PaneFilterBar";
@@ -13,6 +14,7 @@ import { ColumnsView } from "./ColumnsView";
 import { RecursiveSearchPanel } from "./PaneFilterBar";
 import { PaneStateView } from "../components/PaneStateView";
 import { PaneHeader } from "./PaneHeader";
+import { TabBar } from "./TabBar";
 import {
   readDraggedUri,
   readDropData,
@@ -62,6 +64,10 @@ export interface FilePanelProps {
     destinationUri: string,
     kind: CopyMoveKind,
   ) => void;
+  panel: PanelState;
+  onSwitchTab: (panelId: PanelId, tabId: string) => void;
+  onCloseTab: (panelId: PanelId, tabId: string) => void;
+  onOpenTab: (panelId: PanelId) => void;
 }
 
 export function FilePanel({
@@ -93,6 +99,10 @@ export function FilePanel({
   onSubmitInlineRename,
   onRefresh,
   onDropFiles,
+  panel,
+  onSwitchTab,
+  onCloseTab,
+  onOpenTab,
 }: FilePanelProps) {
   const entries = selectVisibleEntries(tab);
 
@@ -114,6 +124,13 @@ export function FilePanel({
       aria-current={active ? "true" : undefined}
       onFocus={onActivate}
     >
+      <TabBar
+        panelId={panelId}
+        panel={panel}
+        onSwitchTab={onSwitchTab}
+        onCloseTab={onCloseTab}
+        onOpenTab={onOpenTab}
+      />
       <PaneHeader
         uri={tab.uri}
         pathError={tab.error}

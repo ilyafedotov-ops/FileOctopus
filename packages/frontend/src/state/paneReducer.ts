@@ -3,11 +3,15 @@ import { isListingAction, reduceListing } from "./slices/listingSlice";
 import { isNavigationAction, reduceNavigation } from "./slices/navigationSlice";
 import { isSelectionAction, reduceSelection } from "./slices/selectionSlice";
 import { isSortFilterAction, reduceSortFilter } from "./slices/sortFilterSlice";
+import { isTabAction, reduceTab } from "./slices/tabsSlice";
 
 export function reducePanelAction(
   state: FileOctopusState,
   action: PanelAction,
 ): FileOctopusState {
+  if (isTabAction(action)) {
+    return reduceTab(state, action);
+  }
   if (isNavigationAction(action)) {
     return reduceNavigation(state, action);
   }

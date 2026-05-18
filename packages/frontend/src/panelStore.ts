@@ -112,7 +112,10 @@ export type PanelAction =
       entryId: string;
       hashState: HashState;
     }
-  | { type: "swapPanes" };
+  | { type: "swapPanes" }
+  | { type: "openTab"; panelId: PanelId; uri: string }
+  | { type: "closeTab"; panelId: PanelId; tabId: string }
+  | { type: "switchTab"; panelId: PanelId; tabId: string };
 
 export function createInitialState(
   leftUri = homeUri(),
@@ -536,11 +539,11 @@ function dateValue(value?: string | null): number {
   return value ? Date.parse(value) || 0 : 0;
 }
 
-function storedShowHidden(): boolean {
+export function storedShowHidden(): boolean {
   return readValue("fileoctopus.showHidden") === "true";
 }
 
-function storedSort(): SortState {
+export function storedSort(): SortState {
   const value = readJson<Partial<SortState>>("fileoctopus.sort");
   const field = value?.field;
   const direction = value?.direction;

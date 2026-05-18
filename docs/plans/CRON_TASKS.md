@@ -72,15 +72,22 @@
 
 ### P1-1: Tab System UI — TabBar component
 
-**Status**: pending
-**Files**: `packages/frontend/src/store/panelStore.ts` (PanelTabState, tabs, activeTabId exist)
-**Problem**: Full tab state infrastructure exists (`tabs: Record<string, PanelTabState>`, `activeTabId`, `openTab`, `closeTab`, `switchTab`) but **zero UI**. No TabBar component.
+**Status**: done
+**Files**: `packages/frontend/src/pane/TabBar.tsx` (new), `packages/frontend/src/state/slices/tabsSlice.ts` (new), `packages/frontend/src/pane/FilePanel.tsx`, `packages/frontend/src/panelStore.ts`, `packages/frontend/src/state/paneReducer.ts`, `packages/frontend/src/app/FileOctopusApp.tsx`, `packages/frontend/src/styles/regions/pane.css`, `packages/ui/src/icons.tsx`
+**Problem**: Full tab state infrastructure exists (`tabs: Record<string, PanelTabState>`, `activeTabId`) but no UI. No TabBar component and no reducer actions for openTab/closeTab/switchTab.
 **Action**:
 
-- Create `TabBar.tsx` component: renders tab buttons, close button, "+" button
-- Render in `PaneHeader` area (above breadcrumb)
-- Wire tab actions: click to switch, middle-click or ✕ to close, "+" to open new tab
-- Persist tabs in panel state
+- ✅ Added `openTab`, `closeTab`, `switchTab` actions to `PanelAction` union in `panelStore.ts`
+- ✅ Created `tabsSlice.ts` with reducer handling all 3 tab actions
+- ✅ Registered tabsSlice in `paneReducer.ts`
+- ✅ Created `TabBar.tsx` component: tab buttons, close (✕), new-tab (+), aria-selected
+- ✅ Integrated TabBar into `FilePanel.tsx` (renders above PaneHeader)
+- ✅ Wired tab actions through `makeFilePanelProps()` in `FileOctopusApp.tsx`
+- ✅ Added CSS in `pane.css` (tab bar, tab items, close button, new-tab button)
+- ✅ Added `X` icon to `@fileoctopus/ui` icons
+- ✅ Exported `storedSort`/`storedShowHidden` from panelStore for tabsSlice
+- ✅ 9 reducer tests (tabsSlice.test.ts) + 8 component tests (tabBar.test.tsx)
+- ✅ 205 total tests pass, tsc clean, cargo check clean, clippy clean
   **Tests**: Open 2 tabs → switch between them → each shows its own path. Close tab → returns to previous.
 
 ### P1-2: Column Resizing

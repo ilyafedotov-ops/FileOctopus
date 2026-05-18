@@ -1,10 +1,89 @@
+/* Panel grid: TabBar (auto, may be empty) + PaneHeader (auto) + body (1fr) */
 .fo-panel {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
   min-width: 0;
   min-height: 0;
   overflow: hidden;
   border-radius: 0;
+}
+
+/* Tab Bar */
+.fo-tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  min-height: 24px;
+  background: var(--fo-surface);
+  border-bottom: 1px solid var(--fo-border);
+  padding: 0 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.fo-tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.fo-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: none;
+  background: transparent;
+  color: var(--fo-text);
+  font-size: var(--fo-base-font-size, 12px);
+  cursor: pointer;
+  white-space: nowrap;
+  max-width: 160px;
+  min-height: 22px;
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  font-family: inherit;
+}
+.fo-tab:hover {
+  background: var(--fo-hover, rgba(0, 0, 0, 0.04));
+}
+.fo-tab--active {
+  background: var(--fo-app-bg);
+  font-weight: 500;
+}
+
+.fo-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-tab-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  opacity: 0.5;
+}
+.fo-tab-close:hover {
+  opacity: 1;
+  background: var(--fo-hover, rgba(0, 0, 0, 0.08));
+}
+.fo-tab-close svg {
+  width: 10px;
+  height: 10px;
+}
+
+.fo-tab--new {
+  padding: 2px 6px;
+  font-size: 14px;
+  font-weight: 400;
+  opacity: 0.6;
+  border-radius: 4px;
+}
+.fo-tab--new:hover {
+  opacity: 1;
+  background: var(--fo-hover, rgba(0, 0, 0, 0.06));
 }
 
 .fo-panel[data-active="true"],

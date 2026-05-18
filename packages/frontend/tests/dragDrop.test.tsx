@@ -170,7 +170,7 @@ vi.mock("@fileoctopus/ts-api", () => ({
 }));
 
 import { FilePanel, type FilePanelProps } from "../src/pane/FilePanel";
-import type { PanelTabState } from "../src/panelStore";
+import type { PanelTabState, PanelState } from "../src/panelStore";
 
 function makeTab(overrides: Partial<PanelTabState> = {}): PanelTabState {
   return {
@@ -194,6 +194,14 @@ function makeTab(overrides: Partial<PanelTabState> = {}): PanelTabState {
 }
 
 const defaultTab = makeTab();
+
+function makePanel(panelId: "left" | "right" = "right"): PanelState {
+  return {
+    id: panelId,
+    activeTabId: "default",
+    tabs: { default: defaultTab },
+  };
+}
 
 function makeProps(overrides: Partial<FilePanelProps> = {}): FilePanelProps {
   return {
@@ -225,6 +233,10 @@ function makeProps(overrides: Partial<FilePanelProps> = {}): FilePanelProps {
     rowHeight: 20,
     search: null,
     onContextMenu: vi.fn(),
+    panel: makePanel(),
+    onSwitchTab: vi.fn(),
+    onCloseTab: vi.fn(),
+    onOpenTab: vi.fn(),
     ...overrides,
   };
 }

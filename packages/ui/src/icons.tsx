@@ -33,6 +33,7 @@ import {
   Star,
   Terminal,
   Trash2,
+  X,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -83,6 +84,7 @@ export const Icons = {
   calculator: () => renderIcon(Calculator, "fo-ui-icon"),
   hash: () => renderIcon(Hash, "fo-ui-icon"),
   terminal: () => renderIcon(Terminal, "fo-ui-icon"),
+  x: () => renderIcon(X, "fo-ui-icon"),
 };
 
 export function fileEntryIcon(

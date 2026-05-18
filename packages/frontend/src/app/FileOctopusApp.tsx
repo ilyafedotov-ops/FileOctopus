@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { activeTab } from "../panelStore";
+import { activeTab, homeUri } from "../panelStore";
 import { applySplitRatio, applyThemePreference } from "../applyPreferences";
 import { useWorkspaceLayout } from "../hooks/useWorkspaceLayout";
 import { useMenuBarProps } from "../hooks/useMenuBarProps";
@@ -504,6 +504,13 @@ function FileOctopusAppInner() {
           error: null,
         });
       },
+      panel: state.panels[pid],
+      onSwitchTab: (panelId, tabId) =>
+        dispatch({ type: "switchTab", panelId, tabId }),
+      onCloseTab: (panelId, tabId) =>
+        dispatch({ type: "closeTab", panelId, tabId }),
+      onOpenTab: (panelId) =>
+        dispatch({ type: "openTab", panelId, uri: homeUri() }),
     };
   }
 
