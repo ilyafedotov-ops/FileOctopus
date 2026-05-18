@@ -54,6 +54,8 @@ pub fn run() {
             commands::navigation::navigation_list_starred,
             commands::navigation::navigation_toggle_starred,
             commands::navigation::navigation_is_starred,
+            commands::navigation::navigation_clear_recent,
+            commands::navigation::navigation_remove_recent,
             commands::file_operations::plan_file_operation,
             commands::file_operations::start_file_operation,
             commands::file_operations::cancel_job,
