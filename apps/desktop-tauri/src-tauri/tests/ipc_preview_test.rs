@@ -156,3 +156,117 @@ fn fs_read_text_file_default_max_is_1mb() {
 
     let _ = std::fs::remove_dir_all(dir);
 }
+
+// ─── fs_read_image_as_data_uri tests ───
+
+/// Simulates the fs_read_image_as_data_uri handler logic.
+fn read_image_logic(uri_str: &str) -> Result<(String, u64, String), IpcError> {
+    let uri = ResourceUri::parse(uri_str).map_err(IpcError::from)?;
+    let path = uri.to_local_path().map_err(IpcError::from)?;
+
+    let metadata = std::fs::metadata(&path).map_err(|e| IpcError::io(e.to_string()))?;
+
+    if metadata.is_dir() {
+        return Err(IpcError::is_directory("cannot read a directory as image"));
+    }
+
+    let file_size = metadata.len();
+    let max_image_bytes: u64 = 20 * 1024 * 1024;
+    if file_size > max_image_bytes {
+        return Err(IpcError::file_too_large(format!(
+            "image file too large: {} bytes (max {} bytes)",
+            file_size, max_image_bytes
+        )));
+    }
+
+    let mut buf = vec![0u8; file_size as usize];
+    let mut f = std::fs::File::open(&path).map_err(|e| IpcError::io(e.to_string()))?;
+    f.read_exact(&mut buf)
+        .map_err(|e| IpcError::io(e.to_string()))?;
+
+    use base64::Engine;
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&buf);
+
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| format!(".{}", e.to_lowercase()))
+        .unwrap_or_default();
+
+    let mime = match ext.as_str() {
+        ".png" => "image/png",
+        ".jpg" | ".jpeg" => "image/jpeg",
+        ".gif" => "image/gif",
+        ".bmp" => "image/bmp",
+        ".webp" => "image/webp",
+        ".svg" => "image/svg+xml",
+        ".ico" => "image/x-icon",
+        _ => "application/octet-stream",
+    };
+
+    Ok((
+        format!("data:{};base64,{}", mime, b64),
+        file_size,
+        mime.to_string(),
+    ))
+}
+
+#[test]
+fn fs_read_image_reads_png_as_data_uri() {
+    let dir = temp_dir("read-image-png");
+    let file_path = dir.join("test.png");
+    // Minimal PNG-like data (not valid PNG, but tests the read+encode path)
+    std::fs::write(&file_path, b"\x89PNG\r\n\x1a\nfake").unwrap();
+
+    let uri = format!("local://{}", file_path.display());
+    let (data_uri, byte_size, mime) = read_image_logic(&uri).unwrap();
+
+    assert_eq!(mime, "image/png");
+    assert!(data_uri.starts_with("data:image/png;base64,"));
+    assert_eq!(byte_size, 12);
+
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn fs_read_image_reads_jpeg_as_data_uri() {
+    let dir = temp_dir("read-image-jpg");
+    let file_path = dir.join("photo.jpg");
+    std::fs::write(&file_path, b"\xff\xd8\xff\xe0fake").unwrap();
+
+    let uri = format!("local://{}", file_path.display());
+    let (data_uri, byte_size, mime) = read_image_logic(&uri).unwrap();
+
+    assert_eq!(mime, "image/jpeg");
+    assert!(data_uri.starts_with("data:image/jpeg;base64,"));
+    assert_eq!(byte_size, 8);
+
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn fs_read_image_rejects_directory() {
+    let dir = temp_dir("read-image-dir");
+    let uri = format!("local://{}", dir.display());
+    let result = read_image_logic(&uri);
+
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_codes::IS_DIRECTORY);
+
+    let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn fs_read_image_rejects_missing_file() {
+    let dir = temp_dir("read-image-missing");
+    let missing = dir.join("nope.png");
+    let uri = format!("local://{}", missing.display());
+    let result = read_image_logic(&uri);
+
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert_eq!(err.code, error_codes::IO_ERROR);
+
+    let _ = std::fs::remove_dir_all(dir);
+}

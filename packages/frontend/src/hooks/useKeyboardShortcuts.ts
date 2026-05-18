@@ -23,7 +23,7 @@ export interface UseKeyboardShortcutsDeps {
   setHelpOpen: (open: boolean) => void;
   setPathFocusToken: (updater: (v: number) => number) => void;
   setRecursiveSearchFocusToken: (updater: (v: number) => number) => void;
-  isTextPreviewable: (entry: FileEntryDto | null) => boolean;
+  isPreviewable: (entry: FileEntryDto | null) => boolean;
 }
 
 export function createKeyboardShortcutsHandler(
@@ -45,7 +45,7 @@ export function createKeyboardShortcutsHandler(
       setHelpOpen,
       setPathFocusToken,
       setRecursiveSearchFocusToken,
-      isTextPreviewable,
+      isPreviewable,
     } = deps;
 
     if (event.key === "Escape") {
@@ -112,7 +112,7 @@ export function createKeyboardShortcutsHandler(
     }
 
     if (event.key === " " && !mod) {
-      if (!previewOpen && selectedEntry && isTextPreviewable(selectedEntry)) {
+      if (!previewOpen && selectedEntry && isPreviewable(selectedEntry)) {
         event.preventDefault();
         setPreviewOpen(true);
         return;

@@ -9,7 +9,7 @@ import { createKeyboardShortcutsHandler } from "../hooks/useKeyboardShortcuts";
 import { useFileOpHandlers } from "../hooks/useFileOpHandlers";
 import { useCommandDispatch } from "../hooks/useCommandDispatch";
 import type { CommandEntry } from "../components/CommandPalette";
-import { isTextPreviewable } from "../components/PreviewPanel";
+import { isPreviewable } from "../components/PreviewPanel";
 import type { FilePanelProps } from "../pane/FilePanel";
 import { ShellLayout } from "../shell/ShellLayout";
 import { buildPaletteEntries } from "../commands/paletteEntries";
@@ -389,7 +389,7 @@ function FileOctopusAppInner() {
         setHelpOpen,
         setPathFocusToken,
         setRecursiveSearchFocusToken,
-        isTextPreviewable,
+        isPreviewable,
       }),
     [
       state,
@@ -406,7 +406,7 @@ function FileOctopusAppInner() {
       setHelpOpen,
       setPathFocusToken,
       setRecursiveSearchFocusToken,
-      isTextPreviewable,
+      isPreviewable,
     ],
   );
 

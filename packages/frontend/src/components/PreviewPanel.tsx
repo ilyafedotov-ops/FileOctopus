@@ -59,6 +59,17 @@ const TEXT_EXTENSIONS = new Set([
   ".map",
 ]);
 
+/** Extensions considered safe for image preview */
+const IMAGE_EXTENSIONS = new Set([
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".gif",
+  ".bmp",
+  ".webp",
+  ".ico",
+]);
+
 const MAX_PREVIEW_BYTES = 512 * 1024; // 512 KB
 
 function getExtension(name: string): string {
@@ -88,6 +99,16 @@ export function isTextPreviewable(entry: FileEntryDto | null): boolean {
   return false;
 }
 
+export function isImagePreviewable(entry: FileEntryDto | null): boolean {
+  if (!entry || entry.kind === "directory") return false;
+  const ext = getExtension(entry.name);
+  return IMAGE_EXTENSIONS.has(ext);
+}
+
+export function isPreviewable(entry: FileEntryDto | null): boolean {
+  return isTextPreviewable(entry) || isImagePreviewable(entry);
+}
+
 interface PreviewPanelProps {
   entry: FileEntryDto | null;
   fs: FsClient;
@@ -95,7 +116,8 @@ interface PreviewPanelProps {
 }
 
 export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
-  const [content, setContent] = useState<string | null>(null);
+  const [textContent, setTextContent] = useState<string | null>(null);
+  const [imageDataUri, setImageDataUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [truncated, setTruncated] = useState(false);
@@ -106,13 +128,19 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
     setLoading(true);
     setError(null);
     try {
-      const resp = await fs.readTextFile({
-        uri: entry.uri,
-        maxBytes: MAX_PREVIEW_BYTES,
-      });
-      setContent(resp.content);
-      setTruncated(resp.truncated);
-      setByteSize(resp.byteSize);
+      if (isImagePreviewable(entry)) {
+        const resp = await fs.readImageAsDataUri({ uri: entry.uri });
+        setImageDataUri(resp.dataUri);
+        setByteSize(resp.byteSize);
+      } else {
+        const resp = await fs.readTextFile({
+          uri: entry.uri,
+          maxBytes: MAX_PREVIEW_BYTES,
+        });
+        setTextContent(resp.content);
+        setTruncated(resp.truncated);
+        setByteSize(resp.byteSize);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
@@ -121,11 +149,12 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
   }, [entry, fs]);
 
   useEffect(() => {
-    setContent(null);
+    setTextContent(null);
+    setImageDataUri(null);
     setError(null);
     setTruncated(false);
     setByteSize(0);
-    if (entry && isTextPreviewable(entry)) {
+    if (entry && isPreviewable(entry)) {
       void loadContent();
     }
   }, [entry, loadContent]);
@@ -144,7 +173,9 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
   }, [onClose]);
 
   if (!entry) return null;
-  if (!isTextPreviewable(entry)) return null;
+  if (!isPreviewable(entry)) return null;
+
+  const isImage = isImagePreviewable(entry);
 
   const formatBytes = (b: number): string => {
     if (b < 1024) return `${b} B`;
@@ -158,7 +189,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
         <span className="fo-preview-title">{entry.name}</span>
         <span className="fo-preview-meta">
           {loading ? "Loading..." : error ? "Error" : formatBytes(byteSize)}
-          {truncated && " (truncated)"}
+          {!isImage && truncated && " (truncated)"}
         </span>
         <button
           className="fo-preview-close"
@@ -171,8 +202,15 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
       <div className="fo-preview-content">
         {loading && <div className="fo-preview-loading">Loading...</div>}
         {error && <div className="fo-preview-error">{error}</div>}
-        {content !== null && !loading && (
-          <pre className="fo-preview-code">{content}</pre>
+        {isImage && imageDataUri && !loading && (
+          <img
+            className="fo-preview-image"
+            src={imageDataUri}
+            alt={entry.name}
+          />
+        )}
+        {!isImage && textContent !== null && !loading && (
+          <pre className="fo-preview-code">{textContent}</pre>
         )}
       </div>
     </div>

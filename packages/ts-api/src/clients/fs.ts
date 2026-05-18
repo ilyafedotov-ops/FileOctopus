@@ -17,6 +17,8 @@ import type {
   PathPropertiesRequest,
   PathPropertiesResponse,
   PathRequest,
+  ReadImageAsDataUriRequest,
+  ReadImageAsDataUriResponse,
   ReadTextFileRequest,
   ReadTextFileResponse,
   RecursiveSearchCompletedEventDto,
@@ -58,6 +60,19 @@ export class FsClient {
     try {
       return await this.transport.invoke<ReadTextFileResponse>(
         "fs.read_text_file",
+        { request },
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async readImageAsDataUri(
+    request: ReadImageAsDataUriRequest,
+  ): Promise<ReadImageAsDataUriResponse> {
+    try {
+      return await this.transport.invoke<ReadImageAsDataUriResponse>(
+        "fs.read_image_as_data_uri",
         { request },
       );
     } catch (error) {

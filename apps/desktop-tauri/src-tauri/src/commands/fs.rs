@@ -8,8 +8,9 @@ use app_ipc::{
     error_codes, ComputeHashRequest, ComputeHashResponse, DirectoryBatchEventDto, IpcError,
     ListStartRequest, ListStartResponse, OkResponse, OpenTerminalRequest, OpenTerminalResponse,
     PathPropertiesDto, PathPropertiesRequest, PathPropertiesResponse, PathRequest,
-    ReadTextFileRequest, ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse,
-    StatRequest, StatResponse, DIRECTORY_BATCH_EVENT,
+    ReadImageAsDataUriRequest, ReadImageAsDataUriResponse, ReadTextFileRequest,
+    ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse, StatRequest,
+    StatResponse, DIRECTORY_BATCH_EVENT,
 };
 use fs_core::{external_open, locations, metadata};
 use tauri::{AppHandle, State};
@@ -300,5 +301,64 @@ pub async fn fs_properties(
             readonly: properties.readonly,
             warnings: properties.warnings,
         },
+    })
+}
+
+const MAX_IMAGE_BYTES: u64 = 20 * 1024 * 1024; // 20 MB
+
+fn mime_for_extension(ext: &str) -> &'static str {
+    match ext {
+        ".png" => "image/png",
+        ".jpg" | ".jpeg" => "image/jpeg",
+        ".gif" => "image/gif",
+        ".bmp" => "image/bmp",
+        ".webp" => "image/webp",
+        ".svg" => "image/svg+xml",
+        ".ico" => "image/x-icon",
+        _ => "application/octet-stream",
+    }
+}
+
+#[tauri::command]
+pub async fn fs_read_image_as_data_uri(
+    request: ReadImageAsDataUriRequest,
+    _state: State<'_, Arc<AppState>>,
+) -> Result<ReadImageAsDataUriResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let path = uri.to_local_path().map_err(IpcError::from)?;
+
+    let metadata = std::fs::metadata(&path).map_err(|e| IpcError::io(e.to_string()))?;
+
+    if metadata.is_dir() {
+        return Err(IpcError::is_directory("cannot read a directory as image"));
+    }
+
+    let file_size = metadata.len();
+    if file_size > MAX_IMAGE_BYTES {
+        return Err(IpcError::file_too_large(format!(
+            "image file too large: {} bytes (max {} bytes)",
+            file_size, MAX_IMAGE_BYTES
+        )));
+    }
+
+    let mut buf = vec![0u8; file_size as usize];
+    let mut f = File::open(&path).map_err(|e| IpcError::io(e.to_string()))?;
+    f.read_exact(&mut buf)
+        .map_err(|e| IpcError::io(e.to_string()))?;
+
+    let b64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &buf);
+
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| format!(".{}", e.to_lowercase()))
+        .unwrap_or_default();
+
+    let mime = mime_for_extension(&ext);
+
+    Ok(ReadImageAsDataUriResponse {
+        data_uri: format!("data:{};base64,{}", mime, b64),
+        byte_size: file_size,
+        mime_type: mime.to_string(),
     })
 }

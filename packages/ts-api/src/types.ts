@@ -133,6 +133,16 @@ export interface ReadTextFileResponse {
   byteSize: number;
 }
 
+export interface ReadImageAsDataUriRequest {
+  uri: string;
+}
+
+export interface ReadImageAsDataUriResponse {
+  dataUri: string;
+  byteSize: number;
+  mimeType: string;
+}
+
 export interface ComputeHashRequest {
   uri: string;
   algorithm: string;

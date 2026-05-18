@@ -28,6 +28,7 @@ tokio = { version = "1", features = ["sync", "time", "rt"] }
 uuid = { version = "1", features = ["v4"] }
 vfs = { path = "../../../crates/vfs" }
 sha256 = "1"
+base64 = "0.22"
 which = "6"
 zip = "0.6"
 

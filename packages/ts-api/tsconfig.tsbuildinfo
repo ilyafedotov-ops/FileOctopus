@@ -1,1 +1,1 @@
-{"root":["./src/client.ts","./src/index.ts","./src/types.ts"],"version":"5.8.3"}
+{"root":["./src/client.ts","./src/commandMap.ts","./src/events.ts","./src/index.ts","./src/normalizeError.ts","./src/requireListen.ts","./src/types.ts","./src/clients/autostart.ts","./src/clients/diagnostics.ts","./src/clients/fileOperations.ts","./src/clients/fs.ts","./src/clients/history.ts","./src/clients/jobs.ts","./src/clients/navigation.ts","./src/clients/preferences.ts","./src/transports/preview.ts","./src/transports/tauri.ts"],"version":"5.8.3"}

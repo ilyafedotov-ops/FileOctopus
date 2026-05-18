@@ -27,6 +27,7 @@ pub fn run() {
             commands::app_info::app_get_info,
             commands::fs::fs_stat,
             commands::fs::fs_read_text_file,
+            commands::fs::fs_read_image_as_data_uri,
             commands::fs::fs_compute_hash,
             commands::fs::fs_open_terminal,
             commands::fs::fs_list_start,

@@ -2,6 +2,7 @@ export const commandMap: Record<string, string> = {
   "app.get_info": "app_get_info",
   "fs.stat": "fs_stat",
   "fs.read_text_file": "fs_read_text_file",
+  "fs.read_image_as_data_uri": "fs_read_image_as_data_uri",
   "fs.compute_hash": "fs_compute_hash",
   "fs.open_terminal": "fs_open_terminal",
   "fs.list_start": "fs_list_start",

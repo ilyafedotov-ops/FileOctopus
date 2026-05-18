@@ -247,6 +247,20 @@ pub struct ReadTextFileResponse {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ReadImageAsDataUriRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadImageAsDataUriResponse {
+    pub data_uri: String,
+    pub byte_size: u64,
+    pub mime_type: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ComputeHashRequest {
     pub uri: String,
     pub algorithm: String,

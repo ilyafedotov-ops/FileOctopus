@@ -9,8 +9,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PreviewPanel,
   isTextPreviewable,
+  isImagePreviewable,
+  isPreviewable,
 } from "../src/components/PreviewPanel";
-import type { FileEntryDto, ReadTextFileResponse } from "@fileoctopus/ts-api";
+import type {
+  FileEntryDto,
+  ReadTextFileResponse,
+  ReadImageAsDataUriResponse,
+} from "@fileoctopus/ts-api";
 
 function makeEntry(overrides: Partial<FileEntryDto> = {}): FileEntryDto {
   return {
@@ -24,6 +30,7 @@ function makeEntry(overrides: Partial<FileEntryDto> = {}): FileEntryDto {
 function createMockFs() {
   return {
     readTextFile: vi.fn<() => Promise<ReadTextFileResponse>>(),
+    readImageAsDataUri: vi.fn<() => Promise<ReadImageAsDataUriResponse>>(),
   };
 }
 
@@ -103,7 +110,7 @@ describe("PreviewPanel", () => {
     const mockFs = createMockFs();
     const { container } = render(
       <PreviewPanel
-        entry={makeEntry({ name: "image.png" })}
+        entry={makeEntry({ name: "archive.zip" })}
         fs={mockFs}
         onClose={onClose}
       />,
@@ -230,5 +237,131 @@ describe("PreviewPanel", () => {
     await waitFor(() => {
       expect(screen.getByText(/truncated/)).toBeTruthy();
     });
+  });
+});
+
+// ─── isImagePreviewable ───
+
+describe("isImagePreviewable", () => {
+  it("returns false for null", () => {
+    expect(isImagePreviewable(null)).toBe(false);
+  });
+
+  it("returns false for directories", () => {
+    expect(
+      isImagePreviewable(makeEntry({ kind: "directory", name: "folder" })),
+    ).toBe(false);
+  });
+
+  it("returns true for common image extensions", () => {
+    const exts = [".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".ico"];
+    for (const ext of exts) {
+      expect(isImagePreviewable(makeEntry({ name: `image${ext}` }))).toBe(true);
+    }
+  });
+
+  it("returns true for uppercase image extensions", () => {
+    expect(isImagePreviewable(makeEntry({ name: "photo.PNG" }))).toBe(true);
+    expect(isImagePreviewable(makeEntry({ name: "photo.JPG" }))).toBe(true);
+  });
+
+  it("returns false for non-image extensions", () => {
+    expect(isImagePreviewable(makeEntry({ name: "file.txt" }))).toBe(false);
+    expect(isImagePreviewable(makeEntry({ name: "archive.zip" }))).toBe(false);
+    expect(isImagePreviewable(makeEntry({ name: "data.pdf" }))).toBe(false);
+  });
+});
+
+// ─── isPreviewable (combined) ───
+
+describe("isPreviewable", () => {
+  it("returns true for text files", () => {
+    expect(isPreviewable(makeEntry({ name: "readme.md" }))).toBe(true);
+    expect(isPreviewable(makeEntry({ name: "script.ts" }))).toBe(true);
+  });
+
+  it("returns true for image files", () => {
+    expect(isPreviewable(makeEntry({ name: "photo.png" }))).toBe(true);
+    expect(isPreviewable(makeEntry({ name: "banner.jpg" }))).toBe(true);
+  });
+
+  it("returns false for non-previewable files", () => {
+    expect(isPreviewable(makeEntry({ name: "archive.zip" }))).toBe(false);
+    expect(isPreviewable(makeEntry({ name: "binary.exe" }))).toBe(false);
+  });
+
+  it("returns false for null", () => {
+    expect(isPreviewable(null)).toBe(false);
+  });
+});
+
+// ─── PreviewPanel image preview ───
+
+describe("PreviewPanel image preview", () => {
+  it("renders image preview for image files", async () => {
+    const mockFs = createMockFs();
+    mockFs.readImageAsDataUri.mockResolvedValue({
+      dataUri: "data:image/png;base64,iVBOR",
+      byteSize: 12345,
+      mimeType: "image/png",
+    });
+
+    const onClose = vi.fn();
+    const { container } = render(
+      <PreviewPanel
+        entry={makeEntry({
+          name: "photo.png",
+          uri: "local:///home/user/photo.png",
+        })}
+        fs={mockFs}
+        onClose={onClose}
+      />,
+    );
+
+    // Should show loading first
+    expect(container.querySelector(".fo-preview-loading")).toBeTruthy();
+
+    // Wait for image to load
+    await waitFor(() => {
+      const img = container.querySelector(
+        ".fo-preview-image",
+      ) as HTMLImageElement;
+      expect(img).toBeTruthy();
+      expect(img.src.indexOf("data:image/png;base64,iVBOR") !== -1).toBe(true);
+    });
+
+    expect(mockFs.readImageAsDataUri).toHaveBeenCalledWith({
+      uri: "local:///home/user/photo.png",
+    });
+  });
+
+  it("shows error when image load fails", async () => {
+    const mockFs = createMockFs();
+    mockFs.readImageAsDataUri.mockRejectedValue(new Error("File too large"));
+
+    const onClose = vi.fn();
+    render(
+      <PreviewPanel
+        entry={makeEntry({ name: "big.png" })}
+        fs={mockFs}
+        onClose={onClose}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("File too large")).toBeTruthy();
+    });
+  });
+
+  it("renders nothing for non-previewable image-like file", () => {
+    const mockFs = createMockFs();
+    const { container } = render(
+      <PreviewPanel
+        entry={makeEntry({ name: "file.raw" })}
+        fs={mockFs}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(container.querySelector(".fo-preview-panel")).toBeNull();
   });
 });
