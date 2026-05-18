@@ -99,6 +99,7 @@ export function ContextMenu({
   onNavigateTo,
   onNavigateOtherPane,
   onCopyBreadcrumbPath,
+  onRevealBreadcrumb,
   onAddFavorite,
 }: ContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -107,6 +108,7 @@ export function ContextMenu({
     top: number;
     maxHeight?: number;
   } | null>(null);
+  const [focusedIndex, setFocusedIndex] = useState(-1);
 
   useEffect(() => {
     if (!menu || !menuRef.current) {
@@ -140,13 +142,52 @@ export function ContextMenu({
     setPos({ left, top, maxHeight });
   }, [menu]);
 
+  useEffect(() => {
+    if (menu && menuRef.current) {
+      menuRef.current.focus();
+    }
+    setFocusedIndex(-1);
+  }, [menu]);
+
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       if (event.key === "Escape") {
         onClose();
+        return;
+      }
+
+      const container = menuRef.current;
+      if (!container) return;
+
+      const items = Array.from(
+        container.querySelectorAll<HTMLButtonElement>(
+          '[role="menuitem"]:not([disabled])',
+        ),
+      );
+      if (items.length === 0) return;
+
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        setFocusedIndex((prev) => {
+          const next = prev < items.length - 1 ? prev + 1 : 0;
+          items[next]?.focus();
+          return next;
+        });
+      } else if (event.key === "ArrowUp") {
+        event.preventDefault();
+        setFocusedIndex((prev) => {
+          const next = prev > 0 ? prev - 1 : items.length - 1;
+          items[next]?.focus();
+          return next;
+        });
+      } else if (event.key === "Enter") {
+        event.preventDefault();
+        if (focusedIndex >= 0 && focusedIndex < items.length) {
+          items[focusedIndex]?.click();
+        }
       }
     },
-    [onClose],
+    [onClose, focusedIndex],
   );
 
   if (!menu) {
@@ -169,6 +210,7 @@ export function ContextMenu({
         ref={menuRef}
         className="fo-context-menu"
         role="menu"
+        tabIndex={-1}
         style={
           pos
             ? { left: pos.left, top: pos.top, maxHeight: pos.maxHeight }
@@ -190,6 +232,7 @@ export function ContextMenu({
         onNavigateTo,
         onNavigateOtherPane,
         onCopyBreadcrumbPath,
+        onRevealBreadcrumb,
         onAddFavorite,
       }),
     );

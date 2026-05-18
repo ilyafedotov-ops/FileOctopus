@@ -149,10 +149,11 @@
 
 ### P2-3: Keyboard-Navigable Context Menus
 
-**Status**: pending
-**Files**: `ContextMenu.tsx`
+**Status**: done
+**Files**: `ContextMenu.tsx`, `buildBreadcrumbMenu.tsx`
 **Spec**: §21.2 — context menus must be keyboard navigable (arrow keys, Enter, Escape)
-**Action**: Add arrow key handlers (up/down to move focus, Enter to select, Escape to close).
+**Action**: ✅ Added ArrowDown/ArrowUp handlers (wrapping, skip disabled), Enter to activate, Escape to close. Auto-focus menu on open. Also wired `onRevealBreadcrumb` into breadcrumb menu (was declared but never used).
+**Tests**: 7 unit tests in `tests/contextMenuKeyboard.test.tsx` — all GREEN.
 
 ### P2-4: Session Restore
 

@@ -9,6 +9,7 @@ interface BreadcrumbMenuParams {
   onNavigateTo: (panelId: PanelId, uri: string) => void;
   onNavigateOtherPane: (uri: string) => void;
   onCopyBreadcrumbPath: (path: string) => void;
+  onRevealBreadcrumb: (path: string) => void;
   onAddFavorite: (uri: string) => void;
 }
 
@@ -19,6 +20,7 @@ export function buildBreadcrumbMenu({
   onNavigateTo,
   onNavigateOtherPane,
   onCopyBreadcrumbPath,
+  onRevealBreadcrumb,
   onAddFavorite,
 }: BreadcrumbMenuParams): ReactNode {
   return (
@@ -38,6 +40,11 @@ export function buildBreadcrumbMenu({
         onClick={() => run(() => onCopyBreadcrumbPath(breadcrumbPath))}
       >
         Copy Path
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={() => run(() => onRevealBreadcrumb(breadcrumbPath))}
+      >
+        Reveal in File Manager
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem onClick={() => run(() => onAddFavorite(breadcrumbPath))}>
