@@ -20,8 +20,10 @@ import type {
   RecentEntryDto,
 } from "@fileoctopus/ts-api";
 import type { PanelId } from "../panelStore";
+import { useRef } from "react";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { PropertiesDialog } from "../components/dialogs/PropertiesDialog";
 import { ConflictResolutionDialog } from "../components/dialogs/ConflictResolutionDialog";
 import { DestinationChooser } from "./DestinationChooser";
@@ -188,7 +190,9 @@ export function OperationDialogView({
   favorites,
   recentDestinations,
 }: OperationDialogViewProps) {
+  const dialogRef = useRef<HTMLElement>(null);
   useDialogEscape(Boolean(dialog), onClose);
+  useFocusTrap(dialogRef, Boolean(dialog));
 
   if (!dialog) {
     return null;
@@ -200,6 +204,7 @@ export function OperationDialogView({
   return (
     <div className="fo-dialog-backdrop" role="presentation">
       <section
+        ref={dialogRef}
         className={`fo-dialog fo-operation-dialog${isProperties ? " fo-properties-dialog" : ""}`}
         role="dialog"
         aria-modal="true"

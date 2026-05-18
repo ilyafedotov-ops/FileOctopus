@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../../hooks/useDialogEscape";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { normalizeLocalInput } from "../../panelStore";
 
 interface GoToLocationDialogProps {
@@ -16,8 +17,10 @@ export function GoToLocationDialog({
   onClose,
   onNavigate,
 }: GoToLocationDialogProps) {
-  useDialogEscape(open, onClose);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  useDialogEscape(open, onClose);
+  useFocusTrap(dialogRef, open);
   const [path, setPath] = useState(initialUri);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +40,7 @@ export function GoToLocationDialog({
   return (
     <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
       <dialog
+        ref={dialogRef}
         open
         role="dialog"
         className="fo-dialog fo-go-to-dialog"

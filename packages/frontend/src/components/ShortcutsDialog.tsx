@@ -1,5 +1,7 @@
+import { useRef } from "react";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { formatShortcut, shortcutGroups } from "../shortcuts";
 
 interface ShortcutsDialogProps {
@@ -8,7 +10,9 @@ interface ShortcutsDialogProps {
 }
 
 export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   useDialogEscape(open, onClose);
+  useFocusTrap(dialogRef, open);
 
   if (!open) {
     return null;
@@ -17,6 +21,7 @@ export function ShortcutsDialog({ open, onClose }: ShortcutsDialogProps) {
   return (
     <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
       <dialog
+        ref={dialogRef}
         open
         role="dialog"
         className="fo-dialog fo-shortcuts-dialog"

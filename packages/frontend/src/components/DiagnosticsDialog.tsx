@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
+import { useRef } from "react";
 import type {
   AppDataHealthResponse,
   AppInfoResponse,
 } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 
 interface DiagnosticsDialogProps {
   open: boolean;
@@ -43,7 +45,9 @@ export function DiagnosticsDialog({
   onRefresh,
   onExport,
 }: DiagnosticsDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   useDialogEscape(open, onClose);
+  useFocusTrap(dialogRef, open);
 
   if (!open) {
     return null;
@@ -52,6 +56,7 @@ export function DiagnosticsDialog({
   return (
     <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
       <dialog
+        ref={dialogRef}
         open
         className="fo-dialog fo-diagnostics-dialog"
         aria-labelledby="diagnostics-title"

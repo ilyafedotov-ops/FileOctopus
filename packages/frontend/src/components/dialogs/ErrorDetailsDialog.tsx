@@ -1,5 +1,7 @@
+import { useRef } from "react";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../../hooks/useDialogEscape";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface ErrorDetailsDialogProps {
   open: boolean;
@@ -14,7 +16,9 @@ export function ErrorDetailsDialog({
   onClose,
   onClear,
 }: ErrorDetailsDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   useDialogEscape(open, onClose);
+  useFocusTrap(dialogRef, open);
 
   if (!open || !message) {
     return null;
@@ -23,6 +27,7 @@ export function ErrorDetailsDialog({
   return (
     <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
       <dialog
+        ref={dialogRef}
         open
         role="dialog"
         className="fo-dialog fo-error-details-dialog"

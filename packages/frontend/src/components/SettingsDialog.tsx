@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type {
   AutostartStatusDto,
   UserPreferencesDto,
 } from "@fileoctopus/ts-api";
 import { Button, Icons } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { formatShortcut, shortcutGroups } from "../shortcuts";
 
 type SettingsSection =
@@ -33,7 +34,9 @@ export function SettingsDialog({
   onChange,
   onSetAutostart,
 }: SettingsDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   useDialogEscape(open, onClose);
+  useFocusTrap(dialogRef, open);
 
   const [activeSection, setActiveSection] =
     useState<SettingsSection>("appearance");
@@ -45,6 +48,7 @@ export function SettingsDialog({
   return (
     <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
       <dialog
+        ref={dialogRef}
         open
         role="dialog"
         className="fo-dialog fo-settings-dialog"

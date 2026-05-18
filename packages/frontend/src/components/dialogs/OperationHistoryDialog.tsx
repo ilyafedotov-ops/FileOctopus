@@ -1,6 +1,8 @@
+import { useRef } from "react";
 import type { OperationHistoryRecordDto } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../../hooks/useDialogEscape";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { OperationHistoryList } from "../../jobs/OperationHistoryList";
 
 interface OperationHistoryDialogProps {
@@ -18,7 +20,9 @@ export function OperationHistoryDialog({
   onRefresh,
   onClear,
 }: OperationHistoryDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   useDialogEscape(open, onClose);
+  useFocusTrap(dialogRef, open);
 
   if (!open) {
     return null;
@@ -27,6 +31,7 @@ export function OperationHistoryDialog({
   return (
     <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
       <dialog
+        ref={dialogRef}
         open
         role="dialog"
         className="fo-dialog fo-operation-history-dialog"

@@ -1,7 +1,8 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { FavoriteEntryDto } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../../hooks/useDialogEscape";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 import { localPathFromUri } from "../../utils/paneUtils";
 
 interface ManageFavoritesDialogProps {
@@ -21,7 +22,9 @@ export function ManageFavoritesDialog({
   onRemove,
   onRename,
 }: ManageFavoritesDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   useDialogEscape(open, onClose);
+  useFocusTrap(dialogRef, open);
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editLabel, setEditLabel] = useState("");
@@ -45,6 +48,7 @@ export function ManageFavoritesDialog({
   return (
     <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
       <dialog
+        ref={dialogRef}
         open
         role="dialog"
         className="fo-dialog fo-manage-favorites-dialog"

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { SearchInput, cx } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
+import { useFocusTrap } from "../hooks/useFocusTrap";
 import { matchCommand, type CommandItem } from "../utils/matchCommand";
 
 export interface CommandEntry extends CommandItem {
@@ -22,8 +23,10 @@ export function CommandPalette({
 }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   useDialogEscape(open, onClose);
+  useFocusTrap(dialogRef, open);
 
   useEffect(() => {
     if (open) {
@@ -76,6 +79,7 @@ export function CommandPalette({
   return (
     <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
       <dialog
+        ref={dialogRef}
         open
         className="fo-dialog fo-command-palette"
         aria-label="Command palette"

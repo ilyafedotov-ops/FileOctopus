@@ -1,6 +1,8 @@
 import type { AppInfoResponse } from "@fileoctopus/ts-api";
+import { useRef } from "react";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../../hooks/useDialogEscape";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
 
 interface AboutDialogProps {
   open: boolean;
@@ -9,7 +11,9 @@ interface AboutDialogProps {
 }
 
 export function AboutDialog({ open, appInfo, onClose }: AboutDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
   useDialogEscape(open, onClose);
+  useFocusTrap(dialogRef, open);
 
   if (!open) {
     return null;
@@ -18,6 +22,7 @@ export function AboutDialog({ open, appInfo, onClose }: AboutDialogProps) {
   return (
     <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
       <dialog
+        ref={dialogRef}
         open
         role="dialog"
         className="fo-dialog fo-about-dialog"
