@@ -296,6 +296,16 @@
   margin-left: 4px;
 }
 
+.fo-breadcrumb-overflow {
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 0 4px;
+}
+
 .fo-panel-title-row .fo-breadcrumb-edit span:not(.fo-ui-icon) {
   display: none;
 }

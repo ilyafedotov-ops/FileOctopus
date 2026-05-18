@@ -38,16 +38,19 @@ export function PathBar({
   }, [focusToken]);
 
   if (!editing) {
+    const segments = breadcrumbSegments(value).map((segment) => ({
+      label: segment.label,
+      path: segment.uri,
+    }));
+
     return (
       <div
         className={error ? "fo-path-error-wrap" : undefined}
         onDoubleClick={() => setEditing(true)}
+        title={value}
       >
         <BreadcrumbPath
-          segments={breadcrumbSegments(value).map((segment) => ({
-            label: segment.label,
-            path: segment.uri,
-          }))}
+          segments={segments}
           onNavigate={onSubmit}
           onEditPath={() => setEditing(true)}
           onSegmentContextMenu={
@@ -55,6 +58,7 @@ export function PathBar({
               ? (segment, e) => onBreadcrumbContextMenu(segment.path, e)
               : undefined
           }
+          maxVisible={4}
         />
       </div>
     );
