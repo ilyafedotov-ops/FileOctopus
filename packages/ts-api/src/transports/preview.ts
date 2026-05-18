@@ -122,7 +122,9 @@ export function createPreviewTransport(): IpcTransport {
       if (
         command === "navigation.recordVisit" ||
         command === "navigation.removeFavorite" ||
-        command === "navigation.toggleStarred"
+        command === "navigation.toggleStarred" ||
+        command === "navigation.clearRecent" ||
+        command === "navigation.removeRecent"
       ) {
         return { ok: true } as TResponse;
       }

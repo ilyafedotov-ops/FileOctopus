@@ -37,4 +37,6 @@ export const commandMap: Record<string, string> = {
   "navigation.listStarred": "navigation_list_starred",
   "navigation.toggleStarred": "navigation_toggle_starred",
   "navigation.isStarred": "navigation_is_starred",
+  "navigation.clearRecent": "navigation_clear_recent",
+  "navigation.removeRecent": "navigation_remove_recent",
 };

@@ -82,6 +82,26 @@ export class NavigationClient {
     }
   }
 
+  async clearRecent(): Promise<OkResponse> {
+    try {
+      return await this.transport.invoke("navigation.clearRecent");
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async removeRecent(
+    request: import("../types").NavigationRemoveRecentRequest,
+  ): Promise<OkResponse> {
+    try {
+      return await this.transport.invoke("navigation.removeRecent", {
+        request,
+      });
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
   async listStarred(): Promise<NavigationListStarredResponse> {
     try {
       return await this.transport.invoke("navigation.listStarred");

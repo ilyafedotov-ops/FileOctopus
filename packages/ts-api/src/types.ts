@@ -279,6 +279,10 @@ export interface NavigationIsStarredResponse {
   starred: boolean;
 }
 
+export interface NavigationRemoveRecentRequest {
+  uri: string;
+}
+
 export interface GetPreferencesResponse {
   preferences: UserPreferencesDto;
 }
