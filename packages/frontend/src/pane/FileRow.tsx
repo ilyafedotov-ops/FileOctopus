@@ -17,6 +17,7 @@ export interface FileRowProps {
   top: number;
   rowHeight: number;
   viewMode: ViewMode;
+  gridColumns?: string;
   selected: boolean;
   multiSelected: boolean;
   focused: boolean;
@@ -39,6 +40,7 @@ export function FileRow({
   top,
   rowHeight,
   viewMode,
+  gridColumns,
   selected,
   multiSelected,
   focused,
@@ -86,6 +88,7 @@ export function FileRow({
       style={{
         transform: viewMode === "icons" ? undefined : `translateY(${top}px)`,
         height: viewMode === "icons" ? undefined : rowHeight,
+        ...(gridColumns ? { gridTemplateColumns: gridColumns } : {}),
       }}
       onClick={(event) => {
         const mode = event.shiftKey

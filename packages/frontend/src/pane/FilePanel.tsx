@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   selectVisibleEntries,
   homeUri,
@@ -22,6 +22,12 @@ import {
 } from "../hooks/useFileOctopusDragTarget";
 import { localPathFromUri } from "../utils/paneUtils";
 import { fileIconGlyph } from "./fileTableUtils";
+import {
+  storedColumnWidths,
+  persistColumnWidths,
+  type ColumnWidths,
+  type ColumnId,
+} from "./columnWidths";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import type { ContextMenuState } from "../components/ContextMenu";
 
@@ -109,7 +115,20 @@ export function FilePanel({
   const selectedEntry =
     entries.find((entry) => entry.uri === tab.selectedId) ?? null;
   const [inlineRenameUri, setInlineRenameUri] = useState<string | null>(null);
+  const [columnWidths, setColumnWidths] =
+    useState<ColumnWidths>(storedColumnWidths);
   const { dragOver, reset, dragTargetProps } = useFileOctopusDragTarget();
+
+  const handleColumnResize = useCallback(
+    (columnId: ColumnId, newWidth: number) => {
+      setColumnWidths((prev) => {
+        const next = { ...prev, [columnId]: Math.max(30, newWidth) };
+        persistColumnWidths(next);
+        return next;
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (renameFocusToken > 0 && active && tab.selectedIds.length === 1) {
@@ -214,6 +233,8 @@ export function FilePanel({
             filterQuery={tab.filter}
             inlineRenameUri={inlineRenameUri}
             panelId={panelId}
+            columnWidths={columnWidths}
+            onColumnResize={handleColumnResize}
             onCancelInlineRename={() => setInlineRenameUri(null)}
             onSubmitInlineRename={(entryUri, newName) => {
               const entry = tab.entriesById[entryUri];

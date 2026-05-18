@@ -1,6 +1,7 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { cx } from "@fileoctopus/ui";
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
@@ -11,6 +12,12 @@ import {
 import { isPaneLoading, type PaneLoadState } from "../paneTypes";
 import type { SortField, ViewMode } from "../panelStore";
 import { FileRow } from "./FileRow";
+import {
+  buildGridTemplate,
+  buildHeaderGridTemplate,
+  type ColumnWidths,
+  type ColumnId,
+} from "./columnWidths";
 
 const overscan = 8;
 
@@ -27,10 +34,12 @@ export interface FileTableProps {
   filterQuery?: string;
   inlineRenameUri?: string | null;
   panelId?: string;
+  columnWidths?: ColumnWidths;
   onSubmitInlineRename?: (entryUri: string, newName: string) => void;
   onCancelInlineRename?: () => void;
   onCreateFolder?: () => void;
   onCreateFile?: () => void;
+  onColumnResize?: (columnId: ColumnId, newWidth: number) => void;
   onSelect: (entryId: string | null) => void;
   onEntrySelect: (entryId: string, mode: "single" | "toggle" | "range") => void;
   onMove: (delta: number) => void;
@@ -56,10 +65,12 @@ export function FileTable({
   filterQuery = "",
   inlineRenameUri,
   panelId,
+  columnWidths,
   onSubmitInlineRename,
   onCancelInlineRename,
   onCreateFolder,
   onCreateFile,
+  onColumnResize,
   onSelect,
   onEntrySelect,
   onMove,
@@ -69,6 +80,9 @@ export function FileTable({
   onContextMenu,
 }: FileTableProps) {
   const [scrollTop, setScrollTop] = useState(0);
+  const [resizingColumn, setResizingColumn] = useState<ColumnId | null>(null);
+  const [resizeStartX, setResizeStartX] = useState(0);
+  const [resizeStartWidth, setResizeStartWidth] = useState(0);
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const viewportHeight = viewportRef.current?.clientHeight ?? 420;
   const virtualize = viewMode !== "icons";
@@ -83,6 +97,40 @@ export function FileTable({
     : entries;
   const totalHeight = virtualize ? entries.length * rowHeight : undefined;
   const loading = isPaneLoading(loadState);
+  const widths = columnWidths ?? DEFAULT_WIDTHS;
+  const rowGridColumns = buildGridTemplate(widths);
+  const headerGridColumns = buildHeaderGridTemplate(widths);
+
+  const handleResizeStart = useCallback(
+    (columnId: ColumnId, clientX: number) => {
+      setResizingColumn(columnId);
+      setResizeStartX(clientX);
+      setResizeStartWidth(widths[columnId]);
+    },
+    [widths],
+  );
+
+  useEffect(() => {
+    if (!resizingColumn) return;
+    const col = resizingColumn;
+
+    function handleMouseMove(e: globalThis.MouseEvent) {
+      const delta = e.clientX - resizeStartX;
+      const newWidth = Math.max(30, resizeStartWidth + delta);
+      onColumnResize?.(col, newWidth);
+    }
+
+    function handleMouseUp() {
+      setResizingColumn(null);
+    }
+
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", handleMouseUp);
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [resizingColumn, resizeStartX, resizeStartWidth, onColumnResize]);
 
   useEffect(() => {
     if (!virtualize || !focusedId || !viewportRef.current) {
@@ -152,7 +200,11 @@ export function FileTable({
       onContextMenu={(event) => onContextMenu(event, null)}
     >
       {viewMode === "details" ? (
-        <div className="fo-table-header" role="row">
+        <div
+          className="fo-table-header"
+          role="row"
+          style={{ gridTemplateColumns: headerGridColumns }}
+        >
           <ColumnHeader
             field="name"
             active={sortField === "name"}
@@ -161,6 +213,11 @@ export function FileTable({
           >
             Name
           </ColumnHeader>
+          <ResizeHandle
+            columnId="name"
+            onResizeStart={handleResizeStart}
+            active={resizingColumn === "name"}
+          />
           <ColumnHeader
             field="type"
             active={sortField === "type"}
@@ -169,6 +226,11 @@ export function FileTable({
           >
             ext
           </ColumnHeader>
+          <ResizeHandle
+            columnId="extension"
+            onResizeStart={handleResizeStart}
+            active={resizingColumn === "extension"}
+          />
           <ColumnHeader
             field="size"
             active={sortField === "size"}
@@ -177,6 +239,11 @@ export function FileTable({
           >
             size
           </ColumnHeader>
+          <ResizeHandle
+            columnId="size"
+            onResizeStart={handleResizeStart}
+            active={resizingColumn === "size"}
+          />
           <ColumnHeader
             field="modified"
             active={sortField === "modified"}
@@ -185,6 +252,11 @@ export function FileTable({
           >
             modified
           </ColumnHeader>
+          <ResizeHandle
+            columnId="modified"
+            onResizeStart={handleResizeStart}
+            active={resizingColumn === "modified"}
+          />
           <ColumnHeader
             field="type"
             active={sortField === "type"}
@@ -251,6 +323,9 @@ export function FileTable({
                 top={(startIndex + offset) * rowHeight}
                 rowHeight={rowHeight}
                 viewMode={viewMode}
+                gridColumns={
+                  viewMode === "details" ? rowGridColumns : undefined
+                }
                 renaming={entry.uri === inlineRenameUri}
                 onSubmitRename={(newName) =>
                   onSubmitInlineRename?.(entry.uri, newName)
@@ -350,5 +425,39 @@ function FileListSkeleton({ rowHeight, viewMode }: FileListSkeletonProps) {
         />
       ))}
     </div>
+  );
+}
+
+const DEFAULT_WIDTHS: ColumnWidths = {
+  name: 220,
+  extension: 52,
+  size: 78,
+  modified: 126,
+  kind: 110,
+};
+
+interface ResizeHandleProps {
+  columnId: ColumnId;
+  onResizeStart: (columnId: ColumnId, clientX: number) => void;
+  active: boolean;
+}
+
+function ResizeHandle({ columnId, onResizeStart, active }: ResizeHandleProps) {
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={`Resize ${columnId} column`}
+      className={cx(
+        "fo-column-resize-handle",
+        active && "fo-column-resize-handle-active",
+      )}
+      onMouseDown={(e) => {
+        if (e.button === 0) {
+          e.preventDefault();
+          onResizeStart(columnId, e.clientX);
+        }
+      }}
+    />
   );
 }

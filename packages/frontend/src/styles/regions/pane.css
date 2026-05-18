@@ -483,6 +483,31 @@
   border-right: 0;
 }
 
+.fo-column-resize-handle {
+  position: relative;
+  width: 5px;
+  margin-right: -5px;
+  cursor: col-resize;
+  z-index: 1;
+  user-select: none;
+}
+
+.fo-column-resize-handle::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 2px;
+  width: 1px;
+  background: transparent;
+  transition: background 0.15s;
+}
+
+.fo-column-resize-handle:hover::after,
+.fo-column-resize-handle-active::after {
+  background: var(--fo-accent);
+}
+
 .fo-table-viewport {
   position: relative;
   min-height: 0;
