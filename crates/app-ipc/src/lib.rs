@@ -633,6 +633,7 @@ pub mod error_codes {
     pub const DUPLICATE_PROVIDER: &str = "duplicate_provider";
     pub const NOT_FOUND: &str = "not_found";
     pub const PERMISSION_DENIED: &str = "permission_denied";
+    pub const DEVICE_UNAVAILABLE: &str = "device_unavailable";
     pub const TIMEOUT: &str = "timeout";
     pub const CANCELLED: &str = "cancelled";
     pub const PREFERENCES_ERROR: &str = "preferences_error";
@@ -664,6 +665,7 @@ pub mod error_codes {
         DUPLICATE_PROVIDER,
         NOT_FOUND,
         PERMISSION_DENIED,
+        DEVICE_UNAVAILABLE,
         TIMEOUT,
         CANCELLED,
         PREFERENCES_ERROR,
