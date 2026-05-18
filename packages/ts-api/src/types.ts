@@ -36,6 +36,7 @@ export const IPC_ERROR_CODES = {
   UNKNOWN: "unknown",
   TAURI_UNAVAILABLE: "tauri_unavailable",
   UNSUPPORTED_TRANSPORT: "unsupported_transport",
+  DEVICE_UNAVAILABLE: "device_unavailable",
 } as const;
 
 export type KnownIpcErrorCode =

@@ -91,14 +91,18 @@ export function PaneStateView({
         ? "Permission denied"
         : loadState === "timeout"
           ? "Directory listing timed out"
-          : "Unable to read this location";
+          : loadState === "offline"
+            ? "Device unavailable"
+            : "Unable to read this location";
 
   const guidance =
     loadState === "notFound"
       ? "The path may have been moved, renamed, or deleted."
       : loadState === "permissionDenied"
         ? "Check macOS privacy settings or choose another location."
-        : null;
+        : loadState === "offline"
+          ? "The device may be disconnected or unmounted. Try reconnecting it."
+          : null;
 
   return (
     <section className="fo-pane-state fo-pane-state-error">

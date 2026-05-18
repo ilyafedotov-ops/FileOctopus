@@ -12,7 +12,8 @@ export type PaneLoadState =
   | "error"
   | "notFound"
   | "permissionDenied"
-  | "timeout";
+  | "timeout"
+  | "offline";
 
 export function createRequestId(): string {
   if (
@@ -42,6 +43,10 @@ export function loadStateFromBatchError(
 
   if (error.code === IPC_ERROR_CODES.TIMEOUT) {
     return "timeout";
+  }
+
+  if (error.code === IPC_ERROR_CODES.DEVICE_UNAVAILABLE) {
+    return "offline";
   }
 
   return "error";
@@ -80,6 +85,8 @@ export function paneStateLabel(loadState: PaneLoadState): string {
       return "Permission denied";
     case "timeout":
       return "Timed out";
+    case "offline":
+      return "Device unavailable";
     default:
       return "Unknown";
   }

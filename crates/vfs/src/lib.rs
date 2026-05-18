@@ -442,6 +442,7 @@ impl From<VfsError> for FileOperationError {
                 message: format!("duplicate provider scheme `{scheme}`"),
             },
             VfsError::Internal { message } => Self::Internal { message },
+            VfsError::DeviceUnavailable { uri } => Self::PermissionDenied { uri },
         }
     }
 }
@@ -535,6 +536,7 @@ pub enum VfsError {
     PermissionDenied { uri: String },
     Timeout { uri: String },
     Cancelled { uri: String },
+    DeviceUnavailable { uri: String },
     Internal { message: String },
 }
 
@@ -548,6 +550,7 @@ impl VfsError {
             Self::PermissionDenied { .. } => "permission_denied",
             Self::Timeout { .. } => "timeout",
             Self::Cancelled { .. } => "cancelled",
+            Self::DeviceUnavailable { .. } => "device_unavailable",
             Self::Internal { .. } => "internal",
         }
     }
@@ -606,6 +609,7 @@ impl fmt::Display for VfsError {
             Self::PermissionDenied { uri } => write!(formatter, "permission denied `{uri}`"),
             Self::Timeout { uri } => write!(formatter, "directory listing timed out `{uri}`"),
             Self::Cancelled { uri } => write!(formatter, "directory listing cancelled `{uri}`"),
+            Self::DeviceUnavailable { uri } => write!(formatter, "device unavailable `{uri}`"),
             Self::Internal { message } => write!(formatter, "{message}"),
         }
     }
