@@ -80,6 +80,7 @@ export function ShellToolbar() {
         onOpenTerminal={() => handleCommand("op.openTerminal")}
         onChecksum={() => void handleCommand("op.checksum")}
         onRefresh={() => ctx.refreshPanel(pid)}
+        onCommandSearch={() => ctx.setCommandPaletteOpen(true)}
         onToggleHidden={() => ctx.toggleHidden(pid)}
         onSelectAll={() => handleCommand("selection.selectAll")}
         onViewMode={(viewMode) => {

@@ -5,18 +5,21 @@ import "@fileoctopus/ui/components.css";
 import "./App.css";
 
 function App() {
-  const appWindow = getCurrentWindow();
+  const appWindow =
+    typeof globalThis === "object" && "__TAURI_INTERNALS__" in globalThis
+      ? getCurrentWindow()
+      : null;
 
   return (
     <FileOctopusShell
       onRequestExit={() => {
-        void appWindow.close();
+        void appWindow?.close();
       }}
       onRequestMinimize={() => {
-        void appWindow.minimize();
+        void appWindow?.minimize();
       }}
       onRequestToggleMaximize={() => {
-        void appWindow.toggleMaximize();
+        void appWindow?.toggleMaximize();
       }}
     />
   );

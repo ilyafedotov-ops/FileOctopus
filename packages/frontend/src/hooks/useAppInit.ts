@@ -47,6 +47,27 @@ import {
 } from "../dialogs/OperationDialogView";
 import type { SearchState } from "../pane/PaneFilterBar";
 
+const DEFAULT_VIEW_MODE_DETAILS_MIGRATION_KEY =
+  "fileoctopus.defaultViewModeDetailsMigrated";
+
+function isDefaultViewModeDetailsMigrationDone(): boolean {
+  try {
+    return (
+      localStorage.getItem(DEFAULT_VIEW_MODE_DETAILS_MIGRATION_KEY) === "true"
+    );
+  } catch {
+    return false;
+  }
+}
+
+function markDefaultViewModeDetailsMigrationDone() {
+  try {
+    localStorage.setItem(DEFAULT_VIEW_MODE_DETAILS_MIGRATION_KEY, "true");
+  } catch {
+    return;
+  }
+}
+
 export interface UseAppInitParams {
   client: FileOctopusClient;
   state: FileOctopusState;
@@ -537,6 +558,25 @@ export function useAppInit({
           );
         } catch {
           /* keep loaded preferences */
+        }
+        const shouldMigrateDefaultViewMode =
+          loadedPreferences.defaultViewMode !== "details" &&
+          !isDefaultViewModeDetailsMigrationDone();
+
+        if (shouldMigrateDefaultViewMode) {
+          try {
+            const updated = await client.preferences.set({
+              key: "defaultViewMode",
+              value: "details",
+            });
+            loadedPreferences = updated.preferences;
+            markDefaultViewModeDetailsMigrationDone();
+          } catch {
+            loadedPreferences = {
+              ...loadedPreferences,
+              defaultViewMode: "details",
+            };
+          }
         }
         setPreferences(loadedPreferences);
         applyAllPreferences(loadedPreferences);

@@ -24,13 +24,13 @@ exports[`visual regression snapshots > matches the shell chrome structure in dar
         aria-hidden="true"
         class="fo-window-dot fo-window-dot-green"
       />
-      <h1
-        data-tauri-drag-region=""
-        title="FileOctopus"
-      >
-        FileOctopus
-      </h1>
     </div>
+    <h1
+      data-tauri-drag-region=""
+      title="FileOctopus"
+    >
+      FileOctopus
+    </h1>
     <div
       class="fo-topbar-actions"
     >
@@ -219,13 +219,13 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
         aria-hidden="true"
         class="fo-window-dot fo-window-dot-green"
       />
-      <h1
-        data-tauri-drag-region=""
-        title="FileOctopus"
-      >
-        FileOctopus
-      </h1>
     </div>
+    <h1
+      data-tauri-drag-region=""
+      title="FileOctopus"
+    >
+      FileOctopus
+    </h1>
     <div
       class="fo-topbar-actions"
     >

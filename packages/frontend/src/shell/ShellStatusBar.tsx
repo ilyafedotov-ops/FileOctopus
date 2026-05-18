@@ -37,11 +37,12 @@ export function ShellStatusBar() {
             key={item.key}
             type="button"
             className="fo-commander-key"
+            aria-label={`${item.label} - ${item.key}`}
             disabled={commanderItemDisabled(item.action, commander)}
             onClick={() => commander[item.action]()}
           >
+            <span className="fo-commander-keycap">{item.key}</span>
             <span className="fo-commander-label">{item.label}</span>
-            <span className="fo-commander-keycap">- {item.key}</span>
           </button>
         ))}
       </div>

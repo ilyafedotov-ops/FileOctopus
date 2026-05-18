@@ -183,15 +183,16 @@
 }
 
 .fo-toolbar-search {
-  flex: 0 1 200px;
-  min-width: 120px;
+  flex: 1 1 280px;
+  min-width: 180px;
   min-height: 22px;
   padding: 0 0.5rem;
   border: 1px solid var(--fo-border);
-  border-radius: 7px;
+  border-radius: 4px;
   background: var(--fo-surface);
   color: var(--fo-text);
   font-size: 12px;
+  cursor: pointer;
 }
 
 .fo-toolbar-search:focus {

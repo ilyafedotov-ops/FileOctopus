@@ -87,6 +87,67 @@ export const Icons = {
   x: () => renderIcon(X, "fo-ui-icon"),
 };
 
+function classicFolderIcon(): ReactNode {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      width={iconSize}
+      height={iconSize}
+      className="fo-ui-icon fo-classic-icon fo-classic-folder-icon"
+      aria-hidden
+    >
+      <path fill="#0f172a" d="M3 9h10l3 3h13v15H3z" />
+      <path fill="#d79a18" d="M4 8h9l3 3h12v3H4z" />
+      <path fill="#f5c84b" d="M4 12h24v14H4z" />
+      <path fill="#ffe28a" d="M6 14h20v3H6z" />
+      <path fill="#7a520f" d="M3 8h10l3 3h13v16H3zm2 6v11h22V13H15l-3-3H5z" />
+      <path fill="#2563eb" d="M5 25h22v2H5z" opacity="0.5" />
+    </svg>
+  );
+}
+
+function classicFileIcon(
+  kind: "generic" | "document" | "image" | "audio",
+): ReactNode {
+  const detail =
+    kind === "image" ? (
+      <>
+        <path fill="#37a169" d="M9 23l4-5 3 3 2-3 5 5z" />
+        <rect width="3" height="3" x="18" y="13" fill="#2563eb" />
+      </>
+    ) : kind === "audio" ? (
+      <>
+        <path fill="#2563eb" d="M13 14h4v9h-4z" />
+        <path fill="#2563eb" d="M16 14l6-2v4l-6 2z" />
+        <circle cx="12" cy="23" r="3" fill="#2563eb" />
+      </>
+    ) : kind === "document" ? (
+      <>
+        <rect width="13" height="2" x="9" y="14" fill="#2563eb" />
+        <rect width="13" height="2" x="9" y="18" fill="#2563eb" />
+        <rect width="9" height="2" x="9" y="22" fill="#2563eb" />
+      </>
+    ) : (
+      <rect width="11" height="2" x="9" y="19" fill="#94a3b8" />
+    );
+
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      width={iconSize}
+      height={iconSize}
+      className={`fo-ui-icon fo-classic-icon fo-classic-${kind}-icon`}
+      aria-hidden
+    >
+      <path fill="#0f172a" d="M7 3h13l6 6v20H7z" />
+      <path fill="#f8fafc" d="M8 2h12l6 6v20H8z" />
+      <path fill="#dbeafe" d="M20 2v7h6z" />
+      <path fill="#64748b" d="M7 2h13l7 7v20H7zm2 2v23h16V10h-6V4z" />
+      {detail}
+    </svg>
+  );
+}
+
 export function fileEntryIcon(
   entry: Pick<
     { kind: string; extension?: string | null; name: string },
@@ -94,7 +155,7 @@ export function fileEntryIcon(
   >,
 ): ReactNode {
   if (entry.kind === "directory") {
-    return Icons.folder();
+    return classicFolderIcon();
   }
 
   const extension = (
@@ -104,16 +165,16 @@ export function fileEntryIcon(
   ).toLowerCase();
 
   if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(extension)) {
-    return Icons.pictures();
+    return classicFileIcon("image");
   }
 
   if (["mp3", "wav", "flac", "aac"].includes(extension)) {
-    return Icons.music();
+    return classicFileIcon("audio");
   }
 
   if (["pdf", "doc", "docx", "txt", "md"].includes(extension)) {
-    return Icons.documents();
+    return classicFileIcon("document");
   }
 
-  return Icons.file();
+  return classicFileIcon("generic");
 }

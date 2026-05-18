@@ -262,6 +262,12 @@ export function createKeyboardShortcutsHandler(
       return;
     }
 
+    if (event.key === "F9") {
+      event.preventDefault();
+      commander.terminal();
+      return;
+    }
+
     if (event.altKey && event.key === "ArrowLeft") {
       event.preventDefault();
       runCommand("nav.back");

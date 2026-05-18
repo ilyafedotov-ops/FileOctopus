@@ -12,6 +12,7 @@ export interface OperationToolbarProps extends ToolbarDropdownsProps {
   onForward: () => void;
   onUp: () => void;
   onRefresh: () => void;
+  onCommandSearch: () => void;
 }
 
 export function OperationToolbar({
@@ -22,6 +23,7 @@ export function OperationToolbar({
   onForward,
   onUp,
   onRefresh,
+  onCommandSearch,
   ...dropdownProps
 }: OperationToolbarProps) {
   return (
@@ -44,8 +46,11 @@ export function OperationToolbar({
       <input
         type="search"
         className="fo-toolbar-search"
-        placeholder="Command or search…"
-        aria-label="Command or search files"
+        placeholder="Command, path, or action..."
+        aria-label="Open command palette"
+        readOnly
+        onClick={onCommandSearch}
+        onFocus={onCommandSearch}
       />
       <span className="fo-toolbar-separator" aria-hidden="true" />
       <ToolbarButton onClick={onRefresh} title="Refresh">

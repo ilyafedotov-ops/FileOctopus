@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DropdownMenu, Icons, ToolbarButton } from "@fileoctopus/ui";
+import { DropdownMenu, Icons } from "@fileoctopus/ui";
 import { formatCommandShortcut } from "../commands/registry";
 import type { ViewMode } from "../panelStore";
 
@@ -64,108 +64,12 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
     onChecksum,
   } = props;
   const [overflowOpen, setOverflowOpen] = useState(false);
-  const [newOpen, setNewOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
 
   return (
     <>
-      <div className="fo-toolbar-group fo-toolbar-group-create">
-        <DropdownMenu
-          label="New"
-          triggerAriaLabel="New"
-          open={newOpen}
-          onOpenChange={setNewOpen}
-          items={[
-            {
-              id: "new-folder",
-              label: "New Folder",
-              icon: Icons.folderPlus(),
-              shortcut: formatCommandShortcut("create.folder", "mac"),
-              onSelect: onCreateFolder,
-            },
-            {
-              id: "new-file",
-              label: "New File",
-              icon: Icons.filePlus(),
-              shortcut: formatCommandShortcut("create.file", "mac"),
-              onSelect: onCreateFile,
-            },
-          ]}
-        >
-          {Icons.folderPlus()}
-          <span className="fo-toolbar-label">New</span>
-          {Icons.chevronDown()}
-        </DropdownMenu>
-      </div>
-      <span className="fo-toolbar-separator" aria-hidden="true" />
-      <div className="fo-toolbar-group fo-toolbar-group-clipboard">
-        <ToolbarButton
-          aria-label="Copy"
-          disabled={selectedCount === 0}
-          onClick={onCopy}
-        >
-          {Icons.copy()}
-          <span className="fo-toolbar-label">Copy</span>
-        </ToolbarButton>
-        <ToolbarButton
-          aria-label="Cut"
-          disabled={selectedCount === 0}
-          onClick={onCut}
-        >
-          {Icons.move()}
-          <span className="fo-toolbar-label">Cut</span>
-        </ToolbarButton>
-        <ToolbarButton
-          aria-label="Paste"
-          disabled={!canPaste}
-          onClick={onPaste}
-        >
-          {Icons.copy()}
-          <span className="fo-toolbar-label">Paste</span>
-        </ToolbarButton>
-      </div>
-      <span className="fo-toolbar-separator" aria-hidden="true" />
-      <div className="fo-toolbar-group fo-toolbar-group-operations">
-        <ToolbarButton
-          aria-label="Copy To"
-          disabled={selectedCount === 0}
-          onClick={onCopyOperation}
-        >
-          {Icons.copy()}
-          <span className="fo-toolbar-label">Copy To…</span>
-        </ToolbarButton>
-        <ToolbarButton
-          aria-label="Move To"
-          disabled={selectedCount === 0}
-          onClick={onMove}
-        >
-          {Icons.move()}
-          <span className="fo-toolbar-label">Move To…</span>
-        </ToolbarButton>
-        <ToolbarButton
-          aria-label="Rename"
-          disabled={!canRename}
-          onClick={onRename}
-        >
-          {Icons.pencil()}
-          <span className="fo-toolbar-label">Rename</span>
-        </ToolbarButton>
-        <ToolbarButton aria-label="Info" onClick={onProperties}>
-          {Icons.info()}
-          <span className="fo-toolbar-label">Info</span>
-        </ToolbarButton>
-        <ToolbarButton
-          aria-label="Trash"
-          className="fo-toolbar-danger"
-          disabled={selectedCount === 0}
-          onClick={onTrash}
-        >
-          {Icons.trash()}
-          <span className="fo-toolbar-label">Trash</span>
-        </ToolbarButton>
-      </div>
-      <span className="fo-toolbar-separator" aria-hidden="true" />
+      <span className="fo-toolbar-spacer" aria-hidden="true" />
       <div className="fo-toolbar-group fo-toolbar-group-tools">
         <DropdownMenu
           label="Tools"
@@ -282,7 +186,6 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
           {Icons.chevronDown()}
         </DropdownMenu>
       </div>
-      <span className="fo-toolbar-spacer" aria-hidden="true" />
       <DropdownMenu
         label="More"
         triggerAriaLabel="More"
@@ -367,11 +270,19 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
             onSelect: onCopyName,
           },
           {
+            id: "trash",
+            label: "Trash",
+            icon: Icons.trash(),
+            danger: true,
+            separatorBefore: true,
+            disabled: selectedCount === 0,
+            onSelect: onTrash,
+          },
+          {
             id: "delete",
             label: "Delete Permanently",
             icon: Icons.trash(),
             danger: true,
-            separatorBefore: true,
             disabled: selectedCount === 0,
             onSelect: onPermanentDelete,
           },

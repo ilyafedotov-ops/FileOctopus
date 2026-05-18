@@ -53,9 +53,12 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
     },
     copy: () => handleCopyOrMove(panelId, "copy"),
     move: () => handleCopyOrMove(panelId, "move"),
+    rename: () => handleCommandSelect("op.rename", panelId),
     newFolder: () => handleCreateFolder(panelId),
     delete: () => handleTrash(panelId),
+    terminal: () => handleCommandSelect("op.openTerminal", panelId),
     canEdit: Boolean(selectedEntry),
+    canRename: tab.selectedIds.length === 1,
     canCopy: hasSelection,
     canMove: hasSelection,
     canDelete: hasSelection,
@@ -65,12 +68,14 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
 export type CommanderActions = ReturnType<typeof createCommanderActions>;
 
 export const COMMANDER_FUNCTION_ITEMS = [
+  { key: "F2", label: "Rename", action: "rename" as const },
   { key: "F3", label: "View", action: "view" as const },
   { key: "F4", label: "Edit", action: "edit" as const },
   { key: "F5", label: "Copy", action: "copy" as const },
   { key: "F6", label: "Move", action: "move" as const },
   { key: "F7", label: "New Folder", action: "newFolder" as const },
   { key: "F8", label: "Delete", action: "delete" as const },
+  { key: "F9", label: "Terminal", action: "terminal" as const },
 ];
 
 export function commanderItemDisabled(
@@ -80,7 +85,10 @@ export function commanderItemDisabled(
   switch (action) {
     case "view":
     case "newFolder":
+    case "terminal":
       return false;
+    case "rename":
+      return !commander.canRename;
     case "edit":
       return !commander.canEdit;
     case "copy":

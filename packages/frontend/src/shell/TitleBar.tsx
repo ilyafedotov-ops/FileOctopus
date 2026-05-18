@@ -58,16 +58,16 @@ export function TitleBar({
             />
           ),
         )}
-        {titlePath !== "FileOctopus" ? (
-          <span className="fo-brand-product" data-tauri-drag-region="">
-            FileOctopus
-          </span>
-        ) : null}
-        <h1 title={titlePath} data-tauri-drag-region="">
-          {titlePath}
-        </h1>
       </div>
       {menuBarProps ? <MenuBar {...menuBarProps} /> : null}
+      {titlePath !== "FileOctopus" ? (
+        <span className="fo-brand-product" data-tauri-drag-region="">
+          FileOctopus
+        </span>
+      ) : null}
+      <h1 title={titlePath} data-tauri-drag-region="">
+        {titlePath}
+      </h1>
       <div className="fo-topbar-actions">
         <Button type="button" variant="ghost" size="sm" onClick={onSettings}>
           Settings
