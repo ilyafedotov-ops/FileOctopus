@@ -96,9 +96,13 @@
 }
 
 .fo-window-dot {
+  flex: 0 0 auto;
   width: 13px;
   height: 13px;
+  padding: 0;
+  border: 0;
   border-radius: 999px;
+  appearance: none;
 }
 
 .fo-window-dot-red {

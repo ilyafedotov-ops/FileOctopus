@@ -81,8 +81,13 @@ export function AppShell({
   overlays: ReactNode;
   statusBar: ReactNode;
 }) {
-  const { handleShellKeyDown, menuBarProps, setSettingsOpen, state } =
-    useShellLayout();
+  const {
+    handleShellKeyDown,
+    menuBarProps,
+    setSettingsOpen,
+    state,
+    windowControls,
+  } = useShellLayout();
   const titlePath = localPathFromUri(activeTab(state.panels.left).uri);
 
   return (
@@ -93,6 +98,7 @@ export function AppShell({
             onSettings={() => setSettingsOpen(true)}
             menuBarProps={menuBarProps}
             titlePath={titlePath}
+            windowControls={windowControls}
           />
           {toolbar}
           {workspace}

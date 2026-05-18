@@ -27,12 +27,14 @@ import type { OperationDialog } from "../dialogs/OperationDialogView";
 import type { MenuBarProps } from "./MenuBar";
 import type { FileClipboardState } from "../hooks/useFileOpHandlers";
 import type { DialogOverlayGroup } from "../components/DialogOverlayGroup";
+import type { WindowControlHandlers } from "./TitleBar";
 
 export interface ShellLayoutContextValue {
   workspaceRef: RefObject<HTMLElement | null>;
   handleShellKeyDown: (e: React.KeyboardEvent<HTMLElement>) => void;
   makeFilePanelProps: (pid: "left" | "right") => FilePanelProps;
   menuBarProps: MenuBarProps;
+  windowControls?: WindowControlHandlers;
   state: FileOctopusState;
   activeTabUri: string;
   locations: StandardLocationDto[];

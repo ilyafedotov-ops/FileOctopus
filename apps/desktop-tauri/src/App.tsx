@@ -5,10 +5,18 @@ import "@fileoctopus/ui/components.css";
 import "./App.css";
 
 function App() {
+  const appWindow = getCurrentWindow();
+
   return (
     <FileOctopusShell
       onRequestExit={() => {
-        void getCurrentWindow().close();
+        void appWindow.close();
+      }}
+      onRequestMinimize={() => {
+        void appWindow.minimize();
+      }}
+      onRequestToggleMaximize={() => {
+        void appWindow.toggleMaximize();
       }}
     />
   );

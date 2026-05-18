@@ -6,9 +6,11 @@ exports[`visual regression snapshots > matches the shell chrome structure in dar
 >
   <header
     class="fo-topbar"
+    data-tauri-drag-region=""
   >
     <div
       class="fo-brand"
+      data-tauri-drag-region=""
     >
       <span
         aria-hidden="true"
@@ -23,6 +25,7 @@ exports[`visual regression snapshots > matches the shell chrome structure in dar
         class="fo-window-dot fo-window-dot-green"
       />
       <h1
+        data-tauri-drag-region=""
         title="FileOctopus"
       >
         FileOctopus
@@ -198,9 +201,11 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
 >
   <header
     class="fo-topbar"
+    data-tauri-drag-region=""
   >
     <div
       class="fo-brand"
+      data-tauri-drag-region=""
     >
       <span
         aria-hidden="true"
@@ -215,6 +220,7 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
         class="fo-window-dot fo-window-dot-green"
       />
       <h1
+        data-tauri-drag-region=""
         title="FileOctopus"
       >
         FileOctopus

@@ -28,8 +28,12 @@ const isProductionBuild = Boolean(
 
 function FileOctopusAppInner({
   onRequestExit,
+  onRequestMinimize,
+  onRequestToggleMaximize,
 }: {
   onRequestExit?: () => void;
+  onRequestMinimize?: () => void;
+  onRequestToggleMaximize?: () => void;
 }) {
   const {
     client,
@@ -556,6 +560,11 @@ function FileOctopusAppInner({
       handleShellKeyDown={handleShellKeyDown}
       makeFilePanelProps={makeFilePanelProps}
       menuBarProps={menuBarProps}
+      windowControls={{
+        onClose: onRequestExit,
+        onMinimize: onRequestMinimize,
+        onToggleMaximize: onRequestToggleMaximize,
+      }}
       state={state}
       activeTabUri={activeTab(state.panels[state.activePanelId]).uri}
       locations={locations}
@@ -661,12 +670,22 @@ function FileOctopusAppInner({
 
 export interface FileOctopusShellProps {
   onRequestExit?: () => void;
+  onRequestMinimize?: () => void;
+  onRequestToggleMaximize?: () => void;
 }
 
-export function FileOctopusApp({ onRequestExit }: FileOctopusShellProps = {}) {
+export function FileOctopusApp({
+  onRequestExit,
+  onRequestMinimize,
+  onRequestToggleMaximize,
+}: FileOctopusShellProps = {}) {
   return (
     <AppProviders>
-      <FileOctopusAppInner onRequestExit={onRequestExit} />
+      <FileOctopusAppInner
+        onRequestExit={onRequestExit}
+        onRequestMinimize={onRequestMinimize}
+        onRequestToggleMaximize={onRequestToggleMaximize}
+      />
     </AppProviders>
   );
 }
