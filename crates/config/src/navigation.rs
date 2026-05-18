@@ -170,6 +170,22 @@ impl NavigationRepository {
             .map_err(NavigationError::from)
     }
 
+    pub fn clear_recent(&self) -> Result<(), NavigationError> {
+        let connection = self.connect()?;
+        connection
+            .execute("delete from nav_history", [])
+            .map_err(NavigationError::from)?;
+        Ok(())
+    }
+
+    pub fn remove_recent(&self, uri: &str) -> Result<(), NavigationError> {
+        let connection = self.connect()?;
+        connection
+            .execute("delete from nav_history where uri = ?1", params![uri])
+            .map_err(NavigationError::from)?;
+        Ok(())
+    }
+
     pub fn list_recent(&self, bucket: RecentBucket) -> Result<Vec<RecentEntry>, NavigationError> {
         let connection = self.connect()?;
         let cutoff = recent_cutoff(bucket)?.to_rfc3339();

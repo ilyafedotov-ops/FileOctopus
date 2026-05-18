@@ -5,8 +5,9 @@ use app_ipc::{
     IpcError, NavigationAddFavoriteRequest, NavigationFavoriteResponse, NavigationIsStarredRequest,
     NavigationIsStarredResponse, NavigationListFavoritesResponse, NavigationListRecentRequest,
     NavigationListRecentResponse, NavigationListStarredResponse, NavigationRecordVisitRequest,
-    NavigationRemoveFavoriteRequest, NavigationRenameFavoriteRequest,
-    NavigationToggleStarredRequest, NavigationToggleStarredResponse, OkResponse,
+    NavigationRemoveFavoriteRequest, NavigationRemoveRecentRequest,
+    NavigationRenameFavoriteRequest, NavigationToggleStarredRequest,
+    NavigationToggleStarredResponse, OkResponse,
 };
 use config::RecentBucket;
 use tauri::State;
@@ -147,4 +148,26 @@ pub fn navigation_is_starred(
         .map_err(navigation_error)?;
 
     Ok(NavigationIsStarredResponse { starred })
+}
+
+#[tauri::command]
+pub fn navigation_clear_recent(state: State<'_, Arc<AppState>>) -> Result<OkResponse, IpcError> {
+    state
+        .navigation()
+        .clear_recent()
+        .map_err(navigation_error)?;
+    Ok(OkResponse { ok: true })
+}
+
+#[tauri::command]
+pub fn navigation_remove_recent(
+    request: NavigationRemoveRecentRequest,
+    state: State<'_, Arc<AppState>>,
+) -> Result<OkResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    state
+        .navigation()
+        .remove_recent(uri.as_str())
+        .map_err(navigation_error)?;
+    Ok(OkResponse { ok: true })
 }

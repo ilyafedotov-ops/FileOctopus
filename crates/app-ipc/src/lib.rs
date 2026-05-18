@@ -163,6 +163,12 @@ pub struct NavigationIsStarredRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct NavigationRemoveRecentRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NavigationIsStarredResponse {
     pub starred: bool,
 }
