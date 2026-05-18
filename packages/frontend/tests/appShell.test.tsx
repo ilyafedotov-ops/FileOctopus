@@ -447,6 +447,7 @@ describe("FileOctopusShell", () => {
   });
 
   beforeEach(() => {
+    localStorage.clear();
     batchHandler = null;
     jobStartedHandler = null;
     jobProgressHandler = null;

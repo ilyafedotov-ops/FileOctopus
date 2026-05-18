@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useReducer,
   useRef,
@@ -31,6 +32,10 @@ import {
   type PanelAction,
 } from "../../panelStore";
 import type { DensityPreference } from "../../applyPreferences";
+import {
+  restoreSessionPaths,
+  persistSessionPaths,
+} from "../../pane/sessionPaths";
 import type { ToastMessage } from "../../components/ToastStack";
 import type { FileClipboardState } from "../../hooks/useFileOpHandlers";
 import type { ContextMenuState } from "../../components/ContextMenu";
@@ -102,11 +107,28 @@ export function useShell(): ShellContextValue {
 
 export function ShellProvider({ children }: { children: ReactNode }) {
   const client = useMemo(() => createFileOctopusClient(), []);
-  const [state, dispatch] = useReducer(panelReducer, undefined, () =>
-    createInitialState(),
-  );
+  const [state, dispatch] = useReducer(panelReducer, undefined, () => {
+    const saved = restoreSessionPaths();
+    return createInitialState(
+      saved.left ?? undefined,
+      saved.right ?? undefined,
+    );
+  });
   const workspaceRef = useRef<HTMLElement | null>(null);
   const hasInitializedRef = useRef(false);
+
+  // Persist panel paths to localStorage whenever they change
+  useEffect(() => {
+    const leftUri = state.panels.left.tabs[state.panels.left.activeTabId]?.uri;
+    const rightUri =
+      state.panels.right.tabs[state.panels.right.activeTabId]?.uri;
+    if (leftUri && rightUri) {
+      persistSessionPaths(leftUri, rightUri);
+    }
+  }, [
+    state.panels.left.tabs[state.panels.left.activeTabId]?.uri,
+    state.panels.right.tabs[state.panels.right.activeTabId]?.uri,
+  ]);
 
   const [preferences, setPreferences] = useState<UserPreferencesDto | null>(
     null,
