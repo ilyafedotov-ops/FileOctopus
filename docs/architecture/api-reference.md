@@ -2,7 +2,7 @@
 
 This document is the authoritative description of FileOctopus's runtime API surface: the Tauri IPC commands, the events streamed back from Rust, the `@fileoctopus/ts-api` client that wraps them, and the domain types that flow across the boundary. It is the contract every change to filesystem behaviour must respect (see ADR-0002 and ADR-0003).
 
-> **Doc freshness (2026-05-17):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (37 handlers). After adding IPC, update this page, `commandMap.ts`, and `clients/*` in the same change.
+> **Doc freshness (2026-05-18):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (37 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (10 channels). After adding IPC, update this page, `commandMap.ts`, `events.ts`, and `clients/*` in the same change.
 
 - Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
 - Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
@@ -44,7 +44,7 @@ Each IPC payload is a `serde(rename_all = "camelCase")` DTO defined in `crates/a
 
 The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!` with `commands::*` paths). Handler bodies live in `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,folder_size,recursive_search,watch,preferences,autostart,navigation,file_operations,diagnostics}.rs`. Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/commandMap.ts` and the per-domain methods in `packages/ts-api/src/clients/*.ts`.
 
-### Full registry (2026-05-17)
+### Full registry (2026-05-18)
 
 **37 commands** — verify with `grep` on `generate_handler!` in `apps/desktop-tauri/src-tauri/src/lib.rs` and row count in `packages/ts-api/src/commandMap.ts` if this table drifts.
 
@@ -151,9 +151,40 @@ const { sessionId, requestId } = await client.fs.listStart({
 
 Errors arrive on the event stream as `DirectoryBatchEventDto.error` when listing fails mid-stream (including `permission_denied` and `timeout` after 30s). The synchronous response only fails for invalid input (`invalid_uri`, `unsupported_provider`).
 
+### Other `fs.*` commands
+
+The `FsClient` exposes several one-shot filesystem helpers. These still cross the Rust trust boundary, so every path argument is a `local://` `ResourceUri`.
+
+| Command                                           | Request                          | Response                           | Notes                                                                                                         |
+| ------------------------------------------------- | -------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `fs_read_text_file` / `fs.read_text_file`         | `{ uri, maxBytes? }`             | `{ content, truncated, byteSize }` | Reads up to `maxBytes` bytes, default 1 MiB. Uses lossy UTF-8 decoding. Directories fail with `is_directory`. |
+| `fs_compute_hash` / `fs.compute_hash`             | `{ uri, algorithm }`             | `{ hash, algorithm, byteSize }`    | Supports `sha256` / `sha-256`; files over 100 MiB fail with `file_too_large`.                                 |
+| `fs_open_terminal` / `fs.open_terminal`           | `{ uri }`                        | `{ success }`                      | Opens a terminal in an existing local directory; Linux terminal discovery can fail with `no_terminal`.        |
+| `fs_standard_locations` / `fs.standard_locations` | none                             | `{ locations }`                    | Returns standard local locations as `{ id, name, uri, section }`.                                             |
+| `fs_open_default` / `fs.open_default`             | `{ uri }`                        | `{ ok }`                           | Opens the resource with the OS default application.                                                           |
+| `fs_reveal` / `fs.reveal`                         | `{ uri }`                        | `{ ok }`                           | Reveals the resource in the platform file manager.                                                            |
+| `fs_properties` / `fs.properties`                 | `{ uri, includeFolderSummary? }` | `{ properties }`                   | Returns metadata plus optional recursive summary for directories.                                             |
+
+`PathPropertiesDto` includes `uri`, `name`, `kind`, file `size`, optional `totalSize`/`itemCount`/`fileCount`/`directoryCount`, timestamps, hidden/symlink flags, `symlinkTarget`, `readonly`, and non-fatal `warnings`.
+
+### Metadata jobs: folder size and recursive search
+
+Folder size and recursive search support synchronous commands for small/preview usage and job-backed commands for longer work. Job-backed metadata commands emit the same `fileOperation:job:*` lifecycle events as file mutations, but their `operationKind` is `folderSize` or `recursiveSearch` and they are tracked in desktop in-memory metadata job state, not persisted to operation history.
+
+| Command                                                   | Request                  | Response      | Extra events                                                    |
+| --------------------------------------------------------- | ------------------------ | ------------- | --------------------------------------------------------------- |
+| `fs_folder_size` / `fs.folder_size`                       | `{ uri }`                | `{ summary }` | none                                                            |
+| `fs_folder_size_start` / `fs.folder_size_start`           | `{ uri }`                | `{ job }`     | `fs:folderSize:completed` with `{ jobId, uri, summary }`        |
+| `fs_recursive_search` / `fs.recursive_search`             | `{ uri, query, limit? }` | `{ result }`  | none                                                            |
+| `fs_recursive_search_start` / `fs.recursive_search_start` | `{ uri, query, limit? }` | `{ job }`     | `fs:recursiveSearch:match`, then `fs:recursiveSearch:completed` |
+| `fs_watch_start` / `fs.watch_start`                       | `{ uri }`                | `{ ok }`      | `fs:watch:changed` while active                                 |
+| `fs_watch_stop` / `fs.watch_stop`                         | none                     | `{ ok }`      | stops the single active folder watcher                          |
+
+`FolderSizeSummaryDto` is `{ totalSize, itemCount, fileCount, directoryCount, warnings, incomplete }`. Recursive search defaults `limit` to 500, trims the query, returns an empty result for an empty query, and clamps traversal to at least one result slot. `SearchMatchDto` is `{ uri, parentUri, name, kind, size?, modifiedAt? }`.
+
 ### `get_preferences` / `set_preference`
 
-Preferences persist in SQLite (`preferences.sqlite` under the app data directory). Keys include `theme` (`system` \| `light` \| `dark`), `density` (`compact` \| `comfortable` \| `spacious`), `defaultViewMode`, `showHiddenFiles` (boolean string), `sidebarWidth`, `splitRatio`, `sidebarVisible`, `statusBarVisible`, `toolbarVisible`, `activityPanelVisible`, `paneMode`, and other fields on `UserPreferencesDto` in `packages/ts-api/src/types.ts`.
+Preferences persist in SQLite (`preferences.sqlite` under the app data directory). Keys include `theme` (`system` \| `light` \| `dark`), `density` (`compact` \| `comfortable` \| `spacious`), `defaultViewMode`, `showHiddenFiles` (boolean string), `sidebarWidth`, `splitRatio`, `activityPanelVisible`, `activityPanelWidth`, `confirmDelete`, `confirmPermanentDelete`, `useTrashByDefault`, `defaultConflictPolicy`, `accentColor`, `fontScale`, `iconScale`, `confirmOverwrite`, `sidebarVisible`, `statusBarVisible`, `toolbarVisible`, `paneMode`, and `jobDrawerBehavior`.
 
 ```ts
 const { preferences } = await client.preferences.get();
@@ -198,24 +229,40 @@ const { job } = await client.fileOperations.startFileOperation({
 
 ### `cancel_job` / `get_job_status`
 
-Both take a `jobId` string and return the current `JobSnapshot`. Cancellation flips a `CancellationToken`; the worker checks it between items and surfaces `cancelled` via the job event channel. Cancellation of a finished job is a no-op (returns the final snapshot).
+Both take a `jobId` string and return the current `JobSnapshot`. The handler checks in-memory metadata jobs first, then the file-operation runtime. Cancellation flips a `CancellationToken`; workers check it between items and during byte-level loops where applicable, then surface `cancelled` via the job event channel. Cancellation of a completed/failed job may return the already-terminal snapshot.
 
 ### `list_recent_operations`
 
 Reads the most recent N rows from the operation-history DB (`limit` clamped to `[1, 100]`, default `20`). Rows are `OperationHistoryRecordDto`, ordered by `started_at` descending.
 
+### Navigation, autostart, and diagnostics
+
+Navigation commands persist UI navigation state in `navigation.sqlite` under the app data directory. URI-bearing navigation requests parse and re-serialize `ResourceUri` values before storage.
+
+| Command family | Commands                                                                                                           | Request/response shape                                                                                                                                                                                                          |
+| -------------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Visits         | `navigation_record_visit`, `navigation_list_recent`                                                                | Record `{ uri, label }`; list recent with `{ bucket: "today" \| "thisWeek" }` and return `{ entries }`.                                                                                                                         |
+| Favorites      | `navigation_list_favorites`, `navigation_add_favorite`, `navigation_remove_favorite`, `navigation_rename_favorite` | Favorites are `{ id, uri, label }`; remove/rename operate by numeric `id`.                                                                                                                                                      |
+| Starred        | `navigation_list_starred`, `navigation_toggle_starred`, `navigation_is_starred`                                    | Starred entries are keyed by `uri`; toggle returns `{ starred }`.                                                                                                                                                               |
+| Autostart      | `get_autostart`, `set_autostart`                                                                                   | Returns `{ enabled, supported }`; `set_autostart` receives `enabled: boolean` as a top-level Tauri argument.                                                                                                                    |
+| Diagnostics    | `diagnostics_app_data_health`, `export_diagnostics_bundle`                                                         | Health returns redacted app paths and history DB schema state. Export writes a zip with `app-info.json`, `app-data-health.json`, `operation-history.json`, and `recent-log.txt`; `destination` is currently a host path string. |
+
 ## Event channels
 
 Rust pushes events via `app.emit(name, payload)`. The TS client wraps them in `transport.listen` and returns an `UnlistenFn`.
 
-| Event name (constant)                                 | Payload                  | Emitted by                |
-| ----------------------------------------------------- | ------------------------ | ------------------------- |
-| `directory:batch` (`DIRECTORY_BATCH_EVENT`)           | `DirectoryBatchEventDto` | `fs_list_start` worker    |
-| `fileOperation:job:started` (`JOB_STARTED_EVENT`)     | `JobStartedEvent`        | `OperationRuntime::start` |
-| `fileOperation:job:progress` (`JOB_PROGRESS_EVENT`)   | `JobProgressEvent`       | Operation executor        |
-| `fileOperation:job:completed` (`JOB_COMPLETED_EVENT`) | `JobCompletedEvent`      | Operation executor        |
-| `fileOperation:job:failed` (`JOB_FAILED_EVENT`)       | `JobFailedEvent`         | Operation executor        |
-| `fileOperation:job:cancelled` (`JOB_CANCELLED_EVENT`) | `JobCancelledEvent`      | Operation executor        |
+| Event name (constant)                                               | Payload                            | Emitted by                               |
+| ------------------------------------------------------------------- | ---------------------------------- | ---------------------------------------- |
+| `directory:batch` (`DIRECTORY_BATCH_EVENT`)                         | `DirectoryBatchEventDto`           | `fs_list_start` worker                   |
+| `fileOperation:job:started` (`JOB_STARTED_EVENT`)                   | `JobStartedEvent`                  | File-operation and metadata job runtimes |
+| `fileOperation:job:progress` (`JOB_PROGRESS_EVENT`)                 | `JobProgressEvent`                 | File-operation and metadata job runtimes |
+| `fileOperation:job:completed` (`JOB_COMPLETED_EVENT`)               | `JobCompletedEvent`                | File-operation and metadata job runtimes |
+| `fileOperation:job:failed` (`JOB_FAILED_EVENT`)                     | `JobFailedEvent`                   | File-operation and metadata job runtimes |
+| `fileOperation:job:cancelled` (`JOB_CANCELLED_EVENT`)               | `JobCancelledEvent`                | File-operation and metadata job runtimes |
+| `fs:watch:changed` (`WATCH_CHANGED_EVENT`)                          | `WatchEventDto`                    | Watch worker                             |
+| `fs:folderSize:completed` (`FOLDER_SIZE_COMPLETED_EVENT`)           | `FolderSizeCompletedEventDto`      | Folder-size metadata job                 |
+| `fs:recursiveSearch:match` (`RECURSIVE_SEARCH_MATCH_EVENT`)         | `RecursiveSearchMatchEventDto`     | Recursive-search metadata job            |
+| `fs:recursiveSearch:completed` (`RECURSIVE_SEARCH_COMPLETED_EVENT`) | `RecursiveSearchCompletedEventDto` | Recursive-search metadata job            |
 
 Names are exported as constants from both sides (`crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts`, re-exported from the package root). The Rust enum-to-name mapping lives in `app_ipc::job_event_name`; the payload serializer is `app_ipc::job_event_payload`.
 
@@ -250,12 +297,43 @@ Progress events are throttled by a byte interval (`PROGRESS_BYTE_INTERVAL = 1 Mi
 
 `JobSnapshot.jobId` is always a plain string on the TS side.
 
+### Metadata and watch events
+
+```ts
+interface WatchEventDto {
+  uri: string;
+  changedAt: string;
+}
+
+interface FolderSizeCompletedEventDto {
+  jobId: string;
+  uri: string;
+  summary: FolderSizeSummaryDto;
+}
+
+interface RecursiveSearchMatchEventDto {
+  jobId: string;
+  uri: string;
+  query: string;
+  item: SearchMatchDto;
+}
+
+interface RecursiveSearchCompletedEventDto {
+  jobId: string;
+  uri: string;
+  query: string;
+  result: RecursiveSearchResultDto;
+}
+```
+
+Only one folder watcher is active in the desktop shell. Starting a new watch stops the previous watcher; stopping is idempotent.
+
 ## TypeScript client (`@fileoctopus/ts-api`)
 
 The frontend constructs a `FileOctopusClient` from an `IpcTransport`. Two transports ship in the box:
 
 - `createTauriTransport()` — real Tauri IPC; used in the desktop shell. Translates dotted command names to snake_case via `commandMap`.
-- `createPreviewTransport()` — minimal stub for running the UI in a plain browser (empty directory listings, `tauri_unavailable` for any mutating command).
+- `createPreviewTransport()` — browser-preview stub for running the UI without Tauri. It returns deterministic preview data for app info, preferences, navigation, diagnostics, standard locations, directory listings, properties, folder size, and recursive search; unsupported commands reject with `tauri_unavailable`.
 
 ```ts
 import { createFileOctopusClient } from "@fileoctopus/ts-api";
@@ -274,15 +352,45 @@ class FileOctopusClient {
   readonly jobs: JobsClient;
   readonly operationHistory: OperationHistoryClient;
   readonly diagnostics: DiagnosticsClient;
+  readonly preferences: PreferencesClient;
+  readonly navigation: NavigationClient;
+  readonly autostart: AutostartClient;
   getAppInfo(): Promise<AppInfoResponse>;
 }
 
 class FsClient {
   stat(req: StatRequest): Promise<StatResponse>;
+  readTextFile(req: ReadTextFileRequest): Promise<ReadTextFileResponse>;
+  computeHash(req: ComputeHashRequest): Promise<ComputeHashResponse>;
+  openTerminal(req: OpenTerminalRequest): Promise<OpenTerminalResponse>;
   listStart(req: ListStartRequest): Promise<ListStartResponse>;
+  standardLocations(): Promise<StandardLocationsResponse>;
+  openPathWithDefaultApp(req: PathRequest): Promise<OkResponse>;
+  revealPathInFileManager(req: PathRequest): Promise<OkResponse>;
+  properties(req: PathPropertiesRequest): Promise<PathPropertiesResponse>;
+  folderSize(req: FolderSizeRequest): Promise<FolderSizeResponse>;
+  startFolderSizeJob(req: FolderSizeRequest): Promise<FolderSizeJobResponse>;
+  recursiveSearch(
+    req: RecursiveSearchRequest,
+  ): Promise<RecursiveSearchResponse>;
+  startRecursiveSearchJob(
+    req: RecursiveSearchRequest,
+  ): Promise<RecursiveSearchJobResponse>;
+  startWatching(req: WatchStartRequest): Promise<OkResponse>;
+  stopWatching(): Promise<OkResponse>;
   onDirectoryBatch(
     handler: (e: DirectoryBatchEventDto) => void,
   ): Promise<UnlistenFn>;
+  onFolderSizeCompleted(
+    handler: (e: FolderSizeCompletedEventDto) => void,
+  ): Promise<UnlistenFn>;
+  onRecursiveSearchMatch(
+    handler: (e: RecursiveSearchMatchEventDto) => void,
+  ): Promise<UnlistenFn>;
+  onRecursiveSearchCompleted(
+    handler: (e: RecursiveSearchCompletedEventDto) => void,
+  ): Promise<UnlistenFn>;
+  onWatchChanged(handler: (e: WatchEventDto) => void): Promise<UnlistenFn>;
 }
 
 class FileOperationsClient {
@@ -318,16 +426,42 @@ class JobsClient {
   getJobStatus(req: JobStatusRequest): Promise<JobStatusResponse>;
 }
 
-class OperationHistoryClient {
-  listRecentOperations(
-    req?: ListRecentOperationsRequest,
-  ): Promise<ListRecentOperationsResponse>;
+class PreferencesClient {
+  get(): Promise<GetPreferencesResponse>;
+  set(req: SetPreferenceRequest): Promise<SetPreferenceResponse>;
+}
+
+class NavigationClient {
+  recordVisit(req: NavigationRecordVisitRequest): Promise<OkResponse>;
+  listFavorites(): Promise<NavigationListFavoritesResponse>;
+  addFavorite(
+    req: NavigationAddFavoriteRequest,
+  ): Promise<NavigationFavoriteResponse>;
+  removeFavorite(req: NavigationRemoveFavoriteRequest): Promise<OkResponse>;
+  renameFavorite(
+    req: NavigationRenameFavoriteRequest,
+  ): Promise<NavigationFavoriteResponse>;
+  listRecent(
+    req: NavigationListRecentRequest,
+  ): Promise<NavigationListRecentResponse>;
+  listStarred(): Promise<NavigationListStarredResponse>;
+  toggleStarred(
+    req: NavigationToggleStarredRequest,
+  ): Promise<NavigationToggleStarredResponse>;
+  isStarred(
+    req: NavigationIsStarredRequest,
+  ): Promise<NavigationIsStarredResponse>;
+}
+
+class AutostartClient {
+  get(): Promise<AutostartStatusDto>;
+  set(enabled: boolean): Promise<AutostartStatusDto>;
 }
 ```
 
 ### Error normalization
 
-Every client method rejects with an `IpcError` (`{ code, message }`). Unknown throws are coerced through `normalizeIpcError`, which maps native `Error`s and string throws into `IpcError` with code `"unknown"`. The transport itself can reject with code `"tauri_unavailable"` (preview transport on a mutating command) or `"unsupported_transport"` (event subscription on a transport without `listen`).
+Every client method rejects with an `IpcError` (`{ code, message }`). Unknown throws are coerced through `normalizeIpcError`, which maps native `Error`s and string throws into `IpcError` with code `"unknown"`. The transport itself can reject with code `"tauri_unavailable"` (preview transport for unsupported commands) or `"unsupported_transport"` (event subscription on a transport without `listen`).
 
 ### `IpcTransport`
 
@@ -388,10 +522,12 @@ interface FileEntryDto {
   canWrite: boolean;
   canDelete: boolean;
   canRename: boolean;
+  permissions?: string | null;
+  owner?: string | null;
 }
 ```
 
-`canRead`/`canList`/`canWrite`/`canDelete`/`canRename` are per-entry capabilities. The current `LocalFsProvider` exposes the read-only set (`canRead`/`canList`); mutation goes through the file-operation pipeline, which enforces its own checks. UI should still hide buttons whose capability is `false`.
+`canRead`/`canList`/`canWrite`/`canDelete`/`canRename` are per-entry capabilities. The current `LocalFsProvider` exposes read and list capabilities from metadata; mutation still goes through the file-operation pipeline, which enforces its own checks. `permissions` and `owner` are optional display metadata. UI should still hide buttons whose capability is `false`.
 
 ## File operations: plan and execute
 
@@ -405,17 +541,29 @@ type FileOperationKind =
   | "move"
   | "rename"
   | "deleteToTrash"
-  | "createDirectory";
+  | "createDirectory"
+  | "createFile"
+  | "deletePermanently"
+  | "createArchive"
+  | "extractArchive"
+  | "folderSize"
+  | "recursiveSearch";
 ```
 
 Shape rules enforced by the planner (`crates/fs-core/src/file_ops/mod.rs` — `validate_request_shape`):
 
-| Kind              | Sources   | Destination       | `newName`                     |
-| ----------------- | --------- | ----------------- | ----------------------------- |
-| `copy`, `move`    | ≥1        | required          | optional (single source only) |
-| `rename`          | exactly 1 | optional          | required                      |
-| `createDirectory` | 0         | required (parent) | required (new dir name)       |
-| `deleteToTrash`   | ≥1        | none              | none                          |
+| Kind                                 | Sources   | Destination           | `newName` |
+| ------------------------------------ | --------- | --------------------- | --------- |
+| `copy`, `move`                       | ≥1        | required directory    | ignored   |
+| `rename`                             | exactly 1 | optional              | required  |
+| `createDirectory`                    | 0         | required final path   | ignored   |
+| `createFile`                         | 0         | required final path   | ignored   |
+| `deleteToTrash`, `deletePermanently` | ≥1        | none                  | none      |
+| `createArchive`                      | ≥1        | required archive path | ignored   |
+| `extractArchive`                     | exactly 1 | required directory    | ignored   |
+| `folderSize`, `recursiveSearch`      | n/a       | n/a                   | n/a       |
+
+`folderSize` and `recursiveSearch` are `FileOperationKind` values because metadata jobs reuse `JobSnapshot` and job events. They are not valid `plan_file_operation` requests; start them through `fs_folder_size_start` and `fs_recursive_search_start`.
 
 ### Conflict policies
 
@@ -468,7 +616,7 @@ The warning-code source of truth is `vfs::file_operation_warning_codes::ALL`. Th
 
 ## Jobs and job lifecycle
 
-Each `start_file_operation` allocates a `JobId` (UUID) and registers a `JobRuntimeState` in the in-memory job table. State transitions:
+Each `start_file_operation` allocates a `JobId` (UUID) and registers a `JobRuntimeState` in the in-memory file-operation job table. Folder-size and recursive-search job commands allocate the same `JobSnapshot` shape in `MetadataJobState`. State transitions:
 
 ```
 queued ──► running ──► completed
@@ -480,7 +628,7 @@ queued ──► running ──► completed
 
 ```ts
 interface JobSnapshot {
-  jobId: string | JobId;
+  jobId: string;
   operationKind: FileOperationKind;
   status: JobStatus; // "queued" | "running" | "paused" | "cancelled" | "completed" | "failed"
   currentItem?: string | null;
@@ -497,11 +645,11 @@ interface JobSnapshot {
 
 `paused` is reserved; the current executor never enters it.
 
-Cancellation is cooperative — the worker checks `CancellationToken::is_cancelled()` between items and during byte-level copy loops. The UI should treat `cancel_job` as best-effort: the job may complete or fail before the token is observed.
+Cancellation is cooperative — the worker checks `CancellationToken::is_cancelled()` between items and during byte-level copy/archive loops where applicable. The UI should treat `cancel_job` as best-effort: the job may complete or fail before the token is observed.
 
 ## Operation history
 
-A SQLite database stores one row per started job; rows are updated to a terminal status when the job ends.
+A SQLite database stores one row per started file-operation job; rows are updated to a terminal status when the job ends. Metadata jobs (`folderSize`, `recursiveSearch`) are intentionally in-memory only and do not appear in operation history.
 
 - Default path: `$HOME/.fileoctopus/operation-history.sqlite` (or `%USERPROFILE%\.fileoctopus\operation-history.sqlite`).
 - Schema version: `1`, stored in `schema_meta` and SQLite `user_version`.
@@ -539,38 +687,37 @@ interface IpcError {
 
 The `code` is stable and is what the UI branches on (`packages/frontend/src/dialogs/OperationDialogView.tsx::operationErrorMessage`). All current codes:
 
-| Code                    | Origin                           | Meaning                                                             |
-| ----------------------- | -------------------------------- | ------------------------------------------------------------------- |
-| `invalid_uri`           | `VfsError`                       | URI failed to parse (missing scheme, relative path, NUL byte).      |
-| `unsupported_provider`  | `VfsError`, `FileOperationError` | No provider registered for the scheme.                              |
-| `duplicate_provider`    | `VfsError`                       | Two providers tried to claim the same scheme.                       |
-| `not_found`             | `VfsError`, `FileOperationError` | Resource or job id does not exist.                                  |
-| `permission_denied`     | `VfsError`, `FileOperationError` | OS denied the read/write/delete.                                    |
-| `timeout`               | `VfsError`                       | Directory listing exceeded the server timeout (30s).                |
-| `cancelled`             | `VfsError`                       | Directory listing was cancelled (superseded navigation or timeout). |
-| `preferences_error`     | Preferences repository           | Invalid preference key/value or database failure.                   |
-| `is_directory`          | Tauri shell                      | File-only command was pointed at a directory.                       |
-| `file_too_large`        | Tauri shell                      | Hash preview refused an oversized file.                             |
-| `unsupported_algorithm` | Tauri shell                      | Hash request named an unsupported digest algorithm.                 |
-| `spawn_error`           | Tauri shell                      | External process launch failed.                                     |
-| `no_terminal`           | Tauri shell                      | No terminal emulator was found for `fs.open_terminal`.              |
-| `autostart_unavailable` | Tauri shell                      | OS autostart integration is unavailable or failed.                  |
-| `navigation_error`      | Navigation repository            | Favorites/recent/starred persistence failed.                        |
-| `folder_not_found`      | Tauri shell                      | Watch start requires an existing directory.                         |
-| `invalid_request`       | `FileOperationError`             | Operation request shape is wrong (missing sources, etc.).           |
-| `invalid_name`          | `FileOperationError`             | Proposed name is empty, contains separators, or is reserved.        |
-| `invalid_path`          | `FileOperationError`             | URI parsed but is not usable for this operation.                    |
-| `destination_missing`   | `FileOperationError`             | Destination parent does not exist.                                  |
-| `destination_conflict`  | `FileOperationError`             | Conflict detected and policy is `fail`.                             |
-| `recursive_operation`   | `FileOperationError`             | Source contains destination (move/copy into itself).                |
-| `unsupported_symlink`   | `FileOperationError`             | Symlink object copy is not supported in the MVP.                    |
-| `unsupported_trash`     | `FileOperationError`             | Platform trash unavailable.                                         |
-| `cancelled`             | `FileOperationError`             | Operation aborted via `CancellationToken`.                          |
-| `io_error`              | `FileOperationError`             | Unclassified `std::io::Error`.                                      |
-| `internal`              | `VfsError`, `FileOperationError` | Bug or invariant violation — file an issue.                         |
-| `unknown`               | TS client                        | A non-IPC error was caught and wrapped.                             |
-| `tauri_unavailable`     | Preview transport                | A mutating command was called outside the Tauri shell.              |
-| `unsupported_transport` | TS client                        | Event subscription on a transport without `listen`.                 |
+| Code                    | Origin                                        | Meaning                                                         |
+| ----------------------- | --------------------------------------------- | --------------------------------------------------------------- |
+| `invalid_uri`           | `VfsError`                                    | URI failed to parse (missing scheme, relative path, NUL byte).  |
+| `unsupported_provider`  | `VfsError`, `FileOperationError`              | No provider registered for the scheme.                          |
+| `duplicate_provider`    | `VfsError`                                    | Two providers tried to claim the same scheme.                   |
+| `not_found`             | `VfsError`, `FileOperationError`, Tauri shell | Resource or job id does not exist.                              |
+| `permission_denied`     | `VfsError`, `FileOperationError`              | OS denied the read/write/delete.                                |
+| `timeout`               | `VfsError`                                    | Directory listing exceeded the server timeout (30s).            |
+| `cancelled`             | `VfsError`, `FileOperationError`              | Directory listing or operation cancellation token was observed. |
+| `preferences_error`     | Preferences repository                        | Invalid preference key/value or database failure.               |
+| `is_directory`          | Tauri shell                                   | File-only command was pointed at a directory.                   |
+| `file_too_large`        | Tauri shell                                   | Hash computation refused an oversized file.                     |
+| `unsupported_algorithm` | Tauri shell                                   | Hash request named an unsupported digest algorithm.             |
+| `spawn_error`           | Tauri shell                                   | External process launch failed.                                 |
+| `no_terminal`           | Tauri shell                                   | No terminal emulator was found for `fs.open_terminal`.          |
+| `autostart_unavailable` | Tauri shell                                   | OS autostart integration is unavailable or failed.              |
+| `navigation_error`      | Navigation repository                         | Favorites/recent/starred persistence failed.                    |
+| `folder_not_found`      | Tauri shell                                   | Watch start requires an existing directory.                     |
+| `invalid_request`       | `FileOperationError`                          | Operation request shape is wrong (missing sources, etc.).       |
+| `invalid_name`          | `FileOperationError`                          | Proposed name is empty, contains separators, or is reserved.    |
+| `invalid_path`          | `FileOperationError`                          | URI parsed but is not usable for this operation.                |
+| `destination_missing`   | `FileOperationError`                          | Destination parent does not exist.                              |
+| `destination_conflict`  | `FileOperationError`                          | Conflict detected and policy is `fail`.                         |
+| `recursive_operation`   | `FileOperationError`                          | Source contains destination (move/copy into itself).            |
+| `unsupported_symlink`   | `FileOperationError`                          | Symlink object copy is not supported in the MVP.                |
+| `unsupported_trash`     | `FileOperationError`                          | Platform trash unavailable.                                     |
+| `io_error`              | `FileOperationError`, Tauri shell             | Unclassified `std::io::Error`.                                  |
+| `internal`              | `VfsError`, `FileOperationError`, Tauri shell | Bug or invariant violation — file an issue.                     |
+| `unknown`               | TS client                                     | A non-IPC error was caught and wrapped.                         |
+| `tauri_unavailable`     | Preview transport                             | The requested command is unsupported outside the Tauri shell.   |
+| `unsupported_transport` | TS client                                     | Event subscription on a transport without `listen`.             |
 
 The Rust source of truth is `crates/app-ipc/src/lib.rs`: `error_codes::ALL` for boundary-wide codes, plus `VfsError::code()` and `FileOperationError::code()` for the domain enums that feed into it. The TS mirror is exported from `packages/ts-api/src/types.ts` as `IPC_ERROR_CODES`.
 
@@ -599,6 +746,10 @@ The frontend never imports these directly, but internal callers and tests do.
 - `LocalFsProvider` — the only registered `VfsProvider` today; read-only stat + streamed list.
 - `file_ops::plan_file_operation(FileOperationRequest) -> Result<FileOperationPlan, FileOperationError>` — pure validation, no I/O beyond stat where needed.
 - `file_ops::execute_file_operation(plan, &JobId, &CancellationToken, &FileOperationEventSink) -> Result<(), FileOperationError>` — runs the plan, emits `JobEvent::Progress` through the sink, honours the cancellation token.
+- `metadata::{path_properties, calculate_folder_size, calculate_folder_size_with_progress}` — local metadata helpers for `fs_properties` and folder-size commands.
+- `search::{recursive_search, recursive_search_with_progress}` — local recursive name search for synchronous and job-backed search commands.
+- `locations::standard_locations()` — platform standard locations surfaced through `fs_standard_locations`.
+- `external_open::{open_path_with_default_app, reveal_path_in_file_manager}` — platform open/reveal helpers.
 - `FileOperationEventSink = dyn Fn(JobEvent) + Send + Sync` — wrapped in `Arc` by callers.
 - Constants: `COPY_BUFFER_SIZE = 64 KiB`, `PROGRESS_BYTE_INTERVAL = 1 MiB`.
 
@@ -613,7 +764,7 @@ The frontend never imports these directly, but internal callers and tests do.
 - `AppCore::boot() -> Result<Arc<AppState>, AppCoreError>` — registers `LocalFsProvider`, opens the history DB, marks previously running jobs as interrupted, returns shared state. Use `AppCore::boot_with_history_path(PathBuf)` in tests.
 - `AppState { vfs, operations, paths, startup_recovery_count }`.
 - `OperationRuntime::plan(request) -> FileOperationPlan` — delegates to `file_ops::plan_file_operation`.
-- `OperationRuntime::start(plan, sink) -> JobSnapshot` — spawns the worker thread, inserts a history row, returns the initial snapshot.
+- `OperationRuntime::start_planned(operation_id, sink) -> JobSnapshot` — consumes a previously planned file operation, spawns the worker thread, inserts a history row, returns the initial snapshot.
 - `OperationRuntime::cancel(&str) -> JobSnapshot` / `status(&str) -> JobSnapshot` — look up the job by id.
 - `OperationRuntime::recent_history(limit: u32) -> Vec<OperationHistoryRecord>` — clamped to `[1, 100]`.
 - `OperationRuntime::clear_terminal_history()` / `cleanup_history()` — remove terminal rows without deleting active jobs.
@@ -621,7 +772,7 @@ The frontend never imports these directly, but internal callers and tests do.
 
 ### `app-ipc`
 
-Every public type here is a DTO with a `From`/`TryFrom` between the domain type and its wire form, and a matching TypeScript interface. The event-name constants (`DIRECTORY_BATCH_EVENT`, `JOB_*_EVENT`) and the helpers `job_event_name(&JobEvent) -> &'static str`, `job_event_payload(JobEvent) -> serde_json::Value` are the single point of truth for event channel names; the Tauri command and the TS client both depend on them.
+Every public type here is a DTO with a `From`/`TryFrom` between the domain type and its wire form where a domain type exists, and a matching TypeScript interface. The event-name constants (`DIRECTORY_BATCH_EVENT`, `JOB_*_EVENT`, `WATCH_CHANGED_EVENT`, `FOLDER_SIZE_COMPLETED_EVENT`, `RECURSIVE_SEARCH_*_EVENT`) and the helpers `job_event_name(&JobEvent) -> &'static str`, `job_event_payload(JobEvent) -> serde_json::Value` are the Rust source of truth for event channel names; the Tauri command and the TS client both depend on them.
 
 ## Maintenance
 
@@ -635,6 +786,6 @@ When you add or change anything in the API:
 6. **This document** — add the command to the [catalog](#tauri-command-catalog), document any new event, and extend the [error model](#error-model) for any new code.
 7. **Tests** — add Rust unit tests in the crate, IPC roundtrip tests in `crates/app-ipc`, and a Vitest test in `packages/ts-api/tests` for the new client method.
 
-For new event channels, also pick the constant name in `crates/app-ipc/src/lib.rs` first, then mirror it in `packages/ts-api/src/events.ts` (re-exported from `@fileoctopus/ts-api`). Update `job_event_name` / `job_event_payload` if the event is part of the job event enum.
+For new event channels, also pick the constant name in `crates/app-ipc/src/lib.rs` first, then mirror it in `packages/ts-api/src/events.ts` (re-exported from `@fileoctopus/ts-api`). Update `job_event_name` / `job_event_payload` if the event is part of the job event enum; otherwise document the event DTO next to the command that emits it.
 
 Boundary changes must be called out in the PR template's "Security impact" section per `AGENTS.md`.
