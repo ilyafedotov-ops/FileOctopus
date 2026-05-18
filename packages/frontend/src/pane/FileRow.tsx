@@ -14,6 +14,7 @@ const URI_MIME = "application/x-fileoctopus-uri";
 
 export interface FileRowProps {
   entry: FileEntryDto;
+  isParentEntry?: boolean;
   top: number;
   rowHeight: number;
   viewMode: ViewMode;
@@ -38,6 +39,7 @@ export interface FileRowProps {
 
 export function FileRow({
   entry,
+  isParentEntry = false,
   top,
   rowHeight,
   viewMode,
@@ -94,6 +96,7 @@ export function FileRow({
       aria-selected={selected || multiSelected}
       className={cx(
         "fo-row",
+        isParentEntry ? "fo-row-parent" : "",
         selected || multiSelected ? "fo-row-selected" : "",
         focused ? "fo-row-focused" : "",
       )}
@@ -116,27 +119,31 @@ export function FileRow({
         }
       }}
       onDoubleClick={() => onEntryActivate(entry)}
-      draggable
-      onDragStart={(event: DragEvent<HTMLDivElement>) => {
-        event.dataTransfer.setData(URI_MIME, entry.uri);
-        event.dataTransfer.setData(
-          "application/x-fileoctopus-name",
-          entry.name,
-        );
-        if (panelId) {
-          event.dataTransfer.setData(
-            "application/x-fileoctopus-panel-id",
-            panelId,
-          );
-        }
-        if (selectedUris && selectedUris.length > 1) {
-          event.dataTransfer.setData(
-            "application/x-fileoctopus-selected-uris",
-            JSON.stringify(selectedUris),
-          );
-        }
-        event.dataTransfer.effectAllowed = "move";
-      }}
+      draggable={!isParentEntry}
+      onDragStart={
+        isParentEntry
+          ? undefined
+          : (event: DragEvent<HTMLDivElement>) => {
+              event.dataTransfer.setData(URI_MIME, entry.uri);
+              event.dataTransfer.setData(
+                "application/x-fileoctopus-name",
+                entry.name,
+              );
+              if (panelId) {
+                event.dataTransfer.setData(
+                  "application/x-fileoctopus-panel-id",
+                  panelId,
+                );
+              }
+              if (selectedUris && selectedUris.length > 1) {
+                event.dataTransfer.setData(
+                  "application/x-fileoctopus-selected-uris",
+                  JSON.stringify(selectedUris),
+                );
+              }
+              event.dataTransfer.effectAllowed = "move";
+            }
+      }
       onContextMenu={(event) => {
         event.stopPropagation();
         onContextMenu(event, entry);
@@ -146,7 +153,7 @@ export function FileRow({
         <span className="fo-row-icon" aria-hidden="true">
           {fileEntryIcon(entry)}
         </span>
-        {renaming ? (
+        {renaming && !isParentEntry ? (
           <input
             ref={renameInputRef}
             className="fo-row-rename-input"
@@ -180,7 +187,11 @@ export function FileRow({
             )}
             {(!visibleColumns || visibleColumns.indexOf("size") !== -1) && (
               <span>
-                {entry.kind === "directory" ? "DIR" : formatSize(entry.size)}
+                {entry.kind === "directory"
+                  ? isParentEntry
+                    ? "—"
+                    : "DIR"
+                  : formatSize(entry.size)}
               </span>
             )}
             {(!visibleColumns || visibleColumns.indexOf("modified") !== -1) && (
@@ -189,7 +200,13 @@ export function FileRow({
               </span>
             )}
             {(!visibleColumns || visibleColumns.indexOf("kind") !== -1) && (
-              <span>{entry.kind === "directory" ? "folder" : typeLabel}</span>
+              <span>
+                {isParentEntry
+                  ? "parent"
+                  : entry.kind === "directory"
+                    ? "folder"
+                    : typeLabel}
+              </span>
             )}
           </>
         ) : (

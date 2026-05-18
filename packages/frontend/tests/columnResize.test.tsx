@@ -8,6 +8,7 @@ afterEach(cleanup);
 function makeProps(overrides: Record<string, unknown> = {}) {
   return {
     entries: [],
+    currentUri: "local:///tmp/nested",
     loadState: "loaded" as const,
     rowHeight: 32,
     selectedId: null,

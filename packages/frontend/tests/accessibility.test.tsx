@@ -82,6 +82,7 @@ describe("accessibility basics", () => {
     render(
       <ContextMenu
         menu={{ panelId: "left", x: 12, y: 24, entry: null }}
+        currentTabUri="local:///tmp"
         canPaste={false}
         isStarred={false}
         onClose={noop}

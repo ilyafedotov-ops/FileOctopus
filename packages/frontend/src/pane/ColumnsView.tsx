@@ -2,6 +2,10 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { createFileOctopusClient } from "@fileoctopus/ts-api";
 import { createRequestId } from "../paneTypes";
+import {
+  isParentDirectoryEntry,
+  prependParentDirectoryEntry,
+} from "../utils/parentEntry";
 
 interface ColumnsViewProps {
   rootUri: string;
@@ -36,9 +40,11 @@ export function ColumnsView({
       const next: Record<string, FileEntryDto[]> = {};
       for (const uri of stack.slice(0, MAX_COLUMNS)) {
         try {
-          next[uri] = await listDirectory(client, uri, showHidden);
+          const listed = await listDirectory(client, uri, showHidden);
+          next[uri] = prependParentDirectoryEntry(uri, listed);
         } catch {
-          next[uri] = [];
+          const parentOnly = prependParentDirectoryEntry(uri, []);
+          next[uri] = parentOnly;
         }
       }
       if (!cancelled) {
@@ -59,9 +65,16 @@ export function ColumnsView({
             <button
               key={entry.uri}
               type="button"
-              className={stack.includes(entry.uri) ? "fo-columns-active" : ""}
+              className={
+                stack.includes(entry.uri) && !isParentDirectoryEntry(entry, uri)
+                  ? "fo-columns-active"
+                  : ""
+              }
               onClick={() => {
-                if (entry.kind === "directory") {
+                if (
+                  isParentDirectoryEntry(entry, uri) ||
+                  entry.kind === "directory"
+                ) {
                   onNavigate(entry.uri);
                 } else {
                   onOpen(entry);

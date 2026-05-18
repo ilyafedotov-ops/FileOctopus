@@ -235,8 +235,11 @@ describe("Filter Input wiring", () => {
     fireEvent.change(filterInput, { target: { value: "alpha" } });
 
     await waitFor(() => {
-      const rows = document.querySelectorAll(".fo-row");
-      expect(rows.length).toBe(1);
+      const activePanel = document.querySelector(
+        '.fo-panel[data-active="true"]',
+      );
+      const rows = activePanel?.querySelectorAll(".fo-row") ?? [];
+      expect(rows.length).toBe(2);
     });
   });
 });

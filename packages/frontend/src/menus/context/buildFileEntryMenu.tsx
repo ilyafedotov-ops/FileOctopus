@@ -2,10 +2,12 @@ import type { ReactNode } from "react";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import type { PanelId, SortField, ViewMode } from "../../panelStore";
+import { isParentDirectoryEntry } from "../../utils/parentEntry";
 import { ContextMenuItem, ContextMenuSeparator } from "./ContextMenuPrimitives";
 
 interface FileEntryMenuParams {
   panelId: PanelId;
+  currentTabUri: string;
   entry: FileEntryDto;
   canPaste: boolean;
   isStarred: boolean;
@@ -42,6 +44,7 @@ interface FileEntryMenuParams {
 
 export function buildFileEntryMenu({
   panelId,
+  currentTabUri,
   entry,
   canPaste,
   isStarred,
@@ -75,6 +78,14 @@ export function buildFileEntryMenu({
   onViewMode,
   onSort,
 }: FileEntryMenuParams): ReactNode {
+  if (isParentDirectoryEntry(entry, currentTabUri)) {
+    return (
+      <ContextMenuItem onClick={() => run(() => onOpen(panelId, entry))}>
+        Open
+      </ContextMenuItem>
+    );
+  }
+
   const isDirectory = entry.kind === "directory";
 
   return (

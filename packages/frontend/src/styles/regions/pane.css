@@ -641,6 +641,16 @@
   z-index: 1;
 }
 
+.fo-row-parent .fo-row-text {
+  color: var(--fo-muted-text);
+  font-style: italic;
+}
+
+.fo-row-selected.fo-row-parent .fo-row-text {
+  color: var(--fo-on-accent);
+  font-style: normal;
+}
+
 .fo-row-name {
   display: flex;
   align-items: center;

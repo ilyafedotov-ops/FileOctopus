@@ -248,6 +248,7 @@ describe("visual state fixtures", () => {
     const view = renderVisualState(
       <FileTable
         entries={[]}
+        currentUri="local:///tmp/nested"
         loadState="loading"
         rowHeight={24}
         selectedId={null}

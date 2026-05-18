@@ -21,6 +21,7 @@ export interface ContextMenuState {
 
 interface ContextMenuProps {
   menu: ContextMenuState | null;
+  currentTabUri: string;
   canPaste: boolean;
   isStarred: boolean;
   onClose: () => void;
@@ -63,6 +64,7 @@ interface ContextMenuProps {
 
 export function ContextMenu({
   menu,
+  currentTabUri,
   canPaste,
   isStarred,
   onClose,
@@ -259,6 +261,7 @@ export function ContextMenu({
   return shell(
     buildFileEntryMenu({
       panelId: menu.panelId,
+      currentTabUri,
       entry: menu.entry,
       canPaste,
       isStarred,

@@ -5,6 +5,8 @@ import {
   shouldApplyBatch,
   terminalLoadState,
 } from "./paneTypes";
+import { parentUri as resolveParentUri } from "./utils/paneUtils";
+import { prependParentDirectoryEntry } from "./utils/parentEntry";
 
 export type { PaneLoadState } from "./paneTypes";
 export type PanelId = "left" | "right";
@@ -161,6 +163,14 @@ export function selectVisibleEntries(tab: PanelTabState): FileEntryDto[] {
   return entries.sort((left, right) => compareEntries(left, right, tab.sort));
 }
 
+export function selectDisplayedEntries(tab: PanelTabState): FileEntryDto[] {
+  return prependParentDirectoryEntry(tab.uri, selectVisibleEntries(tab));
+}
+
+export function countVisibleEntries(tab: PanelTabState): number {
+  return selectVisibleEntries(tab).length;
+}
+
 export function normalizeLocalInput(input: string): string {
   const value = input.trim();
 
@@ -180,16 +190,7 @@ export function normalizeLocalInput(input: string): string {
 }
 
 export function parentUri(uri: string): string | null {
-  const path = uri.replace(/^local:\/\//, "");
-  const normalized =
-    path.endsWith("/") && path.length > 1 ? path.slice(0, -1) : path;
-  const index = normalized.lastIndexOf("/");
-
-  if (index <= 0) {
-    return null;
-  }
-
-  return `local://${normalized.slice(0, index)}`;
+  return resolveParentUri(uri);
 }
 
 function createPanel(id: PanelId, uri: string): PanelState {
@@ -394,7 +395,7 @@ export function selectEntry(
     };
   }
 
-  const visible = selectVisibleEntries(tab).map((entry) => entry.uri);
+  const visible = selectDisplayedEntries(tab).map((entry) => entry.uri);
   const anchor = tab.anchorId ?? tab.focusedId ?? entryId;
   const anchorIndex = visible.indexOf(anchor);
   const entryIndex = visible.indexOf(entryId);
@@ -433,7 +434,7 @@ export function moveSelection(
   tab: PanelTabState,
   delta: number,
 ): PanelTabState {
-  const visible = selectVisibleEntries(tab);
+  const visible = selectDisplayedEntries(tab);
 
   if (visible.length === 0) {
     return {

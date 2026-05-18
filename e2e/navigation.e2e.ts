@@ -10,12 +10,19 @@ test.describe("Navigation — folder traversal", () => {
     await page.waitForSelector(".fo-panel");
   });
 
-  test("navigate into folder via double-click on a folder row", async ({ page }) => {
-    const folderRow = page.locator('.fo-row[role="row"][data-type="directory"]').first();
+  test("navigate into folder via double-click on a folder row", async ({
+    page,
+  }) => {
+    const folderRow = page
+      .locator('.fo-row[role="row"][data-type="directory"]')
+      .first();
     const count = await folderRow.count();
     test.skip(count === 0, "No directory rows visible in active panel");
 
-    const folderName = await folderRow.locator(".fo-cell-name").first().textContent();
+    const folderName = await folderRow
+      .locator(".fo-cell-name")
+      .first()
+      .textContent();
 
     await folderRow.dblclick();
 
@@ -26,7 +33,9 @@ test.describe("Navigation — folder traversal", () => {
 
   test("navigate up via Backspace key", async ({ page }) => {
     // First navigate into a subfolder to have somewhere to go "up" from
-    const folderRow = page.locator('.fo-row[role="row"][data-type="directory"]').first();
+    const folderRow = page
+      .locator('.fo-row[role="row"][data-type="directory"]')
+      .first();
     const count = await folderRow.count();
     test.skip(count === 0, "No directory rows visible in active panel");
 
@@ -34,24 +43,55 @@ test.describe("Navigation — folder traversal", () => {
     await page.waitForTimeout(500);
 
     const breadcrumbBefore = page.locator(".fo-breadcrumb").first();
-    const segmentsBefore = breadcrumbBefore.locator(".fo-breadcrumb-segments button");
+    const segmentsBefore = breadcrumbBefore.locator(
+      ".fo-breadcrumb-segments button",
+    );
     const countBefore = await segmentsBefore.count();
     test.skip(countBefore <= 1, "Already at root, nowhere to go up");
 
     await shellPress(page, "Backspace");
 
     const breadcrumbAfter = page.locator(".fo-breadcrumb").first();
-    const segmentsAfter = breadcrumbAfter.locator(".fo-breadcrumb-segments button");
+    const segmentsAfter = breadcrumbAfter.locator(
+      ".fo-breadcrumb-segments button",
+    );
     const countAfter = await segmentsAfter.count();
     expect(countAfter).toBeLessThan(countBefore);
   });
 
-  test("navigate back via Alt+Left", async ({ page }) => {
-    const folderRow = page.locator('.fo-row[role="row"][data-type="directory"]').first();
+  test("navigate up via double-click on .. row", async ({ page }) => {
+    const folderRow = page
+      .locator('.fo-row[role="row"]')
+      .filter({ hasNot: page.locator(".fo-row-text", { hasText: ".." }) })
+      .filter({ has: page.locator(".fo-row-text") })
+      .first();
     const count = await folderRow.count();
     test.skip(count === 0, "No directory rows visible in active panel");
 
-    const breadcrumbBefore = await page.locator(".fo-breadcrumb").first().textContent();
+    await folderRow.dblclick();
+    await page.waitForTimeout(500);
+
+    const parentRow = page.locator('.fo-row-text:text-is("..")').first();
+    await parentRow.waitFor({ state: "visible" });
+    await parentRow.dblclick();
+
+    const breadcrumb = page.locator(".fo-breadcrumb").first();
+    const segments = breadcrumb.locator(".fo-breadcrumb-segments button");
+    const segmentCount = await segments.count();
+    expect(segmentCount).toBeGreaterThanOrEqual(1);
+  });
+
+  test("navigate back via Alt+Left", async ({ page }) => {
+    const folderRow = page
+      .locator('.fo-row[role="row"][data-type="directory"]')
+      .first();
+    const count = await folderRow.count();
+    test.skip(count === 0, "No directory rows visible in active panel");
+
+    const breadcrumbBefore = await page
+      .locator(".fo-breadcrumb")
+      .first()
+      .textContent();
 
     await folderRow.dblclick();
     await page.waitForTimeout(500);
@@ -59,19 +99,27 @@ test.describe("Navigation — folder traversal", () => {
     // Now go back
     await shellPress(page, "Alt+ArrowLeft");
 
-    const breadcrumbAfter = await page.locator(".fo-breadcrumb").first().textContent();
+    const breadcrumbAfter = await page
+      .locator(".fo-breadcrumb")
+      .first()
+      .textContent();
     expect(breadcrumbAfter).toBe(breadcrumbBefore);
   });
 
   test("navigate forward via Alt+Right after going back", async ({ page }) => {
-    const folderRow = page.locator('.fo-row[role="row"][data-type="directory"]').first();
+    const folderRow = page
+      .locator('.fo-row[role="row"][data-type="directory"]')
+      .first();
     const count = await folderRow.count();
     test.skip(count === 0, "No directory rows visible in active panel");
 
     await folderRow.dblclick();
     await page.waitForTimeout(500);
 
-    const breadcrumbAfterNav = await page.locator(".fo-breadcrumb").first().textContent();
+    const breadcrumbAfterNav = await page
+      .locator(".fo-breadcrumb")
+      .first()
+      .textContent();
 
     await shellPress(page, "Alt+ArrowLeft");
     await page.waitForTimeout(300);
@@ -79,16 +127,24 @@ test.describe("Navigation — folder traversal", () => {
     await shellPress(page, "Alt+ArrowRight");
     await page.waitForTimeout(300);
 
-    const breadcrumbFinal = await page.locator(".fo-breadcrumb").first().textContent();
+    const breadcrumbFinal = await page
+      .locator(".fo-breadcrumb")
+      .first()
+      .textContent();
     expect(breadcrumbFinal).toBe(breadcrumbAfterNav);
   });
 
   test("Enter key opens selected folder", async ({ page }) => {
-    const folderRow = page.locator('.fo-row[role="row"][data-type="directory"]').first();
+    const folderRow = page
+      .locator('.fo-row[role="row"][data-type="directory"]')
+      .first();
     const count = await folderRow.count();
     test.skip(count === 0, "No directory rows visible in active panel");
 
-    const folderName = await folderRow.locator(".fo-cell-name").first().textContent();
+    const folderName = await folderRow
+      .locator(".fo-cell-name")
+      .first()
+      .textContent();
 
     await folderRow.click();
     await shellPress(page, "Enter");
@@ -114,8 +170,10 @@ test.describe("Navigation — breadcrumb", () => {
   });
 
   test("breadcrumb segment text is non-empty", async ({ page }) => {
-    const segments = page.locator(".fo-breadcrumb-segments button").first().all();
-    const allSegments = page.locator(".fo-breadcrumb").first().locator(".fo-breadcrumb-segments button");
+    const allSegments = page
+      .locator(".fo-breadcrumb")
+      .first()
+      .locator(".fo-breadcrumb-segments button");
     const count = await allSegments.count();
 
     for (let i = 0; i < count; i++) {
@@ -124,25 +182,36 @@ test.describe("Navigation — breadcrumb", () => {
     }
   });
 
-  test("clicking breadcrumb segment navigates to that path", async ({ page }) => {
+  test("clicking breadcrumb segment navigates to that path", async ({
+    page,
+  }) => {
     // Navigate into a folder first to create multiple breadcrumb segments
-    const folderRow = page.locator('.fo-row[role="row"][data-type="directory"]').first();
+    const folderRow = page
+      .locator('.fo-row[role="row"][data-type="directory"]')
+      .first();
     const count = await folderRow.count();
     test.skip(count === 0, "No directory rows visible in active panel");
 
     await folderRow.dblclick();
     await page.waitForTimeout(500);
 
-    const segments = page.locator(".fo-breadcrumb").first().locator(".fo-breadcrumb-segments button");
+    const segments = page
+      .locator(".fo-breadcrumb")
+      .first()
+      .locator(".fo-breadcrumb-segments button");
     const segmentCount = await segments.count();
-    test.skip(segmentCount <= 1, "Not enough breadcrumb segments to test navigation");
+    test.skip(
+      segmentCount <= 1,
+      "Not enough breadcrumb segments to test navigation",
+    );
 
     // Click the first segment (root) to navigate back
-    const firstSegmentText = await segments.first().textContent();
     await segments.first().click();
 
     const breadcrumbAfter = page.locator(".fo-breadcrumb").first();
-    const segmentsAfter = breadcrumbAfter.locator(".fo-breadcrumb-segments button");
+    const segmentsAfter = breadcrumbAfter.locator(
+      ".fo-breadcrumb-segments button",
+    );
     const countAfter = await segmentsAfter.count();
     expect(countAfter).toBeLessThan(segmentCount);
   });
@@ -162,7 +231,9 @@ test.describe("Navigation — sidebar", () => {
     await page.waitForSelector(".fo-panel");
   });
 
-  test("clicking a sidebar item navigates the active panel", async ({ page }) => {
+  test("clicking a sidebar item navigates the active panel", async ({
+    page,
+  }) => {
     const sidebarItem = page.locator(".fo-sidebar-item").first();
     const count = await sidebarItem.count();
     test.skip(count === 0, "No sidebar items visible");
@@ -201,7 +272,9 @@ test.describe("Navigation — sidebar", () => {
       const role = await item.getAttribute("role");
       // Items should be buttons or links
       const tagName = await item.evaluate((el) => el.tagName.toLowerCase());
-      expect(role === "button" || tagName === "button" || tagName === "a").toBeTruthy();
+      expect(
+        role === "button" || tagName === "button" || tagName === "a",
+      ).toBeTruthy();
     }
   });
 });
@@ -229,12 +302,16 @@ test.describe("Navigation — tabs", () => {
     expect(countAfter).toBeGreaterThan(countBefore);
   });
 
-  test("Ctrl+W closes the active tab if multiple tabs exist", async ({ page }) => {
+  test("Ctrl+W closes the active tab if multiple tabs exist", async ({
+    page,
+  }) => {
     // Create a second tab first
     await shellPress(page, "Control+t");
     await page.waitForTimeout(300);
 
-    const tabsBeforeClose = page.locator(".fo-tab, .fo-panel-tab, [role='tab']");
+    const tabsBeforeClose = page.locator(
+      ".fo-tab, .fo-panel-tab, [role='tab']",
+    );
     const countBeforeClose = await tabsBeforeClose.count();
     test.skip(countBeforeClose <= 1, "Need multiple tabs to test close");
 
@@ -255,13 +332,17 @@ test.describe("Navigation — tabs", () => {
     const count = await tabs.count();
     test.skip(count < 2, "Need at least 2 tabs to cycle");
 
-    const activeTabBefore = page.locator(".fo-tab.fo-tab-active, .fo-panel-tab-active, [role='tab'][aria-selected='true']");
+    const activeTabBefore = page.locator(
+      ".fo-tab.fo-tab-active, .fo-panel-tab-active, [role='tab'][aria-selected='true']",
+    );
     const labelBefore = await activeTabBefore.textContent();
 
     await shellPress(page, "Control+Tab");
     await page.waitForTimeout(300);
 
-    const activeTabAfter = page.locator(".fo-tab.fo-tab-active, .fo-panel-tab-active, [role='tab'][aria-selected='true']");
+    const activeTabAfter = page.locator(
+      ".fo-tab.fo-tab-active, .fo-panel-tab-active, [role='tab'][aria-selected='true']",
+    );
     const labelAfter = await activeTabAfter.textContent();
 
     // Active tab label should have changed

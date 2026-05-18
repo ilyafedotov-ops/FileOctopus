@@ -46,12 +46,16 @@ export function ContextMenuOverlay({
 }: ContextMenuOverlayProps) {
   const panelId = menu?.panelId ?? "left";
   const contextEntry = menu?.entry ?? undefined;
+  const currentTabUri = menu?.panelId
+    ? activeTab(state.panels[menu.panelId]).uri
+    : activeTab(state.panels.left).uri;
   const run = (commandId: string, entry?: FileEntryDto | null) =>
     runPanelCommand(panelId, commandId, entry ?? contextEntry);
 
   return (
     <ContextMenu
       menu={menu}
+      currentTabUri={currentTabUri}
       canPaste={Boolean(clipboard)}
       isStarred={menu?.entry ? starredUriSet.has(menu.entry.uri) : false}
       showHidden={

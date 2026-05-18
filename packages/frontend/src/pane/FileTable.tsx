@@ -11,6 +11,7 @@ import {
 } from "react";
 import { isPaneLoading, type PaneLoadState } from "../paneTypes";
 import type { SortField, ViewMode } from "../panelStore";
+import { isParentDirectoryEntry } from "../utils/parentEntry";
 import { FileRow } from "./FileRow";
 import {
   buildVisibleGridTemplate,
@@ -26,6 +27,7 @@ const overscan = 8;
 
 export interface FileTableProps {
   entries: FileEntryDto[];
+  currentUri: string;
   loadState: PaneLoadState;
   rowHeight: number;
   selectedId: string | null;
@@ -59,6 +61,7 @@ export interface FileTableProps {
 
 export function FileTable({
   entries,
+  currentUri,
   loadState,
   rowHeight,
   selectedId,
@@ -312,6 +315,7 @@ export function FileTable({
               <FileRow
                 key={entry.uri}
                 entry={entry}
+                isParentEntry={isParentDirectoryEntry(entry, currentUri)}
                 top={(startIndex + offset) * rowHeight}
                 rowHeight={rowHeight}
                 viewMode={viewMode}

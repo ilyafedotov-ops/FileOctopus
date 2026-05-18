@@ -148,12 +148,34 @@ function classicFileIcon(
   );
 }
 
+function classicParentFolderIcon(): ReactNode {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      width={iconSize}
+      height={iconSize}
+      className="fo-ui-icon fo-classic-icon fo-classic-parent-folder-icon"
+      aria-hidden
+    >
+      <path fill="#0f172a" d="M3 9h10l3 3h13v15H3z" />
+      <path fill="#94a3b8" d="M4 8h9l3 3h12v3H4z" />
+      <path fill="#cbd5e1" d="M4 12h24v14H4z" />
+      <path fill="#64748b" d="M3 8h10l3 3h13v16H3zm2 6v11h22V13H15l-3-3H5z" />
+      <path fill="#2563eb" d="M16 7l-4 4h3v6h2v-6h3z" />
+    </svg>
+  );
+}
+
 export function fileEntryIcon(
   entry: Pick<
     { kind: string; extension?: string | null; name: string },
     "kind" | "extension" | "name"
   >,
 ): ReactNode {
+  if (entry.name === "..") {
+    return classicParentFolderIcon();
+  }
+
   if (entry.kind === "directory") {
     return classicFolderIcon();
   }

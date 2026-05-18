@@ -7,6 +7,7 @@ afterEach(cleanup);
 function renderEmptyTable(overrides: { filterQuery?: string } = {}) {
   const props = {
     entries: [],
+    currentUri: "local:///Users",
     loadState: "ready" as const,
     rowHeight: 32,
     selectedId: null,

@@ -7,6 +7,9 @@ import {
   panelReducer,
   parentUri,
   selectVisibleEntries,
+  selectDisplayedEntries,
+  countVisibleEntries,
+  moveSelection,
 } from "../src/panelStore";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 
@@ -365,5 +368,47 @@ describe("panel store", () => {
     expect(parentUri("local:///Users/ilya/Documents")).toBe(
       "local:///Users/ilya",
     );
+  });
+
+  it("prepends parent directory entry to displayed entries", () => {
+    const tab = activeTab(
+      createInitialState("local:///tmp/nested").panels.left,
+    );
+    const withEntries = {
+      ...tab,
+      uri: "local:///tmp/nested",
+      orderedEntryIds: [entry("a.txt").uri],
+      entriesById: { [entry("a.txt").uri]: entry("a.txt") },
+      loadState: "loaded" as const,
+    };
+
+    const displayed = selectDisplayedEntries(withEntries);
+
+    expect(displayed).toHaveLength(2);
+    expect(displayed[0]?.name).toBe("..");
+    expect(displayed[0]?.uri).toBe("local:///tmp");
+    expect(displayed[1]?.name).toBe("a.txt");
+    expect(countVisibleEntries(withEntries)).toBe(1);
+  });
+
+  it("includes parent entry in keyboard selection movement", () => {
+    const tab = activeTab(
+      createInitialState("local:///tmp/nested").panels.left,
+    );
+    const withEntries = {
+      ...tab,
+      uri: "local:///tmp/nested",
+      orderedEntryIds: [entry("a.txt").uri],
+      entriesById: { [entry("a.txt").uri]: entry("a.txt") },
+      loadState: "loaded" as const,
+      selectedId: entry("a.txt").uri,
+      focusedId: entry("a.txt").uri,
+      selectedIds: [entry("a.txt").uri],
+    };
+
+    const movedUp = moveSelection(withEntries, -1);
+
+    expect(movedUp.selectedId).toBe("local:///tmp");
+    expect(movedUp.focusedId).toBe("local:///tmp");
   });
 });

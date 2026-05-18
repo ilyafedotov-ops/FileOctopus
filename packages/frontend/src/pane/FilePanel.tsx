@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import {
-  selectVisibleEntries,
+  countVisibleEntries,
+  parentUri,
+  selectDisplayedEntries,
   homeUri,
   type PanelId,
   type SortField,
@@ -120,10 +122,11 @@ export function FilePanel({
   onCloseTab,
   onOpenTab,
 }: FilePanelProps) {
-  const entries = selectVisibleEntries(tab);
+  const displayedEntries = selectDisplayedEntries(tab);
+  const itemCount = countVisibleEntries(tab);
 
   const selectedEntry =
-    entries.find((entry) => entry.uri === tab.selectedId) ?? null;
+    displayedEntries.find((entry) => entry.uri === tab.selectedId) ?? null;
   const [inlineRenameUri, setInlineRenameUri] = useState<string | null>(null);
   const [columnWidths, setColumnWidths] =
     useState<ColumnWidths>(storedColumnWidths);
@@ -156,9 +159,12 @@ export function FilePanel({
 
   useEffect(() => {
     if (renameFocusToken > 0 && active && tab.selectedIds.length === 1) {
-      setInlineRenameUri(tab.selectedIds[0] ?? null);
+      const uri = tab.selectedIds[0];
+      if (uri && tab.entriesById[uri]) {
+        setInlineRenameUri(uri);
+      }
     }
-  }, [renameFocusToken, active, tab.selectedIds]);
+  }, [renameFocusToken, active, tab.selectedIds, tab.entriesById]);
 
   return (
     <section
@@ -233,7 +239,11 @@ export function FilePanel({
           </div>
         ) : null}
         <PaneStateView
-          loadState={tab.loadState}
+          loadState={
+            tab.loadState === "empty" && parentUri(tab.uri)
+              ? "loaded"
+              : tab.loadState
+          }
           uri={tab.uri}
           message={tab.error}
           canPaste={canPaste}
@@ -254,7 +264,8 @@ export function FilePanel({
           />
         ) : (
           <FileTable
-            entries={entries}
+            entries={displayedEntries}
+            currentUri={tab.uri}
             loadState={tab.loadState}
             rowHeight={rowHeight}
             selectedId={tab.selectedId}
@@ -309,7 +320,7 @@ export function FilePanel({
           onProperties={onProperties}
         />
         <footer className="fo-pane-status">
-          {tab.selectedIds.length} selected - {entries.length} items
+          {tab.selectedIds.length} selected - {itemCount} items
         </footer>
       </div>
     </section>

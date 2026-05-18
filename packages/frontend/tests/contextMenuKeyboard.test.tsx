@@ -13,6 +13,7 @@ const mockMenu: ContextMenuState = {
 };
 
 const baseProps = {
+  currentTabUri: "local:///tmp",
   canPaste: false,
   isStarred: false,
   onClose: vi.fn(),

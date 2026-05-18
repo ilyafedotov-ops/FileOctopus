@@ -20,6 +20,19 @@ export function localPathFromUri(uri: string): string {
   return uri.replace(/^local:\/\//, "");
 }
 
+export function parentUri(uri: string): string | null {
+  const path = uri.replace(/^local:\/\//, "");
+  const normalized =
+    path.endsWith("/") && path.length > 1 ? path.slice(0, -1) : path;
+  const index = normalized.lastIndexOf("/");
+
+  if (index <= 0) {
+    return null;
+  }
+
+  return `local://${normalized.slice(0, index)}`;
+}
+
 export function breadcrumbSegments(
   uri: string,
 ): Array<{ label: string; uri: string }> {
