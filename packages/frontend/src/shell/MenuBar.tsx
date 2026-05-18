@@ -18,6 +18,8 @@ export interface MenuBarProps {
   onCopyTo: () => void;
   onMoveTo: () => void;
   onTrash: () => void;
+  onCompress: () => void;
+  onExtract: () => void;
   onDeletePermanently: () => void;
   onProperties: () => void;
   onCut: () => void;
@@ -46,6 +48,9 @@ export interface MenuBarProps {
   onManageFavorites: () => void;
   onFilter: () => void;
   onSearchRecursive: () => void;
+  onChecksum: () => void;
+  onOpenTerminal: () => void;
+  onCalculateSize: () => void;
   onJobActivity: () => void;
   onOperationHistory: () => void;
   onDiagnostics: () => void;
@@ -221,6 +226,18 @@ export function MenuBar(props: MenuBarProps) {
       onSelect: wrap(props.onTrash),
     },
     {
+      id: "compress",
+      label: "Compress…",
+      disabled: !props.hasSelection,
+      onSelect: wrap(props.onCompress),
+    },
+    {
+      id: "extract",
+      label: "Extract…",
+      disabled: !props.hasSelection,
+      onSelect: wrap(props.onExtract),
+    },
+    {
       id: "delete",
       label: "Delete Permanently…",
       shortcut: "Shift+Delete",
@@ -338,6 +355,11 @@ export function MenuBar(props: MenuBarProps) {
       onSelect: wrapArg(props.onViewMode, "list"),
     },
     {
+      id: "view-compact",
+      label: "Compact View",
+      onSelect: wrapArg(props.onViewMode, "compact"),
+    },
+    {
       id: "view-icons",
       label: "Icons View",
       onSelect: wrapArg(props.onViewMode, "icons"),
@@ -452,7 +474,7 @@ export function MenuBar(props: MenuBarProps) {
     {
       id: "refresh",
       label: "Refresh",
-      shortcut: "F5",
+      shortcut: "Ctrl+R",
       separatorBefore: true,
       onSelect: wrap(props.onRefresh),
     },
@@ -550,6 +572,23 @@ export function MenuBar(props: MenuBarProps) {
       onSelect: wrap(props.onSearchRecursive),
     },
     sep("sep-ops"),
+    {
+      id: "open-terminal",
+      label: "Open Terminal",
+      onSelect: wrap(props.onOpenTerminal),
+    },
+    {
+      id: "checksum",
+      label: "Checksum…",
+      disabled: !props.hasSelection,
+      onSelect: wrap(props.onChecksum),
+    },
+    {
+      id: "calculate-size",
+      label: "Calculate Size",
+      disabled: !props.hasSelection,
+      onSelect: wrap(props.onCalculateSize),
+    },
     {
       id: "job-activity",
       label: "Job Activity…",

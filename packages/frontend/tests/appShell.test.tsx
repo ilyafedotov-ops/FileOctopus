@@ -702,7 +702,18 @@ describe("FileOctopusShell", () => {
     expect(screen.queryByText("Move 1 item(s) to Trash")).toBeNull();
 
     fireEvent.keyDown(screen.getByLabelText("File panels"), { key: "F5" });
-    await waitFor(() => expect(listStart).toHaveBeenCalledTimes(3));
+    expect(await screen.findByLabelText("Destination local URI")).toBeTruthy();
+
+    fireEvent.keyDown(screen.getByLabelText("File panels"), { key: "Escape" });
+    await waitFor(() =>
+      expect(screen.queryByLabelText("Destination local URI")).toBeNull(),
+    );
+
+    fireEvent.keyDown(screen.getByLabelText("File panels"), {
+      key: "r",
+      ctrlKey: true,
+    });
+    await waitFor(() => expect(listStart.mock.calls.length).toBeGreaterThan(2));
   });
 
   it("creates empty files and refreshes the current panel", async () => {

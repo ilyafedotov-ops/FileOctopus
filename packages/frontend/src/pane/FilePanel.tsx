@@ -8,7 +8,11 @@ import {
   type PanelState,
 } from "../panelStore";
 import { cx } from "@fileoctopus/ui";
-import { type SearchState, FilterInput } from "./PaneFilterBar";
+import {
+  type SearchState,
+  FilterInput,
+  RecursiveSearchInput,
+} from "./PaneFilterBar";
 import { FileTable } from "./FileTable";
 import { ColumnsView } from "./ColumnsView";
 import { RecursiveSearchPanel } from "./PaneFilterBar";
@@ -91,6 +95,8 @@ export function FilePanel({
   onMove,
   onSort,
   onFilter,
+  onRecursiveQuery,
+  onRecursiveSearch,
   onEntryActivate,
   onCreateFolder,
   onCreateFile,
@@ -101,6 +107,7 @@ export function FilePanel({
   pathFocusToken,
   renameFocusToken,
   filterFocusToken,
+  recursiveSearchFocusToken,
   rowHeight,
   search,
   onContextMenu,
@@ -177,9 +184,18 @@ export function FilePanel({
       <div className="fo-panel-filter-row">
         <FilterInput
           panelId={panelId}
+          active={active}
           value={tab.filter}
           focusToken={filterFocusToken}
           onChange={onFilter}
+        />
+        <RecursiveSearchInput
+          panelId={panelId}
+          active={active}
+          value={tab.recursiveQuery}
+          focusToken={recursiveSearchFocusToken}
+          onChange={onRecursiveQuery}
+          onSubmit={onRecursiveSearch}
         />
       </div>
       <div

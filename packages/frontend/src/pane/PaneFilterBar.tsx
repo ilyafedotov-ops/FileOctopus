@@ -10,6 +10,7 @@ import { localPathFromUri, searchMatchToEntry } from "../utils/paneUtils";
 
 export interface FilterInputProps {
   panelId: PanelId;
+  active: boolean;
   value: string;
   focusToken: number;
   onChange: (value: string) => void;
@@ -17,6 +18,7 @@ export interface FilterInputProps {
 
 export function FilterInput({
   panelId,
+  active,
   value,
   focusToken,
   onChange,
@@ -24,11 +26,11 @@ export function FilterInput({
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
-    if (focusToken > 0) {
+    if (active && focusToken > 0) {
       inputRef.current?.focus();
       inputRef.current?.select();
     }
-  }, [focusToken]);
+  }, [active, focusToken]);
 
   return (
     <SearchInput
@@ -38,6 +40,50 @@ export function FilterInput({
       value={value}
       placeholder="Filter current folder…"
       onChange={(event) => onChange(event.target.value)}
+    />
+  );
+}
+
+export interface RecursiveSearchInputProps {
+  panelId: PanelId;
+  active: boolean;
+  value: string;
+  focusToken: number;
+  onChange: (value: string) => void;
+  onSubmit: () => void;
+}
+
+export function RecursiveSearchInput({
+  panelId,
+  active,
+  value,
+  focusToken,
+  onChange,
+  onSubmit,
+}: RecursiveSearchInputProps) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (active && focusToken > 0) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [active, focusToken]);
+
+  return (
+    <SearchInput
+      ref={inputRef}
+      className="fo-recursive-search"
+      aria-label={`${panelId} recursive search`}
+      value={value}
+      placeholder="Search recursively…"
+      onChange={(event) => onChange(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          onSubmit();
+        }
+      }}
     />
   );
 }

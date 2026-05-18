@@ -7,6 +7,7 @@ import {
   selectVisibleEntries,
 } from "../panelStore";
 import { isEditableTarget } from "../shortcuts";
+import { createCommanderActions } from "../shell/commanderActions";
 
 export interface UseKeyboardShortcutsDeps {
   state: { activePanelId: PanelId; panels: Record<PanelId, PanelState> };
@@ -24,6 +25,14 @@ export interface UseKeyboardShortcutsDeps {
   setPathFocusToken: (updater: (v: number) => number) => void;
   setRecursiveSearchFocusToken: (updater: (v: number) => number) => void;
   isPreviewable: (entry: FileEntryDto | null) => boolean;
+  handleCommandSelect: (commandId: string, panelId?: PanelId) => void;
+  handleCopyOrMove: (panelId: PanelId, mode: "copy" | "move") => void;
+  handleCreateFolder: (panelId: PanelId) => void;
+  handleTrash: (panelId: PanelId) => void;
+  handleProperties: (
+    panelId: PanelId,
+    entry: FileEntryDto | null,
+  ) => Promise<void>;
 }
 
 export function createKeyboardShortcutsHandler(
@@ -46,6 +55,11 @@ export function createKeyboardShortcutsHandler(
       setPathFocusToken,
       setRecursiveSearchFocusToken,
       isPreviewable,
+      handleCommandSelect,
+      handleCopyOrMove,
+      handleCreateFolder,
+      handleTrash,
+      handleProperties,
     } = deps;
 
     if (event.key === "Escape") {
@@ -200,6 +214,54 @@ export function createKeyboardShortcutsHandler(
       return;
     }
 
+    const commander = createCommanderActions({
+      panelId,
+      tab,
+      setPreviewOpen,
+      handleCommandSelect,
+      handleCopyOrMove,
+      handleCreateFolder,
+      handleTrash,
+      handleProperties,
+      isPreviewable,
+    });
+
+    if (event.key === "F3") {
+      event.preventDefault();
+      commander.view();
+      return;
+    }
+
+    if (event.key === "F4") {
+      event.preventDefault();
+      commander.edit();
+      return;
+    }
+
+    if (event.key === "F5") {
+      event.preventDefault();
+      commander.copy();
+      return;
+    }
+
+    if (event.key === "F6") {
+      event.preventDefault();
+      commander.move();
+      return;
+    }
+
+    if (event.key === "F7") {
+      event.preventDefault();
+      commander.newFolder();
+      return;
+    }
+
+    if (event.key === "F8") {
+      event.preventDefault();
+      commander.delete();
+      return;
+    }
+
     if (event.altKey && event.key === "ArrowLeft") {
       event.preventDefault();
       runCommand("nav.back");
@@ -221,7 +283,7 @@ export function createKeyboardShortcutsHandler(
       return;
     }
 
-    if (event.key === "F5" || (mod && event.key.toLowerCase() === "r")) {
+    if (mod && event.key.toLowerCase() === "r") {
       event.preventDefault();
       runCommand("nav.refresh");
       return;

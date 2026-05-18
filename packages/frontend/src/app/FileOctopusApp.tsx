@@ -26,7 +26,11 @@ const isProductionBuild = Boolean(
   (import.meta as ImportMeta & { env?: { PROD?: boolean } }).env?.PROD,
 );
 
-function FileOctopusAppInner() {
+function FileOctopusAppInner({
+  onRequestExit,
+}: {
+  onRequestExit?: () => void;
+}) {
   const {
     client,
     state,
@@ -390,6 +394,11 @@ function FileOctopusAppInner() {
         setPathFocusToken,
         setRecursiveSearchFocusToken,
         isPreviewable,
+        handleCommandSelect,
+        handleCopyOrMove,
+        handleCreateFolder,
+        handleTrash,
+        handleProperties,
       }),
     [
       state,
@@ -407,6 +416,10 @@ function FileOctopusAppInner() {
       setPathFocusToken,
       setRecursiveSearchFocusToken,
       isPreviewable,
+      handleCopyOrMove,
+      handleCreateFolder,
+      handleTrash,
+      handleProperties,
     ],
   );
 
@@ -417,11 +430,11 @@ function FileOctopusAppInner() {
     clipboard,
     preferences,
     navigatePanel,
-    exportDiagnostics,
     handleRename,
     setFilterFocusToken,
     setRecursiveSearchFocusToken,
     setDiagnosticsOpen,
+    onRequestExit,
     runCommand: handleCommandSelect,
     statusBarVisible,
     toolbarVisible,
@@ -619,10 +632,14 @@ function FileOctopusAppInner() {
   );
 }
 
-export function FileOctopusApp() {
+export interface FileOctopusShellProps {
+  onRequestExit?: () => void;
+}
+
+export function FileOctopusApp({ onRequestExit }: FileOctopusShellProps = {}) {
   return (
     <AppProviders>
-      <FileOctopusAppInner />
+      <FileOctopusAppInner onRequestExit={onRequestExit} />
     </AppProviders>
   );
 }

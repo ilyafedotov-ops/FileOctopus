@@ -280,6 +280,13 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     group: "view",
   },
   {
+    id: "layout.swapPanes",
+    label: "Swap Panes",
+    group: "view",
+    shortcutMac: "⌘U",
+    shortcutWin: "Ctrl+U",
+  },
+  {
     id: "view.toggleActivity",
     label: "Jobs & Activity",
     group: "view",

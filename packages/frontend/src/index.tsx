@@ -1,1 +1,5 @@
-export { FileOctopusApp, FileOctopusShell } from "./app/FileOctopusApp";
+export {
+  FileOctopusApp,
+  FileOctopusShell,
+  type FileOctopusShellProps,
+} from "./app/FileOctopusApp";

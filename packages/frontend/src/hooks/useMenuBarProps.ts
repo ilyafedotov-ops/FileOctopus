@@ -22,11 +22,11 @@ export interface UseMenuBarPropsParams {
   clipboard: FileClipboardState | null;
   preferences: UserPreferencesDto | null;
   navigatePanel: (panelId: PanelId, uri: string) => void;
-  exportDiagnostics: () => Promise<void>;
   handleRename: (panelId: PanelId) => void;
   setFilterFocusToken: (fn: (v: number) => number) => void;
   setRecursiveSearchFocusToken: (fn: (v: number) => number) => void;
   setDiagnosticsOpen: (v: boolean) => void;
+  onRequestExit?: () => void;
   runCommand: (
     commandId: string,
     panelId?: PanelId,
@@ -44,11 +44,11 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     clipboard,
     preferences,
     navigatePanel,
-    exportDiagnostics,
     handleRename,
     setFilterFocusToken,
     setRecursiveSearchFocusToken,
     setDiagnosticsOpen,
+    onRequestExit,
     runCommand,
     statusBarVisible,
     toolbarVisible,
@@ -79,6 +79,8 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onCopyTo: () => runCommand("op.copyTo"),
     onMoveTo: () => runCommand("op.moveTo"),
     onTrash: () => runCommand("op.trash"),
+    onCompress: () => runCommand("op.compress"),
+    onExtract: () => runCommand("op.extract"),
     onDeletePermanently: () => runCommand("op.deletePermanent"),
     onProperties: () => runCommand("op.properties"),
     onCut: () => runCommand("op.cut"),
@@ -128,14 +130,14 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onOperationHistory: () => runCommand("app.operationHistory"),
     onFilter: () => setFilterFocusToken((v) => v + 1),
     onSearchRecursive: () => setRecursiveSearchFocusToken((v) => v + 1),
+    onChecksum: () => runCommand("op.checksum"),
+    onOpenTerminal: () => runCommand("op.openTerminal"),
+    onCalculateSize: () => runCommand("op.calculateSize"),
     onJobActivity: () => {
       runCommand("view.toggleActivity");
     },
     onDiagnostics: () => runCommand("app.diagnostics"),
-    onExportDiagnostics: () => {
-      setDiagnosticsOpen(true);
-      void exportDiagnostics();
-    },
+    onExportDiagnostics: () => setDiagnosticsOpen(true),
     onSwitchPane: () => runCommand("layout.switchPane", panelId),
     onSwapPanes: () => runCommand("layout.swapPanes"),
     onEqualizePanes: () => runCommand("layout.equalizePanes"),
@@ -154,7 +156,13 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     },
     onAbout: () => runCommand("app.about"),
     onSettings: () => runCommand("app.settings"),
-    onExit: () => globalThis.close(),
+    onExit: () => {
+      if (onRequestExit) {
+        onRequestExit();
+        return;
+      }
+      globalThis.close();
+    },
     canGoBack: tab.backStack.length > 0,
     canGoForward: tab.forwardStack.length > 0,
     hasSelection: tab.selectedIds.length > 0,

@@ -852,7 +852,8 @@
   font-weight: 700;
 }
 
-.fo-panel-filter-row .fo-filter {
+.fo-panel-filter-row .fo-filter,
+.fo-panel-filter-row .fo-recursive-search {
   flex: 1;
 }
 
