@@ -739,6 +739,72 @@ dialog.fo-dialog[open] {
   color: var(--fo-danger-text);
 }
 
+.fo-destination-layout {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.fo-destination-main {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.fo-destination-sidebar {
+  width: 200px;
+  max-height: 280px;
+  overflow-y: auto;
+  border: 1px solid var(--fo-border);
+  border-radius: var(--fo-radius-sm, 6px);
+  background: color-mix(in srgb, var(--fo-strip-bg) 50%, var(--fo-control-bg));
+  padding: 0.35rem;
+}
+
+.fo-destination-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fo-muted-text);
+  padding: 0.2rem 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.fo-destination-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.25rem 0.4rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--fo-text);
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fo-destination-item:hover {
+  background: color-mix(in srgb, var(--fo-accent) 15%, transparent);
+}
+
+.fo-destination-item-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fo-destination-item-path {
+  font-size: 10px;
+  color: var(--fo-muted-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .fo-dialog-checkbox {
   display: flex;
   align-items: flex-start;

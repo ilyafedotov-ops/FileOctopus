@@ -21,7 +21,7 @@
 | ID    | Pri | Status  | Owner | Run ID  | Started UTC | Lock Expires UTC | Acceptance refs                       | Task                                                                                                               | Blockers | Last verified |
 | ----- | --- | ------- | ----- | ------- | ----------- | ---------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------- | ------------- |
 | P1-2  | P1  | done    | cron  | 3a066d6 | 2026-05-18  | -                | UI spec file table sizing; MVP-UI-001 | Add resizable details columns in `FileTable` and persist widths.                                                   | None     | 2026-05-18    |
-| P1-3  | P1  | pending | -     | -       | -           | -                | Menu spec §5.2; UI spec §18.3         | Replace the simple Copy To / Move To destination input with a richer chooser dialog.                               | None     | 2026-05-18    |
+| P1-3  | P1  | done    | cron  | TBD     | 2026-05-18  | -                | Menu spec §14.5–14.6                  | Replace the simple Copy To / Move To destination input with a richer chooser dialog.                               | None     | 2026-05-18    |
 | P1-4  | P1  | pending | -     | -       | -           | -                | UI preview behavior; MVP-UI-001       | Extend `PreviewPanel` from text-only to include image preview.                                                     | None     | 2026-05-18    |
 | P1-5  | P1  | pending | -     | -       | -           | -                | UI spec §10.4; MVP-UI-001             | Collapse long breadcrumbs into an overflow menu instead of truncating silently.                                    | None     | 2026-05-18    |
 | P2-2  | P2  | pending | -     | -       | -           | -                | UI spec §18.1, §21.2; M5              | Add reusable focus-trap behavior to modal dialogs and restore focus on close.                                      | None     | 2026-05-18    |
@@ -30,6 +30,10 @@
 | P2-6  | P2  | pending | -     | -       | -           | -                | UI spec §19.4; MVP-UI-001             | Add user-selectable visible columns and persist the choice.                                                        | None     | 2026-05-18    |
 | P2-8  | P2  | pending | -     | -       | -           | -                | Menu spec §8.2, §14.19-14.20          | Add Recent Locations management UI. Tracking already exists; missing pieces are the dialog and clear/remove flows. | None     | 2026-05-18    |
 | P2-10 | P2  | pending | -     | -       | -           | -                | UI spec §21.2; M5                     | Add accessible row names for file entries.                                                                         | None     | 2026-05-18    |
+| P2-1  | P2  | pending | -     | -       | -           | -                | UI spec §9.5; M5                      | Replace `Tooltip.tsx` title-attribute stub with real popover tooltip. Wire into disabled buttons and menu items.   | None     | 2026-05-18    |
+| P2-7  | P2  | pending | -     | -       | -           | -                | UI spec §18.2                         | Create VolumePickerDialog with discoverVolumes IPC + VolumeDto. Add to Go menu.                                    | None     | 2026-05-18    |
+| P2-9  | P2  | pending | -     | -       | -           | -                | UI spec §18.2                         | Create SelectionPropertiesDialog for multi-file aggregate (count, total size, type breakdown).                     | None     | 2026-05-18    |
+| P2-11 | P2  | pending | -     | -       | -           | -                | UI spec §12.2                         | Add offline/unmounted pane state to PaneLoadState + PaneStateView + error code mapping.                            | None     | 2026-05-18    |
 
 ---
 
