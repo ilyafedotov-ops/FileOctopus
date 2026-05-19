@@ -135,10 +135,12 @@ pub fn network_profile_update(
 }
 
 #[tauri::command]
-pub fn network_profile_delete(
+pub async fn network_profile_delete(
     request: NetworkProfileDeleteRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<OkResponse, IpcError> {
+    let _ = state.sessions().disconnect(&request.id).await;
+
     state.network().delete(&request.id).map_err(network_error)?;
     let _ = state
         .secrets()
@@ -216,6 +218,18 @@ pub async fn network_connection_status(
     }
 
     Ok(NetworkConnectionStatusResponse { statuses })
+}
+
+#[tauri::command]
+pub fn network_profile_forget_fingerprint(
+    request: NetworkProfileActionRequest,
+    state: State<'_, Arc<AppState>>,
+) -> Result<OkResponse, IpcError> {
+    state
+        .network()
+        .clear_host_key_fingerprint(&request.id)
+        .map_err(network_error)?;
+    Ok(OkResponse { ok: true })
 }
 
 #[tauri::command]
