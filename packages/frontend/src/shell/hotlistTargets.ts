@@ -1,15 +1,22 @@
 import type {
   FavoriteEntryDto,
+  NetworkConnectionStatusDto,
+  NetworkProfileDto,
   RecentEntryDto,
   StandardLocationDto,
 } from "@fileoctopus/ts-api";
 import { homeUri } from "../panelStore";
 import { localPathFromUri } from "../utils/paneUtils";
+import {
+  buildDriveTargets,
+  networkDriveHotlistTitle,
+} from "../navigation/driveTargets";
 
 export type HotlistTargetKind =
   | "parent"
   | "home"
   | "volume"
+  | "network"
   | "favorite"
   | "recent";
 
@@ -26,6 +33,8 @@ export interface HotlistTargetsInput {
   activeUri: string;
   parentUri: string | null;
   locations: StandardLocationDto[];
+  networkProfiles?: NetworkProfileDto[];
+  networkStatuses?: NetworkConnectionStatusDto[];
   favorites: FavoriteEntryDto[];
   recentToday: RecentEntryDto[];
   recentWeek: RecentEntryDto[];
@@ -60,6 +69,8 @@ export function buildHotlistTargets({
   activeUri,
   parentUri: upUri,
   locations,
+  networkProfiles = [],
+  networkStatuses = [],
   favorites,
   recentToday,
   recentWeek,
@@ -97,18 +108,30 @@ export function buildHotlistTargets({
     title: localPathFromUri(resolvedHomeUri),
   });
 
-  locations
-    .filter((location) => location.section === "Devices/Volumes")
-    .forEach((location) =>
+  buildDriveTargets(locations, networkProfiles, networkStatuses).forEach(
+    (target) => {
+      if (target.kind === "local") {
+        addTarget(targets, seen, {
+          id: `volume-${target.id}`,
+          kind: "volume",
+          label: target.label,
+          uri: target.uri,
+          glyph: "▣",
+          title: localPathFromUri(target.uri),
+        });
+        return;
+      }
+
       addTarget(targets, seen, {
-        id: `volume-${location.id}`,
-        kind: "volume",
-        label: location.name,
-        uri: location.uri,
-        glyph: "▣",
-        title: localPathFromUri(location.uri),
-      }),
-    );
+        id: `network-${target.id}`,
+        kind: "network",
+        label: target.label,
+        uri: target.uri,
+        glyph: "⇄",
+        title: networkDriveHotlistTitle(target.profile),
+      });
+    },
+  );
 
   favorites.forEach((favorite) =>
     addTarget(targets, seen, {

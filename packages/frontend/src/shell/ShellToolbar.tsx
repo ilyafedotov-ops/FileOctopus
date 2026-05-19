@@ -4,6 +4,10 @@ import { ToolbarCustomizeDialog } from "../components/ToolbarCustomizeDialog";
 import { useToolbarConfig } from "../hooks/useToolbarConfig";
 import { OperationToolbar } from "../pane/OperationToolbar";
 import { createCommanderActions } from "./commanderActions";
+import {
+  buildDriveTargets,
+  driveTargetToolbarLabel,
+} from "../navigation/driveTargets";
 import { buildHotlistTargets } from "./hotlistTargets";
 import { useShellLayout } from "./ShellLayoutContext";
 import {
@@ -49,6 +53,8 @@ export function ShellToolbar() {
         activeUri: tab.uri,
         parentUri: upUri,
         locations: ctx.locations,
+        networkProfiles: ctx.networkProfiles,
+        networkStatuses: ctx.networkStatuses,
         favorites: ctx.favorites,
         recentToday: ctx.recentToday,
         recentWeek: ctx.recentWeek,
@@ -57,6 +63,8 @@ export function ShellToolbar() {
       tab.uri,
       upUri,
       ctx.locations,
+      ctx.networkProfiles,
+      ctx.networkStatuses,
       ctx.favorites,
       ctx.recentToday,
       ctx.recentWeek,
@@ -65,14 +73,17 @@ export function ShellToolbar() {
 
   const driveVolumes = useMemo(
     () =>
-      ctx.locations
-        .filter((location) => location.section === "Devices/Volumes")
-        .map((location) => ({
-          id: location.id,
-          label: location.name,
-          uri: location.uri,
-        })),
-    [ctx.locations],
+      buildDriveTargets(
+        ctx.locations,
+        ctx.networkProfiles,
+        ctx.networkStatuses,
+      ).map((target) => ({
+        id: target.id,
+        label: driveTargetToolbarLabel(target),
+        uri: target.uri,
+        isNetwork: target.kind === "network",
+      })),
+    [ctx.locations, ctx.networkProfiles, ctx.networkStatuses],
   );
 
   const jobsDisplay = useMemo(() => toolbarJobsDisplay(ctx.jobs), [ctx.jobs]);

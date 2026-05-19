@@ -427,6 +427,7 @@ export function DialogOverlayGroup({
       <VolumePickerDialog
         open={volumePickerOpen}
         fs={fs}
+        networkProfiles={networkProfiles}
         onClose={() => setVolumePickerOpen(false)}
         onSelect={(uri) => {
           setVolumePickerOpen(false);

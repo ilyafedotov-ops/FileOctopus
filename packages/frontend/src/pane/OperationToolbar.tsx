@@ -25,7 +25,12 @@ export interface OperationToolbarProps extends ToolbarDropdownsProps {
   canEdit: boolean;
   hotlistTargets: HotlistTarget[];
   hotlistOverflow: HotlistTarget[];
-  driveVolumes: Array<{ id: string; label: string; uri: string }>;
+  driveVolumes: Array<{
+    id: string;
+    label: string;
+    uri: string;
+    isNetwork?: boolean;
+  }>;
   jobsDisplay: ToolbarJobsDisplay;
   onBack: () => void;
   onForward: () => void;
@@ -173,7 +178,7 @@ export function OperationToolbar({
             ...driveVolumes.map((volume) => ({
               id: volume.id,
               label: volume.label,
-              icon: Icons.volume(),
+              icon: volume.isNetwork ? Icons.server() : Icons.volume(),
               onSelect: () => onOpenHotlistTarget(volume.uri),
             })),
             {
