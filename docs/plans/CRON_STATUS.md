@@ -1,55 +1,65 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-18 19:35 UTC
+> Last run: 2026-05-19 07:51 UTC
 
 ## Health Gate
 
-| Check                       | Result                              |
-| --------------------------- | ----------------------------------- |
-| TypeScript (`tsc --noEmit`) | ✅ 0 errors                         |
-| Vitest (frontend)           | ✅ 292/292 tests passing (40 files) |
-| Rust (`cargo check`)        | ✅ clean                            |
-| Clippy                      | ✅ clean (no warnings)              |
+| Check                         | Result                              |
+| ----------------------------- | ----------------------------------- |
+| TypeScript (`pnpm typecheck`) | ✅ 0 errors                         |
+| Vitest (workspace)            | ✅ 355 frontend + 27 other packages |
+| Rust (`cargo check`)          | ✅ clean                            |
+| Rust tests                    | ✅ all workspace tests pass         |
+| ESLint                        | ✅ clean                            |
+| Playwright E2E                | ⏭️ skipped (dev server not running) |
+| `pnpm rc:validate`            | ✅ passed (2026-05-19)              |
 
-## Work Completed This Run
+## Selected task
 
-### P2-6: Add User-Selectable Visible Columns with Persistence
+- **Task ID:** P2-9
+- **Title:** Wire Selection Properties dialog for multi-select
+- **Acceptance refs:** Menu spec §14.12, UI spec §18.2
+- **RC scope:** Yes — M5 hardening / dialog catalog
 
-**Commit:** `e902fb0`
+## Current Micro-Spec (completed)
 
-**What was done:**
+- When `selectedIds.length > 1`, `handleProperties` opens `selectionProperties` dialog state.
+- `OperationDialogView` renders `SelectionPropertiesDialog` with aggregate counts, flags, Copy Paths, and Calculate Size (folder-size jobs for selected directories).
+- Job completion aggregates folder sizes via `applyFolderSizeCompleted`; failures/cancels decrement pending jobs in `useAppInit`.
 
-- Extended `columnWidths.ts` with `VisibleColumns` type, `DEFAULT_VISIBLE_COLUMNS`, localStorage persistence (`fileoctopus.visibleColumns`), and `buildVisibleGridTemplate`/`buildVisibleHeaderGridTemplate` functions that filter grid columns by visibility
-- `FileTable.tsx`: accepts `visibleColumns` prop, renders only visible column headers with proper resize handles, right-click on header opens column visibility context menu with checkboxes
-- `FileRow.tsx`: conditionally renders only visible column cells in details view mode
-- `FilePanel.tsx`: state management for `visibleColumns` (initialized from localStorage), `handleToggleColumn` callback with persistence
-- CSS: column visibility menu styles (`.fo-colvis-menu`, `.fo-colvis-item`, `.fo-colvis-check`) in `pane.css`
-- "name" column is always visible and cannot be hidden
+## Work completed
 
-**Tests (21 new):**
+- Wired multi-select routing in `useMetadataHandlers.ts`
+- Extended `OperationDialog` union and `OperationDialogView`
+- Shell props: `calculateSelectionSize` through `DialogOverlayGroup` / `ShellLayout`
+- Vitest: `useMetadataHandlers.test.ts`, dispatch properties test
+- E2E: multi-select Selection Properties smoke in `e2e/dialog.e2e.ts`
+- Queue hygiene: `CRON_TASKS.md` Active RC Queue refilled (RC-2–RC-7)
+- `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` updated for P2-4, P2-9
 
-- `tests/visibleColumns.test.ts` — 21 tests:
-  - DEFAULT_VISIBLE_COLUMNS includes all 5 columns
-  - COLUMN_ORDER lists all available column ids
-  - storedVisibleColumns returns defaults when nothing stored
-  - storedVisibleColumns returns stored columns from localStorage
-  - storedVisibleColumns always includes name even if missing from stored data
-  - storedVisibleColumns ignores corrupted localStorage data
-  - storedVisibleColumns ignores invalid column ids
-  - persistVisibleColumns writes to localStorage
-  - persistVisibleColumns ignores write errors gracefully
-  - isValidVisibleColumns accepts/rejects various inputs
-  - buildVisibleGridTemplate includes only visible columns
-  - buildVisibleHeaderGridTemplate includes resize handles between visible columns
-  - No resize handle when only one column visible
-  - Includes all columns and handles when all visible
+## TDD evidence
 
-## Summary
+| Test                                                                | RED       | GREEN |
+| ------------------------------------------------------------------- | --------- | ----- |
+| `useMetadataHandlers.test.ts` — multi-select opens selection dialog | N/A (new) | ✅    |
+| `useMetadataHandlers.test.ts` — calculate size starts folder job    | N/A (new) | ✅    |
+| `commands.dispatch.test.ts` — op.properties delegation              | N/A (new) | ✅    |
+| `selectionPropertiesDialog.test.tsx` (13 tests, pre-existing)       | —         | ✅    |
 
-| Metric      | Value |
-| ----------- | ----- |
-| Tasks done  | 1     |
-| Commits     | 2     |
-| New tests   | 21    |
-| Total tests | 292   |
-| Test files  | 40    |
+## Spec / docs updated
+
+- `docs/plans/CRON_TASKS.md`
+- `docs/plans/CRON_STATUS.md`
+- `docs/planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md`
+- `docs/testing/large-directory-performance.md` (perf sign-off evidence)
+- `docs/release/mvp-rc-checklist.md` (automated RC items)
+
+## Deferred (next cycles)
+
+| ID   | Task                                            |
+| ---- | ----------------------------------------------- |
+| RC-2 | Run Playwright E2E with dev server (test added) |
+| RC-3 | Manual 10k/100k UI perf capture on target HW    |
+| RC-5 | IPC integration files: basic, terminal, reveal  |
+| RC-6 | MenuBar dispatch parity for local handlers      |
+| RC-7 | Conflict dialog Apply to all + compare metadata |

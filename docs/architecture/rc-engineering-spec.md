@@ -201,14 +201,14 @@ Items from the original MVP §3.1 that are **not** required for RC sign-off but 
 
 ## 4.2 Performance acceptance criteria
 
-| ID           | RC status          | Scenario                     | Target                                                               |
-| ------------ | ------------------ | ---------------------------- | -------------------------------------------------------------------- |
-| MVP-PERF-001 | **Not signed off** | Cold start to visible window | Under 1.5 s on modern laptop target hardware.                        |
-| MVP-PERF-002 | **Not signed off** | Warm start                   | Under 700 ms where practical.                                        |
-| MVP-PERF-003 | **Not signed off** | 10k file directory           | No visible freeze.                                                   |
-| MVP-PERF-004 | **Not signed off** | 100k file directory          | Incremental listing with responsive scrolling.                       |
-| MVP-PERF-005 | **Not signed off** | Copy 10k small files         | Progress updates at least every 250 ms or meaningful batch interval. |
-| MVP-PERF-006 | **Met** (design)   | UI event loop                | No file operation blocks UI thread.                                  |
+| ID           | RC status               | Scenario                     | Target                                                                               |
+| ------------ | ----------------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
+| MVP-PERF-001 | **Not signed off**      | Cold start to visible window | Under 1.5 s on modern laptop target hardware.                                        |
+| MVP-PERF-002 | **Not signed off**      | Warm start                   | Under 700 ms where practical.                                                        |
+| MVP-PERF-003 | **Partial** (automated) | 10k file directory           | Rust `local_provider` streams 10k without full collect; manual UI recording pending. |
+| MVP-PERF-004 | **Partial** (automated) | 100k file directory          | Frontend caps mounted rows at 100k batch; manual scroll recording pending.           |
+| MVP-PERF-005 | **Not signed off**      | Copy 10k small files         | Progress updates at least every 250 ms or meaningful batch interval.                 |
+| MVP-PERF-006 | **Met** (design)        | UI event loop                | No file operation blocks UI thread.                                                  |
 
 Protocol: [`docs/testing/large-directory-performance.md`](../testing/large-directory-performance.md), [`docs/performance.md`](../performance.md).
 
@@ -1761,12 +1761,12 @@ Use the living checklist: **[mvp-rc-checklist.md](../release/mvp-rc-checklist.md
 
 Summary buckets:
 
-| Bucket       | Examples                                                                                  |
-| ------------ | ----------------------------------------------------------------------------------------- |
-| Build        | `pnpm rc:validate`, `pnpm tauri:build`, artifact under `target/release/bundle`            |
-| Automated QA | `pnpm test:backend:rc`, `pnpm test:frontend:rc`, CI `release-candidate` workflow          |
-| Manual QA    | `docs/qa/sprint-3-smoke-test.md`, `docs/qa/sprint-4-baseline-qa.md`, performance captures |
-| Go/No-Go     | Owner, date, accepted non-blockers                                                        |
+| Bucket       | Examples                                                                                                                                    |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Build        | `pnpm rc:validate`, `pnpm tauri:build` locally; artifact under `target/release/bundle`                                                      |
+| Automated QA | `pnpm test:backend:rc`, `pnpm test:frontend:rc`, `pnpm lint`, `pnpm build` (local); CI runs `typecheck` + `test` only when app paths change |
+| Manual QA    | `docs/qa/sprint-3-smoke-test.md`, `docs/qa/sprint-4-baseline-qa.md`, performance captures                                                   |
+| Go/No-Go     | Owner, date, accepted non-blockers                                                                                                          |
 
 RC engineering gate: §4 criteria **Met** or **Deferred** with owner sign-off; zip-slip and ADR-0002 boundaries covered by automated tests.
 

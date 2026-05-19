@@ -22,7 +22,9 @@ test.describe("Dialog — Settings (Ctrl+,)", () => {
     await expect(dialog).toBeVisible();
 
     // Dialog should have content — headings, form elements, or sections
-    const content = dialog.locator("h2, h3, section, fieldset, .fo-settings-section");
+    const content = dialog.locator(
+      "h2, h3, section, fieldset, .fo-settings-section",
+    );
     const count = await content.count();
     expect(count).toBeGreaterThanOrEqual(1);
   });
@@ -41,7 +43,9 @@ test.describe("Dialog — Settings (Ctrl+,)", () => {
     const dialog = page.locator('[role="dialog"]');
     await expect(dialog).toBeVisible();
 
-    const closeBtn = dialog.locator('button[aria-label*="close" i], button:has-text("Close")').first();
+    const closeBtn = dialog
+      .locator('button[aria-label*="close" i], button:has-text("Close")')
+      .first();
     const hasCloseBtn = await closeBtn.count();
     if (hasCloseBtn > 0) {
       await closeBtn.click();
@@ -67,8 +71,6 @@ test.describe("Dialog — Shortcuts (Ctrl+/)", () => {
     const dialog = page.locator('[role="dialog"]');
     await expect(dialog).toBeVisible();
 
-    // Should contain shortcut entries — key bindings
-    const body = dialog.locator("body, .fo-shortcuts-list, .fo-dialog-content, dialog");
     const text = await dialog.textContent();
     // Should contain some recognizable shortcut text
     const hasShortcuts =
@@ -225,6 +227,35 @@ test.describe("Dialog — Properties", () => {
     await page.keyboard.press("Escape");
     await expect(dialog).not.toBeVisible();
   });
+
+  test("multi-select opens Selection Properties with aggregate counts", async ({
+    page,
+  }) => {
+    const rows = page.locator('.fo-row[role="row"]');
+    const count = await rows.count();
+    test.skip(count < 2, "Need at least two file rows");
+
+    await rows.nth(0).click();
+    await rows.nth(1).click({ modifiers: ["Control"] });
+
+    await rows.nth(1).click({ button: "right" });
+    const propertiesBtn = page.locator(
+      '.fo-context-menu [role="menuitem"]:has-text("Properties")',
+    );
+    await expect(propertiesBtn).toBeVisible();
+    await propertiesBtn.click();
+
+    const dialog = page.locator('[role="dialog"]');
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("heading", { name: "Selection Properties" }),
+    ).toBeVisible();
+
+    const text = await dialog.textContent();
+    expect(text).toContain("Items");
+    expect(text).toContain("Files");
+    expect(text).toContain("Copy Paths");
+  });
 });
 
 test.describe("Dialog — Delete confirmation", () => {
@@ -233,7 +264,9 @@ test.describe("Dialog — Delete confirmation", () => {
     await page.waitForSelector(".fo-panel");
   });
 
-  test("Delete key on selected file shows confirmation or triggers action", async ({ page }) => {
+  test("Delete key on selected file shows confirmation or triggers action", async ({
+    page,
+  }) => {
     const fileRow = page.locator('.fo-row[role="row"]').first();
     const count = await fileRow.count();
     test.skip(count === 0, "No file rows visible");

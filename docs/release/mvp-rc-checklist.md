@@ -2,16 +2,16 @@
 
 ## Build
 
-- [ ] `pnpm install --frozen-lockfile`
-- [ ] `pnpm rc:validate`
+- [x] `pnpm install --frozen-lockfile`
+- [x] `pnpm rc:validate` (2026-05-19)
 - [ ] `FILEOCTOPUS_COMMIT_SHA="$(git rev-parse --short HEAD)" pnpm tauri:build`
 - [ ] Packaged artifact exists under `target/release/bundle`
 
 ## Automated QA
 
-- [ ] `pnpm test:backend:rc`
-- [ ] `pnpm test:frontend:rc`
-- [ ] CI `release-candidate` workflow is green
+- [x] `pnpm test:backend:rc`
+- [x] `pnpm test:frontend:rc`
+- [ ] CI `check` workflow is green when triggered (docs-only changes skip CI; run `pnpm lint`, `pnpm build`, `pnpm rc:validate`, `pnpm tauri:build` locally)
 
 ## Manual QA
 
@@ -31,4 +31,4 @@
 - Decision:
 - Owner:
 - Date:
-- Notes:
+- Notes: Automated RC validation green 2026-05-19; Tauri e2e job remains `continue-on-error` in CI until driver hang resolved.

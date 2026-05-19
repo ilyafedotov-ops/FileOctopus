@@ -23,7 +23,7 @@ pnpm lint
 pnpm format:check
 pnpm test                                   # Vitest, where configured
 
-# Rust checks (run before commits touching Rust; CI enforces all four)
+# Rust checks (run locally before commits touching Rust; CI does not run them)
 pnpm rust:check     # cargo check --workspace
 pnpm rust:test      # cargo test --workspace
 pnpm rust:fmt       # cargo fmt --all --check

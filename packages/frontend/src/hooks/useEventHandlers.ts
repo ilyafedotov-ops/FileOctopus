@@ -319,6 +319,32 @@ export function useEventHandlers({
 
   function applyFolderSizeCompleted(event: FolderSizeCompletedEventDto) {
     setDialog((current) => {
+      if (current?.type === "selectionProperties") {
+        if (!current.folderSizeJobIds.includes(event.jobId)) {
+          return current;
+        }
+
+        const pendingFolderSizeJobs = current.pendingFolderSizeJobs - 1;
+        const folderSizeBytes =
+          current.folderSizeBytes + event.summary.totalSize;
+
+        if (pendingFolderSizeJobs > 0) {
+          return {
+            ...current,
+            pendingFolderSizeJobs,
+            folderSizeBytes,
+          };
+        }
+
+        return {
+          ...current,
+          pendingFolderSizeJobs: 0,
+          calculatingSize: false,
+          folderSizeBytes,
+          totalSize: current.fileSizeBaseline + folderSizeBytes,
+        };
+      }
+
       if (
         current?.type !== "properties" ||
         current.folderSizeJobId !== event.jobId ||

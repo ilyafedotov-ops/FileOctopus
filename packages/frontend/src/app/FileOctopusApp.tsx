@@ -235,6 +235,7 @@ function FileOctopusAppInner({
     openExternal,
     revealEntry,
     calculateSize,
+    calculateSelectionSize,
     copySelectionToFileClipboard,
     pasteClipboard,
     copyTextFromSelection,
@@ -635,6 +636,7 @@ function FileOctopusAppInner({
       submitTrash={submitTrash}
       submitPermanentDelete={submitPermanentDelete}
       copyTextFromSelection={copyTextFromSelection}
+      calculateSelectionSize={calculateSelectionSize}
       revealEntry={revealEntry}
       handleSetAutostart={handleSetAutostart}
       handleCommandSelect={handleCommandSelect}

@@ -6,8 +6,15 @@ import {
   jobIdValue,
   operationErrorMessage,
 } from "../../dialogs/OperationDialogView";
+import type { OperationDialog } from "../../dialogs/OperationDialogView";
 import type { UseFileOpHandlersDeps } from "./types";
 import { useOperationCore, type OperationCore } from "./useOperationCore";
+
+function fileSizeBaseline(entries: FileEntryDto[]): number {
+  return entries
+    .filter((entry) => entry.kind !== "directory")
+    .reduce((sum, entry) => sum + (entry.size ?? 0), 0);
+}
 
 export function useMetadataHandlers(
   deps: UseFileOpHandlersDeps,
@@ -85,8 +92,33 @@ export function useMetadataHandlers(
     panelId: PanelId,
     entry: FileEntryDto | null,
   ) {
+    let entries = selectedEntries(panelId);
+
+    if (entries.length === 0 && entry) {
+      entries = [entry];
+    } else if (entries.length === 1 && entry && entry.uri !== entries[0].uri) {
+      entries = [entry];
+    }
+
+    if (entries.length > 1) {
+      setOperationError(null);
+      setDialog({
+        type: "selectionProperties",
+        panelId,
+        entries,
+        totalSize: null,
+        calculatingSize: false,
+        folderSizeJobIds: [],
+        pendingFolderSizeJobs: 0,
+        folderSizeBytes: 0,
+        fileSizeBaseline: fileSizeBaseline(entries),
+        error: null,
+      });
+      return;
+    }
+
     const tab = activeTab(state.panels[panelId]);
-    const target = entry ?? selectedEntries(panelId)[0] ?? null;
+    const target = entries[0] ?? entry ?? null;
     const uri = target?.uri ?? tab.uri;
 
     setDialog({
@@ -130,6 +162,55 @@ export function useMetadataHandlers(
         loading: false,
         folderSizeJobId: null,
         error: normalizeIpcError(error).message,
+      });
+    }
+  }
+
+  async function calculateSelectionSize(
+    current: Extract<OperationDialog, { type: "selectionProperties" }>,
+  ) {
+    const directories = current.entries.filter(
+      (entry) => entry.kind === "directory",
+    );
+
+    if (directories.length === 0) {
+      setDialog({
+        ...current,
+        totalSize: current.fileSizeBaseline,
+        calculatingSize: false,
+        error: null,
+      });
+      return;
+    }
+
+    setOperationError(null);
+    setDialog({ ...current, calculatingSize: true, error: null });
+
+    try {
+      const folderSizeJobIds: string[] = [];
+
+      for (const directory of directories) {
+        const result = await client.fs.startFolderSizeJob({
+          uri: directory.uri,
+        });
+        folderSizeJobIds.push(jobIdValue(result.job.jobId));
+      }
+
+      setDialog({
+        ...current,
+        calculatingSize: true,
+        folderSizeJobIds,
+        pendingFolderSizeJobs: folderSizeJobIds.length,
+        folderSizeBytes: 0,
+        totalSize: null,
+        error: null,
+      });
+    } catch (error) {
+      const normalized = normalizeIpcError(error);
+      setDialog({
+        ...current,
+        calculatingSize: false,
+        error: operationErrorMessage(normalized.code, normalized.message),
       });
     }
   }
@@ -233,6 +314,7 @@ export function useMetadataHandlers(
     openExternal,
     revealEntry,
     calculateSize,
+    calculateSelectionSize,
     handleProperties,
     runRecursiveSearch,
     toggleHidden,
