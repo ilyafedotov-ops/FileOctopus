@@ -48,54 +48,55 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 
 **46 commands** — verify with `grep` on `generate_handler!` in `apps/desktop-tauri/src-tauri/src/lib.rs` and row count in `packages/ts-api/src/commandMap.ts` if this table drifts.
 
-| Tauri command                 | TS dotted name (typical)      | Client area              |
-| ----------------------------- | ----------------------------- | ------------------------ |
-| `app_get_info`                | `app.get_info`                | `FileOctopusClient`      |
-| `fs_stat`                     | `fs.stat`                     | `FsClient`               |
-| `fs_read_text_file`           | `fs.read_text_file`           | `FsClient`               |
-| `fs_compute_hash`             | `fs.compute_hash`             | `FsClient`               |
-| `fs_open_terminal`            | `fs.open_terminal`            | `FsClient`               |
-| `fs_list_start`               | `fs.list_start`               | `FsClient`               |
-| `fs_standard_locations`       | `fs.standard_locations`       | `FsClient`               |
-| `fs_open_default`             | `fs.open_default`             | `FsClient`               |
-| `fs_reveal`                   | `fs.reveal`                   | `FsClient`               |
-| `fs_properties`               | `fs.properties`               | `FsClient`               |
-| `fs_folder_size`              | `fs.folder_size`              | `FsClient`               |
-| `fs_folder_size_start`        | `fs.folder_size_start`        | `FsClient`               |
-| `fs_recursive_search`         | `fs.recursive_search`         | `FsClient`               |
-| `fs_recursive_search_start`   | `fs.recursive_search_start`   | `FsClient`               |
-| `fs_watch_start`              | `fs.watch_start`              | `FsClient`               |
-| `fs_watch_stop`               | `fs.watch_stop`               | `FsClient`               |
-| `get_preferences`             | `preferences.get`             | `PreferencesClient`      |
-| `set_preference`              | `preferences.set`             | `PreferencesClient`      |
-| `get_autostart`               | `autostart.get`               | `AutostartClient`        |
-| `set_autostart`               | `autostart.set`               | `AutostartClient`        |
-| `navigation_record_visit`     | `navigation.recordVisit`      | `NavigationClient`       |
-| `navigation_list_favorites`   | `navigation.listFavorites`    | `NavigationClient`       |
-| `navigation_add_favorite`     | `navigation.addFavorite`      | `NavigationClient`       |
-| `navigation_remove_favorite`  | `navigation.removeFavorite`   | `NavigationClient`       |
-| `navigation_rename_favorite`  | `navigation.renameFavorite`   | `NavigationClient`       |
-| `navigation_list_recent`      | `navigation.listRecent`       | `NavigationClient`       |
-| `navigation_list_starred`     | `navigation.listStarred`      | `NavigationClient`       |
-| `navigation_toggle_starred`   | `navigation.toggleStarred`    | `NavigationClient`       |
-| `navigation_is_starred`       | `navigation.isStarred`        | `NavigationClient`       |
-| `network_profiles_list`       | `network.profilesList`        | `NetworkClient`          |
-| `network_profile_add`         | `network.profileAdd`          | `NetworkClient`          |
-| `network_profile_update`      | `network.profileUpdate`       | `NetworkClient`          |
-| `network_profile_delete`      | `network.profileDelete`       | `NetworkClient`          |
-| `network_profile_set_secret`  | `network.profileSetSecret`    | `NetworkClient`          |
-| `network_connect`             | `network.connect`             | `NetworkClient`          |
-| `network_disconnect`          | `network.disconnect`          | `NetworkClient`          |
-| `network_connection_status`   | `network.connectionStatus`    | `NetworkClient`          |
-| `network_validate_uri`        | `network.validateUri`         | `NetworkClient`          |
-| `plan_file_operation`         | `fileOperation.plan`          | `FileOperationsClient`   |
-| `start_file_operation`        | `fileOperation.start`         | `FileOperationsClient`   |
-| `cancel_job`                  | `job.cancel`                  | `JobsClient`             |
-| `get_job_status`              | `job.status`                  | `JobsClient`             |
-| `list_recent_operations`      | `operationHistory.listRecent` | `OperationHistoryClient` |
-| `clear_operation_history`     | `operationHistory.clear`      | `OperationHistoryClient` |
-| `diagnostics_app_data_health` | `diagnostics.appDataHealth`   | `DiagnosticsClient`      |
-| `export_diagnostics_bundle`   | `diagnostics.exportBundle`    | `DiagnosticsClient`      |
+| Tauri command                        | TS dotted name (typical)           | Client area              |
+| ------------------------------------ | ---------------------------------- | ------------------------ |
+| `app_get_info`                       | `app.get_info`                     | `FileOctopusClient`      |
+| `fs_stat`                            | `fs.stat`                          | `FsClient`               |
+| `fs_read_text_file`                  | `fs.read_text_file`                | `FsClient`               |
+| `fs_compute_hash`                    | `fs.compute_hash`                  | `FsClient`               |
+| `fs_open_terminal`                   | `fs.open_terminal`                 | `FsClient`               |
+| `fs_list_start`                      | `fs.list_start`                    | `FsClient`               |
+| `fs_standard_locations`              | `fs.standard_locations`            | `FsClient`               |
+| `fs_open_default`                    | `fs.open_default`                  | `FsClient`               |
+| `fs_reveal`                          | `fs.reveal`                        | `FsClient`               |
+| `fs_properties`                      | `fs.properties`                    | `FsClient`               |
+| `fs_folder_size`                     | `fs.folder_size`                   | `FsClient`               |
+| `fs_folder_size_start`               | `fs.folder_size_start`             | `FsClient`               |
+| `fs_recursive_search`                | `fs.recursive_search`              | `FsClient`               |
+| `fs_recursive_search_start`          | `fs.recursive_search_start`        | `FsClient`               |
+| `fs_watch_start`                     | `fs.watch_start`                   | `FsClient`               |
+| `fs_watch_stop`                      | `fs.watch_stop`                    | `FsClient`               |
+| `get_preferences`                    | `preferences.get`                  | `PreferencesClient`      |
+| `set_preference`                     | `preferences.set`                  | `PreferencesClient`      |
+| `get_autostart`                      | `autostart.get`                    | `AutostartClient`        |
+| `set_autostart`                      | `autostart.set`                    | `AutostartClient`        |
+| `navigation_record_visit`            | `navigation.recordVisit`           | `NavigationClient`       |
+| `navigation_list_favorites`          | `navigation.listFavorites`         | `NavigationClient`       |
+| `navigation_add_favorite`            | `navigation.addFavorite`           | `NavigationClient`       |
+| `navigation_remove_favorite`         | `navigation.removeFavorite`        | `NavigationClient`       |
+| `navigation_rename_favorite`         | `navigation.renameFavorite`        | `NavigationClient`       |
+| `navigation_list_recent`             | `navigation.listRecent`            | `NavigationClient`       |
+| `navigation_list_starred`            | `navigation.listStarred`           | `NavigationClient`       |
+| `navigation_toggle_starred`          | `navigation.toggleStarred`         | `NavigationClient`       |
+| `navigation_is_starred`              | `navigation.isStarred`             | `NavigationClient`       |
+| `network_profiles_list`              | `network.profilesList`             | `NetworkClient`          |
+| `network_profile_add`                | `network.profileAdd`               | `NetworkClient`          |
+| `network_profile_update`             | `network.profileUpdate`            | `NetworkClient`          |
+| `network_profile_delete`             | `network.profileDelete`            | `NetworkClient`          |
+| `network_profile_set_secret`         | `network.profileSetSecret`         | `NetworkClient`          |
+| `network_connect`                    | `network.connect`                  | `NetworkClient`          |
+| `network_disconnect`                 | `network.disconnect`               | `NetworkClient`          |
+| `network_connection_status`          | `network.connectionStatus`         | `NetworkClient`          |
+| `network_profile_forget_fingerprint` | `network.profileForgetFingerprint` | `NetworkClient`          |
+| `network_validate_uri`               | `network.validateUri`              | `NetworkClient`          |
+| `plan_file_operation`                | `fileOperation.plan`               | `FileOperationsClient`   |
+| `start_file_operation`               | `fileOperation.start`              | `FileOperationsClient`   |
+| `cancel_job`                         | `job.cancel`                       | `JobsClient`             |
+| `get_job_status`                     | `job.status`                       | `JobsClient`             |
+| `list_recent_operations`             | `operationHistory.listRecent`      | `OperationHistoryClient` |
+| `clear_operation_history`            | `operationHistory.clear`           | `OperationHistoryClient` |
+| `diagnostics_app_data_health`        | `diagnostics.appDataHealth`        | `DiagnosticsClient`      |
+| `export_diagnostics_bundle`          | `diagnostics.exportBundle`         | `DiagnosticsClient`      |
 
 Per-command request/response detail below covers the **core** surface first; extend subsections when you add handlers.
 
@@ -260,17 +261,29 @@ Navigation commands persist UI navigation state in `navigation.sqlite` under the
 
 Network commands manage saved SFTP server profiles in `network.sqlite` under the app data directory. Passwords and key passphrases are stored in the OS keychain via `platform::SecretStore` (`network/{profileId}/password` or `passphrase`); they never cross IPC back to the frontend.
 
-| Command                      | TS dotted name             | Purpose                                                                                                   |
-| ---------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `network_profiles_list`      | `network.profilesList`     | List saved profiles with metadata and `defaultUri` (`sftp://{profileId}{defaultPath}`).                   |
-| `network_profile_add`        | `network.profileAdd`       | Create a profile row (non-secret fields only).                                                            |
-| `network_profile_update`     | `network.profileUpdate`    | Update label, host, port, username, auth kind, default path.                                              |
-| `network_profile_delete`     | `network.profileDelete`    | Remove profile and keychain entries.                                                                      |
-| `network_profile_set_secret` | `network.profileSetSecret` | Store password or key passphrase in keychain (`{ profileId, field: "password" \| "passphrase", value }`). |
-| `network_connect`            | `network.connect`          | Eager connect and validate credentials for `{ id }`.                                                      |
-| `network_disconnect`         | `network.disconnect`       | Drop active session for `{ id }`.                                                                         |
-| `network_connection_status`  | `network.connectionStatus` | Returns `{ statuses: NetworkConnectionStatusDto[] }` with `connected`, `error`, or `offline`.             |
-| `network_validate_uri`       | `network.validateUri`      | Parse-check a remote `ResourceUri`.                                                                       |
+| Command                              | TS dotted name                     | Purpose                                                                                                   |
+| ------------------------------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `network_profiles_list`              | `network.profilesList`             | List saved profiles with metadata and `defaultUri` (`sftp://{profileId}{defaultPath}`).                   |
+| `network_profile_add`                | `network.profileAdd`               | Create a profile row (non-secret fields only).                                                            |
+| `network_profile_update`             | `network.profileUpdate`            | Update label, host, port, username, auth kind, default path.                                              |
+| `network_profile_delete`             | `network.profileDelete`            | Remove profile and keychain entries.                                                                      |
+| `network_profile_set_secret`         | `network.profileSetSecret`         | Store password or key passphrase in keychain (`{ profileId, field: "password" \| "passphrase", value }`). |
+| `network_connect`                    | `network.connect`                  | Eager connect and validate credentials for `{ id }`.                                                      |
+| `network_disconnect`                 | `network.disconnect`               | Drop active session for `{ id }`.                                                                         |
+| `network_connection_status`          | `network.connectionStatus`         | Returns `{ statuses: NetworkConnectionStatusDto[] }` with `connected`, `disconnected`, or `error`.        |
+| `network_profile_forget_fingerprint` | `network.profileForgetFingerprint` | Clears pinned host-key fingerprint for `{ id }`.                                                          |
+| `network_validate_uri`               | `network.validateUri`              | Parse-check a remote `ResourceUri`.                                                                       |
+
+### `network_profile_forget_fingerprint`
+
+**Request:** `NetworkProfileActionRequest { id: string }`
+**Response:** `OkResponse`
+
+Clears the pinned host-key fingerprint for the given profile. The next successful connect will pin the server's currently-presented SHA256 fingerprint via Trust-On-First-Use.
+
+### Host-key TOFU
+
+`SftpConnector` computes the SHA-256 base64 (unpadded) fingerprint of the server's host key on every connect. On first successful authentication, the fingerprint is persisted to the `network_profiles.host_key_fingerprint` column. Subsequent connects compare the observed fingerprint against the pinned value and refuse the connection on mismatch with `RemoteError::AuthenticationFailed`. Users can clear the pin from the Edit Server dialog ("Forget pinned fingerprint"); this restores TOFU on the next connect.
 
 Once connected, `fs_stat` and `fs_list_start` work for `sftp://` URIs through `SftpProvider`. File mutations (`plan_file_operation`, watch, folder size, recursive search) remain local-only in v1.
 
@@ -278,20 +291,27 @@ Once connected, `fs_stat` and `fs_list_start` work for `sftp://` URIs through `S
 
 Rust pushes events via `app.emit(name, payload)`. The TS client wraps them in `transport.listen` and returns an `UnlistenFn`.
 
-| Event name (constant)                                               | Payload                            | Emitted by                               |
-| ------------------------------------------------------------------- | ---------------------------------- | ---------------------------------------- |
-| `directory:batch` (`DIRECTORY_BATCH_EVENT`)                         | `DirectoryBatchEventDto`           | `fs_list_start` worker                   |
-| `fileOperation:job:started` (`JOB_STARTED_EVENT`)                   | `JobStartedEvent`                  | File-operation and metadata job runtimes |
-| `fileOperation:job:progress` (`JOB_PROGRESS_EVENT`)                 | `JobProgressEvent`                 | File-operation and metadata job runtimes |
-| `fileOperation:job:completed` (`JOB_COMPLETED_EVENT`)               | `JobCompletedEvent`                | File-operation and metadata job runtimes |
-| `fileOperation:job:failed` (`JOB_FAILED_EVENT`)                     | `JobFailedEvent`                   | File-operation and metadata job runtimes |
-| `fileOperation:job:cancelled` (`JOB_CANCELLED_EVENT`)               | `JobCancelledEvent`                | File-operation and metadata job runtimes |
-| `fs:watch:changed` (`WATCH_CHANGED_EVENT`)                          | `WatchEventDto`                    | Watch worker                             |
-| `fs:folderSize:completed` (`FOLDER_SIZE_COMPLETED_EVENT`)           | `FolderSizeCompletedEventDto`      | Folder-size metadata job                 |
-| `fs:recursiveSearch:match` (`RECURSIVE_SEARCH_MATCH_EVENT`)         | `RecursiveSearchMatchEventDto`     | Recursive-search metadata job            |
-| `fs:recursiveSearch:completed` (`RECURSIVE_SEARCH_COMPLETED_EVENT`) | `RecursiveSearchCompletedEventDto` | Recursive-search metadata job            |
+| Event name (constant)                                               | Payload                            | Emitted by                                |
+| ------------------------------------------------------------------- | ---------------------------------- | ----------------------------------------- |
+| `directory:batch` (`DIRECTORY_BATCH_EVENT`)                         | `DirectoryBatchEventDto`           | `fs_list_start` worker                    |
+| `fileOperation:job:started` (`JOB_STARTED_EVENT`)                   | `JobStartedEvent`                  | File-operation and metadata job runtimes  |
+| `fileOperation:job:progress` (`JOB_PROGRESS_EVENT`)                 | `JobProgressEvent`                 | File-operation and metadata job runtimes  |
+| `fileOperation:job:completed` (`JOB_COMPLETED_EVENT`)               | `JobCompletedEvent`                | File-operation and metadata job runtimes  |
+| `fileOperation:job:failed` (`JOB_FAILED_EVENT`)                     | `JobFailedEvent`                   | File-operation and metadata job runtimes  |
+| `fileOperation:job:cancelled` (`JOB_CANCELLED_EVENT`)               | `JobCancelledEvent`                | File-operation and metadata job runtimes  |
+| `fs:watch:changed` (`WATCH_CHANGED_EVENT`)                          | `WatchEventDto`                    | Watch worker                              |
+| `network:status` (`NETWORK_STATUS_EVENT`)                           | `NetworkStatusEventDto`            | `ConnectionSessionManager` status changes |
+| `fs:folderSize:completed` (`FOLDER_SIZE_COMPLETED_EVENT`)           | `FolderSizeCompletedEventDto`      | Folder-size metadata job                  |
+| `fs:recursiveSearch:match` (`RECURSIVE_SEARCH_MATCH_EVENT`)         | `RecursiveSearchMatchEventDto`     | Recursive-search metadata job             |
+| `fs:recursiveSearch:completed` (`RECURSIVE_SEARCH_COMPLETED_EVENT`) | `RecursiveSearchCompletedEventDto` | Recursive-search metadata job             |
 
 Names are exported as constants from both sides (`crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts`, re-exported from the package root). The Rust enum-to-name mapping lives in `app_ipc::job_event_name`; the payload serializer is `app_ipc::job_event_payload`.
+
+### Event: `network:status`
+
+**Payload:** `NetworkStatusEventDto { profileId, status: "connected" | "disconnected" | "error", message?: string }`
+
+Emitted by `ConnectionSessionManager` whenever a session transitions between connected, disconnected, or error states. Frontends should subscribe via `client.network.subscribeStatusEvents(listener)` to keep the sidebar status in sync without polling. See `apps/desktop-tauri/src-tauri/src/lib.rs` for the forwarder.
 
 ### `DirectoryBatchEventDto`
 
