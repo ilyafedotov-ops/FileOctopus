@@ -4,7 +4,6 @@ import {
   isRemoteUri,
   isSupportedNavigationUri,
   normalizeIpcError,
-  profileIdFromRemoteUri,
 } from "@fileoctopus/ts-api";
 import type {
   AppDataHealthResponse,
@@ -113,25 +112,6 @@ export function useNavigation(deps: UseNavigationDeps) {
         loadState: "error",
       });
       return;
-    }
-
-    if (isRemoteUri(uri)) {
-      try {
-        await client.network.connect({
-          id: profileIdFromRemoteUri(uri) ?? "",
-        });
-        await refreshNetworkProfiles();
-      } catch (error) {
-        const normalized = normalizeIpcError(error);
-        dispatch({
-          type: "setPaneError",
-          panelId,
-          error: operationErrorMessage(normalized.code, normalized.message),
-          errorCode: normalized.code,
-          loadState: "error",
-        });
-        return;
-      }
     }
 
     dispatch({

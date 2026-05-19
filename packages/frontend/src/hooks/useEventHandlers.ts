@@ -20,7 +20,6 @@ import {
   isRemoteUri,
   isSupportedNavigationUri,
   normalizeIpcError,
-  profileIdFromRemoteUri,
   type FileOctopusClient,
 } from "@fileoctopus/ts-api";
 import {
@@ -169,25 +168,6 @@ export function useEventHandlers({
         loadState: "error",
       });
       return;
-    }
-
-    if (isRemoteUri(uri)) {
-      try {
-        await client.network.connect({
-          id: profileIdFromRemoteUri(uri) ?? "",
-        });
-        await refreshNetworkProfiles();
-      } catch (error) {
-        const normalized = normalizeIpcError(error);
-        dispatch({
-          type: "setPaneError",
-          panelId,
-          error: operationErrorMessage(normalized.code, normalized.message),
-          errorCode: normalized.code,
-          loadState: "error",
-        });
-        return;
-      }
     }
 
     dispatch({
