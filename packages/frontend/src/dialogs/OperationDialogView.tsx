@@ -730,6 +730,8 @@ export function operationErrorMessage(code: string, fallback: string): string {
     [IPC_ERROR_CODES.CONNECTION_LOST]:
       "The connection was lost. Reconnect from the Network section.",
     [IPC_ERROR_CODES.NETWORK_ERROR]: "A network error occurred.",
+    [IPC_ERROR_CODES.UNSUPPORTED_PROVIDER]:
+      "This action isn't available for files on this kind of location yet.",
   };
   const key = code as KnownIpcErrorCode | "interrupted";
 

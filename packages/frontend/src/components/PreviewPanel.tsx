@@ -1,6 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import type { FsClient } from "@fileoctopus/ts-api";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
+import { normalizeIpcError } from "@fileoctopus/ts-api";
+import { operationErrorMessage } from "../dialogs/OperationDialogView";
 
 /** Extensions considered safe for text preview */
 const TEXT_EXTENSIONS = new Set([
@@ -142,7 +144,8 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
         setByteSize(resp.byteSize);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      const normalized = normalizeIpcError(err);
+      setError(operationErrorMessage(normalized.code, normalized.message));
     } finally {
       setLoading(false);
     }

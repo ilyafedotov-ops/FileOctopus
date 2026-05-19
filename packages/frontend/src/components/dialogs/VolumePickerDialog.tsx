@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import type { VolumeDto, FsClient } from "@fileoctopus/ts-api";
+import { normalizeIpcError } from "@fileoctopus/ts-api";
+import { operationErrorMessage } from "../../dialogs/OperationDialogView";
 
 export interface VolumePickerDialogProps {
   open: boolean;
@@ -32,7 +34,8 @@ export function VolumePickerDialog({
       })
       .catch((err) => {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : String(err));
+          const normalized = normalizeIpcError(err);
+          setError(operationErrorMessage(normalized.code, normalized.message));
           setLoading(false);
         }
       });
