@@ -6,7 +6,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use config::{AuthKind, NetworkProfile};
 use remote_core::{AuthSecrets, RemoteConnector, RemoteError, RemoteSession};
-use ssh2::{FileStat, FileType, Session};
+use ssh2::{FileStat, FileType, KeyboardInteractivePrompt, Prompt, Session};
 use vfs::{EntryCapabilities, FileEntry, FileKind, ProviderId, ResourceUri, VfsError};
 
 pub struct SftpSession {
@@ -120,12 +120,27 @@ impl SftpConnector {
                         message: "missing password".to_string(),
                     }
                 })?;
-                session
-                    .userauth_password(&profile.username, password)
-                    .map_err(|error| RemoteError::AuthenticationFailed {
-                        uri: uri.to_string(),
-                        message: error.to_string(),
-                    })?;
+
+                // Most modern OpenSSH deployments accept passwords only via
+                // keyboard-interactive (PAM). Plain `userauth_password` will
+                // come back with Session(-18) even when the credentials are
+                // correct. Try password first, then fall back to
+                // keyboard-interactive using the same saved password.
+                let password_err = session.userauth_password(&profile.username, password).err();
+
+                if !session.authenticated() {
+                    let mut prompter = PasswordPrompter(password);
+                    let _ = session.userauth_keyboard_interactive(&profile.username, &mut prompter);
+                }
+
+                if !session.authenticated() {
+                    return Err(authentication_failed_error(
+                        &session,
+                        &profile.username,
+                        uri,
+                        password_err,
+                    ));
+                }
             }
             AuthKind::PrivateKey => {
                 let key_path = profile.private_key_path.as_deref().ok_or_else(|| {
@@ -134,28 +149,71 @@ impl SftpConnector {
                         message: "missing private key path".to_string(),
                     }
                 })?;
-                session
+                let pubkey_err = session
                     .userauth_pubkey_file(
                         &profile.username,
                         None,
                         Path::new(key_path),
                         secrets.passphrase.as_deref(),
                     )
-                    .map_err(|error| RemoteError::AuthenticationFailed {
-                        uri: uri.to_string(),
-                        message: error.to_string(),
-                    })?;
+                    .err();
+
+                if !session.authenticated() {
+                    return Err(authentication_failed_error(
+                        &session,
+                        &profile.username,
+                        uri,
+                        pubkey_err,
+                    ));
+                }
             }
         }
 
         if !session.authenticated() {
-            return Err(RemoteError::AuthenticationFailed {
-                uri: uri.to_string(),
-                message: "authentication failed".to_string(),
-            });
+            return Err(authentication_failed_error(
+                &session,
+                &profile.username,
+                uri,
+                None,
+            ));
         }
 
         Ok((session, fingerprint))
+    }
+}
+
+/// Prompter that answers every keyboard-interactive challenge with the saved
+/// password. This is the standard way to proxy plain password auth through
+/// servers that only advertise `keyboard-interactive`.
+struct PasswordPrompter<'a>(&'a str);
+
+impl KeyboardInteractivePrompt for PasswordPrompter<'_> {
+    fn prompt<'a>(
+        &mut self,
+        _username: &str,
+        _instructions: &str,
+        prompts: &[Prompt<'a>],
+    ) -> Vec<String> {
+        prompts.iter().map(|_| self.0.to_string()).collect()
+    }
+}
+
+fn authentication_failed_error(
+    session: &Session,
+    username: &str,
+    uri: &str,
+    cause: Option<ssh2::Error>,
+) -> RemoteError {
+    let detail = cause
+        .map(|error| error.to_string())
+        .unwrap_or_else(|| "authentication failed".to_string());
+    let suffix = match session.auth_methods(username) {
+        Ok(methods) if !methods.is_empty() => format!(" (server accepts: {methods})"),
+        _ => String::new(),
+    };
+    RemoteError::AuthenticationFailed {
+        uri: uri.to_string(),
+        message: format!("{detail}{suffix}"),
     }
 }
 
@@ -329,4 +387,36 @@ fn map_stat_error(uri: &ResourceUri, error: ssh2::Error) -> VfsError {
 
 pub fn unix_timestamp_to_utc(value: u64) -> Option<DateTime<Utc>> {
     DateTime::<Utc>::from_timestamp(value as i64, 0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::borrow::Cow;
+
+    #[test]
+    fn password_prompter_answers_every_prompt_with_saved_password() {
+        let mut prompter = PasswordPrompter("hunter2");
+        let prompts = [
+            Prompt {
+                text: Cow::Borrowed("Password: "),
+                echo: false,
+            },
+            Prompt {
+                text: Cow::Borrowed("Verification code: "),
+                echo: true,
+            },
+        ];
+
+        let answers = prompter.prompt("user", "", &prompts);
+
+        assert_eq!(answers, vec!["hunter2".to_string(), "hunter2".to_string()]);
+    }
+
+    #[test]
+    fn password_prompter_handles_empty_prompt_set() {
+        let mut prompter = PasswordPrompter("anything");
+        let answers = prompter.prompt("user", "", &[]);
+        assert!(answers.is_empty());
+    }
 }
