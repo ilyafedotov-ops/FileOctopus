@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# Launch packaged FileOctopus against RC smoke fixtures (Linux).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+
+APPIMAGE="$ROOT/target/release/bundle/appimage/FileOctopus_0.1.0_amd64.AppImage"
+DEB_BIN="$ROOT/target/release/fileoctopus-desktop"
+
+if [ ! -d /tmp/fileoctopus-smoke/source ]; then
+  echo "Run scripts/rc-qa-automated.sh first to create /tmp/fileoctopus-smoke"
+  exit 1
+fi
+
+echo "Smoke fixture: file:///tmp/fileoctopus-smoke/source"
+echo "Navigate in app to: local:///tmp/fileoctopus-smoke/source"
+echo ""
+
+if [ -x "$APPIMAGE" ]; then
+  exec "$APPIMAGE"
+elif [ -x "$DEB_BIN" ]; then
+  exec "$DEB_BIN"
+else
+  echo "No packaged binary found. Run: pnpm tauri:build"
+  exit 1
+fi

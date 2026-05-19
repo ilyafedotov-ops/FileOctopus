@@ -1,24 +1,35 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-19 07:06 UTC
+> Last run: 2026-05-19 09:45 UTC
 
 ## Health Gate
 
-| Check                           | Result                            |
-| ------------------------------- | --------------------------------- |
-| TypeScript (`pnpm typecheck`)   | ✅ (prior session)                |
-| `pnpm rc:validate`              | ✅                                |
-| `pnpm tauri:build`              | ✅                                |
-| Visual regression E2E           | ✅ 12/12                          |
-| Full E2E (`pnpm test:e2e:vite`) | ✅ 104 pass, 33 skip (preview FS) |
-| Diagnostics E2E                 | ✅ 2/2                            |
+| Check                         | Result                                                           |
+| ----------------------------- | ---------------------------------------------------------------- |
+| TypeScript (`pnpm typecheck`) | ✅ 0 errors                                                      |
+| Rust (`cargo check`)          | ✅ clean                                                         |
+| Rust tests (`cargo test`)     | ✅ 193+ pass                                                     |
+| Frontend tests (`pnpm test`)  | ✅ 361 pass (51 files)                                           |
+| Clippy (`-D warnings`)        | ✅ clean                                                         |
+| Format (`cargo fmt --check`)  | ✅ clean                                                         |
+| Prettier (`format:check`)     | ✅ clean                                                         |
+| `pnpm rc:validate`            | ✅ full pipeline green                                           |
+| `cargo audit`                 | ⚠️ 17 warnings (gtk3 unmaintained, Tauri transitive — no action) |
 
-## Work completed (this run)
+## Commits pushed this cycle
 
-- Visual regression baselines committed under `e2e/visual-regression.e2e.ts-snapshots/`
-- Preview transport `sidebarVisible: true` (matches layout E2E expectations)
-- `e2e/README.md`, `scripts/packaged-smoke.sh` for manual RC walkthrough
-- Dark theme visual test uses View → Theme: Dark (reliable `data-theme` on `<html>`)
+| Commit    | Description                                                             |
+| --------- | ----------------------------------------------------------------------- |
+| `ed9c3fa` | test: add IPC integration tests for stat, terminal, and reveal handlers |
+| `669e0d6` | feat: conflict dialog fetches destination metadata via fs.stat          |
+| `44e59f2` | feat: route MenuBar actions through dispatchCommand pipeline            |
+| `1b49ed2` | test: add diagnostics E2E and RC QA automation script                   |
+| `c865749` | chore: update visual regression baselines, config, and docs             |
+| `66103ce` | chore: add rc:qa and test:e2e:vite scripts to package.json              |
+| `7cf9f03` | fix: resolve unused variable lint in view-modes E2E test                |
+| `c235c66` | fix: increase timeout for 100k batch rendering test                     |
+| `705adc5` | fix: use it() timeout argument for 100k batch test                      |
+| `f93cf79` | test: update app-layout E2E for shell toolbar structure                 |
 
 ## Remaining (human)
 
