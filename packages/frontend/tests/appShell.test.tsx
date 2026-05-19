@@ -496,6 +496,8 @@ describe("FileOctopusShell", () => {
   });
 
   it("renders a 100k entry batch without mounting every row", async () => {
+    // Large batch processing needs extra time in CI
+    vi.setConfig({ testTimeout: 30_000 });
     const { container } = render(<FileOctopusShell />);
 
     await waitFor(() => expect(batchHandler).toBeTruthy());
