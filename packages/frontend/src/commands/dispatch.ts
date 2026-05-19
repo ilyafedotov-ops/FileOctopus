@@ -41,6 +41,7 @@ export interface CommandDispatchDeps {
   removeRecentEntry: (uri: string) => Promise<void>;
   clearRecentEntries: () => Promise<void>;
   setOperationHistoryOpen: (open: boolean) => void;
+  setVolumePickerOpen: (open: boolean) => void;
   setFilterFocusToken: Dispatch<SetStateAction<number>>;
   activityCollapsed: boolean;
   setActivityCollapsed: (collapsed: boolean) => void;
@@ -247,6 +248,9 @@ export function dispatchCommand(
     }
     case "nav.goToLocation":
       deps.setGoToLocationOpen(true);
+      return true;
+    case "nav.volumePicker":
+      deps.setVolumePickerOpen(true);
       return true;
     case "nav.manageFavorites":
       deps.setManageFavoritesOpen(true);

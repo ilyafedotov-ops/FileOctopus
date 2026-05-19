@@ -3,6 +3,7 @@ import type {
   ComputeHashRequest,
   ComputeHashResponse,
   DirectoryBatchEventDto,
+  DiscoverVolumesResponse,
   FolderSizeCompletedEventDto,
   FolderSizeJobResponse,
   FolderSizeRequest,
@@ -118,6 +119,16 @@ export class FsClient {
     try {
       return await this.transport.invoke<StandardLocationsResponse>(
         "fs.standard_locations",
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async discoverVolumes(): Promise<DiscoverVolumesResponse> {
+    try {
+      return await this.transport.invoke<DiscoverVolumesResponse>(
+        "fs.discover_volumes",
       );
     } catch (error) {
       throw normalizeIpcError(error);

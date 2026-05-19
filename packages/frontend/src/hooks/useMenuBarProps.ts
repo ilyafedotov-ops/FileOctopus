@@ -68,6 +68,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onUp: () => runCommand("nav.up"),
     onHome: () => runCommand("nav.home"),
     onGoToLocation: () => runCommand("nav.goToLocation"),
+    onVolumePicker: () => runCommand("nav.volumePicker"),
     goStandardLocation: (loc: string) => {
       const match = locations.find(
         (l) => l.id.toLowerCase() === loc.toLowerCase(),

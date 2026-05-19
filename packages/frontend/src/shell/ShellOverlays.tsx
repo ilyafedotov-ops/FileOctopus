@@ -31,6 +31,7 @@ export function ShellOverlays() {
         favorites={ctx.favorites}
         operationError={ctx.operationError}
         operationHistoryOpen={ctx.operationHistoryOpen}
+        volumePickerOpen={ctx.volumePickerOpen}
         history={ctx.history}
         dialog={ctx.dialog}
         autostart={ctx.autostart}
@@ -57,6 +58,7 @@ export function ShellOverlays() {
         setClearRecentLocationsOpen={ctx.setClearRecentLocationsOpen}
         setErrorDetailsOpen={ctx.setErrorDetailsOpen}
         setOperationHistoryOpen={ctx.setOperationHistoryOpen}
+        setVolumePickerOpen={ctx.setVolumePickerOpen}
         setOperationError={ctx.setOperationError}
         refreshHistory={ctx.refreshHistory}
         clearHistory={ctx.clearHistory}

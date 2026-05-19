@@ -23,6 +23,7 @@ import { RecentLocationsDialog } from "./dialogs/RecentLocationsDialog";
 import { ClearRecentLocationsDialog } from "./dialogs/ClearRecentLocationsDialog";
 import { ErrorDetailsDialog } from "./dialogs/ErrorDetailsDialog";
 import { OperationHistoryDialog } from "./dialogs/OperationHistoryDialog";
+import { VolumePickerDialog } from "./dialogs/VolumePickerDialog";
 import type {
   FavoriteEntryDto,
   OperationHistoryRecordDto,
@@ -68,6 +69,7 @@ export interface DialogOverlayGroupProps {
   clearRecentLocationsOpen: boolean;
   errorDetailsOpen: boolean;
   operationHistoryOpen: boolean;
+  volumePickerOpen: boolean;
   goToLocationInitialUri: string;
   favorites: FavoriteEntryDto[];
   history: OperationHistoryRecordDto[];
@@ -100,6 +102,7 @@ export interface DialogOverlayGroupProps {
   setClearRecentLocationsOpen: (open: boolean) => void;
   setErrorDetailsOpen: (open: boolean) => void;
   setOperationHistoryOpen: (open: boolean) => void;
+  setVolumePickerOpen: (open: boolean) => void;
   setOperationError: (message: string | null) => void;
   refreshHistory: () => void;
   clearHistory: () => void;
@@ -151,6 +154,7 @@ export function DialogOverlayGroup({
   clearRecentLocationsOpen,
   errorDetailsOpen,
   operationHistoryOpen,
+  volumePickerOpen,
   goToLocationInitialUri,
   favorites,
   history,
@@ -180,6 +184,7 @@ export function DialogOverlayGroup({
   setClearRecentLocationsOpen,
   setErrorDetailsOpen,
   setOperationHistoryOpen,
+  setVolumePickerOpen,
   setOperationError,
   refreshHistory,
   clearHistory,
@@ -309,6 +314,15 @@ export function DialogOverlayGroup({
         locations={locations}
         favorites={favorites}
         recentDestinations={recentDestinations}
+      />
+      <VolumePickerDialog
+        open={volumePickerOpen}
+        fs={fs}
+        onClose={() => setVolumePickerOpen(false)}
+        onSelect={(uri) => {
+          setVolumePickerOpen(false);
+          onNavigateActivePane(uri);
+        }}
       />
     </>
   );

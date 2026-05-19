@@ -32,6 +32,7 @@ pub fn run() {
             commands::fs::fs_open_terminal,
             commands::fs::fs_list_start,
             commands::fs::fs_standard_locations,
+            commands::fs::fs_discover_volumes,
             commands::fs::fs_open_default,
             commands::fs::fs_reveal,
             commands::fs::fs_properties,

@@ -23,6 +23,7 @@ export interface ModalsContextValue {
   clearRecentLocationsOpen: boolean;
   errorDetailsOpen: boolean;
   operationHistoryOpen: boolean;
+  volumePickerOpen: boolean;
   dialog: OperationDialog | null;
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
   setShortcutsOpen: Dispatch<SetStateAction<boolean>>;
@@ -37,6 +38,7 @@ export interface ModalsContextValue {
   setClearRecentLocationsOpen: Dispatch<SetStateAction<boolean>>;
   setErrorDetailsOpen: Dispatch<SetStateAction<boolean>>;
   setOperationHistoryOpen: Dispatch<SetStateAction<boolean>>;
+  setVolumePickerOpen: Dispatch<SetStateAction<boolean>>;
   setDialog: Dispatch<SetStateAction<OperationDialog | null>>;
 }
 
@@ -65,6 +67,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
     useState(false);
   const [errorDetailsOpen, setErrorDetailsOpen] = useState(false);
   const [operationHistoryOpen, setOperationHistoryOpen] = useState(false);
+  const [volumePickerOpen, setVolumePickerOpen] = useState(false);
   const [dialog, setDialog] = useState<OperationDialog | null>(null);
 
   const value = useMemo<ModalsContextValue>(
@@ -82,6 +85,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       clearRecentLocationsOpen,
       errorDetailsOpen,
       operationHistoryOpen,
+      volumePickerOpen,
       dialog,
       setSettingsOpen,
       setShortcutsOpen,
@@ -96,6 +100,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       setClearRecentLocationsOpen,
       setErrorDetailsOpen,
       setOperationHistoryOpen,
+      setVolumePickerOpen,
       setDialog,
     }),
     [
@@ -112,6 +117,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       clearRecentLocationsOpen,
       errorDetailsOpen,
       operationHistoryOpen,
+      volumePickerOpen,
       dialog,
     ],
   );

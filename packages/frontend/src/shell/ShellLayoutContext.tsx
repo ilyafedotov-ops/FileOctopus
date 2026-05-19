@@ -74,12 +74,14 @@ export interface ShellLayoutContextValue {
   clearRecentLocationsOpen: boolean;
   errorDetailsOpen: boolean;
   operationHistoryOpen: boolean;
+  volumePickerOpen: boolean;
   setGoToLocationOpen: (v: boolean) => void;
   setManageFavoritesOpen: (v: boolean) => void;
   setRecentLocationsOpen: (v: boolean) => void;
   setClearRecentLocationsOpen: (v: boolean) => void;
   setErrorDetailsOpen: (v: boolean) => void;
   setOperationHistoryOpen: (v: boolean) => void;
+  setVolumePickerOpen: (v: boolean) => void;
   dialog: OperationDialog | null;
   autostart: AutostartStatusDto | null;
   commandEntries: CommandEntry[];

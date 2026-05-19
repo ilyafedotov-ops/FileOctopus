@@ -118,6 +118,8 @@ function FileOctopusAppInner({
     setClearRecentLocationsOpen,
     setErrorDetailsOpen,
     setOperationHistoryOpen,
+    volumePickerOpen,
+    setVolumePickerOpen,
     dialog,
     setSettingsOpen,
     setShortcutsOpen,
@@ -307,6 +309,7 @@ function FileOctopusAppInner({
     setRecentLocationsOpen,
     setClearRecentLocationsOpen,
     setOperationHistoryOpen,
+    setVolumePickerOpen,
     setFilterFocusToken,
     activityCollapsed,
     setActivityCollapsed,
@@ -596,12 +599,14 @@ function FileOctopusAppInner({
       clearRecentLocationsOpen={clearRecentLocationsOpen}
       errorDetailsOpen={errorDetailsOpen}
       operationHistoryOpen={operationHistoryOpen}
+      volumePickerOpen={volumePickerOpen}
       setGoToLocationOpen={setGoToLocationOpen}
       setManageFavoritesOpen={setManageFavoritesOpen}
       setRecentLocationsOpen={setRecentLocationsOpen}
       setClearRecentLocationsOpen={setClearRecentLocationsOpen}
       setErrorDetailsOpen={setErrorDetailsOpen}
       setOperationHistoryOpen={setOperationHistoryOpen}
+      setVolumePickerOpen={setVolumePickerOpen}
       dialog={dialog}
       autostart={autostart}
       commandEntries={commandEntries}

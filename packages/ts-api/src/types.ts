@@ -307,6 +307,20 @@ export interface StandardLocationsResponse {
   locations: StandardLocationDto[];
 }
 
+export interface VolumeDto {
+  name: string;
+  mountUri: string;
+  totalBytes: number | null;
+  availableBytes: number | null;
+  fileSystemType: string | null;
+  isRemovable: boolean;
+  isNetwork: boolean;
+}
+
+export interface DiscoverVolumesResponse {
+  volumes: VolumeDto[];
+}
+
 export interface PathRequest {
   uri: string;
 }

@@ -8,6 +8,7 @@ export interface MenuBarProps {
   onUp: () => void;
   onHome: () => void;
   onGoToLocation: () => void;
+  onVolumePicker: () => void;
   goStandardLocation: (loc: string) => void;
   onNewFolder: () => void;
   onNewFile: () => void;
@@ -516,6 +517,11 @@ export function MenuBar(props: MenuBarProps) {
       label: "Location…",
       shortcut: "Ctrl+L",
       onSelect: wrap(props.onGoToLocation),
+    },
+    {
+      id: "go-volumes",
+      label: "Volumes…",
+      onSelect: wrap(props.onVolumePicker),
     },
     sep("sep-stdloc"),
     {
