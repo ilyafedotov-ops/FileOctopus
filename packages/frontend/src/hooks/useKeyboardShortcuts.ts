@@ -33,6 +33,7 @@ export interface UseKeyboardShortcutsDeps {
     panelId: PanelId,
     entry: FileEntryDto | null,
   ) => Promise<void>;
+  setOperationError: (error: string | null) => void;
 }
 
 export function createKeyboardShortcutsHandler(
@@ -60,6 +61,7 @@ export function createKeyboardShortcutsHandler(
       handleCreateFolder,
       handleTrash,
       handleProperties,
+      setOperationError,
     } = deps;
 
     if (event.key === "Escape") {
@@ -229,6 +231,7 @@ export function createKeyboardShortcutsHandler(
       handleCreateFolder,
       handleTrash,
       handleProperties,
+      setOperationError,
       isPreviewable,
     });
 

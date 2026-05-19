@@ -23,6 +23,7 @@ export function ShellStatusBar() {
     handleCreateFolder: ctx.handleCreateFolder,
     handleTrash: ctx.handleTrash,
     handleProperties: ctx.handleProperties,
+    setOperationError: ctx.setOperationError,
     isPreviewable,
   });
 

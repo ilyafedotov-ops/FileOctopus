@@ -362,6 +362,7 @@ function FileOctopusAppInner({
     handleTrash,
     handlePermanentDelete,
     handleProperties,
+    setOperationError,
     copySelectionToFileClipboard,
     pasteClipboard,
     selectedEntries,
@@ -470,6 +471,7 @@ function FileOctopusAppInner({
         handleCreateFolder,
         handleTrash,
         handleProperties,
+        setOperationError,
       }),
     [
       state,
@@ -491,6 +493,7 @@ function FileOctopusAppInner({
       handleCreateFolder,
       handleTrash,
       handleProperties,
+      setOperationError,
     ],
   );
 

@@ -16,6 +16,7 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
     handleCreateFolder: vi.fn(),
     handleTrash: vi.fn(),
     handleProperties: vi.fn(async () => undefined),
+    setOperationError: vi.fn(),
     isPreviewable: () => false,
     ...overrides,
   };
@@ -29,6 +30,42 @@ describe("createCommanderActions", () => {
     commander.view();
 
     expect(handleProperties).toHaveBeenCalledWith("left", null);
+  });
+
+  it("shows an unsupported preview message for selected unknown files", () => {
+    const setOperationError = vi.fn();
+    const tab = {
+      ...activeTab(createInitialState().panels.left),
+      selectedId: "local:///tmp/archive.bin",
+      selectedIds: ["local:///tmp/archive.bin"],
+      entriesById: {
+        "local:///tmp/archive.bin": {
+          uri: "local:///tmp/archive.bin",
+          name: "archive.bin",
+          kind: "file",
+          size: 12,
+          isHidden: false,
+          isSymlink: false,
+          providerId: "local",
+          canRead: true,
+          canList: false,
+          canWrite: true,
+          canDelete: true,
+          canRename: true,
+        },
+      },
+      orderedEntryIds: ["local:///tmp/archive.bin"],
+    };
+
+    const commander = createCommanderActions(
+      baseDeps({ tab, setOperationError }),
+    );
+
+    commander.view();
+
+    expect(setOperationError).toHaveBeenCalledWith(
+      "No preview is available for this file type.",
+    );
   });
 
   it("opens preview for previewable files on view", () => {
@@ -209,5 +246,39 @@ describe("createCommanderActions", () => {
 
     expect(handleCopyOrMove).toHaveBeenCalledWith("left", "copy");
     expect(handleCopyOrMove).toHaveBeenCalledWith("left", "move");
+  });
+
+  it("allows copy on selected directories that can be listed", () => {
+    const handleCopyOrMove = vi.fn();
+    const tab = {
+      ...activeTab(createInitialState().panels.left),
+      selectedId: "sftp://550e8400-e29b-41d4-a716-446655440000/home/docs",
+      selectedIds: ["sftp://550e8400-e29b-41d4-a716-446655440000/home/docs"],
+      entriesById: {
+        "sftp://550e8400-e29b-41d4-a716-446655440000/home/docs": {
+          uri: "sftp://550e8400-e29b-41d4-a716-446655440000/home/docs",
+          name: "docs",
+          kind: "directory",
+          isHidden: false,
+          isSymlink: false,
+          providerId: "sftp",
+          canRead: false,
+          canList: true,
+          canWrite: true,
+          canDelete: true,
+          canRename: true,
+        },
+      },
+      orderedEntryIds: [
+        "sftp://550e8400-e29b-41d4-a716-446655440000/home/docs",
+      ],
+    };
+    const commander = createCommanderActions(
+      baseDeps({ tab, handleCopyOrMove }),
+    );
+
+    expect(commander.canCopy).toBe(true);
+    commander.copy();
+    expect(handleCopyOrMove).toHaveBeenCalledWith("left", "copy");
   });
 });

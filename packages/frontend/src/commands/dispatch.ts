@@ -65,6 +65,7 @@ export interface CommandDispatchDeps {
     panelId: PanelId,
     entry: FileEntryDto | null,
   ) => Promise<void>;
+  setOperationError: (error: string | null) => void;
   copySelectionToFileClipboard: (
     panelId: PanelId,
     mode: "copy" | "move",
@@ -355,7 +356,12 @@ export function dispatchCommand(
     case "op.view": {
       const entry = selectedEntry;
       if (entry && deps.isPreviewable(entry)) {
+        deps.setOperationError(null);
         deps.setPreviewOpen(true);
+        return true;
+      }
+      if (entry) {
+        deps.setOperationError("No preview is available for this file type.");
         return true;
       }
       void deps.handleProperties(panelId, entry);
