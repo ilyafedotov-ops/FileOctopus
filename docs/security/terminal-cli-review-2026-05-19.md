@@ -330,7 +330,7 @@ webview.eval(&js)
 - `session_id` is a UUID, not user-controlled.
 - `data` is base64 (`[A-Za-z0-9+/=]`), which cannot embed `</script>`, `"`, `\`, or the ` `/` ` line separators that terminate strings in pre-ES2019 JS.
 
-**Why it's fragile.** The eval path is used for _every_ event (jobs, network status, folder size, recursive search, etc.). Two of these (`fileOperation:job:*` and `fs:recursiveSearch:*`) carry path strings under user control, and serde_json escapes them. If a future change adds a `String` field that is _not_ base64, an attacker who controls a filename gets a JS-injection primitive only one byte-class change away.
+**Why it's fragile.** The eval path is used for _every_ event (jobs, network status, folder size, recursive search, etc.). Two of these (`fileOperation:job:*` and `fs:recursiveSearch:*`) carry path strings under user control, and serde*json escapes them. If a future change adds a `String` field that is \_not* base64, an attacker who controls a filename gets a JS-injection primitive only one byte-class change away.
 
 Compounding factor: `tauri.conf.json:22` is `"csp": null` — fully permissive. That's a pre-existing choice but it amplifies the impact of any future eval-injection.
 
