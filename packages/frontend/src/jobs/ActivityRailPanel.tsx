@@ -13,7 +13,10 @@ import { useMemo } from "react";
 import { useTerminal } from "../app/providers/TerminalProvider";
 import { TerminalTabBar } from "../terminal/TerminalTabBar";
 import { TerminalView } from "../terminal/TerminalView";
-import type { ActivityRailSegment } from "../terminal/terminalSlice";
+import {
+  sessionsForActivityRail,
+  type ActivityRailSegment,
+} from "../terminal/terminalSlice";
 import { JobCard } from "./JobCard";
 import { OperationHistoryList } from "./OperationHistoryList";
 import { jobIdValue } from "./jobCardUtils";
@@ -36,6 +39,7 @@ interface ActivityRailPanelProps {
   onClearHistory: () => void;
   jobMetrics: Record<string, JobMetrics>;
   activeFolderUri: string;
+  activePanelId: "left" | "right";
   onOpenTerminalInFolder: () => void;
 }
 
@@ -69,6 +73,7 @@ export function ActivityRailPanel({
   onClearHistory,
   jobMetrics,
   activeFolderUri,
+  activePanelId,
   onOpenTerminalInFolder,
 }: ActivityRailPanelProps) {
   const {
@@ -82,6 +87,8 @@ export function ActivityRailPanel({
 
   const segment = terminal.segment;
   const header = SEGMENT_HEADERS[segment];
+  const railSessions = sessionsForActivityRail(terminal.sessions);
+  const paneTerminalCount = terminal.sessions.length - railSessions.length;
 
   const activeJobs = jobs.filter(
     (job) => job.status === "queued" || job.status === "running",
@@ -199,17 +206,19 @@ export function ActivityRailPanel({
         ) : null}
         {segment === "terminal" ? (
           <section className="fo-terminal-panel" aria-label="Embedded terminal">
-            {terminal.sessions.length > 0 ? (
+            {railSessions.length > 0 ? (
               <>
                 <TerminalTabBar
-                  sessions={terminal.sessions}
+                  sessions={railSessions}
                   activeSessionId={terminal.activeSessionId}
                   onSwitch={switchTerminalTab}
                   onClose={closeTerminalTab}
-                  onNew={() => void openNewTerminalTab(activeFolderUri)}
+                  onNew={() =>
+                    void openNewTerminalTab(activeFolderUri, activePanelId)
+                  }
                 />
                 <div className="fo-terminal-views">
-                  {terminal.sessions.map((session) => (
+                  {railSessions.map((session) => (
                     <div
                       key={session.id}
                       className="fo-terminal-view-wrap"
@@ -231,6 +240,25 @@ export function ActivityRailPanel({
                   ))}
                 </div>
               </>
+            ) : terminal.sessions.length > 0 ? (
+              <div className="fo-terminal-empty">
+                <p>
+                  {paneTerminalCount === 1
+                    ? "1 terminal is open in a file pane."
+                    : `${paneTerminalCount} terminals are open in file panes.`}
+                </p>
+                <p className="fo-terminal-empty-hint">
+                  Use the terminal button in the pane header, or open another
+                  session here.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => void openNewTerminalTab(activeFolderUri)}
+                >
+                  Open detached terminal tab
+                </Button>
+              </div>
             ) : (
               <div className="fo-terminal-empty">
                 <p>No terminal sessions yet.</p>

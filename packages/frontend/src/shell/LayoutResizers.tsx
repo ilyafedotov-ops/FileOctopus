@@ -100,6 +100,51 @@ export function SplitResizer({
   );
 }
 
+export function PaneTerminalResizer({
+  panelId,
+  onResize,
+}: {
+  panelId: string;
+  onResize: (ratio: number) => void;
+}) {
+  const dragging = useRef(false);
+
+  return (
+    <div
+      className="fo-resizer fo-resizer-pane-terminal"
+      role="separator"
+      aria-orientation="horizontal"
+      aria-label={`Resize ${panelId} pane terminal`}
+      onMouseDown={(event) => {
+        dragging.current = true;
+        const body = (event.currentTarget as HTMLElement)
+          .closest(".fo-panel-body")
+          ?.getBoundingClientRect();
+        if (!body) {
+          return;
+        }
+
+        const onMove = (moveEvent: MouseEvent) => {
+          if (!dragging.current) {
+            return;
+          }
+          const fromBottom = (body.bottom - moveEvent.clientY) / body.height;
+          onResize(fromBottom);
+        };
+
+        const onUp = () => {
+          dragging.current = false;
+          window.removeEventListener("mousemove", onMove);
+          window.removeEventListener("mouseup", onUp);
+        };
+
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+      }}
+    />
+  );
+}
+
 export function LayoutResizers(props: LayoutResizersProps) {
   return (
     <>

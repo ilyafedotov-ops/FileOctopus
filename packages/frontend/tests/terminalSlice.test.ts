@@ -43,6 +43,24 @@ describe("terminalReducer", () => {
     expect(next.sessions[0]?.exitCode).toBe(1);
   });
 
+  it("opens a pane terminal split and binds the session", () => {
+    let state = createInitialTerminalState();
+    state = terminalReducer(state, {
+      type: "addSession",
+      session: {
+        id: "session-1",
+        uri: "local:///tmp",
+        label: "tmp",
+        status: "running",
+        panelId: "left",
+      },
+    });
+
+    expect(state.pane.left.open).toBe(true);
+    expect(state.pane.left.sessionId).toBe("session-1");
+    expect(state.pane.left.splitRatio).toBe(0.35);
+  });
+
   it("closes the active tab and falls back to a neighbor", () => {
     let state = createInitialTerminalState();
     state = terminalReducer(state, {

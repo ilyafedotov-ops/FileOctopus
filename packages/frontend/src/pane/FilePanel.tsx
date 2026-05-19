@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useShell } from "../app/providers/ShellProvider";
+import { useTerminal } from "../app/providers/TerminalProvider";
 import {
   countOperationalSelection,
   countVisibleEntries,
@@ -21,6 +23,7 @@ import { ColumnsView } from "./ColumnsView";
 import { RecursiveSearchPanel } from "./PaneFilterBar";
 import { PaneStateView } from "../components/PaneStateView";
 import { PaneHeader } from "./PaneHeader";
+import { PaneTerminalSplit } from "./PaneTerminalSplit";
 import { TabBar } from "./TabBar";
 import {
   readDraggedUri,
@@ -130,6 +133,20 @@ export function FilePanel({
   onOpenTerminal,
   terminalDisabled,
 }: FilePanelProps) {
+  const { client } = useShell();
+  const { terminal, setPaneTerminalSplit } = useTerminal();
+  const paneChrome = terminal.pane[panelId];
+  const paneSession = useMemo(() => {
+    if (!paneChrome.sessionId) {
+      return null;
+    }
+    return (
+      terminal.sessions.find(
+        (session) => session.id === paneChrome.sessionId,
+      ) ?? null
+    );
+  }, [paneChrome.sessionId, terminal.sessions]);
+
   const displayedEntries = selectDisplayedEntries(tab);
   const itemCount = countVisibleEntries(tab);
   const selectedCount = countOperationalSelection(tab);
@@ -241,101 +258,122 @@ export function FilePanel({
           onNavigate(uri);
         }}
       >
-        {dragOver ? (
-          <div className="fo-panel-drop-overlay" aria-live="polite">
-            Drop here to move to {title.toLowerCase()} pane
-            <span className="fo-panel-drop-path">
-              {localPathFromUri(tab.uri)}
-            </span>
-          </div>
-        ) : null}
-        <PaneStateView
-          loadState={
-            tab.loadState === "empty" && parentUri(tab.uri)
-              ? "loaded"
-              : tab.loadState
+        <div
+          className="fo-panel-main"
+          style={
+            paneChrome.open && !paneChrome.collapsed
+              ? { flex: `${1 - paneChrome.splitRatio} 1 0` }
+              : undefined
           }
-          uri={tab.uri}
-          message={tab.error}
-          errorCode={tab.errorCode}
-          canPaste={canPaste}
-          allowCreation={paneDirectoryCanWrite(tab)}
-          onRetry={() => onNavigate(tab.uri)}
-          onRefresh={onRefresh}
-          onCreateFolder={onCreateFolder}
-          onCreateFile={onCreateFile}
-          onPaste={onPaste}
-          onEditCredentials={onEditNetworkCredentials}
-        />
-        {tab.viewMode === "columns" ? (
-          <ColumnsView
-            rootUri={homeUri()}
-            activeUri={tab.uri}
-            showHidden={tab.showHidden}
-            onNavigate={onNavigate}
-            onOpen={onEntryActivate}
-            fileIcon={fileIconGlyph}
-          />
-        ) : (
-          <FileTable
-            entries={displayedEntries}
-            currentUri={tab.uri}
-            loadState={tab.loadState}
-            rowHeight={rowHeight}
-            selectedId={tab.selectedId}
-            selectedIds={tab.selectedIds}
-            focusedId={tab.focusedId}
-            sortField={tab.sort.field}
-            sortDirection={tab.sort.direction}
-            viewMode={tab.viewMode}
-            filterQuery={tab.filter}
-            inlineRenameUri={inlineRenameUri}
-            panelId={panelId}
-            columnWidths={columnWidths}
-            visibleColumns={visibleColumns}
-            onToggleColumn={handleToggleColumn}
-            onColumnResize={handleColumnResize}
-            onCancelInlineRename={() => setInlineRenameUri(null)}
-            onSubmitInlineRename={(entryUri, newName) => {
-              const entry = tab.entriesById[entryUri];
-              if (entry && onSubmitInlineRename) {
-                onSubmitInlineRename(entryUri, newName);
-              }
-              setInlineRenameUri(null);
-            }}
+        >
+          {dragOver ? (
+            <div className="fo-panel-drop-overlay" aria-live="polite">
+              Drop here to move to {title.toLowerCase()} pane
+              <span className="fo-panel-drop-path">
+                {localPathFromUri(tab.uri)}
+              </span>
+            </div>
+          ) : null}
+          <PaneStateView
+            loadState={
+              tab.loadState === "empty" && parentUri(tab.uri)
+                ? "loaded"
+                : tab.loadState
+            }
+            uri={tab.uri}
+            message={tab.error}
+            errorCode={tab.errorCode}
+            canPaste={canPaste}
+            allowCreation={paneDirectoryCanWrite(tab)}
+            onRetry={() => onNavigate(tab.uri)}
+            onRefresh={onRefresh}
             onCreateFolder={onCreateFolder}
             onCreateFile={onCreateFile}
-            onSelect={onSelect}
-            onEntrySelect={onEntrySelect}
-            onMove={onMove}
-            onSort={onSort}
-            onActivate={() => onEntryActivate(selectedEntry)}
-            onEntryActivate={onEntryActivate}
-            onContextMenu={(event, entry) => {
-              event.preventDefault();
-              onActivate();
-              if (entry && !tab.selectedIds.includes(entry.uri)) {
-                onSelect(entry.uri);
-              }
-              onContextMenu({
-                panelId,
-                x: event.clientX,
-                y: event.clientY,
-                entry,
-              });
-            }}
+            onPaste={onPaste}
+            onEditCredentials={onEditNetworkCredentials}
           />
-        )}
-        <RecursiveSearchPanel
-          panelId={panelId}
-          search={search}
-          onOpen={(entry) => onEntryActivate(entry)}
-          onReveal={onReveal}
-          onProperties={onProperties}
-        />
-        <footer className="fo-pane-status">
-          {selectedCount} selected - {itemCount} items
-        </footer>
+          {tab.viewMode === "columns" ? (
+            <ColumnsView
+              rootUri={homeUri()}
+              activeUri={tab.uri}
+              showHidden={tab.showHidden}
+              onNavigate={onNavigate}
+              onOpen={onEntryActivate}
+              fileIcon={fileIconGlyph}
+            />
+          ) : (
+            <FileTable
+              entries={displayedEntries}
+              currentUri={tab.uri}
+              loadState={tab.loadState}
+              rowHeight={rowHeight}
+              selectedId={tab.selectedId}
+              selectedIds={tab.selectedIds}
+              focusedId={tab.focusedId}
+              sortField={tab.sort.field}
+              sortDirection={tab.sort.direction}
+              viewMode={tab.viewMode}
+              filterQuery={tab.filter}
+              inlineRenameUri={inlineRenameUri}
+              panelId={panelId}
+              columnWidths={columnWidths}
+              visibleColumns={visibleColumns}
+              onToggleColumn={handleToggleColumn}
+              onColumnResize={handleColumnResize}
+              onCancelInlineRename={() => setInlineRenameUri(null)}
+              onSubmitInlineRename={(entryUri, newName) => {
+                const entry = tab.entriesById[entryUri];
+                if (entry && onSubmitInlineRename) {
+                  onSubmitInlineRename(entryUri, newName);
+                }
+                setInlineRenameUri(null);
+              }}
+              onCreateFolder={onCreateFolder}
+              onCreateFile={onCreateFile}
+              onSelect={onSelect}
+              onEntrySelect={onEntrySelect}
+              onMove={onMove}
+              onSort={onSort}
+              onActivate={() => onEntryActivate(selectedEntry)}
+              onEntryActivate={onEntryActivate}
+              onContextMenu={(event, entry) => {
+                event.preventDefault();
+                onActivate();
+                if (entry && !tab.selectedIds.includes(entry.uri)) {
+                  onSelect(entry.uri);
+                }
+                onContextMenu({
+                  panelId,
+                  x: event.clientX,
+                  y: event.clientY,
+                  entry,
+                });
+              }}
+            />
+          )}
+          <RecursiveSearchPanel
+            panelId={panelId}
+            search={search}
+            onOpen={(entry) => onEntryActivate(entry)}
+            onReveal={onReveal}
+            onProperties={onProperties}
+          />
+          <footer className="fo-pane-status">
+            {selectedCount} selected - {itemCount} items
+          </footer>
+        </div>
+        {paneChrome.open && paneSession ? (
+          <PaneTerminalSplit
+            client={client}
+            panelId={panelId}
+            sessionId={paneSession.id}
+            uri={paneSession.uri}
+            splitRatio={paneChrome.splitRatio}
+            collapsed={paneChrome.collapsed}
+            panelActive={active}
+            onResize={(ratio) => setPaneTerminalSplit(panelId, ratio)}
+          />
+        ) : null}
       </div>
     </section>
   );

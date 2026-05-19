@@ -97,6 +97,7 @@ function FileOctopusAppInner({
     openEmbeddedTerminal,
     openExternalTerminal,
     setRailSegment,
+    togglePaneTerminal,
   } = useTerminal();
 
   const {
@@ -393,7 +394,24 @@ function FileOctopusAppInner({
         });
         return;
       }
-      void openEmbeddedTerminal(uri).catch((error: unknown) => {
+      void openEmbeddedTerminal(uri, panelId).catch((error: unknown) => {
+        pushToast({
+          tone: "error",
+          title:
+            error instanceof Error ? error.message : "Failed to open terminal",
+        });
+      });
+    },
+    togglePaneTerminal: (panelId) => {
+      const uri = activeTab(state.panels[panelId]).uri;
+      if (isRemoteUri(uri)) {
+        pushToast({
+          tone: "error",
+          title: "Embedded terminal supports local folders only",
+        });
+        return;
+      }
+      void togglePaneTerminal(uri, panelId).catch((error: unknown) => {
         pushToast({
           tone: "error",
           title:
