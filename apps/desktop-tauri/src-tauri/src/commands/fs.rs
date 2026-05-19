@@ -369,6 +369,10 @@ pub async fn fs_read_image_as_data_uri(
 
 #[tauri::command]
 pub async fn fs_discover_volumes() -> Result<DiscoverVolumesResponse, IpcError> {
+    #[cfg(not(target_os = "linux"))]
+    let volumes = Vec::new();
+
+    #[cfg(target_os = "linux")]
     let mut volumes = Vec::new();
 
     #[cfg(target_os = "linux")]
@@ -436,11 +440,6 @@ pub async fn fs_discover_volumes() -> Result<DiscoverVolumesResponse, IpcError> 
                 is_network,
             });
         }
-    }
-
-    #[cfg(not(target_os = "linux"))]
-    {
-        // On non-Linux, return an empty list for now
     }
 
     Ok(DiscoverVolumesResponse { volumes })
