@@ -144,7 +144,7 @@ async fn list_path(path: PathBuf, json: bool, hidden: bool) -> Result<(), CliErr
         .map_err(|error| CliError::internal(error.to_string()))?
         .map_err(map_vfs_error)?;
 
-    entries.sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
+    entries.sort_by_key(|entry| entry.name.to_lowercase());
 
     if json {
         let dtos: Vec<FileEntryDto> = entries.into_iter().map(FileEntryDto::from).collect();
