@@ -55,6 +55,7 @@ interface SidebarProps {
   onDisconnectProfile: (profileId: string) => void;
   onEditProfile: (profile: NetworkProfileDto) => void;
   onDeleteProfile: (profileId: string) => void;
+  busyProfileIds: Set<string>;
 }
 
 export function Sidebar({
@@ -75,6 +76,7 @@ export function Sidebar({
   onDisconnectProfile,
   onEditProfile,
   onDeleteProfile,
+  busyProfileIds,
 }: SidebarProps) {
   const [contextMenu, setContextMenu] =
     useState<SidebarContextMenuState | null>(null);
@@ -180,6 +182,14 @@ export function Sidebar({
                 icon={Icons.volume()}
                 label={profile.label}
                 active={profile.defaultUri === activeUri}
+                busy={busyProfileIds.has(profile.id)}
+                badge={
+                  !profile.hasStoredSecret
+                    ? "warning"
+                    : status?.status === "error"
+                      ? "error"
+                      : null
+                }
                 onClick={() => onNavigate(profile.defaultUri)}
                 onContextMenu={(event) => {
                   event.preventDefault();
@@ -189,13 +199,7 @@ export function Sidebar({
                     profile,
                   });
                 }}
-                title={
-                  status?.status === "connected"
-                    ? `${profile.label} (connected)`
-                    : status?.status === "error"
-                      ? `${profile.label} (${status.message ?? "error"})`
-                      : profile.label
-                }
+                title={profileTitle(profile, status)}
               />
             );
           })
@@ -619,6 +623,22 @@ function SidebarEmptyHint({ children }: { children: ReactNode }) {
   return <p className="fo-sidebar-empty-hint">{children}</p>;
 }
 
+function profileTitle(
+  profile: NetworkProfileDto,
+  status: NetworkConnectionStatusDto | undefined,
+): string {
+  if (!profile.hasStoredSecret) {
+    return `${profile.label} (credentials missing)`;
+  }
+  if (status?.status === "connected") {
+    return `${profile.label} (connected)`;
+  }
+  if (status?.status === "error") {
+    return `${profile.label} (${status.message ?? "error"})`;
+  }
+  return profile.label;
+}
+
 function SidebarItem({
   icon,
   label,
@@ -628,6 +648,8 @@ function SidebarItem({
   indented = false,
   subdued = false,
   title,
+  badge,
+  busy = false,
 }: {
   icon: ReactNode;
   label: string;
@@ -637,6 +659,8 @@ function SidebarItem({
   indented?: boolean;
   subdued?: boolean;
   title?: string;
+  badge?: "warning" | "error" | null;
+  busy?: boolean;
 }) {
   return (
     <Button
@@ -648,8 +672,12 @@ function SidebarItem({
         active && "fo-sidebar-active",
         indented && "fo-sidebar-indented",
         subdued && "fo-sidebar-subdued",
+        badge === "warning" && "fo-sidebar-warning",
+        badge === "error" && "fo-sidebar-error",
+        busy && "fo-sidebar-busy",
       )}
       title={title ?? label}
+      aria-busy={busy || undefined}
       onClick={onClick}
       onContextMenu={onContextMenu}
     >

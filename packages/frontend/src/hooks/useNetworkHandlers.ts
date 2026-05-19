@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { normalizeIpcError, type FileOctopusClient } from "@fileoctopus/ts-api";
 import type { NetworkProfileDto } from "@fileoctopus/ts-api";
 
@@ -13,32 +13,58 @@ export function useNetworkHandlers({
   refreshNetworkProfiles,
   setOperationError,
 }: UseNetworkHandlersParams) {
+  const [busyProfileIds, setBusyProfileIds] = useState<Set<string>>(new Set());
+
+  const withBusy = useCallback(
+    async (profileId: string, fn: () => Promise<void>) => {
+      setBusyProfileIds((current) => {
+        const next = new Set(current);
+        next.add(profileId);
+        return next;
+      });
+      try {
+        await fn();
+      } finally {
+        setBusyProfileIds((current) => {
+          const next = new Set(current);
+          next.delete(profileId);
+          return next;
+        });
+      }
+    },
+    [],
+  );
+
   const connectProfile = useCallback(
     async (profileId: string) => {
       setOperationError(null);
-      try {
-        await client.network.connect({ id: profileId });
-        await refreshNetworkProfiles();
-      } catch (error) {
-        setOperationError(normalizeIpcError(error).message);
-        throw error;
-      }
+      await withBusy(profileId, async () => {
+        try {
+          await client.network.connect({ id: profileId });
+          await refreshNetworkProfiles();
+        } catch (error) {
+          setOperationError(normalizeIpcError(error).message);
+          throw error;
+        }
+      });
     },
-    [client, refreshNetworkProfiles, setOperationError],
+    [client, refreshNetworkProfiles, setOperationError, withBusy],
   );
 
   const disconnectProfile = useCallback(
     async (profileId: string) => {
       setOperationError(null);
-      try {
-        await client.network.disconnect({ id: profileId });
-        await refreshNetworkProfiles();
-      } catch (error) {
-        setOperationError(normalizeIpcError(error).message);
-        throw error;
-      }
+      await withBusy(profileId, async () => {
+        try {
+          await client.network.disconnect({ id: profileId });
+          await refreshNetworkProfiles();
+        } catch (error) {
+          setOperationError(normalizeIpcError(error).message);
+          throw error;
+        }
+      });
     },
-    [client, refreshNetworkProfiles, setOperationError],
+    [client, refreshNetworkProfiles, setOperationError, withBusy],
   );
 
   const deleteProfile = useCallback(
@@ -46,6 +72,20 @@ export function useNetworkHandlers({
       setOperationError(null);
       try {
         await client.network.deleteProfile({ id: profileId });
+        await refreshNetworkProfiles();
+      } catch (error) {
+        setOperationError(normalizeIpcError(error).message);
+        throw error;
+      }
+    },
+    [client, refreshNetworkProfiles, setOperationError],
+  );
+
+  const forgetFingerprint = useCallback(
+    async (profileId: string) => {
+      setOperationError(null);
+      try {
+        await client.network.forgetFingerprint({ id: profileId });
         await refreshNetworkProfiles();
       } catch (error) {
         setOperationError(normalizeIpcError(error).message);
@@ -135,6 +175,8 @@ export function useNetworkHandlers({
     disconnectProfile,
     deleteProfile,
     saveProfile,
+    forgetFingerprint,
+    busyProfileIds,
   };
 }
 

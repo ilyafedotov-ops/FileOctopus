@@ -35,6 +35,7 @@ export function ShellOverlays() {
         networkLocationsOpen={ctx.networkLocationsOpen}
         connectServerOpen={ctx.connectServerOpen}
         connectServerProfile={ctx.connectServerProfile}
+        removeServerProfile={ctx.removeServerProfile}
         networkProfiles={ctx.networkProfiles}
         networkStatuses={ctx.networkStatuses}
         history={ctx.history}
@@ -70,10 +71,12 @@ export function ShellOverlays() {
         setNetworkLocationsOpen={ctx.setNetworkLocationsOpen}
         setConnectServerOpen={ctx.setConnectServerOpen}
         setConnectServerProfile={ctx.setConnectServerProfile}
+        setRemoveServerProfile={ctx.setRemoveServerProfile}
         connectProfile={ctx.connectProfile}
         disconnectProfile={ctx.disconnectProfile}
         deleteProfile={ctx.deleteProfile}
         saveProfile={ctx.saveProfile}
+        forgetFingerprint={ctx.forgetFingerprint}
         setOperationError={ctx.setOperationError}
         refreshHistory={ctx.refreshHistory}
         clearHistory={ctx.clearHistory}
