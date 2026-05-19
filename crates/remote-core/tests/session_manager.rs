@@ -251,6 +251,59 @@ async fn disconnect_emits_status_event() {
 }
 
 #[tokio::test]
+async fn mark_error_preserves_error_status_after_cleanup() {
+    let fixture = Fixture::new();
+    let profile_id = fixture.add_profile();
+    let manager = fixture.manager();
+
+    manager.connect(&profile_id).await.unwrap();
+    let mut rx = manager.subscribe_status();
+
+    manager.mark_error(&profile_id, "boom").await;
+
+    // The final in-memory status must be Error (with the message), not Disconnected.
+    let status = manager.connection_status(&profile_id).await;
+    match status {
+        ConnectionStatus::Error { message } => assert_eq!(message, "boom"),
+        other => panic!("expected Error status, got {other:?}"),
+    }
+
+    // And the broadcast stream must end on the Error event, not a trailing
+    // Disconnected event that would clobber the message on the frontend.
+    let first = rx.recv().await.expect("expected at least one event");
+    match first.status {
+        ConnectionStatus::Error { message } => assert_eq!(message, "boom"),
+        other => panic!("first event should be Error, got {other:?}"),
+    }
+    assert!(
+        rx.try_recv().is_err(),
+        "mark_error must not emit a trailing Disconnected event"
+    );
+}
+
+#[tokio::test]
+async fn disconnect_completes_even_when_profile_is_missing() {
+    let fixture = Fixture::new();
+    let profile_id = fixture.add_profile();
+    let manager = fixture.manager();
+
+    manager.connect(&profile_id).await.unwrap();
+
+    // Simulate the race: profile row is gone (e.g. user deleted it via the
+    // repository directly, or the reaper races with a delete) but the session
+    // table still holds a handle. disconnect() must still succeed.
+    fixture.profiles.delete(&profile_id).unwrap();
+
+    manager.disconnect(&profile_id).await.unwrap();
+
+    assert_eq!(
+        manager.connection_status(&profile_id).await,
+        ConnectionStatus::Disconnected,
+        "status should reach Disconnected even when the profile row is gone"
+    );
+}
+
+#[tokio::test]
 async fn concurrent_connect_calls_share_a_single_handshake() {
     let fixture = Fixture::new();
     let profile_id = fixture.add_profile();

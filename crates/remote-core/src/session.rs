@@ -248,19 +248,30 @@ impl ConnectionSessionManager {
     }
 
     pub async fn disconnect(&self, profile_id: &str) -> Result<(), RemoteError> {
-        let handle = self.sessions.write().await.remove(profile_id);
-        if let Some(handle) = handle {
-            let profile = self.profiles.get(profile_id)?;
-            if let Some(connector) = self.connectors.read().await.get(&profile.scheme) {
-                let _ = connector.disconnect(handle.inner).await;
-            }
-        }
+        self.drop_session_handle(profile_id).await;
         self.statuses
             .write()
             .await
             .insert(profile_id.to_string(), ConnectionStatus::Disconnected);
         self.publish_status(profile_id, ConnectionStatus::Disconnected);
         Ok(())
+    }
+
+    /// Removes the session handle and asks the connector to tear it down
+    /// without touching the status map or broadcast channel. Used when a caller
+    /// (e.g. `mark_error`) needs to clean up the live connection while keeping
+    /// a non-Disconnected status visible to subscribers. A missing profile row
+    /// is tolerated so a race against profile deletion does not orphan the
+    /// session entry.
+    async fn drop_session_handle(&self, profile_id: &str) {
+        let handle = self.sessions.write().await.remove(profile_id);
+        if let Some(handle) = handle {
+            if let Ok(profile) = self.profiles.get(profile_id) {
+                if let Some(connector) = self.connectors.read().await.get(&profile.scheme) {
+                    let _ = connector.disconnect(handle.inner).await;
+                }
+            }
+        }
     }
 
     pub async fn reap_idle_sessions(&self, threshold: Duration) {
@@ -315,6 +326,10 @@ impl ConnectionSessionManager {
     }
 
     pub async fn mark_error(&self, profile_id: &str, message: &str) {
+        // Tear the live handle down silently so the Error status is the final
+        // event observed by subscribers — otherwise the trailing Disconnected
+        // emit would overwrite the error message in the frontend status map.
+        self.drop_session_handle(profile_id).await;
         let status = ConnectionStatus::Error {
             message: message.to_string(),
         };
@@ -326,7 +341,6 @@ impl ConnectionSessionManager {
         let _ = self
             .profiles
             .set_connection_state(profile_id, false, Some(message));
-        let _ = self.disconnect(profile_id).await;
     }
 }
 
