@@ -143,7 +143,12 @@ impl NetworkProfileRepository {
     }
 
     pub fn add(&self, profile: NewNetworkProfile) -> Result<NetworkProfile, NetworkError> {
-        validate_profile_fields(&profile.scheme, &profile.host, &profile.username)?;
+        validate_profile_fields(
+            &profile.scheme,
+            &profile.host,
+            &profile.username,
+            profile.port,
+        )?;
         let connection = self.connect()?;
         let id = Uuid::new_v4().to_string();
         let now = Utc::now().to_rfc3339();
@@ -182,7 +187,12 @@ impl NetworkProfileRepository {
         profile: UpdateNetworkProfile,
     ) -> Result<NetworkProfile, NetworkError> {
         let existing = self.get(id)?;
-        validate_profile_fields(&existing.scheme, &profile.host, &profile.username)?;
+        validate_profile_fields(
+            &existing.scheme,
+            &profile.host,
+            &profile.username,
+            profile.port,
+        )?;
         let connection = self.connect()?;
         let now = Utc::now().to_rfc3339();
         let updated = connection.execute(
@@ -269,6 +279,21 @@ impl NetworkProfileRepository {
         Ok(())
     }
 
+    pub fn clear_host_key_fingerprint(&self, id: &str) -> Result<(), NetworkError> {
+        let connection = self.connect()?;
+        let now = Utc::now().to_rfc3339();
+        let updated = connection.execute(
+            "update network_profiles
+             set host_key_fingerprint = null, updated_at = ?2
+             where id = ?1",
+            params![id, now],
+        )?;
+        if updated == 0 {
+            return Err(NetworkError::ProfileNotFound);
+        }
+        Ok(())
+    }
+
     fn connect(&self) -> Result<Connection, NetworkError> {
         Connection::open(self.path.as_path()).map_err(NetworkError::from)
     }
@@ -331,7 +356,12 @@ fn map_profile_row(row: &rusqlite::Row<'_>) -> Result<NetworkProfile, rusqlite::
     })
 }
 
-fn validate_profile_fields(scheme: &str, host: &str, username: &str) -> Result<(), NetworkError> {
+fn validate_profile_fields(
+    scheme: &str,
+    host: &str,
+    username: &str,
+    port: u16,
+) -> Result<(), NetworkError> {
     if scheme != "sftp" {
         return Err(NetworkError::InvalidValue {
             field: "scheme".to_string(),
@@ -339,10 +369,17 @@ fn validate_profile_fields(scheme: &str, host: &str, username: &str) -> Result<(
         });
     }
 
-    if host.trim().is_empty() {
+    let trimmed_host = host.trim();
+    if trimmed_host.is_empty() {
         return Err(NetworkError::InvalidValue {
             field: "host".to_string(),
             reason: "host is required".to_string(),
+        });
+    }
+    if trimmed_host != host || host.chars().any(|ch| ch.is_whitespace() || ch.is_control()) {
+        return Err(NetworkError::InvalidValue {
+            field: "host".to_string(),
+            reason: "host must not contain whitespace or control characters".to_string(),
         });
     }
 
@@ -350,6 +387,13 @@ fn validate_profile_fields(scheme: &str, host: &str, username: &str) -> Result<(
         return Err(NetworkError::InvalidValue {
             field: "username".to_string(),
             reason: "username is required".to_string(),
+        });
+    }
+
+    if port == 0 {
+        return Err(NetworkError::InvalidValue {
+            field: "port".to_string(),
+            reason: "port must be in range 1..=65535".to_string(),
         });
     }
 
@@ -410,5 +454,69 @@ mod tests {
         assert_eq!(updated.port, 2222);
         repository.delete(&created.id).unwrap();
         assert!(repository.get(&created.id).is_err());
+    }
+
+    #[test]
+    fn clears_host_key_fingerprint() {
+        let dir = tempdir().unwrap();
+        let repository = NetworkProfileRepository::new(dir.path().join("network.sqlite")).unwrap();
+        let created = repository.add(sample_profile()).unwrap();
+        repository
+            .set_host_key_fingerprint(&created.id, "SHA256:abc")
+            .unwrap();
+        assert_eq!(
+            repository
+                .get(&created.id)
+                .unwrap()
+                .host_key_fingerprint
+                .as_deref(),
+            Some("SHA256:abc"),
+        );
+
+        repository.clear_host_key_fingerprint(&created.id).unwrap();
+        assert_eq!(
+            repository.get(&created.id).unwrap().host_key_fingerprint,
+            None,
+        );
+    }
+
+    #[test]
+    fn rejects_unsupported_scheme() {
+        let dir = tempdir().unwrap();
+        let repository = NetworkProfileRepository::new(dir.path().join("network.sqlite")).unwrap();
+        let mut new = sample_profile();
+        new.scheme = "smb".to_string();
+        let error = repository.add(new).unwrap_err();
+        assert!(matches!(error, NetworkError::InvalidValue { ref field, .. } if field == "scheme"));
+    }
+
+    #[test]
+    fn rejects_port_zero() {
+        let dir = tempdir().unwrap();
+        let repository = NetworkProfileRepository::new(dir.path().join("network.sqlite")).unwrap();
+        let mut new = sample_profile();
+        new.port = 0;
+        let error = repository.add(new).unwrap_err();
+        assert!(matches!(error, NetworkError::InvalidValue { ref field, .. } if field == "port"));
+    }
+
+    #[test]
+    fn rejects_host_with_whitespace() {
+        let dir = tempdir().unwrap();
+        let repository = NetworkProfileRepository::new(dir.path().join("network.sqlite")).unwrap();
+        let mut new = sample_profile();
+        new.host = "bad host".to_string();
+        let error = repository.add(new).unwrap_err();
+        assert!(matches!(error, NetworkError::InvalidValue { ref field, .. } if field == "host"));
+    }
+
+    #[test]
+    fn rejects_host_with_control_char() {
+        let dir = tempdir().unwrap();
+        let repository = NetworkProfileRepository::new(dir.path().join("network.sqlite")).unwrap();
+        let mut new = sample_profile();
+        new.host = "bad\u{0001}host".to_string();
+        let error = repository.add(new).unwrap_err();
+        assert!(matches!(error, NetworkError::InvalidValue { ref field, .. } if field == "host"));
     }
 }
