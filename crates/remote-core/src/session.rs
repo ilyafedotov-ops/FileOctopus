@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use async_trait::async_trait;
 use config::{NetworkProfile, NetworkProfileRepository};
 use platform::SecretStore;
-use tokio::sync::RwLock;
+use tokio::sync::{broadcast, RwLock};
 
 use crate::error::RemoteError;
 use crate::secrets::AuthSecrets;
@@ -19,6 +19,12 @@ pub enum ConnectionStatus {
     Error { message: String },
 }
 
+#[derive(Debug, Clone)]
+pub struct NetworkStatusEvent {
+    pub profile_id: String,
+    pub status: ConnectionStatus,
+}
+
 #[allow(dead_code)]
 pub struct RemoteSessionHandle {
     pub profile_id: String,
@@ -30,6 +36,10 @@ pub struct RemoteSessionHandle {
 #[async_trait]
 pub trait RemoteSession: Send + Sync {
     async fn ping(&self) -> Result<(), RemoteError>;
+
+    fn observed_host_key_fingerprint(&self) -> Option<&str> {
+        None
+    }
 
     fn as_any(&self) -> &dyn std::any::Any;
 }
@@ -80,6 +90,8 @@ pub struct ConnectionSessionManager {
     connectors: Arc<RwLock<RemoteConnectorRegistry>>,
     sessions: RwLock<HashMap<String, RemoteSessionHandle>>,
     statuses: RwLock<HashMap<String, ConnectionStatus>>,
+    connect_locks: RwLock<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
+    status_tx: broadcast::Sender<NetworkStatusEvent>,
 }
 
 impl ConnectionSessionManager {
@@ -88,13 +100,41 @@ impl ConnectionSessionManager {
         secrets: SecretStore,
         connectors: Arc<RwLock<RemoteConnectorRegistry>>,
     ) -> Self {
+        let (status_tx, _) = broadcast::channel(64);
         Self {
             profiles,
             secrets,
             connectors,
             sessions: RwLock::new(HashMap::new()),
             statuses: RwLock::new(HashMap::new()),
+            connect_locks: RwLock::new(HashMap::new()),
+            status_tx,
         }
+    }
+
+    pub fn subscribe_status(&self) -> broadcast::Receiver<NetworkStatusEvent> {
+        self.status_tx.subscribe()
+    }
+
+    fn publish_status(&self, profile_id: &str, status: ConnectionStatus) {
+        let _ = self.status_tx.send(NetworkStatusEvent {
+            profile_id: profile_id.to_string(),
+            status,
+        });
+    }
+
+    async fn connect_lock(&self, profile_id: &str) -> Arc<tokio::sync::Mutex<()>> {
+        {
+            let locks = self.connect_locks.read().await;
+            if let Some(lock) = locks.get(profile_id) {
+                return lock.clone();
+            }
+        }
+        let mut locks = self.connect_locks.write().await;
+        locks
+            .entry(profile_id.to_string())
+            .or_insert_with(|| Arc::new(tokio::sync::Mutex::new(())))
+            .clone()
     }
 
     pub fn profiles(&self) -> &NetworkProfileRepository {
@@ -119,6 +159,29 @@ impl ConnectionSessionManager {
     }
 
     pub async fn connect(&self, profile_id: &str) -> Result<(), RemoteError> {
+        if self.session_is_alive(profile_id).await {
+            return Ok(());
+        }
+        let lock = self.connect_lock(profile_id).await;
+        let _guard = lock.lock().await;
+        if self.session_is_alive(profile_id).await {
+            return Ok(());
+        }
+        self.force_connect(profile_id).await
+    }
+
+    async fn session_is_alive(&self, profile_id: &str) -> bool {
+        let sessions = self.sessions.read().await;
+        let Some(handle) = sessions.get(profile_id) else {
+            return false;
+        };
+        if handle.last_used.elapsed() >= SESSION_IDLE_TIMEOUT {
+            return false;
+        }
+        handle.inner.ping().await.is_ok()
+    }
+
+    pub async fn force_connect(&self, profile_id: &str) -> Result<(), RemoteError> {
         let profile = self.profiles.get(profile_id)?;
         let connector = self
             .connectors
@@ -138,7 +201,10 @@ impl ConnectionSessionManager {
                     }
                 };
                 self.mark_error(profile_id, &message).await;
-                return Err(RemoteError::AuthenticationFailed { message });
+                return Err(RemoteError::AuthenticationFailed {
+                    uri: format!("sftp://{profile_id}"),
+                    message,
+                });
             }
             Err(error) => {
                 let message = error.to_string();
@@ -149,6 +215,8 @@ impl ConnectionSessionManager {
 
         match connector.connect(&profile, &secrets).await {
             Ok(session) => {
+                let observed_fingerprint =
+                    session.observed_host_key_fingerprint().map(str::to_string);
                 let now = Instant::now();
                 self.sessions.write().await.insert(
                     profile_id.to_string(),
@@ -163,7 +231,13 @@ impl ConnectionSessionManager {
                     .write()
                     .await
                     .insert(profile_id.to_string(), ConnectionStatus::Connected);
+                self.publish_status(profile_id, ConnectionStatus::Connected);
                 let _ = self.profiles.set_connection_state(profile_id, true, None);
+                if let Some(observed) = observed_fingerprint.as_deref() {
+                    if profile.host_key_fingerprint.as_deref() != Some(observed) {
+                        let _ = self.profiles.set_host_key_fingerprint(profile_id, observed);
+                    }
+                }
                 Ok(())
             }
             Err(error) => {
@@ -185,30 +259,52 @@ impl ConnectionSessionManager {
             .write()
             .await
             .insert(profile_id.to_string(), ConnectionStatus::Disconnected);
+        self.publish_status(profile_id, ConnectionStatus::Disconnected);
         Ok(())
+    }
+
+    pub async fn reap_idle_sessions(&self, threshold: Duration) {
+        let stale: Vec<String> = {
+            let sessions = self.sessions.read().await;
+            sessions
+                .iter()
+                .filter(|(_, handle)| handle.last_used.elapsed() >= threshold)
+                .map(|(id, _)| id.clone())
+                .collect()
+        };
+
+        for profile_id in stale {
+            let _ = self.disconnect(&profile_id).await;
+        }
     }
 
     pub async fn session_for_profile(
         &self,
         profile_id: &str,
     ) -> Result<Arc<dyn RemoteSession>, RemoteError> {
-        {
+        let cached: Option<Arc<dyn RemoteSession>> = {
             let sessions = self.sessions.read().await;
-            if let Some(handle) = sessions.get(profile_id) {
-                if handle.last_used.elapsed() < SESSION_IDLE_TIMEOUT {
-                    return Ok(handle.inner.clone());
-                }
+            sessions
+                .get(profile_id)
+                .filter(|handle| handle.last_used.elapsed() < SESSION_IDLE_TIMEOUT)
+                .map(|handle| handle.inner.clone())
+        };
+
+        if let Some(session) = cached {
+            if session.ping().await.is_ok() {
+                return Ok(session);
             }
+            let _ = self.disconnect(profile_id).await;
         }
 
-        self.connect(profile_id).await?;
+        self.force_connect(profile_id).await?;
         self.sessions
             .read()
             .await
             .get(profile_id)
             .map(|handle| handle.inner.clone())
             .ok_or_else(|| RemoteError::NotConnected {
-                profile_id: profile_id.to_string(),
+                uri: format!("sftp://{profile_id}"),
             })
     }
 
@@ -219,15 +315,28 @@ impl ConnectionSessionManager {
     }
 
     pub async fn mark_error(&self, profile_id: &str, message: &str) {
-        self.statuses.write().await.insert(
-            profile_id.to_string(),
-            ConnectionStatus::Error {
-                message: message.to_string(),
-            },
-        );
+        let status = ConnectionStatus::Error {
+            message: message.to_string(),
+        };
+        self.statuses
+            .write()
+            .await
+            .insert(profile_id.to_string(), status.clone());
+        self.publish_status(profile_id, status);
         let _ = self
             .profiles
             .set_connection_state(profile_id, false, Some(message));
         let _ = self.disconnect(profile_id).await;
+    }
+}
+
+const IDLE_REAPER_TICK: Duration = Duration::from_secs(60);
+
+pub async fn run_idle_reaper(manager: Arc<ConnectionSessionManager>) {
+    let mut interval = tokio::time::interval(IDLE_REAPER_TICK);
+    interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
+    loop {
+        interval.tick().await;
+        manager.reap_idle_sessions(SESSION_IDLE_TIMEOUT).await;
     }
 }

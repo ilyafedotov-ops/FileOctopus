@@ -5,6 +5,6 @@ mod session;
 pub use error::RemoteError;
 pub use secrets::{AuthSecrets, MISSING_STORED_PASSWORD};
 pub use session::{
-    ConnectionSessionManager, ConnectionStatus, RemoteConnector, RemoteConnectorRegistry,
-    RemoteSession,
+    run_idle_reaper, ConnectionSessionManager, ConnectionStatus, NetworkStatusEvent,
+    RemoteConnector, RemoteConnectorRegistry, RemoteSession,
 };
