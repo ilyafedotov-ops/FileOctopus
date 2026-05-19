@@ -1479,6 +1479,15 @@ dialog.fo-dialog[open] {
   color: var(--fo-danger);
 }
 
+.fo-volume-picker-section-title {
+  margin: 8px 12px 2px;
+  color: var(--fo-muted-text);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .fo-volume-item {
   display: grid;
   grid-template-columns: 1fr auto auto auto;

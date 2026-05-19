@@ -63,8 +63,7 @@ describe("Sidebar network section", () => {
 
   it("marks profiles without stored credentials", () => {
     renderSidebar(baseProfile);
-    const item = screen.getByTitle("Prod (credentials missing)");
-    expect(item).toBeTruthy();
+    expect(screen.getAllByTitle("Prod (credentials missing)")).toHaveLength(2);
   });
 
   it("reflects connected status in title", () => {
@@ -75,8 +74,7 @@ describe("Sidebar network section", () => {
         message: null,
       },
     ]);
-    const item = screen.getByTitle("Prod (connected)");
-    expect(item).toBeTruthy();
+    expect(screen.getAllByTitle("Prod (connected)")).toHaveLength(2);
   });
 
   it("reflects error status in title", () => {
@@ -87,14 +85,53 @@ describe("Sidebar network section", () => {
         message: "TCP timeout",
       },
     ]);
-    const item = screen.getByTitle("Prod (TCP timeout)");
-    expect(item).toBeTruthy();
+    expect(screen.getAllByTitle("Prod (TCP timeout)")).toHaveLength(2);
   });
 
   it("sets aria-busy while a connect is in flight", () => {
     const profile = { ...baseProfile, hasStoredSecret: true };
     renderSidebar(profile, [], new Set([profile.id]));
-    const item = screen.getByTitle("Prod");
-    expect(item.getAttribute("aria-busy")).toBe("true");
+    const busyItems = screen
+      .getAllByTitle("Prod")
+      .filter((item) => item.getAttribute("aria-busy") === "true");
+    expect(busyItems).toHaveLength(2);
+  });
+
+  it("shows network profiles under Devices / Volumes", () => {
+    renderSidebar(baseProfile);
+    expect(screen.getByText("Network drives")).toBeTruthy();
+    expect(screen.getAllByTitle("Prod (credentials missing)")).toHaveLength(2);
+  });
+
+  it("highlights network profile when browsing inside its tree", () => {
+    const nestedUri = "sftp://550e8400-e29b-41d4-a716-446655440000/var/log";
+    render(
+      <Sidebar
+        locations={[]}
+        networkProfiles={[baseProfile]}
+        networkStatuses={[]}
+        favorites={[]}
+        recentToday={[]}
+        recentWeek={[]}
+        starred={[]}
+        activeUri={nestedUri}
+        busyProfileIds={new Set()}
+        onNavigate={vi.fn()}
+        onAddFavorite={vi.fn()}
+        onRemoveFavorite={vi.fn()}
+        onRenameFavorite={vi.fn()}
+        onRevealFavorite={vi.fn()}
+        onAddServer={vi.fn()}
+        onConnectProfile={vi.fn()}
+        onDisconnectProfile={vi.fn()}
+        onEditProfile={vi.fn()}
+        onDeleteProfile={vi.fn()}
+      />,
+    );
+
+    const activeItems = screen
+      .getAllByTitle("Prod (credentials missing)")
+      .filter((item) => item.classList.contains("fo-sidebar-active"));
+    expect(activeItems).toHaveLength(2);
   });
 });

@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { VolumePickerDialog } from "../src/components/dialogs/VolumePickerDialog";
-import type { VolumeDto, FsClient } from "@fileoctopus/ts-api";
+import type {
+  FsClient,
+  NetworkProfileDto,
+  VolumeDto,
+} from "@fileoctopus/ts-api";
 
 afterEach(cleanup);
 
@@ -185,6 +189,44 @@ describe("VolumePickerDialog", () => {
       />,
     );
     await screen.findByTitle("Removable");
+  });
+
+  it("lists network profiles when discoverVolumes returns empty", async () => {
+    const onClose = vi.fn();
+    const onSelect = vi.fn();
+    const profile: NetworkProfileDto = {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      label: "Prod",
+      scheme: "sftp",
+      host: "prod.example.com",
+      port: 22,
+      username: "deploy",
+      authKind: "password",
+      privateKeyPath: null,
+      defaultPath: "/",
+      defaultUri: "sftp://550e8400-e29b-41d4-a716-446655440000/",
+      hostKeyFingerprint: null,
+      sortOrder: 0,
+      lastConnectedAt: null,
+      lastError: null,
+      hasStoredSecret: true,
+      createdAt: "2026-05-19T00:00:00Z",
+      updatedAt: "2026-05-19T00:00:00Z",
+    };
+
+    render(
+      <VolumePickerDialog
+        open={true}
+        fs={createMockFs([])}
+        networkProfiles={[profile]}
+        onClose={onClose}
+        onSelect={onSelect}
+      />,
+    );
+
+    await screen.findByText("Prod");
+    expect(screen.getByText("sftp")).toBeTruthy();
+    expect(screen.queryByText("No volumes found")).toBeNull();
   });
 
   it("shows network badge for network volumes", async () => {

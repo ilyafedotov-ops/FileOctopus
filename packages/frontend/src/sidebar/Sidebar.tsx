@@ -17,6 +17,11 @@ import {
   useRef,
   useState,
 } from "react";
+import {
+  isDriveTargetActive,
+  networkProfileBadge,
+  networkProfileTitle,
+} from "../navigation/driveTargets";
 
 const STANDARD_SECTION_ORDER = [
   "Favorites",
@@ -124,6 +129,41 @@ export function Sidebar({
     [handleRenameSubmit],
   );
 
+  const renderNetworkProfileItem = (profile: NetworkProfileDto) => {
+    const status = networkStatuses.find(
+      (item) => item.profileId === profile.id,
+    );
+    const networkTarget = {
+      kind: "network" as const,
+      id: profile.id,
+      label: profile.label,
+      uri: profile.defaultUri,
+      profile,
+      status,
+    };
+
+    return (
+      <SidebarItem
+        key={`network-${profile.id}`}
+        icon={Icons.server()}
+        label={profile.label}
+        active={isDriveTargetActive(networkTarget, activeUri)}
+        busy={busyProfileIds.has(profile.id)}
+        badge={networkProfileBadge(profile, status)}
+        onClick={() => onNavigate(profile.defaultUri)}
+        onContextMenu={(event) => {
+          event.preventDefault();
+          setNetworkContextMenu({
+            x: event.clientX,
+            y: event.clientY,
+            profile,
+          });
+        }}
+        title={networkProfileTitle(profile, status)}
+      />
+    );
+  };
+
   return (
     <aside
       className="fo-sidebar"
@@ -147,6 +187,44 @@ export function Sidebar({
       }}
     >
       {STANDARD_SECTION_ORDER.map((section) => {
+        if (section === "Devices/Volumes") {
+          const localItems = grouped[section] ?? [];
+          const hasLocal = localItems.length > 0;
+          const hasNetwork = networkProfiles.length > 0;
+
+          return (
+            <SidebarSection key={section} title={sidebarSectionTitle(section)}>
+              {!hasLocal && !hasNetwork ? (
+                <SidebarEmptyHint>{emptySectionHint(section)}</SidebarEmptyHint>
+              ) : (
+                <>
+                  {!hasLocal ? (
+                    <SidebarEmptyHint>No local volumes</SidebarEmptyHint>
+                  ) : (
+                    localItems.map((item) => (
+                      <SidebarItem
+                        key={item.uri}
+                        icon={locationIcon(item.id)}
+                        label={item.name}
+                        active={item.uri === activeUri}
+                        onClick={() => onNavigate(item.uri)}
+                      />
+                    ))
+                  )}
+                  {hasNetwork ? (
+                    <>
+                      <p className="fo-sidebar-group-label">Network drives</p>
+                      {networkProfiles.map((profile) =>
+                        renderNetworkProfileItem(profile),
+                      )}
+                    </>
+                  ) : null}
+                </>
+              )}
+            </SidebarSection>
+          );
+        }
+
         const items = grouped[section] ?? [];
 
         return (
@@ -172,37 +250,7 @@ export function Sidebar({
         {networkProfiles.length === 0 ? (
           <SidebarEmptyHint>No saved servers</SidebarEmptyHint>
         ) : (
-          networkProfiles.map((profile) => {
-            const status = networkStatuses.find(
-              (item) => item.profileId === profile.id,
-            );
-            return (
-              <SidebarItem
-                key={profile.id}
-                icon={Icons.volume()}
-                label={profile.label}
-                active={profile.defaultUri === activeUri}
-                busy={busyProfileIds.has(profile.id)}
-                badge={
-                  !profile.hasStoredSecret
-                    ? "warning"
-                    : status?.status === "error"
-                      ? "error"
-                      : null
-                }
-                onClick={() => onNavigate(profile.defaultUri)}
-                onContextMenu={(event) => {
-                  event.preventDefault();
-                  setNetworkContextMenu({
-                    x: event.clientX,
-                    y: event.clientY,
-                    profile,
-                  });
-                }}
-                title={profileTitle(profile, status)}
-              />
-            );
-          })
+          networkProfiles.map((profile) => renderNetworkProfileItem(profile))
         )}
         <SidebarItem
           icon={Icons.folderPlus()}
@@ -621,22 +669,6 @@ function SidebarSection({
 
 function SidebarEmptyHint({ children }: { children: ReactNode }) {
   return <p className="fo-sidebar-empty-hint">{children}</p>;
-}
-
-function profileTitle(
-  profile: NetworkProfileDto,
-  status: NetworkConnectionStatusDto | undefined,
-): string {
-  if (!profile.hasStoredSecret) {
-    return `${profile.label} (credentials missing)`;
-  }
-  if (status?.status === "connected") {
-    return `${profile.label} (connected)`;
-  }
-  if (status?.status === "error") {
-    return `${profile.label} (${status.message ?? "error"})`;
-  }
-  return profile.label;
 }
 
 function SidebarItem({
