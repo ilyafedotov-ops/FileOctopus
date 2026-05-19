@@ -43,6 +43,7 @@ export interface CommandDispatchDeps {
   setOperationHistoryOpen: (open: boolean) => void;
   setVolumePickerOpen: (open: boolean) => void;
   setFilterFocusToken: Dispatch<SetStateAction<number>>;
+  setRecursiveSearchFocusToken: Dispatch<SetStateAction<number>>;
   activityCollapsed: boolean;
   setActivityCollapsed: (collapsed: boolean) => void;
   markActivityPinnedOpen?: () => void;

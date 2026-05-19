@@ -264,6 +264,57 @@ describe("dispatchCommand", () => {
     expect(removeRecentEntry).not.toHaveBeenCalled();
   });
 
+  it("sets theme via preferences.theme", () => {
+    const setTheme = vi.fn();
+    const updatePreference = vi.fn();
+    dispatchCommand(
+      "preferences.theme",
+      baseDeps({ setTheme, updatePreference }),
+      { preferenceValue: "dark" },
+    );
+
+    expect(setTheme).toHaveBeenCalledWith("dark");
+    expect(updatePreference).toHaveBeenCalledWith("theme", "dark");
+  });
+
+  it("sets density via preferences.density", () => {
+    const setDensity = vi.fn();
+    const updatePreference = vi.fn();
+    dispatchCommand(
+      "preferences.density",
+      baseDeps({ setDensity, updatePreference }),
+      { preferenceValue: "spacious" },
+    );
+
+    expect(setDensity).toHaveBeenCalledWith("spacious");
+    expect(updatePreference).toHaveBeenCalledWith("density", "spacious");
+  });
+
+  it("sets ascending sort when direction differs", () => {
+    const state = createInitialState();
+    state.panels.left.tabs.main.sort.direction = "desc";
+    const dispatch = vi.fn();
+    dispatchCommand("view.sortAscending", baseDeps({ state, dispatch }));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "setSort",
+      panelId: "left",
+      field: "name",
+    });
+  });
+
+  it("sets descending sort when direction differs", () => {
+    const state = createInitialState();
+    const dispatch = vi.fn();
+    dispatchCommand("view.sortDescending", baseDeps({ state, dispatch }));
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "setSort",
+      panelId: "left",
+      field: "name",
+    });
+  });
+
   it("delegates properties to handleProperties with the active panel", () => {
     const handleProperties = vi.fn();
     const handled = dispatchCommand(
