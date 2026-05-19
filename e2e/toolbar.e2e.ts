@@ -74,6 +74,19 @@ test.describe("Toolbar — visibility and structure", () => {
     await expect(toolbar.getByRole("button", { name: "Drives" })).toBeVisible();
   });
 
+  test("toolbar adapts without horizontal clipping", async ({ page }) => {
+    const toolbar = workbenchToolbar(page);
+    const metrics = await toolbar.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      clientHeight: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+    }));
+
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.clientWidth + 1);
+    expect(metrics.scrollHeight).toBeLessThanOrEqual(metrics.clientHeight + 1);
+  });
+
   test("More menu exposes New File", async ({ page }) => {
     await openMoreMenu(page);
     await expect(

@@ -189,8 +189,9 @@
   container-type: inline-size;
   container-name: pane-toolbar;
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
+  align-content: center;
   gap: 4px;
   min-width: 0;
   min-height: var(--fo-toolbar-height);
@@ -209,8 +210,9 @@
 }
 
 .fo-toolbar-spacer {
-  flex: 1 1 auto;
-  min-width: 8px;
+  flex: 0 0 0;
+  width: 0;
+  min-width: 0;
 }
 
 .fo-toolbar-search {
@@ -987,7 +989,8 @@
 
 .fo-operation-toolbar .fo-ui-btn,
 .fo-operation-toolbar .fo-ui-dropdown {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .fo-operation-toolbar .fo-ui-btn {
@@ -999,6 +1002,7 @@
   background: var(--fo-classic-face);
   color: var(--fo-classic-text);
   box-shadow: none;
+  max-width: 10rem;
 }
 
 .fo-operation-toolbar .fo-ui-btn:hover:not(:disabled),
@@ -1085,13 +1089,31 @@
 
 .fo-toolbar-group-commander {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 3px;
+  overflow: visible;
 }
 
 .fo-toolbar-group-commander .fo-ui-toolbar-btn {
   gap: 4px;
   padding: 0 6px;
+}
+
+.fo-toolbar-group-overflow {
+  margin-left: auto;
+}
+
+.fo-toolbar-group-overflow .fo-ui-btn {
+  gap: 2px;
+  padding: 0 3px;
+}
+
+.fo-toolbar-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fo-toolbar-group-nav .fo-toolbar-nav-btn {
@@ -1117,6 +1139,13 @@
 .fo-toolbar-group-tail {
   flex: 0 1 auto;
   overflow: hidden;
+}
+
+.fo-toolbar-group-archive .fo-ui-btn,
+.fo-toolbar-group-search .fo-ui-btn,
+.fo-toolbar-group-tail .fo-ui-btn,
+.fo-toolbar-group-overflow .fo-ui-btn {
+  max-width: 7.5rem;
 }
 
 .fo-toolbar-active-jobs {
@@ -1189,6 +1218,18 @@
 
 .fo-operation-toolbar[data-overflow-tier="comfortable"]
   .fo-toolbar-group-commander
+  .fo-toolbar-label,
+.fo-operation-toolbar[data-overflow-tier="full"]
+  .fo-toolbar-group-archive
+  .fo-toolbar-label,
+.fo-operation-toolbar[data-overflow-tier="full"]
+  .fo-toolbar-group-search
+  .fo-toolbar-label,
+.fo-operation-toolbar[data-overflow-tier="full"]
+  .fo-toolbar-group-tail
+  .fo-toolbar-label,
+.fo-operation-toolbar[data-overflow-tier="full"]
+  .fo-toolbar-group-overflow
   .fo-toolbar-label,
 .fo-operation-toolbar[data-overflow-tier="comfortable"]
   .fo-toolbar-group-archive
