@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Button } from "./Button";
 import { DropdownMenu, type DropdownMenuItem } from "./DropdownMenu";
 import { Icons } from "./icons";
@@ -16,6 +17,7 @@ export interface BreadcrumbPathProps {
     segment: BreadcrumbSegment,
     event: React.MouseEvent,
   ) => void;
+  leading?: ReactNode;
   maxVisible?: number;
 }
 
@@ -24,6 +26,7 @@ export function BreadcrumbPath({
   onNavigate,
   onEditPath,
   onSegmentContextMenu,
+  leading,
   maxVisible,
 }: BreadcrumbPathProps) {
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -50,6 +53,7 @@ export function BreadcrumbPath({
 
   return (
     <div className="fo-breadcrumb">
+      {leading}
       <div className="fo-breadcrumb-segments">
         <Button
           key={visibleSegments[0].path}

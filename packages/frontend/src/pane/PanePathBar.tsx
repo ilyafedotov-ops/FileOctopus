@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { BreadcrumbPath } from "@fileoctopus/ui";
+import { BreadcrumbPath, Icons } from "@fileoctopus/ui";
+import { isRemoteUri, uriScheme } from "@fileoctopus/ts-api";
 import { breadcrumbSegments } from "../utils/paneUtils";
 
 export interface PathBarProps {
@@ -42,6 +43,8 @@ export function PathBar({
       label: segment.label,
       path: segment.uri,
     }));
+    const remoteScheme = isRemoteUri(value) ? uriScheme(value) : null;
+    const remoteLabel = remoteScheme ? remoteScheme.toUpperCase() : null;
 
     return (
       <div
@@ -57,6 +60,17 @@ export function PathBar({
             onBreadcrumbContextMenu
               ? (segment, e) => onBreadcrumbContextMenu(segment.path, e)
               : undefined
+          }
+          leading={
+            remoteLabel ? (
+              <span
+                className="fo-breadcrumb-remote"
+                title={`Remote ${remoteLabel} location: ${value}`}
+              >
+                {Icons.server()}
+                <span>{remoteLabel}</span>
+              </span>
+            ) : undefined
           }
           maxVisible={4}
         />

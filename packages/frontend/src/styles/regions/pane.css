@@ -132,7 +132,7 @@
   justify-content: space-between;
   min-height: var(--fo-pathbar-height);
   padding: 0;
-  background: var(--fo-classic-title);
+  background: transparent;
   border-bottom: 1px solid var(--fo-classic-dark);
   font-size: 12px;
   font-weight: 700;
@@ -315,6 +315,22 @@
   gap: 2px;
   min-width: 0;
   overflow: hidden;
+}
+
+.fo-breadcrumb-remote {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  height: calc(var(--fo-pathbar-height) - 2px);
+  padding: 0 6px;
+  border-right: 1px solid var(--fo-classic-shadow);
+  background: var(--fo-classic-title);
+  color: var(--fo-classic-light);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
 }
 
 .fo-breadcrumb-segments button + button::before {
@@ -1022,7 +1038,8 @@
 
 .fo-panel-title-row .fo-breadcrumb button,
 .fo-panel-title-row .fo-breadcrumb-current,
-.fo-panel-title-row .fo-breadcrumb-segments button + button::before {
+.fo-panel-title-row .fo-breadcrumb-segments button + button::before,
+.fo-panel-title-row .fo-breadcrumb-remote {
   color: var(--fo-classic-light);
 }
 
@@ -1036,7 +1053,8 @@
   .fo-panel-title-row
   .fo-breadcrumb-segments
   button
-  + button::before {
+  + button::before,
+.fo-panel[data-active="false"] .fo-panel-title-row .fo-breadcrumb-remote {
   color: var(--fo-classic-text);
 }
 

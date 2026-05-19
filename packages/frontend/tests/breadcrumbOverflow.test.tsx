@@ -1,6 +1,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BreadcrumbPath, type BreadcrumbSegment } from "@fileoctopus/ui";
+import { PathBar } from "../src/pane/PanePathBar";
 
 afterEach(cleanup);
 
@@ -152,5 +153,24 @@ describe("BreadcrumbPath overflow", () => {
     );
 
     expect(screen.getByLabelText("Edit current path")).toBeTruthy();
+  });
+
+  it("marks remote sftp paths before local-looking segments", () => {
+    render(
+      <PathBar
+        value="sftp://550e8400-e29b-41d4-a716-446655440000/home/ilya/Documents"
+        error={null}
+        focusToken={0}
+        onSubmit={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("SFTP")).toBeTruthy();
+    expect(
+      screen.getByTitle(
+        "Remote SFTP location: sftp://550e8400-e29b-41d4-a716-446655440000/home/ilya/Documents",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("home")).toBeTruthy();
   });
 });
