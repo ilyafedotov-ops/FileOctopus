@@ -1,5 +1,3 @@
-use std::fs::File;
-use std::io::Read;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -12,9 +10,9 @@ use app_ipc::{
     ReadTextFileRequest, ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse,
     StatRequest, StatResponse, DIRECTORY_BATCH_EVENT,
 };
-use fs_core::{external_open, locations, metadata};
+use fs_core::{external_open, locations, metadata, vfs_io::VfsFilesystem};
 use tauri::{AppHandle, State};
-use vfs::{ListOptions, ListSessionId, ResourceUri, VfsError};
+use vfs::{FileKind, ListOptions, ListSessionId, ResourceUri, VfsError};
 
 use crate::emit::emit_with_eval;
 use crate::state::ListingRegistry;
@@ -39,36 +37,33 @@ pub async fn fs_stat(
 #[tauri::command]
 pub async fn fs_read_text_file(
     request: ReadTextFileRequest,
-    _state: State<'_, Arc<AppState>>,
+    state: State<'_, Arc<AppState>>,
 ) -> Result<ReadTextFileResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
-    let path = uri.to_local_path().map_err(IpcError::from)?;
+    let entry = state.vfs().stat(&uri).await.map_err(IpcError::from)?;
 
-    let metadata = std::fs::metadata(&path).map_err(|e| IpcError::io(e.to_string()))?;
-
-    if metadata.is_dir() {
+    if entry.kind == FileKind::Directory {
         return Err(IpcError::is_directory("cannot read a directory as text"));
     }
 
-    let file_size = metadata.len();
+    let file_size = entry.size;
     let max_bytes = request.max_bytes.unwrap_or(1_048_576); // 1 MB default
-    let read_len = if file_size > max_bytes {
-        max_bytes
-    } else {
-        file_size
-    };
+    let read_len = file_size
+        .map(|size| size.min(max_bytes))
+        .unwrap_or(max_bytes);
 
-    let mut buf = vec![0u8; read_len as usize];
-    let mut f = File::open(&path).map_err(|e| IpcError::io(e.to_string()))?;
-    f.read_exact(&mut buf)
-        .map_err(|e| IpcError::io(e.to_string()))?;
+    let vfs = VfsFilesystem::with_sessions(state.sessions());
+    let buf = vfs
+        .read_file_prefix(&uri, read_len)
+        .map_err(IpcError::from)?;
+    let byte_size = file_size.unwrap_or(buf.len() as u64);
 
     let content = String::from_utf8_lossy(&buf).to_string();
 
     Ok(ReadTextFileResponse {
         content,
-        truncated: file_size > max_bytes,
-        byte_size: file_size,
+        truncated: byte_size > max_bytes,
+        byte_size,
     })
 }
 
@@ -326,35 +321,35 @@ fn mime_for_extension(ext: &str) -> &'static str {
 #[tauri::command]
 pub async fn fs_read_image_as_data_uri(
     request: ReadImageAsDataUriRequest,
-    _state: State<'_, Arc<AppState>>,
+    state: State<'_, Arc<AppState>>,
 ) -> Result<ReadImageAsDataUriResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
-    let path = uri.to_local_path().map_err(IpcError::from)?;
+    let entry = state.vfs().stat(&uri).await.map_err(IpcError::from)?;
 
-    let metadata = std::fs::metadata(&path).map_err(|e| IpcError::io(e.to_string()))?;
-
-    if metadata.is_dir() {
+    if entry.kind == FileKind::Directory {
         return Err(IpcError::is_directory("cannot read a directory as image"));
     }
 
-    let file_size = metadata.len();
-    if file_size > MAX_IMAGE_BYTES {
+    if entry.size.is_some_and(|size| size > MAX_IMAGE_BYTES) {
         return Err(IpcError::file_too_large(format!(
             "image file too large: {} bytes (max {} bytes)",
-            file_size, MAX_IMAGE_BYTES
+            entry.size.unwrap_or(0),
+            MAX_IMAGE_BYTES
         )));
     }
 
-    let mut buf = vec![0u8; file_size as usize];
-    let mut f = File::open(&path).map_err(|e| IpcError::io(e.to_string()))?;
-    f.read_exact(&mut buf)
-        .map_err(|e| IpcError::io(e.to_string()))?;
+    let vfs = VfsFilesystem::with_sessions(state.sessions());
+    let read_len = entry.size.unwrap_or(MAX_IMAGE_BYTES);
+    let buf = vfs
+        .read_file_prefix(&uri, read_len)
+        .map_err(IpcError::from)?;
+    let byte_size = entry.size.unwrap_or(buf.len() as u64);
 
     let b64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &buf);
 
-    let ext = path
-        .extension()
-        .and_then(|e| e.to_str())
+    let ext = entry
+        .extension
+        .as_deref()
         .map(|e| format!(".{}", e.to_lowercase()))
         .unwrap_or_default();
 
@@ -362,7 +357,7 @@ pub async fn fs_read_image_as_data_uri(
 
     Ok(ReadImageAsDataUriResponse {
         data_uri: format!("data:{};base64,{}", mime, b64),
-        byte_size: file_size,
+        byte_size,
         mime_type: mime.to_string(),
     })
 }

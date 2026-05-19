@@ -5,8 +5,8 @@ use std::sync::Arc;
 
 use provider_sftp::{
     create_empty_file_blocking, download_file_blocking, list_directory_blocking, mkdir_blocking,
-    remove_dir_blocking, remove_file_blocking, rename_blocking, stat_path_blocking,
-    upload_file_blocking, SftpSession, TRANSFER_CHUNK_SIZE,
+    read_file_prefix_blocking, remove_dir_blocking, remove_file_blocking, rename_blocking,
+    stat_path_blocking, upload_file_blocking, SftpSession, TRANSFER_CHUNK_SIZE,
 };
 use remote_core::ConnectionSessionManager;
 use vfs::{FileKind, FileOperationError, ResourceUri};
@@ -86,6 +86,28 @@ impl VfsFilesystem {
         let entry =
             stat_path_blocking(&session, uri, &remote_path).map_err(FileOperationError::from)?;
         Ok(entry.size.unwrap_or(0))
+    }
+
+    pub fn read_file_prefix(
+        &self,
+        uri: &ResourceUri,
+        max_bytes: u64,
+    ) -> Result<Vec<u8>, FileOperationError> {
+        if uri.scheme() == "local" {
+            let path = uri.to_local_path()?;
+            let mut file = File::open(&path).map_err(|error| map_local_io(uri, error))?;
+            let mut buffer = vec![0_u8; max_bytes as usize];
+            let read = file
+                .read(&mut buffer)
+                .map_err(|error| map_local_io(uri, error))?;
+            buffer.truncate(read);
+            return Ok(buffer);
+        }
+
+        let session = self.sftp_session(uri)?;
+        let remote_path = remote_path(uri)?;
+        read_file_prefix_blocking(&session, uri, &remote_path, max_bytes)
+            .map_err(FileOperationError::from)
     }
 
     pub fn mkdir(&self, uri: &ResourceUri) -> Result<(), FileOperationError> {
@@ -369,11 +391,11 @@ impl VfsFilesystem {
         items: &mut Vec<vfs::FileOperationItem>,
         warnings: &mut Vec<vfs::FileOperationWarning>,
     ) -> Result<(), FileOperationError> {
-        let entries = list_directory_blocking(session, source_uri, source_path, false)
-            .map_err(FileOperationError::from)?;
         let kind = self.stat_kind(source_uri)?;
 
         if kind == FileKind::Directory {
+            let entries = list_directory_blocking(session, source_uri, source_path, false)
+                .map_err(FileOperationError::from)?;
             let dest_uri = ResourceUri::from_remote_profile("sftp", dest_profile, dest_path)
                 .map_err(FileOperationError::from)?;
             items.push(vfs::FileOperationItem {

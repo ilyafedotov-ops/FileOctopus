@@ -135,6 +135,38 @@ pub fn download_file_blocking(
     Ok(total)
 }
 
+pub fn read_file_prefix_blocking(
+    session: &SftpSession,
+    source_uri: &vfs::ResourceUri,
+    source_path: &str,
+    max_bytes: u64,
+) -> Result<Vec<u8>, VfsError> {
+    let guard = session.lock_session().map_err(VfsError::from)?;
+    let sftp = guard.sftp().map_err(map_ssh_error)?;
+    let mut source = sftp
+        .open(Path::new(source_path))
+        .map_err(|error| map_stat_error(source_uri, error))?;
+    let mut buffer = vec![0_u8; TRANSFER_CHUNK_SIZE.min(max_bytes as usize)];
+    let mut output = Vec::with_capacity(buffer.len());
+
+    while output.len() < max_bytes as usize {
+        let remaining = max_bytes as usize - output.len();
+        let read_len = buffer.len().min(remaining);
+        if read_len == 0 {
+            break;
+        }
+        let read = source
+            .read(&mut buffer[..read_len])
+            .map_err(|error| VfsError::internal(&error.to_string()))?;
+        if read == 0 {
+            break;
+        }
+        output.extend_from_slice(&buffer[..read]);
+    }
+
+    Ok(output)
+}
+
 pub fn capabilities_from_perm(perm: Option<u32>, kind: vfs::FileKind) -> vfs::EntryCapabilities {
     let Some(perm) = perm else {
         return match kind {
