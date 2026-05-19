@@ -358,6 +358,7 @@ impl VfsFilesystem {
         Ok(items)
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn walk_sftp_copy(
         &self,
         session: &SftpSession,
@@ -602,7 +603,7 @@ fn collect_local_copy_items(
 }
 
 fn collect_local_to_remote_copy_items(
-    vfs: &VfsFilesystem,
+    _vfs: &VfsFilesystem,
     source: &ResourceUri,
     destination_dir: &ResourceUri,
     warnings: &mut Vec<vfs::FileOperationWarning>,
@@ -626,15 +627,7 @@ fn collect_local_to_remote_copy_items(
             size: None,
             recursive: true,
         });
-        walk_local_to_remote(
-            vfs,
-            &source_path,
-            source,
-            dest_profile,
-            &dest_base,
-            &mut items,
-            warnings,
-        )?;
+        walk_local_to_remote(&source_path, source, dest_profile, &dest_base, &mut items)?;
     } else {
         let name = source_path
             .file_name()
@@ -657,13 +650,11 @@ fn collect_local_to_remote_copy_items(
 }
 
 fn walk_local_to_remote(
-    vfs: &VfsFilesystem,
     source_path: &Path,
     source_uri: &ResourceUri,
     dest_profile: &str,
     dest_path: &str,
     items: &mut Vec<vfs::FileOperationItem>,
-    warnings: &mut Vec<vfs::FileOperationWarning>,
 ) -> Result<(), FileOperationError> {
     for entry in fs::read_dir(source_path).map_err(|error| map_local_io(source_uri, error))? {
         let entry = entry.map_err(|error| map_local_io(source_uri, error))?;
@@ -678,13 +669,11 @@ fn walk_local_to_remote(
             .map_err(|error| map_local_io(&child_source_uri, error))?;
         if metadata.is_dir() {
             walk_local_to_remote(
-                vfs,
                 &child_source_path,
                 &child_source_uri,
                 dest_profile,
                 &child_dest_path,
                 items,
-                warnings,
             )?;
         } else if metadata.is_file() {
             let child_dest_uri =
@@ -706,7 +695,7 @@ fn collect_remote_to_local_copy_items(
     vfs: &VfsFilesystem,
     source: &ResourceUri,
     destination_dir: &ResourceUri,
-    warnings: &mut Vec<vfs::FileOperationWarning>,
+    _warnings: &mut Vec<vfs::FileOperationWarning>,
 ) -> Result<Vec<vfs::FileOperationItem>, FileOperationError> {
     let session = vfs.sftp_session(source)?;
     let source_path = remote_path(source)?;
@@ -720,11 +709,11 @@ fn collect_remote_to_local_copy_items(
         &dest_path,
         destination_dir,
         &mut items,
-        warnings,
     )?;
     Ok(items)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn walk_remote_to_local(
     vfs: &VfsFilesystem,
     session: &SftpSession,
@@ -733,7 +722,6 @@ fn walk_remote_to_local(
     dest_dir: &Path,
     _dest_dir_uri: &ResourceUri,
     items: &mut Vec<vfs::FileOperationItem>,
-    warnings: &mut Vec<vfs::FileOperationWarning>,
 ) -> Result<(), FileOperationError> {
     let kind = vfs.stat_kind(source_uri)?;
     if kind == FileKind::Directory {
@@ -770,7 +758,6 @@ fn walk_remote_to_local(
                 &child_dest,
                 &child_dest_uri,
                 items,
-                warnings,
             )?;
         }
     } else {
@@ -790,6 +777,5 @@ fn walk_remote_to_local(
             recursive: false,
         });
     }
-    let _ = warnings;
     Ok(())
 }
