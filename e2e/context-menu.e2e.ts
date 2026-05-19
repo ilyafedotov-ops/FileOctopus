@@ -3,13 +3,13 @@ import { expect, test } from "@playwright/test";
 /**
  * E2E tests for the right-click context menu in FileOctopus.
  *
- * The ContextMenu component renders a single unified menu structure.
- * Items are disabled (but still visible) when the menu is triggered from
- * empty space rather than from a file/folder row. This test suite verifies:
- *   - Menu visibility and ARIA roles
- *   - Item groups and separator positions
- *   - Disabled state for file-only actions when invoked from empty space
- *   - Submenu structure (Sort by…)
+ * The ContextMenu component renders two different menu structures:
+ *   - File entry menu: when right-clicking on a file/directory row
+ *   - Pane background menu: when right-clicking on empty space
+ *
+ * The file entry menu has many items (Open, Cut, Copy, Paste, Pack/Unpack,
+ * view modes, Sort submenu, etc.) while the pane background menu is simpler
+ * (Paste, New Folder, New File, Refresh, Show/Hide Hidden, Properties).
  */
 
 const MENU_SELECTOR = ".fo-context-menu";
@@ -21,14 +21,9 @@ const SORT_SUBMENU_SELECTOR = ".fo-context-submenu";
 test.describe("Context Menu", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    // Wait for the app shell to render
     await page.waitForSelector(".fo-panel");
   });
 
-  /**
-   * Helper: open context menu by right-clicking on empty space in a panel.
-   * The FileTable shell (`.fo-table-shell`) handles onContextMenu with null entry.
-   */
   async function openContextMenuOnEmptySpace(
     page: import("@playwright/test").Page,
   ) {
@@ -37,10 +32,6 @@ test.describe("Context Menu", () => {
     await expect(page.locator(MENU_SELECTOR)).toBeVisible();
   }
 
-  /**
-   * Helper: open context menu by right-clicking on a file row.
-   * If no file rows exist (empty directory), falls back to empty-space click.
-   */
   async function openContextMenuOnFileRow(
     page: import("@playwright/test").Page,
   ) {
@@ -61,9 +52,6 @@ test.describe("Context Menu", () => {
     await expect(page.locator(MENU_SELECTOR)).toBeVisible();
   }
 
-  /**
-   * Helper: get all visible menu item texts in order (excluding sort submenu items).
-   */
   async function getMenuItemTexts(
     page: import("@playwright/test").Page,
   ): Promise<string[]> {
@@ -97,24 +85,22 @@ test.describe("Context Menu", () => {
     const menu = page.locator(MENU_SELECTOR);
     await expect(menu).toHaveAttribute("role", "menu");
 
-    // Verify menu items have role="menuitem"
     const items = menu.locator(`> ${ITEM_SELECTOR}`);
     const itemCount = await items.count();
     expect(itemCount).toBeGreaterThan(0);
 
-    // Each direct child button should have role="menuitem"
     for (let i = 0; i < itemCount; i++) {
       await expect(items.nth(i)).toHaveAttribute("role", "menuitem");
     }
   });
 
   test("separators have role=separator", async ({ page }) => {
-    await openContextMenuOnEmptySpace(page);
+    await openContextMenuOnFileRow(page);
 
     const separators = page.locator(`${MENU_SELECTOR} > ${SEPARATOR_SELECTOR}`);
     const sepCount = await separators.count();
-    // The component renders at least 5 separators
-    expect(sepCount).toBeGreaterThanOrEqual(5);
+    // The file entry menu renders at least 4 separators
+    expect(sepCount).toBeGreaterThanOrEqual(4);
 
     for (let i = 0; i < sepCount; i++) {
       await expect(separators.nth(i)).toHaveAttribute("role", "separator");
@@ -131,20 +117,22 @@ test.describe("Context Menu", () => {
     expect(firstItemText?.trim()).toBe("Open");
   });
 
-  test("contains file action group: Open, Rename", async ({ page }) => {
+  test("contains file action group: Open, Rename…", async ({ page }) => {
     await openContextMenuOnFileRow(page);
 
     const texts = await getMenuItemTexts(page);
     const trimmed = texts.map((t) => t.trim());
 
     expect(trimmed).toContain("Open");
-    expect(trimmed).toContain("Rename");
+    const hasRename = trimmed.some((t) => t.startsWith("Rename"));
+    expect(hasRename).toBe(true);
 
-    // Open comes before Rename
-    expect(trimmed.indexOf("Open")).toBeLessThan(trimmed.indexOf("Rename"));
+    const openIdx = trimmed.indexOf("Open");
+    const renameIdx = trimmed.findIndex((t) => t.startsWith("Rename"));
+    expect(openIdx).toBeLessThan(renameIdx);
   });
 
-  test("contains clipboard group: Copy, Cut, Paste", async ({ page }) => {
+  test("contains clipboard group: Cut, Copy, Paste", async ({ page }) => {
     await openContextMenuOnFileRow(page);
 
     const texts = await getMenuItemTexts(page);
@@ -152,14 +140,16 @@ test.describe("Context Menu", () => {
 
     expect(trimmed).toContain("Copy");
     expect(trimmed).toContain("Cut");
-    expect(trimmed).toContain("Paste");
+    // Paste may be "Paste" or "Paste Into Folder" depending on entry type
+    const hasPaste = trimmed.some((t) => t.startsWith("Paste"));
+    expect(hasPaste).toBe(true);
 
-    // Copy, Cut, Paste appear in order
+    // Cut, Copy, Paste appear in order (Cut before Copy)
     const copyIdx = trimmed.indexOf("Copy");
     const cutIdx = trimmed.indexOf("Cut");
-    const pasteIdx = trimmed.indexOf("Paste");
-    expect(copyIdx).toBeLessThan(cutIdx);
-    expect(cutIdx).toBeLessThan(pasteIdx);
+    const pasteIdx = trimmed.findIndex((t) => t.startsWith("Paste"));
+    expect(cutIdx).toBeLessThan(copyIdx);
+    expect(copyIdx).toBeLessThan(pasteIdx);
   });
 
   test("contains create group: New Folder, New File", async ({ page }) => {
@@ -171,13 +161,12 @@ test.describe("Context Menu", () => {
     expect(trimmed).toContain("New Folder");
     expect(trimmed).toContain("New File");
 
-    // New Folder comes before New File
     expect(trimmed.indexOf("New Folder")).toBeLessThan(
       trimmed.indexOf("New File"),
     );
   });
 
-  test("contains delete group: Move to Trash, Delete Permanently", async ({
+  test("contains delete group: Move to Trash…, Delete Permanently…", async ({
     page,
   }) => {
     await openContextMenuOnFileRow(page);
@@ -185,15 +174,19 @@ test.describe("Context Menu", () => {
     const texts = await getMenuItemTexts(page);
     const trimmed = texts.map((t) => t.trim());
 
-    expect(trimmed).toContain("Move to Trash");
-    expect(trimmed).toContain("Delete Permanently");
+    const hasTrash = trimmed.some((t) => t.startsWith("Move to Trash"));
+    const hasDelete = trimmed.some((t) => t.startsWith("Delete Permanently"));
+    expect(hasTrash).toBe(true);
+    expect(hasDelete).toBe(true);
 
-    expect(trimmed.indexOf("Move to Trash")).toBeLessThan(
-      trimmed.indexOf("Delete Permanently"),
+    const trashIdx = trimmed.findIndex((t) => t.startsWith("Move to Trash"));
+    const deleteIdx = trimmed.findIndex((t) =>
+      t.startsWith("Delete Permanently"),
     );
+    expect(trashIdx).toBeLessThan(deleteIdx);
   });
 
-  test("contains info group: Copy Path, Copy Name, Properties", async ({
+  test("contains info group: Copy Path, Copy Name, Properties…", async ({
     page,
   }) => {
     await openContextMenuOnFileRow(page);
@@ -203,10 +196,11 @@ test.describe("Context Menu", () => {
 
     expect(trimmed).toContain("Copy Path");
     expect(trimmed).toContain("Copy Name");
-    expect(trimmed).toContain("Properties");
+    const hasProperties = trimmed.some((t) => t.startsWith("Properties"));
+    expect(hasProperties).toBe(true);
   });
 
-  test("contains additional tools: Reveal, Compress…, Extract…, Open Terminal, Checksum…, Add Star", async ({
+  test("contains additional tools: Reveal, Pack…, Unpack…, Open Terminal, Checksum…, Add Star", async ({
     page,
   }) => {
     await openContextMenuOnFileRow(page);
@@ -214,28 +208,37 @@ test.describe("Context Menu", () => {
     const texts = await getMenuItemTexts(page);
     const trimmed = texts.map((t) => t.trim());
 
-    expect(trimmed).toContain("Reveal");
-    expect(trimmed).toContain("Compress…");
-    expect(trimmed).toContain("Extract…");
+    const hasReveal = trimmed.some((t) => t.includes("Reveal"));
+    expect(hasReveal).toBe(true);
+    expect(trimmed).toContain("Pack…");
+    expect(trimmed).toContain("Unpack…");
     expect(trimmed).toContain("Open Terminal");
     expect(trimmed).toContain("Checksum…");
-    // Star label depends on isStarred state — accept either
     const hasStarItem =
       trimmed.includes("Add Star") || trimmed.includes("Remove Star");
     expect(hasStarItem).toBe(true);
   });
 
-  test("contains Open With Default App item", async ({ page }) => {
+  test("contains Open With Default App or Open in Other Pane item", async ({
+    page,
+  }) => {
     await openContextMenuOnFileRow(page);
 
     const texts = await getMenuItemTexts(page);
     const trimmed = texts.map((t) => t.trim());
 
-    expect(trimmed).toContain("Open With Default App");
+    // Directories show "Open in Other Pane", files show "Open With Default App"
+    const hasOpenWith =
+      trimmed.includes("Open With Default App") ||
+      trimmed.includes("Open in Other Pane");
+    expect(hasOpenWith).toBe(true);
 
-    // Open With Default App appears after Open
+    // Appears after Open
     const openIdx = trimmed.indexOf("Open");
-    const openWithIdx = trimmed.indexOf("Open With Default App");
+    const openWithIdx = Math.max(
+      trimmed.indexOf("Open With Default App"),
+      trimmed.indexOf("Open in Other Pane"),
+    );
     expect(openIdx).toBeLessThan(openWithIdx);
   });
 
@@ -248,7 +251,6 @@ test.describe("Context Menu", () => {
     expect(trimmed).toContain("Copy To…");
     expect(trimmed).toContain("Move To…");
 
-    // Copy To comes before Move To
     expect(trimmed.indexOf("Copy To…")).toBeLessThan(
       trimmed.indexOf("Move To…"),
     );
@@ -265,7 +267,6 @@ test.describe("Context Menu", () => {
     expect(trimmed).toContain("Copy Parent Folder Path");
     expect(trimmed).toContain("Copy Resource URI");
 
-    // Both appear after Copy Name
     const copyNameIdx = trimmed.indexOf("Copy Name");
     const parentPathIdx = trimmed.indexOf("Copy Parent Folder Path");
     const uriIdx = trimmed.indexOf("Copy Resource URI");
@@ -273,7 +274,20 @@ test.describe("Context Menu", () => {
     expect(copyNameIdx).toBeLessThan(uriIdx);
   });
 
-  test("contains view & selection group: Refresh, Show Hidden Files, Select All", async ({
+  test("contains view & selection group: Refresh, Select All, Clear Selection", async ({
+    page,
+  }) => {
+    await openContextMenuOnFileRow(page);
+
+    const texts = await getMenuItemTexts(page);
+    const trimmed = texts.map((t) => t.trim());
+
+    expect(trimmed).toContain("Refresh");
+    expect(trimmed).toContain("Select All");
+    expect(trimmed).toContain("Clear Selection");
+  });
+
+  test("pane background menu contains Refresh and Show Hidden Files", async ({
     page,
   }) => {
     await openContextMenuOnEmptySpace(page);
@@ -282,23 +296,20 @@ test.describe("Context Menu", () => {
     const trimmed = texts.map((t) => t.trim());
 
     expect(trimmed).toContain("Refresh");
-    // Label toggles between "Show Hidden Files" and "Hide Hidden Files"
     const hasHiddenToggle =
       trimmed.includes("Show Hidden Files") ||
       trimmed.includes("Hide Hidden Files");
     expect(hasHiddenToggle).toBe(true);
-    expect(trimmed).toContain("Select All");
   });
 
-  test("contains Clear Selection item", async ({ page }) => {
-    await openContextMenuOnEmptySpace(page);
+  test("contains Clear Selection item in file entry menu", async ({ page }) => {
+    await openContextMenuOnFileRow(page);
 
     const texts = await getMenuItemTexts(page);
     const trimmed = texts.map((t) => t.trim());
 
     expect(trimmed).toContain("Clear Selection");
 
-    // Clear Selection appears after Select All
     const selectAllIdx = trimmed.indexOf("Select All");
     const clearIdx = trimmed.indexOf("Clear Selection");
     expect(selectAllIdx).toBeLessThan(clearIdx);
@@ -307,7 +318,7 @@ test.describe("Context Menu", () => {
   test("contains view mode group: Details View, List View, Icon View, Columns View", async ({
     page,
   }) => {
-    await openContextMenuOnEmptySpace(page);
+    await openContextMenuOnFileRow(page);
 
     const texts = await getMenuItemTexts(page);
     const trimmed = texts.map((t) => t.trim());
@@ -317,7 +328,6 @@ test.describe("Context Menu", () => {
     expect(trimmed).toContain("Icon View");
     expect(trimmed).toContain("Columns View");
 
-    // View modes appear in this order
     const detailsIdx = trimmed.indexOf("Details View");
     const listIdx = trimmed.indexOf("List View");
     const iconIdx = trimmed.indexOf("Icon View");
@@ -330,7 +340,7 @@ test.describe("Context Menu", () => {
   // ─── Sort submenu ───────────────────────────────────────────────
 
   test("contains Sort by… submenu trigger item", async ({ page }) => {
-    await openContextMenuOnEmptySpace(page);
+    await openContextMenuOnFileRow(page);
 
     const sortTrigger = page.locator(
       `${MENU_SELECTOR} > .fo-context-menu-item--submenu`,
@@ -343,7 +353,7 @@ test.describe("Context Menu", () => {
   test("Sort by… submenu has nested role=menu with sort options", async ({
     page,
   }) => {
-    await openContextMenuOnEmptySpace(page);
+    await openContextMenuOnFileRow(page);
 
     const submenu = page.locator(SORT_SUBMENU_SELECTOR);
     await expect(submenu).toHaveAttribute("role", "menu");
@@ -361,7 +371,7 @@ test.describe("Context Menu", () => {
   });
 
   test("Sort submenu items appear in expected order", async ({ page }) => {
-    await openContextMenuOnEmptySpace(page);
+    await openContextMenuOnFileRow(page);
 
     const submenu = page.locator(SORT_SUBMENU_SELECTOR);
     const submenuItems = submenu.locator(ITEM_SELECTOR);
@@ -386,12 +396,10 @@ test.describe("Context Menu", () => {
   }) => {
     await openContextMenuOnFileRow(page);
 
-    // Collect the children of the menu in DOM order
     const menu = page.locator(MENU_SELECTOR);
     const children = menu.locator("> *");
     const childCount = await children.count();
 
-    // Build an array of { type: "item"|"separator", text? }
     const structure: Array<{ type: string; text?: string }> = [];
     for (let i = 0; i < childCount; i++) {
       const child = children.nth(i);
@@ -403,23 +411,6 @@ test.describe("Context Menu", () => {
         structure.push({ type: "item", text });
       }
     }
-
-    // Verify separator positions between groups
-    // Group 1: Open, Rename
-    // Sep
-    // Group 2: Copy, Cut, Paste
-    // Sep
-    // Group 3: New Folder, New File
-    // Sep
-    // Group 4: Move to Trash, Delete Permanently
-    // Sep
-    // Group 5: Copy Path, Copy Name, Properties, Reveal, Compress…, Extract…, Open Terminal, Checksum…, Add/Remove Star
-    // Sep
-    // Group 6: Refresh, Show/Hide Hidden Files, Select All
-    // Sep
-    // Group 7: Details View, List View, Icon View, Columns View
-    // Sep
-    // Group 8: Sort by…
 
     // Verify no two separators are adjacent
     for (let i = 1; i < structure.length; i++) {
@@ -437,56 +428,36 @@ test.describe("Context Menu", () => {
       .filter((s) => s.type === "item")
       .map((s) => s.text!);
     expect(itemTexts).toContain("Open");
-    expect(itemTexts).toContain("Rename");
+    const hasRename = itemTexts.some((t) => t.startsWith("Rename"));
+    expect(hasRename).toBe(true);
     expect(itemTexts).toContain("Copy");
     expect(itemTexts).toContain("Cut");
-    expect(itemTexts).toContain("Paste");
-    expect(itemTexts).toContain("New Folder");
-    expect(itemTexts).toContain("New File");
-    expect(itemTexts).toContain("Move to Trash");
-    expect(itemTexts).toContain("Delete Permanently");
-    expect(itemTexts).toContain("Properties");
+    // Paste may be "Paste" or "Paste Into Folder"
+    const hasPaste = itemTexts.some((t) => t.startsWith("Paste"));
+    expect(hasPaste).toBe(true);
     expect(itemTexts).toContain("Refresh");
     expect(itemTexts).toContain("Select All");
   });
 
-  // ─── Disabled state for empty-space context menu ───────────────
+  // ─── Pane background menu ──────────────────────────────────────
 
-  test("file-only actions are disabled when menu opened from empty space", async ({
+  test("file-only actions are not present in pane background menu", async ({
     page,
   }) => {
     await openContextMenuOnEmptySpace(page);
 
     const menu = page.locator(MENU_SELECTOR);
-    const disabledItems = menu.locator(
-      `${ITEM_SELECTOR}:not(.fo-context-menu-item--submenu)[disabled]`,
-    );
-    const disabledTexts = (await disabledItems.allTextContents()).map((t) =>
-      t.trim(),
+    const itemTexts = (await menu.locator(ITEM_SELECTOR).allTextContents()).map(
+      (t) => t.trim(),
     );
 
-    // These items should be disabled when no file entry is selected
-    expect(disabledTexts).toContain("Open");
-    expect(disabledTexts).toContain("Open With Default App");
-    expect(disabledTexts).toContain("Rename");
-    expect(disabledTexts).toContain("Copy To…");
-    expect(disabledTexts).toContain("Move To…");
-    expect(disabledTexts).toContain("Copy");
-    expect(disabledTexts).toContain("Cut");
-    expect(disabledTexts).toContain("Move to Trash");
-    expect(disabledTexts).toContain("Delete Permanently");
-    expect(disabledTexts).toContain("Copy Path");
-    expect(disabledTexts).toContain("Copy Name");
-    expect(disabledTexts).toContain("Copy Parent Folder Path");
-    expect(disabledTexts).toContain("Copy Resource URI");
-    expect(disabledTexts).toContain("Properties");
-    expect(disabledTexts).toContain("Reveal");
-    expect(disabledTexts).toContain("Compress…");
-    expect(disabledTexts).toContain("Extract…");
-    expect(disabledTexts).toContain("Checksum…");
+    // File-only items should NOT appear in the pane background menu
+    expect(itemTexts).not.toContain("Open");
+    expect(itemTexts).not.toContain("Cut");
+    expect(itemTexts).not.toContain("Copy");
   });
 
-  test("always-enabled actions are not disabled when menu opened from empty space", async ({
+  test("always-enabled actions are present in pane background menu", async ({
     page,
   }) => {
     await openContextMenuOnEmptySpace(page);
@@ -499,35 +470,22 @@ test.describe("Context Menu", () => {
       t.trim(),
     );
 
-    // These items are always enabled
+    // These items should always be enabled in the pane background menu
     expect(enabledTexts).toContain("New Folder");
     expect(enabledTexts).toContain("New File");
-    expect(enabledTexts).toContain("Open Terminal");
     expect(enabledTexts).toContain("Refresh");
-    expect(enabledTexts).toContain("Select All");
-    expect(enabledTexts).toContain("Clear Selection");
-    expect(enabledTexts).toContain("Details View");
-    expect(enabledTexts).toContain("List View");
-    expect(enabledTexts).toContain("Icon View");
-    expect(enabledTexts).toContain("Columns View");
   });
 
-  // ─── Menu dismissal ────────────────────────────────────────────
-
   test("context menu closes when clicking the backdrop", async ({ page }) => {
-    await openContextMenuOnEmptySpace(page);
+    await openContextMenuOnFileRow(page);
+    await expect(page.locator(MENU_SELECTOR)).toBeVisible();
 
-    const backdrop = page.locator(BACKDROP_SELECTOR);
-    await expect(backdrop).toBeVisible();
-    // Click top-left corner of backdrop to avoid hitting the context menu itself
-    // (the menu's onClick stopPropagation prevents dismissal if click lands on menu)
-    await backdrop.click({ position: { x: 5, y: 5 } });
-
+    await page.locator(BACKDROP_SELECTOR).click({ position: { x: 5, y: 5 } });
     await expect(page.locator(MENU_SELECTOR)).not.toBeVisible();
   });
 
   test("context menu closes on Escape key", async ({ page }) => {
-    await openContextMenuOnEmptySpace(page);
+    await openContextMenuOnFileRow(page);
     await expect(page.locator(MENU_SELECTOR)).toBeVisible();
 
     await page.keyboard.press("Escape");

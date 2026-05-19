@@ -10,10 +10,6 @@ test.describe("Compress & Extract", () => {
     await page.waitForSelector(".fo-panel");
   });
 
-  /**
-   * Helper: find a file row (not a directory). Directories show "Folder" in
-   * the type column. We look for a row whose text does NOT contain "Folder".
-   */
   async function findFileRow(page: import("@playwright/test").Page) {
     const row = page
       .locator(
@@ -25,32 +21,12 @@ test.describe("Compress & Extract", () => {
     return count > 0 ? row : null;
   }
 
-  /**
-   * Helper: find any file row (file or directory).
-   */
   async function findAnyRow(page: import("@playwright/test").Page) {
     const row = page.locator('.fo-row[role="row"]').first();
     const count = await row.count();
     return count > 0 ? row : null;
   }
 
-  /**
-   * Helper: open the "More" dropdown in the first panel's toolbar and return
-   * the dropdown element.
-   */
-  async function openMoreDropdown(page: import("@playwright/test").Page) {
-    const toolbar = page.locator(".fo-workbench-toolbar .fo-operation-toolbar");
-    await toolbar.getByRole("button", { name: "More" }).click();
-    const dropdown = page.getByRole("menu").filter({
-      has: page.getByRole("menuitem", { name: /^New Folder/ }),
-    });
-    await expect(dropdown).toBeVisible();
-    return dropdown;
-  }
-
-  /**
-   * Helper: open context menu by right-clicking on a file row.
-   */
   async function openContextMenuOnFileRow(
     page: import("@playwright/test").Page,
   ) {
@@ -64,9 +40,9 @@ test.describe("Compress & Extract", () => {
     await expect(page.locator(MENU_SELECTOR)).toBeVisible();
   }
 
-  // ─── Compress — Context Menu ──────────────────────────────────
+  // ─── Compress (Pack) — Context Menu ────────────────────────────
 
-  test("context menu has Compress… item when file(s) selected", async ({
+  test("context menu has Pack… item when file(s) selected", async ({
     page,
   }) => {
     await openContextMenuOnFileRow(page);
@@ -75,21 +51,12 @@ test.describe("Compress & Extract", () => {
       .locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`)
       .allTextContents();
     const trimmed = texts.map((t) => t.trim());
-    expect(trimmed).toContain("Compress…");
+    expect(trimmed).toContain("Pack…");
   });
 
-  // ─── Compress — Toolbar ───────────────────────────────────────
+  // ─── Compress (Pack) — Toolbar ─────────────────────────────────
 
-  test("toolbar More dropdown contains Compress… item", async ({ page }) => {
-    const dropdown = await openMoreDropdown(page);
-
-    const compressItem = dropdown.locator(
-      'button[role="menuitem"]:has-text("Compress…")',
-    );
-    await expect(compressItem).toBeAttached();
-  });
-
-  test("clicking Compress with a file selected shows toast or dialog", async ({
+  test("clicking Pack with a file selected shows toast or dialog", async ({
     page,
   }) => {
     const fileRow = await findFileRow(page);
@@ -102,20 +69,19 @@ test.describe("Compress & Extract", () => {
     await expect(page.locator(MENU_SELECTOR)).toBeVisible();
 
     const compressItem = page.locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`, {
-      hasText: "Compress…",
+      hasText: /^Pack…$/,
     });
     const hasCompress = (await compressItem.count()) > 0;
-    test.skip(!hasCompress, "Compress… item not found in context menu");
+    test.skip(!hasCompress, "Pack… item not found in context menu");
 
     await compressItem.click();
 
-    // Feature shows either a dialog or a "coming soon" toast
+    // Feature shows either a dialog or a toast
     const dialog = page.locator('[role="dialog"], .fo-dialog');
     const toast = page.locator(TOAST_SELECTOR).first();
     const hasDialog = (await dialog.count()) > 0;
     const hasToast = (await toast.count()) > 0;
 
-    // At least one of dialog or toast should be visible
     if (hasDialog) {
       await expect(dialog.first()).toBeVisible();
     } else if (hasToast) {
@@ -123,9 +89,7 @@ test.describe("Compress & Extract", () => {
     }
   });
 
-  test("Compress toast shows 'coming soon' message when backend not ready", async ({
-    page,
-  }) => {
+  test("Pack toast shows message when backend not ready", async ({ page }) => {
     const fileRow = await findFileRow(page);
     test.skip(!fileRow, "No file rows visible in active panel");
 
@@ -133,7 +97,7 @@ test.describe("Compress & Extract", () => {
     await expect(page.locator(MENU_SELECTOR)).toBeVisible();
 
     const compressItem = page.locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`, {
-      hasText: "Compress…",
+      hasText: /^Pack…$/,
     });
     await compressItem.click();
 
@@ -143,28 +107,11 @@ test.describe("Compress & Extract", () => {
     if (toastCount > 0) {
       await expect(toast).toBeVisible();
       const title = await toast.locator("strong").textContent();
-      // "Compress coming soon" is the current placeholder message
       expect(title).toBeTruthy();
     }
   });
 
-  test("toolbar Compress… becomes enabled when a file is selected", async ({
-    page,
-  }) => {
-    const fileRow = await findFileRow(page);
-    test.skip(!fileRow, "No file rows visible in active panel");
-
-    await fileRow!.click();
-
-    const dropdown = await openMoreDropdown(page);
-
-    const compressItem = dropdown.locator(
-      'button[role="menuitem"]:has-text("Compress…")',
-    );
-    await expect(compressItem).toBeEnabled();
-  });
-
-  test("Compress with multiple files selected triggers action", async ({
+  test("Pack with multiple files selected triggers action", async ({
     page,
   }) => {
     const rows = page.locator('.fo-row[role="row"]');
@@ -180,10 +127,10 @@ test.describe("Compress & Extract", () => {
     await expect(page.locator(MENU_SELECTOR)).toBeVisible();
 
     const compressItem = page.locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`, {
-      hasText: "Compress…",
+      hasText: /^Pack…$/,
     });
     const hasCompress = (await compressItem.count()) > 0;
-    test.skip(!hasCompress, "Compress… item not found in context menu");
+    test.skip(!hasCompress, "Pack… item not found in context menu");
 
     await compressItem.click();
 
@@ -191,24 +138,21 @@ test.describe("Compress & Extract", () => {
     await expect(page.locator(".fo-shell")).toBeVisible();
   });
 
-  test("Compress… is disabled in context menu when no file is selected", async ({
-    page,
-  }) => {
+  test("Pack… is not present in pane background menu", async ({ page }) => {
     // Open context menu from empty space
     const tableShell = page.locator(".fo-table-shell").first();
     await tableShell.click({ button: "right" });
     await expect(page.locator(MENU_SELECTOR)).toBeVisible();
 
     const compressItem = page.locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`, {
-      hasText: "Compress…",
+      hasText: /^Pack…$/,
     });
-    const hasCompress = (await compressItem.count()) > 0;
-    test.skip(!hasCompress, "Compress… item not found in context menu");
-
-    await expect(compressItem).toBeDisabled();
+    // Pack… should not appear in pane background menu
+    const count = await compressItem.count();
+    expect(count).toBe(0);
   });
 
-  test("Compress action does not crash when cancelled via Escape", async ({
+  test("Pack action does not crash when cancelled via Escape", async ({
     page,
   }) => {
     const fileRow = await findAnyRow(page);
@@ -218,10 +162,10 @@ test.describe("Compress & Extract", () => {
     await expect(page.locator(MENU_SELECTOR)).toBeVisible();
 
     const compressItem = page.locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`, {
-      hasText: "Compress…",
+      hasText: /^Pack…$/,
     });
     const hasCompress = (await compressItem.count()) > 0;
-    test.skip(!hasCompress, "Compress… item not found in context menu");
+    test.skip(!hasCompress, "Pack… item not found in context menu");
 
     await compressItem.click();
 
@@ -237,9 +181,9 @@ test.describe("Compress & Extract", () => {
     await expect(page.locator(".fo-shell")).toBeVisible();
   });
 
-  // ─── Extract — Context Menu ───────────────────────────────────
+  // ─── Extract (Unpack) — Context Menu ───────────────────────────
 
-  test("context menu has Extract… item when a file is selected", async ({
+  test("context menu has Unpack… item when a file is selected", async ({
     page,
   }) => {
     await openContextMenuOnFileRow(page);
@@ -248,37 +192,10 @@ test.describe("Compress & Extract", () => {
       .locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`)
       .allTextContents();
     const trimmed = texts.map((t) => t.trim());
-    expect(trimmed).toContain("Extract…");
+    expect(trimmed).toContain("Unpack…");
   });
 
-  // ─── Extract — Toolbar ────────────────────────────────────────
-
-  test("toolbar More dropdown contains Extract… item", async ({ page }) => {
-    const dropdown = await openMoreDropdown(page);
-
-    const extractItem = dropdown.locator(
-      'button[role="menuitem"]:has-text("Extract…")',
-    );
-    await expect(extractItem).toBeAttached();
-  });
-
-  test("toolbar Extract… becomes enabled when a file is selected", async ({
-    page,
-  }) => {
-    const fileRow = await findFileRow(page);
-    test.skip(!fileRow, "No file rows visible in active panel");
-
-    await fileRow!.click();
-
-    const dropdown = await openMoreDropdown(page);
-
-    const extractItem = dropdown.locator(
-      'button[role="menuitem"]:has-text("Extract…")',
-    );
-    await expect(extractItem).toBeEnabled();
-  });
-
-  test("clicking Extract shows toast or dialog", async ({ page }) => {
+  test("clicking Unpack shows toast or dialog", async ({ page }) => {
     const fileRow = await findFileRow(page);
     test.skip(!fileRow, "No file rows visible in active panel");
 
@@ -286,14 +203,13 @@ test.describe("Compress & Extract", () => {
     await expect(page.locator(MENU_SELECTOR)).toBeVisible();
 
     const extractItem = page.locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`, {
-      hasText: "Extract…",
+      hasText: "Unpack…",
     });
     const hasExtract = (await extractItem.count()) > 0;
-    test.skip(!hasExtract, "Extract… item not found in context menu");
+    test.skip(!hasExtract, "Unpack… item not found in context menu");
 
     await extractItem.click();
 
-    // Feature shows either a dialog or a "coming soon" toast
     const dialog = page.locator('[role="dialog"], .fo-dialog');
     const toast = page.locator(TOAST_SELECTOR).first();
     const hasDialog = (await dialog.count()) > 0;
@@ -306,20 +222,17 @@ test.describe("Compress & Extract", () => {
     }
   });
 
-  test("Extract… is disabled in context menu when no file is selected", async ({
-    page,
-  }) => {
+  test("Unpack… is not present in pane background menu", async ({ page }) => {
     // Open context menu from empty space
     const tableShell = page.locator(".fo-table-shell").first();
     await tableShell.click({ button: "right" });
     await expect(page.locator(MENU_SELECTOR)).toBeVisible();
 
     const extractItem = page.locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`, {
-      hasText: "Extract…",
+      hasText: "Unpack…",
     });
-    const hasExtract = (await extractItem.count()) > 0;
-    test.skip(!hasExtract, "Extract… item not found in context menu");
-
-    await expect(extractItem).toBeDisabled();
+    // Unpack… should not appear in pane background menu
+    const count = await extractItem.count();
+    expect(count).toBe(0);
   });
 });

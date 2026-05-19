@@ -40,27 +40,14 @@ test.describe("View modes — keyboard shortcuts", () => {
     await expect(page.locator(".fo-shell")).toBeVisible();
   });
 
-  test("view mode dropdown trigger is visible in toolbar", async ({ page }) => {
-    const viewButton = page
-      .locator(".fo-operation-toolbar")
-      .getByRole("button", { name: "View" })
-      .first();
-    await expect(viewButton).toBeVisible();
-  });
+  test("view mode options available in More dropdown", async ({ page }) => {
+    // Open the More dropdown
+    const toolbar = page.locator(".fo-operation-toolbar");
+    await toolbar.getByRole("button", { name: "More" }).click();
+    await page.waitForTimeout(500);
 
-  test("view mode dropdown lists multiple view modes", async ({ page }) => {
-    const viewButton = page
-      .locator(".fo-operation-toolbar")
-      .getByRole("button", { name: "View" })
-      .first();
-    await viewButton.click();
-    const modes = [
-      "Details view",
-      "List view",
-      "Compact view",
-      "Icons view",
-      "Columns view",
-    ];
+    // More dropdown contains view mode items
+    const modes = ["Details view", "List view", "Icons view"];
     for (const label of modes) {
       await expect(page.getByRole("menuitem", { name: label })).toBeVisible();
     }

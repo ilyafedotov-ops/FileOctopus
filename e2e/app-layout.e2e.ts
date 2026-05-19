@@ -103,9 +103,9 @@ test.describe("FileOctopus main layout", () => {
     await expect(toolbar.getByRole("button", { name: "More" })).toBeVisible();
 
     await toolbar.getByRole("button", { name: "More" }).click();
-    await expect(
-      page.getByRole("menuitem", { name: "New Folder" }),
-    ).toBeVisible();
+    await page.waitForTimeout(500);
+    // More dropdown has Copy, Paste, etc. (New Folder is now a primary button)
+    await expect(page.getByRole("menuitem", { name: "Paste" })).toBeVisible();
     await expect(
       page.getByRole("menuitem", { name: "New File" }),
     ).toBeVisible();
