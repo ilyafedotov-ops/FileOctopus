@@ -45,6 +45,7 @@ export function VisualShellFixture() {
               collapsed={false}
               jobMetrics={{}}
               activeFolderUri="local:///Users/ilya/Documents"
+              activePanelId="left"
               onToggleCollapsed={() => undefined}
               onCancel={() => undefined}
               onRefreshHistory={() => undefined}

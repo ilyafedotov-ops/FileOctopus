@@ -120,6 +120,7 @@ export function PaneWorkspace() {
         collapsed={ctx.activityCollapsed}
         jobMetrics={ctx.jobMetrics}
         activeFolderUri={ctx.activeTabUri}
+        activePanelId={ctx.state.activePanelId}
         onToggleCollapsed={() => ctx.handleCommandSelect("view.toggleActivity")}
         onCancel={(jobId) => void ctx.client.jobs.cancelJob({ jobId })}
         onRefreshHistory={() => void ctx.refreshHistory()}

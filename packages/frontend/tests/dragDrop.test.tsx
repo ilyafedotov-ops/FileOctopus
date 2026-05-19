@@ -177,8 +177,20 @@ vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
   };
 });
 
+import { ShellProvider } from "../src/app/providers/ShellProvider";
+import { StubTerminalProvider } from "../src/app/providers/TerminalProvider";
 import { FilePanel, type FilePanelProps } from "../src/pane/FilePanel";
 import type { PanelTabState, PanelState } from "../src/panelStore";
+
+function renderFilePanel(props: FilePanelProps) {
+  return render(
+    <ShellProvider>
+      <StubTerminalProvider>
+        <FilePanel {...props} />
+      </StubTerminalProvider>
+    </ShellProvider>,
+  );
+}
 
 function makeTab(overrides: Partial<PanelTabState> = {}): PanelTabState {
   return {
@@ -309,7 +321,7 @@ afterEach(cleanup);
 describe("FilePanel drag & drop", () => {
   it("shows drag-over state when a FileOctopus URI is dragged over the panel body", () => {
     const props = makeProps();
-    render(<FilePanel {...props} />);
+    renderFilePanel(props);
 
     const body = document.querySelector(".fo-panel-body");
     expect(body).toBeTruthy();
@@ -327,7 +339,7 @@ describe("FilePanel drag & drop", () => {
     const onNavigate = vi.fn();
     const onDropFiles = vi.fn();
     const props = makeProps({ onNavigate, onDropFiles });
-    render(<FilePanel {...props} />);
+    renderFilePanel(props);
 
     const body = document.querySelector(".fo-panel-body");
     fireEvent(
@@ -351,7 +363,7 @@ describe("FilePanel drag & drop", () => {
   it("detects copy operation when dropEffect is copy", () => {
     const onDropFiles = vi.fn();
     const props = makeProps({ onDropFiles });
-    render(<FilePanel {...props} />);
+    renderFilePanel(props);
 
     const body = document.querySelector(".fo-panel-body");
     fireEvent(
@@ -373,7 +385,7 @@ describe("FilePanel drag & drop", () => {
   it("passes multiple selected URIs when multi-selection drag data is present", () => {
     const onDropFiles = vi.fn();
     const props = makeProps({ onDropFiles });
-    render(<FilePanel {...props} />);
+    renderFilePanel(props);
 
     const uris = [
       "local:///home/user/file1.txt",
@@ -393,7 +405,7 @@ describe("FilePanel drag & drop", () => {
   it("removes drag-over overlay after drop", () => {
     const onDropFiles = vi.fn();
     const props = makeProps({ onDropFiles });
-    render(<FilePanel {...props} />);
+    renderFilePanel(props);
 
     const body = document.querySelector(".fo-panel-body");
     fireEvent(
@@ -412,7 +424,7 @@ describe("FilePanel drag & drop", () => {
   it("falls back to single URI when selected-uris is not in dataTransfer", () => {
     const onDropFiles = vi.fn();
     const props = makeProps({ onDropFiles });
-    render(<FilePanel {...props} />);
+    renderFilePanel(props);
 
     const body = document.querySelector(".fo-panel-body");
     fireEvent(

@@ -92,6 +92,7 @@ export interface CommandDispatchDeps {
   handleChecksum: (panelId: PanelId) => Promise<void>;
   openEmbeddedTerminal: (panelId: PanelId) => void;
   openTerminalExternal: (panelId: PanelId) => void;
+  togglePaneTerminal: (panelId: PanelId) => void;
   calculateSize: (
     panelId: PanelId,
     entry: FileEntryDto | null,
@@ -390,22 +391,9 @@ export function dispatchCommand(
     case "op.openTerminalExternal":
       deps.openTerminalExternal(panelId);
       return true;
-    case "view.toggleTerminal": {
-      const terminalPanelOpen =
-        !deps.activityCollapsed &&
-        deps.activityPanelVisible &&
-        deps.terminalRailSegment === "terminal";
-      if (terminalPanelOpen) {
-        deps.setActivityCollapsed(true);
-        void deps.updatePreference("activityPanelVisible", "false");
-        return true;
-      }
-      deps.markActivityPinnedOpen?.();
-      deps.setActivityCollapsed(false);
-      deps.setTerminalRailSegment("terminal");
-      void deps.updatePreference("activityPanelVisible", "true");
+    case "view.toggleTerminal":
+      deps.togglePaneTerminal(panelId);
       return true;
-    }
     case "op.calculateSize":
       void deps.calculateSize(panelId, selectedEntry);
       return true;
