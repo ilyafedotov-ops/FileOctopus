@@ -45,9 +45,9 @@ pub fn open_external_terminal(path: &Path) -> Result<(), ExternalTerminalError> 
         {
             return Ok(());
         }
-        return Err(ExternalTerminalError(
+        Err(ExternalTerminalError(
             "no terminal emulator found".to_string(),
-        ));
+        ))
     }
 
     #[cfg(target_os = "windows")]

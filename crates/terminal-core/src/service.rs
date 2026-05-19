@@ -1,3 +1,4 @@
+use std::fmt;
 use std::io::{Read, Write};
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -14,7 +15,7 @@ use crate::shell::{default_shell, shell_login_args};
 
 const OUTPUT_CHUNK_BYTES: usize = 16 * 1024;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub struct TerminalId(pub Uuid);
 
 impl TerminalId {
@@ -22,14 +23,16 @@ impl TerminalId {
         Self(Uuid::new_v4())
     }
 
-    pub fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-
     pub fn parse(value: &str) -> Result<Self, TerminalError> {
         Uuid::parse_str(value)
             .map(Self)
             .map_err(|_| TerminalError::not_found())
+    }
+}
+
+impl fmt::Display for TerminalId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 

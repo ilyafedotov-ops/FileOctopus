@@ -23,12 +23,12 @@ pub fn default_shell() -> String {
 
     #[cfg(target_os = "macos")]
     {
-        return "/bin/zsh".to_string();
+        "/bin/zsh".to_string()
     }
 
     #[cfg(all(unix, not(target_os = "macos")))]
     {
-        return "/bin/bash".to_string();
+        "/bin/bash".to_string()
     }
 
     #[cfg(not(any(windows, unix)))]
