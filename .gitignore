@@ -15,3 +15,5 @@ e2e-report/
 e2e-dist/
 /test-results/
 .hermes/
+tmp/
+
