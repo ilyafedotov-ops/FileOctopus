@@ -20,6 +20,7 @@ interface ConnectServerDialogProps {
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileDto>;
+  onForgetFingerprint?: (profileId: string) => Promise<void>;
 }
 
 export function ConnectServerDialog({
@@ -27,6 +28,7 @@ export function ConnectServerDialog({
   editingProfile,
   onClose,
   onSave,
+  onForgetFingerprint,
 }: ConnectServerDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   useDialogEscape(open, onClose);
@@ -259,6 +261,40 @@ export function ConnectServerDialog({
               placeholder="/home/deploy"
             />
           </label>
+          {editingProfile?.hostKeyFingerprint ? (
+            <div className="fo-dialog-field fo-dialog-field-static">
+              <span>Pinned host key</span>
+              <code
+                className="fo-fingerprint-display"
+                title={editingProfile.hostKeyFingerprint}
+              >
+                {editingProfile.hostKeyFingerprint}
+              </code>
+              {onForgetFingerprint ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    if (editingProfile?.id) {
+                      void onForgetFingerprint(editingProfile.id);
+                    }
+                  }}
+                >
+                  Forget pinned fingerprint
+                </Button>
+              ) : null}
+              <span className="fo-settings-hint">
+                The next successful connect will pin the server&apos;s current
+                fingerprint.
+              </span>
+            </div>
+          ) : editingProfile ? (
+            <p className="fo-settings-hint">
+              No host key pinned yet. The fingerprint shown by the server on the
+              next connect will be remembered.
+            </p>
+          ) : null}
           {error ? <p className="fo-dialog-error">{error}</p> : null}
         </div>
         <footer className="fo-dialog-footer">

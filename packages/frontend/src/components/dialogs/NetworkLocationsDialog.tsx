@@ -18,7 +18,7 @@ interface NetworkLocationsDialogProps {
   onDisconnect: (profileId: string) => Promise<void>;
   onAddServer: () => void;
   onEditServer: (profile: NetworkProfileDto) => void;
-  onDeleteServer: (profileId: string) => Promise<void>;
+  onDeleteServer: (profileId: string) => void;
 }
 
 function statusLabel(status: NetworkConnectionStatusDto | undefined): string {
@@ -191,7 +191,7 @@ export function NetworkLocationsDialog({
                         type="button"
                         size="sm"
                         variant="ghost"
-                        onClick={() => void onDeleteServer(profile.id)}
+                        onClick={() => onDeleteServer(profile.id)}
                       >
                         Remove
                       </Button>
