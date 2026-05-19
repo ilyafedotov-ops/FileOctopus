@@ -1,6 +1,6 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-19 09:45 UTC
+> Last run: 2026-05-19 12:25 UTC
 
 ## Health Gate
 
@@ -8,8 +8,8 @@
 | ----------------------------- | ---------------------------------------------------------------- |
 | TypeScript (`pnpm typecheck`) | ✅ 0 errors                                                      |
 | Rust (`cargo check`)          | ✅ clean                                                         |
-| Rust tests (`cargo test`)     | ✅ 193+ pass                                                     |
-| Frontend tests (`pnpm test`)  | ✅ 361 pass (51 files)                                           |
+| Rust tests (`cargo test`)     | ✅ 195 pass                                                      |
+| Frontend tests (`pnpm test`)  | ✅ 433 pass (58 files)                                           |
 | Clippy (`-D warnings`)        | ✅ clean                                                         |
 | Format (`cargo fmt --check`)  | ✅ clean                                                         |
 | Prettier (`format:check`)     | ✅ clean                                                         |
@@ -18,18 +18,27 @@
 
 ## Commits pushed this cycle
 
-| Commit    | Description                                                             |
-| --------- | ----------------------------------------------------------------------- |
-| `ed9c3fa` | test: add IPC integration tests for stat, terminal, and reveal handlers |
-| `669e0d6` | feat: conflict dialog fetches destination metadata via fs.stat          |
-| `44e59f2` | feat: route MenuBar actions through dispatchCommand pipeline            |
-| `1b49ed2` | test: add diagnostics E2E and RC QA automation script                   |
-| `c865749` | chore: update visual regression baselines, config, and docs             |
-| `66103ce` | chore: add rc:qa and test:e2e:vite scripts to package.json              |
-| `7cf9f03` | fix: resolve unused variable lint in view-modes E2E test                |
-| `c235c66` | fix: increase timeout for 100k batch rendering test                     |
-| `705adc5` | fix: use it() timeout argument for 100k batch test                      |
-| `f93cf79` | test: update app-layout E2E for shell toolbar structure                 |
+| Commit    | Description                                                   |
+| --------- | ------------------------------------------------------------- |
+| `1d89913` | test: add toolbar actions dispatch and customize dialog tests |
+
+## Work Summary
+
+New test coverage for the customizable commander toolbar feature (commit `8cecc82`):
+
+- **`toolbarActions.test.ts`** — 37 tests covering `runToolbarCommand()` dispatch for all command
+  categories: navigation (back, forward, up, refresh, home, root, go-to-location, volume picker,
+  manage favorites, add/rename/remove favorite, reveal, open), file operations (copy, cut, paste,
+  trash, delete permanent, rename, properties, compress, extract, checksum, open terminal,
+  calculate size, open default), clipboard (copy path/name/parent/URI, clear), view modes
+  (details, list, compact, icons, columns), selection (select all, clear, invert), layout
+  (toggle hidden, toggle sidebar, switch pane), search (recursive, focus filter), and fallback
+  to generic `onCommand` handler for unhandled IDs.
+
+- **`toolbarCustomizeDialog.test.tsx`** — 10 tests covering the toolbar customization dialog:
+  render gate (closed/open), entry list display, save flow, cancel flow, reset to default,
+  remove entry, add separator, disabled states for Up/Down navigation buttons, and disabled
+  Add button when no command selected.
 
 ## Remaining (human)
 
