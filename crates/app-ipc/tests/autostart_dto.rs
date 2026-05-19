@@ -24,7 +24,8 @@ fn preferences_dto_includes_new_fields() {
         "accentColor":"violet","fontScale":"large","iconScale":"small",
         "confirmOverwrite":false,"sidebarVisible":true,
         "statusBarVisible":true,"toolbarVisible":false,
-        "paneMode":"single","jobDrawerBehavior":"openOnError"
+        "paneMode":"single","jobDrawerBehavior":"openOnError",
+        "showAdvancedCopyOptions":true
     }"#;
     let dto: UserPreferencesDto = serde_json::from_str(json).unwrap();
     assert_eq!(dto.accent_color, "violet");
@@ -36,4 +37,5 @@ fn preferences_dto_includes_new_fields() {
     assert!(!dto.toolbar_visible);
     assert_eq!(dto.pane_mode, "single");
     assert_eq!(dto.job_drawer_behavior, "openOnError");
+    assert!(dto.show_advanced_copy_options);
 }
