@@ -70,7 +70,15 @@ export function PaneWorkspace() {
                 networkProfile: profile,
               })
             }
-            onDeleteProfile={(profileId) => void ctx.deleteProfile(profileId)}
+            busyProfileIds={ctx.busyProfileIds}
+            onDeleteProfile={(profileId) => {
+              const profile = ctx.networkProfiles.find(
+                (item) => item.id === profileId,
+              );
+              if (profile) {
+                ctx.setRemoveServerProfile(profile);
+              }
+            }}
           />
           <SidebarResizer
             onSidebarResize={(width) => {

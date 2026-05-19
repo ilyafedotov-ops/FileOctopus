@@ -28,6 +28,7 @@ export interface ModalsContextValue {
   networkLocationsOpen: boolean;
   connectServerOpen: boolean;
   connectServerProfile: NetworkProfileDto | null;
+  removeServerProfile: NetworkProfileDto | null;
   toolbarCustomizeOpen: boolean;
   dialog: OperationDialog | null;
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
@@ -47,6 +48,7 @@ export interface ModalsContextValue {
   setNetworkLocationsOpen: Dispatch<SetStateAction<boolean>>;
   setConnectServerOpen: Dispatch<SetStateAction<boolean>>;
   setConnectServerProfile: Dispatch<SetStateAction<NetworkProfileDto | null>>;
+  setRemoveServerProfile: Dispatch<SetStateAction<NetworkProfileDto | null>>;
   setToolbarCustomizeOpen: Dispatch<SetStateAction<boolean>>;
   setDialog: Dispatch<SetStateAction<OperationDialog | null>>;
 }
@@ -81,6 +83,8 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
   const [connectServerOpen, setConnectServerOpen] = useState(false);
   const [connectServerProfile, setConnectServerProfile] =
     useState<NetworkProfileDto | null>(null);
+  const [removeServerProfile, setRemoveServerProfile] =
+    useState<NetworkProfileDto | null>(null);
   const [toolbarCustomizeOpen, setToolbarCustomizeOpen] = useState(false);
   const [dialog, setDialog] = useState<OperationDialog | null>(null);
 
@@ -103,6 +107,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       networkLocationsOpen,
       connectServerOpen,
       connectServerProfile,
+      removeServerProfile,
       toolbarCustomizeOpen,
       dialog,
       setSettingsOpen,
@@ -122,6 +127,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       setNetworkLocationsOpen,
       setConnectServerOpen,
       setConnectServerProfile,
+      setRemoveServerProfile,
       setToolbarCustomizeOpen,
       setDialog,
     }),
@@ -143,6 +149,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       networkLocationsOpen,
       connectServerOpen,
       connectServerProfile,
+      removeServerProfile,
       toolbarCustomizeOpen,
       dialog,
     ],

@@ -26,6 +26,7 @@ import { OperationHistoryDialog } from "./dialogs/OperationHistoryDialog";
 import { VolumePickerDialog } from "./dialogs/VolumePickerDialog";
 import { NetworkLocationsDialog } from "./dialogs/NetworkLocationsDialog";
 import { ConnectServerDialog } from "./dialogs/ConnectServerDialog";
+import { RemoveServerDialog } from "./dialogs/RemoveServerDialog";
 import type {
   FavoriteEntryDto,
   NetworkConnectionStatusDto,
@@ -78,6 +79,7 @@ export interface DialogOverlayGroupProps {
   networkLocationsOpen: boolean;
   connectServerOpen: boolean;
   connectServerProfile: NetworkProfileDto | null;
+  removeServerProfile: NetworkProfileDto | null;
   networkProfiles: NetworkProfileDto[];
   networkStatuses: NetworkConnectionStatusDto[];
   goToLocationInitialUri: string;
@@ -117,7 +119,9 @@ export interface DialogOverlayGroupProps {
   setNetworkLocationsOpen: (open: boolean) => void;
   setConnectServerOpen: (open: boolean) => void;
   setConnectServerProfile: (profile: NetworkProfileDto | null) => void;
+  setRemoveServerProfile: (profile: NetworkProfileDto | null) => void;
   connectProfile: (profileId: string) => Promise<void>;
+  forgetFingerprint: (profileId: string) => Promise<void>;
   disconnectProfile: (profileId: string) => Promise<void>;
   deleteProfile: (profileId: string) => Promise<void>;
   saveProfile: (payload: {
@@ -193,6 +197,7 @@ export function DialogOverlayGroup({
   networkLocationsOpen,
   connectServerOpen,
   connectServerProfile,
+  removeServerProfile,
   networkProfiles,
   networkStatuses,
   goToLocationInitialUri,
@@ -229,10 +234,12 @@ export function DialogOverlayGroup({
   setNetworkLocationsOpen,
   setConnectServerOpen,
   setConnectServerProfile,
+  setRemoveServerProfile,
   connectProfile,
   disconnectProfile,
   deleteProfile,
   saveProfile,
+  forgetFingerprint,
   setOperationError,
   refreshHistory,
   clearHistory,
@@ -390,7 +397,12 @@ export function DialogOverlayGroup({
           setConnectServerProfile(profile);
           setConnectServerOpen(true);
         }}
-        onDeleteServer={deleteProfile}
+        onDeleteServer={(profileId) => {
+          const profile = networkProfiles.find((item) => item.id === profileId);
+          if (profile) {
+            setRemoveServerProfile(profile);
+          }
+        }}
       />
       <ConnectServerDialog
         open={connectServerOpen}
@@ -400,6 +412,17 @@ export function DialogOverlayGroup({
           setConnectServerProfile(null);
         }}
         onSave={saveProfile}
+        onForgetFingerprint={forgetFingerprint}
+      />
+      <RemoveServerDialog
+        open={removeServerProfile !== null}
+        profile={removeServerProfile}
+        onClose={() => setRemoveServerProfile(null)}
+        onConfirm={() => {
+          if (removeServerProfile) {
+            void deleteProfile(removeServerProfile.id);
+          }
+        }}
       />
       <VolumePickerDialog
         open={volumePickerOpen}
