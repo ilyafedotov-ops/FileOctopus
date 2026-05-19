@@ -381,12 +381,35 @@ export function useAppInit({
             ? { ...current, running: false, error: event.message }
             : current,
         );
-        setDialog((current) =>
-          current?.type === "properties" &&
-          current.folderSizeJobId === jobIdValue(event.jobId)
-            ? { ...current, loading: false, error: event.message }
-            : current,
-        );
+        setDialog((current) => {
+          const jobId = jobIdValue(event.jobId);
+          if (
+            current?.type === "selectionProperties" &&
+            current.folderSizeJobIds.includes(jobId)
+          ) {
+            const pendingFolderSizeJobs = current.pendingFolderSizeJobs - 1;
+            if (pendingFolderSizeJobs > 0) {
+              return {
+                ...current,
+                pendingFolderSizeJobs,
+                error: event.message,
+              };
+            }
+            return {
+              ...current,
+              pendingFolderSizeJobs: 0,
+              calculatingSize: false,
+              error: event.message,
+            };
+          }
+          if (
+            current?.type === "properties" &&
+            current.folderSizeJobId === jobId
+          ) {
+            return { ...current, loading: false, error: event.message };
+          }
+          return current;
+        });
         refreshVisiblePanels();
         void refreshHistory();
       }),
@@ -405,12 +428,34 @@ export function useAppInit({
             ? { ...current, running: false, error: "Operation cancelled." }
             : current,
         );
-        setDialog((current) =>
-          current?.type === "properties" &&
-          current.folderSizeJobId === jobIdValue(event.jobId)
-            ? { ...current, loading: false }
-            : current,
-        );
+        setDialog((current) => {
+          const jobId = jobIdValue(event.jobId);
+          if (
+            current?.type === "selectionProperties" &&
+            current.folderSizeJobIds.includes(jobId)
+          ) {
+            const pendingFolderSizeJobs = current.pendingFolderSizeJobs - 1;
+            if (pendingFolderSizeJobs > 0) {
+              return { ...current, pendingFolderSizeJobs };
+            }
+            return {
+              ...current,
+              pendingFolderSizeJobs: 0,
+              calculatingSize: false,
+              totalSize:
+                current.folderSizeBytes > 0
+                  ? current.fileSizeBaseline + current.folderSizeBytes
+                  : current.totalSize,
+            };
+          }
+          if (
+            current?.type === "properties" &&
+            current.folderSizeJobId === jobId
+          ) {
+            return { ...current, loading: false };
+          }
+          return current;
+        });
         refreshVisiblePanels();
         void refreshHistory();
       }),

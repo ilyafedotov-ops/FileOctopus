@@ -131,7 +131,13 @@ export interface DialogOverlayGroupProps {
   submitPermanentDelete: (
     dialog: Extract<OperationDialog, { type: "permanentDelete" }>,
   ) => void;
-  copyTextFromSelection: (panelId: PanelId, kind: "path") => void;
+  copyTextFromSelection: (
+    panelId: PanelId,
+    kind: "path" | "name" | "parentPath" | "uri",
+  ) => void;
+  calculateSelectionSize: (
+    dialog: Extract<OperationDialog, { type: "selectionProperties" }>,
+  ) => void;
   revealEntry: (panelId: PanelId, entry: FileEntryDto | null) => void;
   locations: StandardLocationDto[];
   recentDestinations: RecentEntryDto[];
@@ -204,6 +210,7 @@ export function DialogOverlayGroup({
   submitTrash,
   submitPermanentDelete,
   copyTextFromSelection,
+  calculateSelectionSize,
   revealEntry,
   locations,
   recentDestinations,
@@ -310,6 +317,12 @@ export function DialogOverlayGroup({
           void submitPermanentDelete(current)
         }
         onCopyPath={(panelId) => void copyTextFromSelection(panelId, "path")}
+        onCopySelectionPaths={(panelId) =>
+          void copyTextFromSelection(panelId, "path")
+        }
+        onCalculateSelectionSize={(current) =>
+          void calculateSelectionSize(current)
+        }
         onReveal={(panelId, entry) => void revealEntry(panelId, entry)}
         locations={locations}
         favorites={favorites}

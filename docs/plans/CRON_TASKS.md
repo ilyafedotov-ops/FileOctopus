@@ -1,7 +1,7 @@
 # FileOctopus — Cron Task Queue
 
 > Execution-facing queue for autonomous agents.
-> Last verified against repo state: 2026-05-18
+> Last verified against repo state: 2026-05-19
 
 ---
 
@@ -18,22 +18,13 @@
 
 ## Active RC Queue
 
-| ID    | Pri  | Status  | Owner | Run ID  | Started UTC | Lock Expires UTC | Acceptance refs                       | Task                                                                                                             | Blockers                                                                                                           | Last verified |
-| ----- | ---- | ------- | ----- | ------- | ----------- | ---------------- | ------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ------------- | ---------- |
-| P1-2  | P1   | done    | cron  | 3a066d6 | 2026-05-18  | -                | UI spec file table sizing; MVP-UI-001 | Add resizable details columns in `FileTable` and persist widths.                                                 | None                                                                                                               | 2026-05-18    |
-| P1-3  | P1   | done    | cron  | TBD     | 2026-05-18  | -                | Menu spec §14.5–14.6                  | Replace the simple Copy To / Move To destination input with a richer chooser dialog.                             | None                                                                                                               | 2026-05-18    |
-| P1-4  | P1   | done    | cron  | TBD     | 2026-05-18  | -                | UI preview behavior; MVP-UI-001       | Extend `PreviewPanel` from text-only to include image preview.                                                   | None                                                                                                               | 2026-05-18    |
-| P1-5  | P1   | done    | cron  | a8cc7fd | 2026-05-18  | -                | UI spec §10.4; MVP-UI-001             | Collapse long breadcrumbs into an overflow menu instead of truncating silently.                                  | None                                                                                                               | 2026-05-18    |
-| P2-2  | P2   | done    | cron  | 4d80006 | 2026-05-18  | -                | UI spec §18.1, §21.2; M5              | Add reusable focus-trap behavior to modal dialogs and restore focus on close.                                    | None                                                                                                               | 2026-05-18    |
-| P2-4  | P2   | done    | cron  | d08d97d | 2026-05-18  | -                | UI spec §19.5; M5                     | Restore last pane paths and tab state on startup.                                                                | None                                                                                                               | 2026-05-18    |
-| P2-5  | P2   | done    | cron  | 3490ee1 | 2026-05-18  | -                | UI spec §18.2; MVP-REL-001/002        | Confirm before app close when file-operation jobs are still running.                                             | None                                                                                                               | 2026-05-18    |
-| P2-6  | P2   | done    | cron  | e902fb0 | 2026-05-18  | -                | UI spec §19.4; MVP-UI-001             | Add user-selectable visible columns and persist the choice.                                                      | None                                                                                                               | 2026-05-18    |
-|       | P2-8 | P2      | done  | cron    | preex       | 2026-05-19       | -                                     | Menu spec §8.2, §14.19-14.20                                                                                     | Add Recent Locations management UI. Tracking already exists; missing pieces are the dialog and clear/remove flows. | None          | 2026-05-19 |
-| P2-10 | P2   | done    | cron  | 993f879 | 2026-05-18  | -                | UI spec §21.2; M5                     | Add accessible row names for file entries.                                                                       | None                                                                                                               | 2026-05-18    |
-| P2-1  | P2   | done    | cron  | 12a7a73 | 2026-05-18  | -                | UI spec §9.5; M5                      | Replace `Tooltip.tsx` title-attribute stub with real popover tooltip. Wire into disabled buttons and menu items. | None                                                                                                               | 2026-05-18    |
-| P2-7  | P2   | done    | cron  | TBD     | 2026-05-19  | -                | UI spec §18.2                         | Create VolumePickerDialog with discoverVolumes IPC + VolumeDto. Add to Go menu.                                  | None                                                                                                               | 2026-05-19    |
-| P2-9  | P2   | pending | -     | -       | -           | -                | UI spec §18.2                         | Create SelectionPropertiesDialog for multi-file aggregate (count, total size, type breakdown).                   | None                                                                                                               | 2026-05-18    |
-| P2-11 | P2   | done    | cron  | 84867c3 | 2026-05-18  | -                | UI spec §12.2                         | Add offline/unmounted pane state to PaneLoadState + PaneStateView + error code mapping.                          | None                                                                                                               | 2026-05-18    |
+| ID   | Pri | Status  | Owner | Run ID | Started UTC | Lock Expires UTC | Acceptance refs            | Task                                                                                            | Blockers | Last verified |
+| ---- | --- | ------- | ----- | ------ | ----------- | ---------------- | -------------------------- | ----------------------------------------------------------------------------------------------- | -------- | ------------- |
+| RC-3 | P1  | pending | -     | -      | -           | -                | RC spec §4.2 MVP-PERF      | Manual 10k/100k UI perf capture on target hardware (automated evidence recorded 2026-05-19)     | None     | 2026-05-19    |
+| RC-4 | P2  | pending | -     | -      | -           | -                | M5; mvp-rc-checklist       | MVP RC checklist: local `pnpm rc:validate` + `tauri:build`, manual QA docs, diagnostics export  | None     | 2026-05-19    |
+| RC-5 | P2  | pending | -     | -      | -           | -                | comprehensive plan Phase 2 | IPC test gaps: `ipc_basic`, `ipc_terminal`, `ipc_reveal` + error-path coverage                  | None     | 2026-05-19    |
+| RC-6 | P2  | pending | -     | -      | -           | -                | MVP-UI-001; Menu spec §4   | MenuBar locals (sort/theme/density/favorites-add) through `dispatchCommand` where spec requires | None     | 2026-05-19    |
+| RC-7 | P3  | pending | -     | -      | -           | -                | UI Design Spec dialogs     | Conflict dialog: Apply to all + compare metadata                                                | None     | 2026-05-19    |
 
 ---
 
@@ -56,12 +47,26 @@
 
 ## Recently Completed
 
-| ID   | Result                                                           | Commit    |
-| ---- | ---------------------------------------------------------------- | --------- |
-| P1-2 | Resizable details columns with localStorage persistence shipped. | `3a066d6` |
-| P1-1 | TabBar UI shipped with open/close/switch tab actions.            | `8f7e762` |
-| P2-3 | Context menus are keyboard navigable.                            | `c59a5e2` |
-| P0-5 | Swap Panes command shipped.                                      | `fb55230` |
-| P0-4 | Toolbar and status-bar menu toggles shipped.                     | `dffbf11` |
-| P0-3 | Drag-and-drop file operations shipped.                           | `c869970` |
-| P0-1 | Filter input is rendered and wired.                              | `25c77c5` |
+| ID    | Result                                                                                         | Commit     |
+| ----- | ---------------------------------------------------------------------------------------------- | ---------- |
+| RC-2  | E2E multi-select Selection Properties smoke (`e2e/dialog.e2e.ts`)                              | 2026-05-19 |
+| P2-9  | Selection Properties dialog wired for multi-select; folder-size aggregate via folder-size jobs | 2026-05-19 |
+| P2-8  | Recent Locations management UI (dialog + clear/remove flows)                                   | preex      |
+| P2-7  | VolumePickerDialog with discoverVolumes IPC + Go menu                                          | 81568c8    |
+| P2-11 | Offline/unmounted pane state                                                                   | 84867c3    |
+| P2-10 | Accessible row names for file entries                                                          | 993f879    |
+| P2-6  | User-selectable visible columns with persistence                                               | e902fb0    |
+| P2-5  | Confirm before app close when jobs running                                                     | 3490ee1    |
+| P2-4  | Restore last pane paths and tab state on startup                                               | d08d97d    |
+| P2-2  | Focus-trap on modals + restore focus on close                                                  | 4d80006    |
+| P2-1  | Real popover tooltip (replaced title-attribute stub)                                           | 12a7a73    |
+| P1-5  | Breadcrumb overflow menu                                                                       | a8cc7fd    |
+| P1-4  | Image preview in PreviewPanel                                                                  | TBD        |
+| P1-3  | Rich Copy To / Move To destination chooser                                                     | TBD        |
+| P1-2  | Resizable details columns with localStorage persistence                                        | 3a066d6    |
+| P1-1  | TabBar UI with open/close/switch tab actions                                                   | 8f7e762    |
+| P2-3  | Keyboard-navigable context menus                                                               | c59a5e2    |
+| P0-5  | Swap Panes command                                                                             | fb55230    |
+| P0-4  | Toolbar and status-bar menu toggles                                                            | dffbf11    |
+| P0-3  | Drag-and-drop file operations                                                                  | c869970    |
+| P0-1  | Filter input rendered and wired                                                                | 25c77c5    |

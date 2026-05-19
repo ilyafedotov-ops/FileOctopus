@@ -25,6 +25,7 @@ import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
 import { useFocusTrap } from "../hooks/useFocusTrap";
 import { PropertiesDialog } from "../components/dialogs/PropertiesDialog";
+import { SelectionPropertiesDialog } from "../components/dialogs/SelectionPropertiesDialog";
 import { ConflictResolutionDialog } from "../components/dialogs/ConflictResolutionDialog";
 import { DestinationChooser } from "./DestinationChooser";
 
@@ -83,6 +84,18 @@ export type OperationDialog =
       loading: boolean;
       folderSizeJobId: string | null;
       error: string | null;
+    }
+  | {
+      type: "selectionProperties";
+      panelId: PanelId;
+      entries: FileEntryDto[];
+      totalSize: number | null;
+      calculatingSize: boolean;
+      folderSizeJobIds: string[];
+      pendingFolderSizeJobs: number;
+      folderSizeBytes: number;
+      fileSizeBaseline: number;
+      error: string | null;
     };
 
 export interface OperationDialogViewProps {
@@ -109,7 +122,11 @@ export interface OperationDialogViewProps {
     dialog: Extract<OperationDialog, { type: "permanentDelete" }>,
   ) => void;
   onCopyPath: (panelId: PanelId) => void;
+  onCopySelectionPaths: (panelId: PanelId) => void;
   onReveal: (panelId: PanelId, entry: FileEntryDto | null) => void;
+  onCalculateSelectionSize: (
+    dialog: Extract<OperationDialog, { type: "selectionProperties" }>,
+  ) => void;
   locations?: StandardLocationDto[];
   favorites?: FavoriteEntryDto[];
   recentDestinations?: RecentEntryDto[];
@@ -160,6 +177,12 @@ function operationDialogHeading(dialog: OperationDialog): {
           (dialog.loading ? "Loading metadata…" : "Item metadata"),
         titleId: "properties-dialog-title",
       };
+    case "selectionProperties":
+      return {
+        title: "Selection Properties",
+        subtitle: `${dialog.entries.length} selected item(s)`,
+        titleId: "selection-properties-dialog-title",
+      };
   }
 }
 
@@ -185,7 +208,9 @@ export function OperationDialogView({
   onSubmitTrash,
   onSubmitPermanentDelete,
   onCopyPath,
+  onCopySelectionPaths,
   onReveal,
+  onCalculateSelectionSize,
   locations,
   favorites,
   recentDestinations,
@@ -199,7 +224,8 @@ export function OperationDialogView({
   }
 
   const heading = operationDialogHeading(dialog);
-  const isProperties = dialog.type === "properties";
+  const isProperties =
+    dialog.type === "properties" || dialog.type === "selectionProperties";
 
   return (
     <div className="fo-dialog-backdrop" role="presentation">
@@ -528,6 +554,22 @@ export function OperationDialogView({
             onCopyPath={() => onCopyPath(dialog.panelId)}
             onReveal={() => onReveal(dialog.panelId, dialog.entry)}
           />
+        ) : null}
+        {dialog.type === "selectionProperties" ? (
+          <>
+            {dialog.error ? (
+              <div className="fo-operation-error">{dialog.error}</div>
+            ) : null}
+            <SelectionPropertiesDialog
+              open
+              entries={dialog.entries}
+              totalSize={dialog.totalSize}
+              calculatingSize={dialog.calculatingSize}
+              onClose={onClose}
+              onCopyPaths={() => onCopySelectionPaths(dialog.panelId)}
+              onCalculateSize={() => onCalculateSelectionSize(dialog)}
+            />
+          </>
         ) : null}
       </section>
     </div>

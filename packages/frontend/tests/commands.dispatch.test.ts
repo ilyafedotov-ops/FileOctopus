@@ -263,4 +263,15 @@ describe("dispatchCommand", () => {
     expect(handled).toBe(false);
     expect(removeRecentEntry).not.toHaveBeenCalled();
   });
+
+  it("delegates properties to handleProperties with the active panel", () => {
+    const handleProperties = vi.fn();
+    const handled = dispatchCommand(
+      "op.properties",
+      baseDeps({ handleProperties }),
+    );
+
+    expect(handled).toBe(true);
+    expect(handleProperties).toHaveBeenCalledWith("left", null);
+  });
 });

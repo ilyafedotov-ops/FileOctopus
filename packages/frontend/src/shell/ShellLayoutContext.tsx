@@ -121,6 +121,9 @@ export interface ShellLayoutContextValue {
     panelId: PanelId,
     kind: "path" | "name" | "parentPath" | "uri",
   ) => Promise<void>;
+  calculateSelectionSize: (
+    dialog: Extract<OperationDialog, { type: "selectionProperties" }>,
+  ) => Promise<void>;
   revealEntry: (panelId: PanelId, entry: FileEntryDto | null) => Promise<void>;
   handleSetAutostart: (enabled: boolean) => Promise<void>;
   handleCommandSelect: (

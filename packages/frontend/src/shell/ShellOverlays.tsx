@@ -91,6 +91,7 @@ export function ShellOverlays() {
         submitTrash={ctx.submitTrash}
         submitPermanentDelete={ctx.submitPermanentDelete}
         copyTextFromSelection={ctx.copyTextFromSelection}
+        calculateSelectionSize={ctx.calculateSelectionSize}
         revealEntry={ctx.revealEntry}
         locations={ctx.locations}
         recentDestinations={[...ctx.recentToday, ...ctx.recentWeek]}
