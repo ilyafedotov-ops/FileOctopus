@@ -181,7 +181,7 @@ describe("tab management", () => {
     expect(Object.keys(state.panels.left.tabs).length).toBe(3);
   });
 
-  it("openTab creates tab in loadState loading", () => {
+  it("openTab creates tab in loadState loading for a new URI", () => {
     let state = createInitialState();
 
     state = panelReducer(state, {
@@ -193,6 +193,65 @@ describe("tab management", () => {
     expect(activeTab(state.panels.left).loadState).toBe("loading");
     expect(activeTab(state.panels.left).entriesById).toEqual({});
     expect(activeTab(state.panels.left).orderedEntryIds).toEqual([]);
+  });
+
+  it("openTab duplicates loaded contents for the current URI", () => {
+    let state = createInitialState();
+    const currentUri = activeTab(state.panels.left).uri;
+    state = {
+      ...state,
+      panels: {
+        ...state.panels,
+        left: {
+          ...state.panels.left,
+          tabs: {
+            ...state.panels.left.tabs,
+            main: {
+              ...state.panels.left.tabs.main,
+              loadState: "loaded",
+              entriesById: {
+                [`${currentUri}/Documents`]: {
+                  uri: `${currentUri}/Documents`,
+                  name: "Documents",
+                  kind: "directory",
+                  size: null,
+                  extension: null,
+                  modifiedAt: null,
+                  createdAt: null,
+                  accessedAt: null,
+                  isHidden: false,
+                  isSymlink: false,
+                  symlinkTarget: null,
+                  providerId: "local",
+                  canRead: true,
+                  canList: true,
+                  canWrite: true,
+                  canDelete: true,
+                  canRename: true,
+                  permissions: null,
+                  owner: null,
+                },
+              },
+              orderedEntryIds: [`${currentUri}/Documents`],
+              selectedIds: [`${currentUri}/Documents`],
+              selectedId: `${currentUri}/Documents`,
+            },
+          },
+        },
+      },
+    };
+
+    state = panelReducer(state, {
+      type: "openTab",
+      panelId: "left",
+      uri: currentUri,
+    });
+
+    const tab = activeTab(state.panels.left);
+    expect(tab.loadState).toBe("loaded");
+    expect(tab.orderedEntryIds).toEqual([`${currentUri}/Documents`]);
+    expect(tab.selectedIds).toEqual([]);
+    expect(tab.selectedId).toBeNull();
   });
 
   it("tab actions only affect the target panel", () => {

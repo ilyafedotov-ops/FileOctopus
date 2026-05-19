@@ -40,9 +40,9 @@ function makePanel(
 afterEach(cleanup);
 
 describe("TabBar", () => {
-  it("renders nothing when only one tab exists", () => {
+  it("renders the active tab and new tab button when only one tab exists", () => {
     const panel = makePanel({ t1: makeTab("local:///home/user") }, "t1");
-    const { container } = render(
+    const { getByRole, getByLabelText } = render(
       <TabBar
         panelId="left"
         panel={panel}
@@ -51,7 +51,10 @@ describe("TabBar", () => {
         onOpenTab={vi.fn()}
       />,
     );
-    expect(container.innerHTML).toBe("");
+    const tablist = getByRole("tablist");
+    expect(within(tablist).getAllByRole("tab").length).toBe(1);
+    expect(getByLabelText("New tab")).toBeTruthy();
+    expect(document.querySelectorAll(".fo-tab-close").length).toBe(0);
   });
 
   it("renders tab buttons when multiple tabs exist", () => {

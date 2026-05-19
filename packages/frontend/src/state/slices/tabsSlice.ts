@@ -19,28 +19,40 @@ export function isTabAction(action: PanelAction): action is TabAction {
   );
 }
 
-function createFreshTab(uri: string): PanelTabState {
+function canCloneListing(source: PanelTabState, uri: string): boolean {
+  return (
+    source.uri === uri &&
+    (source.loadState === "loaded" || source.loadState === "empty")
+  );
+}
+
+function createFreshTab(uri: string, source?: PanelTabState): PanelTabState {
+  const cloneListing = source ? canCloneListing(source, uri) : false;
+
   return {
     uri,
-    entriesById: {},
-    orderedEntryIds: [],
+    entriesById: cloneListing && source ? source.entriesById : {},
+    orderedEntryIds: cloneListing && source ? source.orderedEntryIds : [],
     selectedIds: [],
     selectedId: null,
     focusedId: null,
     anchorId: null,
     sessionId: null,
     activeRequestId: null,
-    loadState: "loading",
+    loadState: cloneListing && source ? source.loadState : "loading",
     error: null,
     errorCode: null,
     filter: "",
     recursiveQuery: "",
-    sort: storedSort(),
-    viewMode: "details",
-    showHidden: storedShowHidden(),
+    sort: source?.sort ?? storedSort(),
+    viewMode: source?.viewMode ?? "details",
+    showHidden: source?.showHidden ?? storedShowHidden(),
     backStack: [],
     forwardStack: [],
-    hashMap: {} as Record<string, HashState>,
+    hashMap:
+      cloneListing && source
+        ? source.hashMap
+        : ({} as Record<string, HashState>),
   };
 }
 
@@ -58,7 +70,7 @@ export function reduceTab(
     case "openTab": {
       const panel = state.panels[action.panelId];
       const tabId = generateTabId();
-      const newTab = createFreshTab(action.uri);
+      const newTab = createFreshTab(action.uri, panel.tabs[panel.activeTabId]);
       return {
         ...state,
         panels: {
