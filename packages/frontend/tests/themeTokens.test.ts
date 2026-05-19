@@ -226,25 +226,22 @@ describe("Design token architecture", () => {
   });
 
   it("dialog backdrops leave custom window controls clickable", () => {
-    expect(shellContent).toContain("--fo-titlebar-height: 50px");
+    expect(shellContent).toContain("--fo-titlebar-height: 34px");
     expect(shellContent).toContain("min-height: var(--fo-titlebar-height)");
     expect(dialogsContent).toContain(
       "inset: var(--fo-titlebar-height, 50px) 0 0",
     );
   });
 
-  it("dialog chrome follows classic Windows Commander styling", () => {
-    expect(dialogsContent).toContain("--fo-classic-face: #c0c0c0");
-    expect(dialogsContent).toContain("--fo-classic-title: #0a246a");
+  it("dialog chrome follows VS Code workbench styling", () => {
+    expect(dialogsContent).toContain("--fo-classic-face: #252526");
+    expect(dialogsContent).toContain("--fo-classic-title: #007acc");
     expect(dialogsContent).toContain("border-radius: 0");
     expect(dialogsContent).toContain(
-      "box-shadow: 2px 2px 0 var(--fo-classic-dark)",
+      "box-shadow: 0 12px 32px var(--fo-dialog-shadow)",
     );
     expect(dialogsContent).toMatch(
-      /border-color:\s*var\(--fo-classic-light\)\s+var\(--fo-classic-dark\)\s+var\(--fo-classic-dark\)\s+var\(--fo-classic-light\)/,
-    );
-    expect(dialogsContent).toMatch(
-      /border-color:\s*var\(--fo-classic-shadow\)\s+var\(--fo-classic-light\)\s+var\(--fo-classic-light\)\s+var\(--fo-classic-shadow\)/,
+      /border:\s*1px solid var\(--fo-dialog-border\)/,
     );
     expect(sharedContent).toContain(
       ".fo-command-palette {\n  max-width: 520px;\n  width: 90vw;\n  padding: 0;\n  border-radius: 0;",

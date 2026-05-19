@@ -2,12 +2,10 @@
   color: var(--fo-text);
   background: var(--fo-app-bg);
   font-family:
-    Inter,
-    ui-sans-serif,
+    "Segoe UI",
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
-    "Segoe UI",
     sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;

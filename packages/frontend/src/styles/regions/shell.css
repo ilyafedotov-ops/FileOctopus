@@ -1,15 +1,15 @@
 .fo-shell {
-  --fo-titlebar-height: 50px;
-  --fo-classic-face: #c0c0c0;
-  --fo-classic-window: #ffffff;
-  --fo-classic-light: #ffffff;
-  --fo-classic-shadow: #808080;
-  --fo-classic-dark: #404040;
+  --fo-titlebar-height: 34px;
+  --fo-classic-face: #2d2d30;
+  --fo-classic-window: #1e1e1e;
+  --fo-classic-light: #3c3c3c;
+  --fo-classic-shadow: #3c3c3c;
+  --fo-classic-dark: #1e1e1e;
   --fo-classic-black: #000000;
-  --fo-classic-title: #0a246a;
-  --fo-classic-title-end: #3a6ea5;
-  --fo-classic-text: #000000;
-  --fo-classic-muted: #404040;
+  --fo-classic-title: #007acc;
+  --fo-classic-title-end: #007acc;
+  --fo-classic-text: #cccccc;
+  --fo-classic-muted: #969696;
   --fo-commander-bg: var(--fo-classic-window);
   --fo-commander-strip: var(--fo-classic-face);
   --fo-commander-border: var(--fo-classic-shadow);
@@ -21,7 +21,7 @@
   position: relative;
   height: 100vh;
   padding: 0;
-  background: var(--fo-classic-face);
+  background: var(--fo-app-bg);
   outline: none;
 }
 
@@ -31,7 +31,7 @@
   height: 100vh;
   border: 0;
   border-radius: 0;
-  background: var(--fo-classic-face);
+  background: var(--fo-app-bg);
   box-shadow: none;
   overflow: hidden;
 }
@@ -46,7 +46,7 @@
   min-height: 0;
   min-width: 0;
   padding: 0;
-  background: var(--fo-classic-face);
+  background: var(--fo-app-bg);
   overflow: hidden;
 }
 
@@ -86,8 +86,8 @@
   gap: 2px;
   min-width: 0;
   min-height: 0;
-  padding: 2px;
-  background: var(--fo-classic-shadow);
+  padding: 0;
+  background: var(--fo-border);
   overflow: hidden;
 }
 
@@ -102,11 +102,11 @@
   gap: 0;
   min-height: var(--fo-titlebar-height);
   min-width: 0;
-  padding: 0 12px;
+  padding: 0 10px;
   border-width: 0 0 1px;
   border-radius: 0;
-  background: var(--fo-classic-face);
-  border-bottom: 1px solid var(--fo-classic-shadow);
+  background: #3c3c3c;
+  border-bottom: 1px solid #252526;
 }
 
 .fo-brand {
@@ -119,8 +119,8 @@
 
 .fo-window-dot {
   flex: 0 0 auto;
-  width: 13px;
-  height: 13px;
+  width: 11px;
+  height: 11px;
   padding: 0;
   border: 0;
   border-radius: 999px;
@@ -152,10 +152,10 @@
   flex: 0 1 34rem;
   min-width: 8rem;
   max-width: min(36vw, 34rem);
-  margin: 0 0 0 18px;
-  color: var(--fo-classic-muted);
-  font-size: 14px;
-  font-weight: 700;
+  margin: 0 0 0 14px;
+  color: #cccccc;
+  font-size: 12px;
+  font-weight: 400;
   line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -184,24 +184,23 @@
 .fo-topbar-actions .fo-ui-btn {
   border-width: 1px;
   border-style: solid;
-  border-color: var(--fo-classic-light) var(--fo-classic-shadow)
-    var(--fo-classic-shadow) var(--fo-classic-light);
-  border-radius: 0;
-  background: var(--fo-classic-face);
-  color: var(--fo-classic-text);
+  border-color: transparent;
+  border-radius: 2px;
+  background: transparent;
+  color: #cccccc;
 }
 
 .fo-topbar-actions .fo-ui-btn:hover:not(:disabled),
 .fo-topbar-actions .fo-ui-btn:focus-visible {
-  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
-    var(--fo-classic-light) var(--fo-classic-shadow);
-  background: var(--fo-classic-window);
+  border-color: #505050;
+  background: #505050;
+  color: #ffffff;
 }
 
 .fo-workbench-toolbar {
   min-width: 0;
-  border-bottom: 1px solid var(--fo-classic-dark);
-  background: var(--fo-classic-face);
+  border-bottom: 1px solid #1e1e1e;
+  background: #2d2d30;
 }
 
 .fo-workbench-toolbar .fo-operation-toolbar {
@@ -234,8 +233,8 @@
   align-items: center;
   gap: 8px;
   padding: 4px 6px;
-  border: 1px solid var(--fo-classic-shadow);
-  background: var(--fo-classic-window);
+  border: 1px solid var(--fo-border);
+  background: var(--fo-surface);
 }
 
 .fo-toolbar-customize-label {
@@ -272,21 +271,21 @@
   display: flex;
   align-items: center;
   gap: 0;
-  margin-left: 12px;
-  padding: 0 4px;
+  margin-left: 10px;
+  padding: 0;
   height: 100%;
   flex: 0 0 auto;
   min-width: 0;
 }
 
 .fo-menubar-trigger {
-  min-height: 24px;
-  padding: 2px 8px;
-  border-radius: 0;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 2px;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 650;
-  color: var(--fo-classic-text);
+  font-size: 12px;
+  font-weight: 400;
+  color: #cccccc;
   user-select: none;
 }
 
@@ -299,8 +298,8 @@
 
 .fo-menubar-trigger:hover,
 .fo-menubar-trigger[data-state="open"] {
-  background: var(--fo-classic-title);
-  color: var(--fo-classic-light);
+  background: #505050;
+  color: #ffffff;
 }
 
 .fo-help-menu {
@@ -313,23 +312,23 @@
   right: 0;
   z-index: 30;
   display: grid;
-  gap: 4px;
+  gap: 0;
   min-width: 10rem;
-  padding: 6px;
-  border: 1px solid var(--fo-border);
-  border-radius: 4px;
-  background: var(--fo-control-bg);
-  box-shadow: 0 8px 24px var(--fo-menu-shadow);
+  padding: 4px 0;
+  border: 1px solid var(--fo-dialog-border);
+  border-radius: 0;
+  background: var(--fo-surface-elevated);
+  box-shadow: 0 8px 20px var(--fo-menu-shadow);
 }
 
 .fo-resizer {
   width: var(--fo-splitter-width, 6px);
   cursor: col-resize;
-  background: var(--fo-classic-face);
+  background: #1e1e1e;
 }
 
 .fo-resizer:hover {
-  background: var(--fo-classic-title);
+  background: var(--fo-accent);
 }
 
 .fo-workspace[data-workspace="compact"] .fo-dual-pane {
@@ -385,7 +384,7 @@
     grid-column: 1 / -1;
     grid-row: 2;
     max-height: min(38vh, 300px);
-    border-radius: 16px;
+    border-radius: 0;
   }
 
   :root[data-activity-panel="hidden"] .fo-activity-rail {
@@ -407,7 +406,7 @@
   }
 
   .fo-activity-collapsed .fo-ui-btn {
-    border-radius: 999px;
+    border-radius: 2px;
     box-shadow: 0 8px 24px var(--fo-menu-shadow);
   }
 }
@@ -453,8 +452,8 @@
 .fo-shell-status-stack {
   display: grid;
   min-width: 0;
-  border-top: 1px solid var(--fo-commander-border);
-  background: var(--fo-commander-strip);
+  border-top: 1px solid #1e1e1e;
+  background: #007acc;
 }
 
 .fo-bottom-path-rail {
@@ -463,17 +462,17 @@
   min-width: 0;
   min-height: var(--fo-statusbar-height);
   padding: 3px 6px;
-  border-bottom: 1px solid var(--fo-commander-border);
-  background: var(--fo-commander-bg);
+  border-bottom: 1px solid #252526;
+  background: #252526;
 }
 
 .fo-bottom-path-rail span {
   width: 100%;
   min-width: 0;
   padding: 2px 8px;
-  border: 1px solid var(--fo-commander-input-border);
-  border-radius: 0;
-  background: var(--fo-commander-input-bg);
+  border: 1px solid #3c3c3c;
+  border-radius: 2px;
+  background: #1e1e1e;
   color: var(--fo-commander-text);
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
@@ -491,8 +490,8 @@
   gap: 0;
   min-width: 0;
   padding: 0;
-  border-bottom: 1px solid var(--fo-commander-border);
-  background: var(--fo-commander-bg);
+  border-bottom: 1px solid #252526;
+  background: #2d2d30;
 }
 
 .fo-commander-key {
@@ -504,9 +503,9 @@
   min-height: 30px;
   padding: 0 7px;
   border: 0;
-  border-right: 1px solid var(--fo-commander-border);
+  border-right: 1px solid #3c3c3c;
   border-radius: 0;
-  background: var(--fo-commander-strip);
+  background: #2d2d30;
   color: var(--fo-commander-text);
   font-size: 12px;
   font-weight: 650;
@@ -515,10 +514,9 @@
 
 .fo-commander-key:hover:not(:disabled),
 .fo-commander-key:focus-visible {
-  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
-    var(--fo-classic-light) var(--fo-classic-shadow);
-  background: var(--fo-classic-window);
-  color: var(--fo-classic-text);
+  border-color: #505050;
+  background: #37373d;
+  color: #ffffff;
 }
 
 .fo-commander-key:disabled {
@@ -531,10 +529,10 @@
   place-items: center;
   min-width: 27px;
   min-height: 18px;
-  border: 1px solid var(--fo-commander-input-border);
-  border-radius: 0;
-  background: var(--fo-commander-input-bg);
-  color: var(--fo-commander-keycap);
+  border: 1px solid #505050;
+  border-radius: 2px;
+  background: #1e1e1e;
+  color: #3794ff;
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     sans-serif;
@@ -554,7 +552,7 @@
   gap: 4px;
   min-height: var(--fo-statusbar-height, 22px);
   padding: 1px 4px;
-  color: var(--fo-muted-text);
+  color: #ffffff;
   font-size: 11px;
   white-space: nowrap;
   overflow: hidden;
@@ -586,7 +584,7 @@
 
 .fo-status-button:hover,
 .fo-status-button:focus-visible {
-  color: var(--fo-text);
+  color: #ffffff;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -609,7 +607,7 @@
 .fo-status-separator {
   width: 1px;
   height: 12px;
-  background: var(--fo-border);
+  background: rgb(255 255 255 / 34%);
   flex-shrink: 0;
 }
 
@@ -628,29 +626,29 @@
 }
 
 :root[data-theme="dark"] .fo-shell {
-  --fo-classic-face: #3a3a3c;
-  --fo-classic-window: #2b2b2d;
-  --fo-classic-light: #5a5a5e;
-  --fo-classic-shadow: #1e1e20;
-  --fo-classic-dark: #121214;
+  --fo-classic-face: #2d2d30;
+  --fo-classic-window: #1e1e1e;
+  --fo-classic-light: #3c3c3c;
+  --fo-classic-shadow: #3c3c3c;
+  --fo-classic-dark: #1e1e1e;
   --fo-classic-black: #000000;
-  --fo-classic-title: #7eb0ff;
-  --fo-classic-title-end: #5a8fd4;
-  --fo-classic-text: #e6edf3;
-  --fo-classic-muted: #9aa8bb;
+  --fo-classic-title: #007acc;
+  --fo-classic-title-end: #007acc;
+  --fo-classic-text: #cccccc;
+  --fo-classic-muted: #969696;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .fo-shell {
-    --fo-classic-face: #3a3a3c;
-    --fo-classic-window: #2b2b2d;
-    --fo-classic-light: #5a5a5e;
-    --fo-classic-shadow: #1e1e20;
-    --fo-classic-dark: #121214;
+    --fo-classic-face: #2d2d30;
+    --fo-classic-window: #1e1e1e;
+    --fo-classic-light: #3c3c3c;
+    --fo-classic-shadow: #3c3c3c;
+    --fo-classic-dark: #1e1e1e;
     --fo-classic-black: #000000;
-    --fo-classic-title: #7eb0ff;
-    --fo-classic-title-end: #5a8fd4;
-    --fo-classic-text: #e6edf3;
-    --fo-classic-muted: #9aa8bb;
+    --fo-classic-title: #007acc;
+    --fo-classic-title-end: #007acc;
+    --fo-classic-text: #cccccc;
+    --fo-classic-muted: #969696;
   }
 }

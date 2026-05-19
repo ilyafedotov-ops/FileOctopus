@@ -13,8 +13,8 @@
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--fo-border);
-  border-radius: 10px;
-  background: var(--fo-surface);
+  border-radius: 0;
+  background: #252526;
   font-size: 12px;
 }
 
@@ -45,8 +45,8 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  padding: 12px;
-  border-bottom: 1px solid var(--fo-border);
+  padding: 9px 10px;
+  border-bottom: 1px solid #1e1e1e;
 }
 
 .fo-activity-header h2 {
@@ -54,7 +54,8 @@
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-size: 15px;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 .fo-activity-header p {
@@ -65,8 +66,8 @@
 
 .fo-activity-cards {
   display: grid;
-  gap: 8px;
-  padding: 10px;
+  gap: 6px;
+  padding: 8px;
   overflow: auto;
 }
 
@@ -87,15 +88,15 @@
   color: var(--fo-muted-text);
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
 .fo-job-card {
-  padding: 10px;
+  padding: 8px;
   border: 1px solid var(--fo-border);
-  border-radius: 8px;
-  background: var(--fo-workspace-bg);
+  border-radius: 2px;
+  background: #1e1e1e;
 }
 
 .fo-job-card-running {
@@ -103,13 +104,13 @@
 }
 
 .fo-job-card-queued {
-  background: #fff8eb;
-  border-color: #f6d58a;
+  background: #4b3a16;
+  border-color: #8a6c00;
 }
 
 .fo-job-card-completed {
-  background: #ecfdf3;
-  border-color: #9fd8b3;
+  background: #173f2a;
+  border-color: #2f6f44;
 }
 
 .fo-job-card-failed {
@@ -169,14 +170,14 @@
 .fo-job-card-bar {
   height: 6px;
   margin-top: 8px;
-  border-radius: 999px;
+  border-radius: 2px;
   background: var(--fo-border);
   overflow: hidden;
 }
 
 .fo-job-card-bar > div {
   height: 100%;
-  border-radius: 999px;
+  border-radius: 2px;
   background: var(--fo-accent);
 }
 
@@ -191,7 +192,7 @@
   max-height: 220px;
   overflow: auto;
   border: 1px solid var(--fo-border);
-  background: var(--fo-surface);
+  background: #1e1e1e;
   padding: 8px;
   font-size: 12px;
 }
@@ -259,7 +260,7 @@
   grid-column: 1 / -1;
   grid-row: 2;
   max-height: min(38vh, 300px);
-  border-radius: 16px;
+  border-radius: 0;
 }
 
 .fo-workspace[data-layout="medium"] .fo-activity-collapsed {
@@ -271,12 +272,12 @@
   min-width: 0;
   padding: 0;
   border: 0;
-  border-radius: 999px;
+  border-radius: 2px;
   background: transparent;
   box-shadow: none;
 }
 
 .fo-workspace[data-layout="medium"] .fo-activity-collapsed .fo-ui-btn {
-  border-radius: 999px;
+  border-radius: 2px;
   box-shadow: 0 8px 24px var(--fo-menu-shadow);
 }

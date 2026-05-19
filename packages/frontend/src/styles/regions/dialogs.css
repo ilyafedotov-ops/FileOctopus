@@ -9,14 +9,11 @@
 .fo-context-menu button,
 .fo-search-row button,
 .fo-breadcrumb button:not(.fo-ui-btn) {
-  min-height: 30px;
-  border-width: 2px;
-  border-style: solid;
-  border-color: var(--fo-classic-light, #ffffff) var(--fo-classic-dark, #404040)
-    var(--fo-classic-dark, #404040) var(--fo-classic-light, #ffffff);
-  border-radius: 0;
-  background: var(--fo-classic-face, var(--fo-control-bg));
-  color: var(--fo-classic-text, var(--fo-text));
+  min-height: 26px;
+  border: 1px solid var(--fo-control-border);
+  border-radius: 2px;
+  background: var(--fo-control-bg);
+  color: var(--fo-text);
 }
 
 .fo-history header,
@@ -83,14 +80,10 @@
 .fo-dialog select {
   width: 100%;
   min-height: 30px;
-  border-width: 2px;
-  border-style: solid;
-  border-color: var(--fo-classic-shadow, var(--fo-control-border))
-    var(--fo-classic-light, #ffffff) var(--fo-classic-light, #ffffff)
-    var(--fo-classic-shadow, var(--fo-control-border));
-  border-radius: 0;
-  background: var(--fo-classic-window, var(--fo-control-bg));
-  color: var(--fo-classic-text, var(--fo-text));
+  border: 1px solid var(--fo-control-border);
+  border-radius: 2px;
+  background: var(--fo-control-bg);
+  color: var(--fo-text);
   padding: 5px 8px;
 }
 
@@ -522,16 +515,16 @@
 
 .fo-dialog,
 dialog.fo-dialog {
-  --fo-classic-face: #c0c0c0;
-  --fo-classic-window: #ffffff;
-  --fo-classic-light: #ffffff;
-  --fo-classic-shadow: #808080;
-  --fo-classic-dark: #404040;
+  --fo-classic-face: #252526;
+  --fo-classic-window: #1e1e1e;
+  --fo-classic-light: #3c3c3c;
+  --fo-classic-shadow: #3c3c3c;
+  --fo-classic-dark: #1e1e1e;
   --fo-classic-black: #000000;
-  --fo-classic-title: #0a246a;
-  --fo-classic-title-end: #3a6ea5;
-  --fo-classic-text: #000000;
-  --fo-classic-muted: #404040;
+  --fo-classic-title: #007acc;
+  --fo-classic-title-end: #007acc;
+  --fo-classic-text: #cccccc;
+  --fo-classic-muted: #969696;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -542,14 +535,11 @@ dialog.fo-dialog {
   margin: 0;
   overflow: auto;
   padding: 0;
-  border-width: 2px;
-  border-style: solid;
-  border-color: var(--fo-classic-light) var(--fo-classic-dark)
-    var(--fo-classic-dark) var(--fo-classic-light);
+  border: 1px solid var(--fo-dialog-border);
   border-radius: 0;
   background: var(--fo-classic-face);
   color: var(--fo-classic-text);
-  box-shadow: 2px 2px 0 var(--fo-classic-dark);
+  box-shadow: 0 12px 32px var(--fo-dialog-shadow);
 }
 
 dialog.fo-dialog[open] {
@@ -581,11 +571,7 @@ dialog.fo-dialog[open] {
   min-height: 26px;
   padding: 3px 4px 3px 6px;
   border: 0;
-  background: linear-gradient(
-    90deg,
-    var(--fo-classic-title),
-    var(--fo-classic-title-end)
-  );
+  background: #3c3c3c;
   color: var(--fo-classic-light);
 }
 
@@ -628,7 +614,7 @@ dialog.fo-dialog[open] {
   margin: 0;
   color: var(--fo-classic-light);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 500;
   line-height: 1;
 }
 

@@ -1,18 +1,18 @@
 :root {
-  --fo-text: #172033;
-  --fo-app-bg: #f5f7fb;
-  --fo-workspace-bg: #f1f4f9;
-  --fo-disabled-text: #8b96a7;
-  --fo-border: #d9e0ec;
-  --fo-surface: #ffffff;
-  --fo-surface-elevated: #ffffff;
-  --fo-muted-text: #5e6b80;
-  --fo-strong-border: #c3ccd8;
-  --fo-control-bg: #ffffff;
-  --fo-accent: #3578ff;
-  --fo-accent-soft: #e8f0ff;
+  --fo-text: #cccccc;
+  --fo-app-bg: #1e1e1e;
+  --fo-workspace-bg: #1e1e1e;
+  --fo-disabled-text: #6a6a6a;
+  --fo-border: #3c3c3c;
+  --fo-surface: #252526;
+  --fo-surface-elevated: #2d2d30;
+  --fo-muted-text: #969696;
+  --fo-strong-border: #454545;
+  --fo-control-bg: #3c3c3c;
+  --fo-accent: #007acc;
+  --fo-accent-soft: #094771;
   --fo-on-accent: #ffffff;
-  --fo-shell-shadow: rgb(29 42 68 / 16%);
+  --fo-shell-shadow: rgb(0 0 0 / 32%);
   --fo-sidebar-width: 240px;
   --fo-activity-width: 320px;
   --fo-left-pane-fr: 1fr;
@@ -20,38 +20,46 @@
   --fo-row-height: 20px;
   --fo-base-font-size: 14px;
   --fo-icon-size: 16px;
-  --fo-success: #24a148;
-  --fo-warning: #f59e0b;
-  --fo-strip-bg: #e3e8ef;
-  --fo-control-border: #929dac;
-  --fo-danger: #b42318;
-  --fo-danger-border: #d08a84;
-  --fo-danger-bg: #fff1f0;
-  --fo-danger-text: #8a1f17;
-  --fo-subtle-border: #edf1f6;
-  --fo-focus: #2f6feb;
-  --fo-secondary-text: #64748b;
-  --fo-body-muted: #4b5868;
-  --fo-divider: #c3ccd8;
-  --fo-backdrop: rgb(24 32 42 / 42%);
-  --fo-dialog-border: #66758a;
-  --fo-dialog-shadow: rgb(24 32 42 / 28%);
-  --fo-menu-shadow: rgb(24 32 42 / 24%);
-  --fo-shell-frame-shadow: 0 14px 36px rgb(29 42 68 / 16%);
+  --fo-success: #89d185;
+  --fo-warning: #cca700;
+  --fo-strip-bg: #2d2d30;
+  --fo-control-border: #3c3c3c;
+  --fo-danger: #f14c4c;
+  --fo-danger-border: #be1100;
+  --fo-danger-bg: #5a1d1d;
+  --fo-danger-text: #f48771;
+  --fo-subtle-border: #333333;
+  --fo-focus: #007fd4;
+  --fo-secondary-text: #858585;
+  --fo-body-muted: #9d9d9d;
+  --fo-divider: #3c3c3c;
+  --fo-backdrop: rgb(0 0 0 / 58%);
+  --fo-dialog-border: #454545;
+  --fo-dialog-shadow: rgb(0 0 0 / 45%);
+  --fo-menu-shadow: rgb(0 0 0 / 38%);
+  --fo-shell-frame-shadow: none;
+  --fo-titlebar-bg: #3c3c3c;
+  --fo-editor-bg: #1e1e1e;
+  --fo-panel-bg: #252526;
+  --fo-tab-bg: #2d2d30;
+  --fo-tab-hover-bg: #333337;
+  --fo-row-hover-bg: #2a2d2e;
+  --fo-selection-inactive-bg: #37373d;
+  --fo-icon-muted: #c5c5c5;
 
   /* Dark palette (referenced by theme overrides below) */
-  --fo-dark-text: #e6edf3;
-  --fo-dark-app-bg: #10151d;
-  --fo-dark-surface: #161d27;
-  --fo-dark-border: #354255;
-  --fo-dark-strip-bg: #202a38;
-  --fo-dark-control-bg: #111821;
-  --fo-dark-control-border: #3b485a;
-  --fo-dark-accent-soft: #18385f;
-  --fo-dark-muted-text: #9aa8bb;
-  --fo-dark-danger-bg: #331b1b;
-  --fo-dark-danger-border: #7a342f;
-  --fo-dark-danger-text: #ffd1cc;
+  --fo-dark-text: #cccccc;
+  --fo-dark-app-bg: #1e1e1e;
+  --fo-dark-surface: #252526;
+  --fo-dark-border: #3c3c3c;
+  --fo-dark-strip-bg: #2d2d30;
+  --fo-dark-control-bg: #3c3c3c;
+  --fo-dark-control-border: #3c3c3c;
+  --fo-dark-accent-soft: #094771;
+  --fo-dark-muted-text: #969696;
+  --fo-dark-danger-bg: #5a1d1d;
+  --fo-dark-danger-border: #be1100;
+  --fo-dark-danger-text: #f48771;
 
   font-size: var(--fo-base-font-size);
 
@@ -136,6 +144,45 @@
 
 :root[data-theme="light"] {
   color-scheme: light;
+  --fo-text: #1f1f1f;
+  --fo-app-bg: #f3f3f3;
+  --fo-workspace-bg: #ffffff;
+  --fo-disabled-text: #8e8e8e;
+  --fo-border: #d4d4d4;
+  --fo-surface: #ffffff;
+  --fo-surface-elevated: #f3f3f3;
+  --fo-muted-text: #616161;
+  --fo-strong-border: #c8c8c8;
+  --fo-control-bg: #ffffff;
+  --fo-accent: #007acc;
+  --fo-accent-soft: #cce8ff;
+  --fo-success: #107c10;
+  --fo-warning: #9d7500;
+  --fo-strip-bg: #f3f3f3;
+  --fo-control-border: #cecece;
+  --fo-danger: #a1260d;
+  --fo-danger-border: #d13438;
+  --fo-danger-bg: #fde7e9;
+  --fo-danger-text: #a1260d;
+  --fo-subtle-border: #e5e5e5;
+  --fo-focus: #007fd4;
+  --fo-secondary-text: #6c6c6c;
+  --fo-body-muted: #616161;
+  --fo-divider: #d4d4d4;
+  --fo-backdrop: rgb(0 0 0 / 36%);
+  --fo-dialog-border: #c8c8c8;
+  --fo-dialog-shadow: rgb(0 0 0 / 20%);
+  --fo-menu-shadow: rgb(0 0 0 / 22%);
+  --fo-shell-shadow: rgb(0 0 0 / 16%);
+  --fo-shell-frame-shadow: none;
+  --fo-titlebar-bg: #dddddd;
+  --fo-editor-bg: #ffffff;
+  --fo-panel-bg: #f3f3f3;
+  --fo-tab-bg: #ececec;
+  --fo-tab-hover-bg: #e5e5e5;
+  --fo-row-hover-bg: #f3f3f3;
+  --fo-selection-inactive-bg: #e4e6f1;
+  --fo-icon-muted: #424242;
 }
 
 :root[data-font-scale="small"] {
@@ -152,32 +199,32 @@
 }
 
 :root[data-accent="indigo"] {
-  --fo-accent: #5b6cff;
-  --fo-accent-soft: #e9ecff;
+  --fo-accent: #3794ff;
+  --fo-accent-soft: #073655;
 }
 :root[data-accent="violet"] {
-  --fo-accent: #8b5cf6;
-  --fo-accent-soft: #f0e8ff;
+  --fo-accent: #b180d7;
+  --fo-accent-soft: #40245c;
 }
 :root[data-accent="pink"] {
-  --fo-accent: #ec4899;
-  --fo-accent-soft: #fde6f1;
+  --fo-accent: #c586c0;
+  --fo-accent-soft: #4c254a;
 }
 :root[data-accent="red"] {
-  --fo-accent: #dc2626;
-  --fo-accent-soft: #fce4e4;
+  --fo-accent: #f14c4c;
+  --fo-accent-soft: #5a1d1d;
 }
 :root[data-accent="orange"] {
-  --fo-accent: #ea580c;
-  --fo-accent-soft: #ffe8d6;
+  --fo-accent: #ce9178;
+  --fo-accent-soft: #4b2c24;
 }
 :root[data-accent="amber"] {
-  --fo-accent: #d97706;
-  --fo-accent-soft: #fff0d1;
+  --fo-accent: #dcdcaa;
+  --fo-accent-soft: #3f3a1f;
 }
 :root[data-accent="green"] {
-  --fo-accent: #16a34a;
-  --fo-accent-soft: #dcf3e2;
+  --fo-accent: #4ec9b0;
+  --fo-accent-soft: #173f38;
 }
 
 /* Dark-mode accent overrides */
@@ -201,6 +248,35 @@
 }
 :root[data-theme="dark"][data-accent="green"] {
   --fo-accent-soft: #0f2a18;
+}
+
+:root[data-theme="light"][data-accent="indigo"] {
+  --fo-accent: #0066b8;
+  --fo-accent-soft: #d6ebff;
+}
+:root[data-theme="light"][data-accent="violet"] {
+  --fo-accent: #8053a5;
+  --fo-accent-soft: #eee1f7;
+}
+:root[data-theme="light"][data-accent="pink"] {
+  --fo-accent: #af00db;
+  --fo-accent-soft: #f5d6fb;
+}
+:root[data-theme="light"][data-accent="red"] {
+  --fo-accent: #d13438;
+  --fo-accent-soft: #fde7e9;
+}
+:root[data-theme="light"][data-accent="orange"] {
+  --fo-accent: #ca5010;
+  --fo-accent-soft: #fde7d7;
+}
+:root[data-theme="light"][data-accent="amber"] {
+  --fo-accent: #8a6d3b;
+  --fo-accent-soft: #f7efd8;
+}
+:root[data-theme="light"][data-accent="green"] {
+  --fo-accent: #107c10;
+  --fo-accent-soft: #dff6dd;
 }
 
 :root {
