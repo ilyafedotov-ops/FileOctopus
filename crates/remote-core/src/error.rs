@@ -7,12 +7,12 @@ pub enum RemoteError {
     ProfileNotFound,
     #[error("unsupported scheme `{scheme}`")]
     UnsupportedScheme { scheme: String },
-    #[error("authentication failed: {message}")]
-    AuthenticationFailed { message: String },
-    #[error("connection failed: {message}")]
-    ConnectionFailed { message: String },
-    #[error("connection not established for profile `{profile_id}`")]
-    NotConnected { profile_id: String },
+    #[error("authentication failed for `{uri}`: {message}")]
+    AuthenticationFailed { uri: String, message: String },
+    #[error("connection failed for `{uri}`: {message}")]
+    ConnectionFailed { uri: String, message: String },
+    #[error("connection not established for `{uri}`")]
+    NotConnected { uri: String },
     #[error("secret store error: {0}")]
     SecretStore(#[from] platform::SecretStoreError),
     #[error("network repository error: {0}")]
@@ -50,20 +50,14 @@ impl From<RemoteError> for VfsError {
                 uri: "network profile".to_string(),
             },
             RemoteError::UnsupportedScheme { scheme } => Self::UnsupportedProvider { scheme },
-            RemoteError::AuthenticationFailed { message } => Self::AuthenticationFailed {
-                uri: "network profile".to_string(),
-                message,
-            },
-            RemoteError::ConnectionFailed { message } => Self::ConnectionLost {
-                uri: "network profile".to_string(),
-                message,
-            },
-            RemoteError::NotConnected { profile_id } => {
-                Self::ConnectionRequired { uri: profile_id }
+            RemoteError::AuthenticationFailed { uri, message } => {
+                Self::AuthenticationFailed { uri, message }
             }
+            RemoteError::ConnectionFailed { uri, message } => Self::ConnectionLost { uri, message },
+            RemoteError::NotConnected { uri } => Self::ConnectionRequired { uri },
             RemoteError::SecretStore(platform::SecretStoreError::NotFound) => {
                 Self::AuthenticationFailed {
-                    uri: "network profile".to_string(),
+                    uri: "sftp://".to_string(),
                     message: "missing stored credentials".to_string(),
                 }
             }
