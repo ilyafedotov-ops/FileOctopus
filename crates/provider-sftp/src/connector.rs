@@ -1,3 +1,4 @@
+use std::net::TcpStream;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
@@ -10,18 +11,21 @@ use vfs::{EntryCapabilities, FileEntry, FileKind, ProviderId, ResourceUri, VfsEr
 
 pub struct SftpSession {
     pub(crate) session: Arc<Mutex<Session>>,
+    observed_fingerprint: Option<String>,
 }
 
 impl SftpSession {
-    pub fn with_session(session: Session) -> Self {
+    pub fn with_session(session: Session, observed_fingerprint: Option<String>) -> Self {
         Self {
             session: Arc::new(Mutex::new(session)),
+            observed_fingerprint,
         }
     }
 
     pub fn clone_handle(&self) -> Self {
         Self {
             session: Arc::clone(&self.session),
+            observed_fingerprint: self.observed_fingerprint.clone(),
         }
     }
 
@@ -38,10 +42,15 @@ impl RemoteSession for SftpSession {
         let session = self.lock_session()?;
         if !session.authenticated() {
             return Err(RemoteError::ConnectionFailed {
+                uri: "sftp://".to_string(),
                 message: "session is not authenticated".to_string(),
             });
         }
         Ok(())
+    }
+
+    fn observed_host_key_fingerprint(&self) -> Option<&str> {
+        self.observed_fingerprint.as_deref()
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -65,49 +74,63 @@ impl SftpConnector {
     fn connect_blocking(
         profile: &NetworkProfile,
         secrets: &AuthSecrets,
-    ) -> Result<Session, RemoteError> {
+        uri: &str,
+    ) -> Result<(Session, Option<String>), RemoteError> {
         let address = format!("{}:{}", profile.host, profile.port);
         let tcp = TcpStream::connect(&address).map_err(|error| RemoteError::ConnectionFailed {
+            uri: uri.to_string(),
             message: error.to_string(),
         })?;
         let mut session = Session::new().map_err(|error| RemoteError::ConnectionFailed {
+            uri: uri.to_string(),
             message: error.to_string(),
         })?;
         session.set_tcp_stream(tcp);
         session
             .handshake()
             .map_err(|error| RemoteError::ConnectionFailed {
+                uri: uri.to_string(),
                 message: error.to_string(),
             })?;
 
         let fingerprint = session
             .host_key()
-            .map(|(key, _)| hex_fingerprint(key))
-            .unwrap_or_default();
-        if let Some(expected) = profile.host_key_fingerprint.as_ref() {
-            if expected != &fingerprint {
+            .map(|(key, _)| sha256_base64_fingerprint(key));
+
+        match (
+            profile.host_key_fingerprint.as_deref(),
+            fingerprint.as_deref(),
+        ) {
+            (Some(expected), Some(observed)) if expected != observed => {
                 return Err(RemoteError::AuthenticationFailed {
-                    message: "host key fingerprint mismatch".to_string(),
+                    uri: uri.to_string(),
+                    message: format!(
+                        "host key fingerprint mismatch (expected {expected}, got {observed})"
+                    ),
                 });
             }
+            _ => {}
         }
 
         match profile.auth_kind {
             AuthKind::Password => {
                 let password = secrets.password.as_deref().ok_or_else(|| {
                     RemoteError::AuthenticationFailed {
+                        uri: uri.to_string(),
                         message: "missing password".to_string(),
                     }
                 })?;
                 session
                     .userauth_password(&profile.username, password)
                     .map_err(|error| RemoteError::AuthenticationFailed {
+                        uri: uri.to_string(),
                         message: error.to_string(),
                     })?;
             }
             AuthKind::PrivateKey => {
                 let key_path = profile.private_key_path.as_deref().ok_or_else(|| {
                     RemoteError::AuthenticationFailed {
+                        uri: uri.to_string(),
                         message: "missing private key path".to_string(),
                     }
                 })?;
@@ -119,6 +142,7 @@ impl SftpConnector {
                         secrets.passphrase.as_deref(),
                     )
                     .map_err(|error| RemoteError::AuthenticationFailed {
+                        uri: uri.to_string(),
                         message: error.to_string(),
                     })?;
             }
@@ -126,11 +150,12 @@ impl SftpConnector {
 
         if !session.authenticated() {
             return Err(RemoteError::AuthenticationFailed {
+                uri: uri.to_string(),
                 message: "authentication failed".to_string(),
             });
         }
 
-        Ok(session)
+        Ok((session, fingerprint))
     }
 }
 
@@ -147,16 +172,25 @@ impl RemoteConnector for SftpConnector {
     ) -> Result<Arc<dyn RemoteSession>, RemoteError> {
         let profile = profile.clone();
         let secrets = secrets.clone();
-        let session =
-            tokio::task::spawn_blocking(move || Self::connect_blocking(&profile, &secrets))
+        let uri = format!("sftp://{}", profile.id);
+        let (session, fingerprint) =
+            tokio::task::spawn_blocking(move || Self::connect_blocking(&profile, &secrets, &uri))
                 .await
                 .map_err(|error| RemoteError::Internal(error.to_string()))??;
-        Ok(Arc::new(SftpSession::with_session(session)))
+        Ok(Arc::new(SftpSession::with_session(session, fingerprint)))
     }
 
     async fn disconnect(&self, _session: Arc<dyn RemoteSession>) -> Result<(), RemoteError> {
         Ok(())
     }
+}
+
+pub fn sha256_base64_fingerprint(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+
+    let digest = Sha256::digest(bytes);
+    let encoded = data_encoding::BASE64_NOPAD.encode(&digest);
+    format!("SHA256:{encoded}")
 }
 
 pub fn stat_path_blocking(
@@ -293,16 +327,6 @@ fn map_stat_error(uri: &ResourceUri, error: ssh2::Error) -> VfsError {
     }
 }
 
-fn hex_fingerprint(bytes: &[u8]) -> String {
-    bytes
-        .iter()
-        .map(|byte| format!("{byte:02x}"))
-        .collect::<Vec<_>>()
-        .join(":")
-}
-
 pub fn unix_timestamp_to_utc(value: u64) -> Option<DateTime<Utc>> {
     DateTime::<Utc>::from_timestamp(value as i64, 0)
 }
-
-use std::net::TcpStream;

@@ -644,6 +644,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "data-encoding"
+version = "2.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4ae5f15dda3c708c0ade84bfee31ccab44a3da4f88015ed22f63732abe300c8"
+
+[[package]]
 name = "dbus"
 version = "0.9.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2764,7 +2770,9 @@ dependencies = [
  "async-trait",
  "chrono",
  "config",
+ "data-encoding",
  "remote-core",
+ "sha2",
  "ssh2",
  "tempfile",
  "thiserror 1.0.69",

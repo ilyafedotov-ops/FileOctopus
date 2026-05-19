@@ -8,6 +8,8 @@ async-trait = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
 config = { path = "../config" }
 remote-core = { path = "../remote-core" }
+sha2 = "0.10"
+data-encoding = "2"
 ssh2 = "0.9"
 thiserror = "1"
 tokio = { version = "1", features = ["rt"] }
