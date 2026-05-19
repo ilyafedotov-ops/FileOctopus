@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import type { FsClient } from "@fileoctopus/ts-api";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
-import { normalizeIpcError } from "@fileoctopus/ts-api";
+import {
+  IPC_ERROR_CODES,
+  isRemoteUri,
+  normalizeIpcError,
+} from "@fileoctopus/ts-api";
 import { operationErrorMessage } from "../dialogs/OperationDialogView";
 
 /** Extensions considered safe for text preview */
@@ -145,7 +149,14 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
       }
     } catch (err) {
       const normalized = normalizeIpcError(err);
-      setError(operationErrorMessage(normalized.code, normalized.message));
+      if (
+        normalized.code === IPC_ERROR_CODES.UNSUPPORTED_PROVIDER &&
+        isRemoteUri(entry.uri)
+      ) {
+        setError(`Cannot read this remote file: ${normalized.message}`);
+      } else {
+        setError(operationErrorMessage(normalized.code, normalized.message));
+      }
     } finally {
       setLoading(false);
     }

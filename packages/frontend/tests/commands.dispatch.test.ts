@@ -32,6 +32,7 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
     handleTrash: vi.fn(),
     handlePermanentDelete: vi.fn(),
     handleProperties: vi.fn(),
+    setOperationError: vi.fn(),
     copySelectionToFileClipboard: vi.fn(),
     pasteClipboard: vi.fn(),
     selectedEntries: () => [],
@@ -335,5 +336,36 @@ describe("dispatchCommand", () => {
 
     expect(handled).toBe(true);
     expect(handleProperties).toHaveBeenCalledWith("left", null);
+  });
+
+  it("reports unsupported preview for op.view on unknown file types", () => {
+    const setOperationError = vi.fn();
+    const selected = {
+      uri: "local:///tmp/archive.bin",
+      name: "archive.bin",
+      kind: "file",
+      isHidden: false,
+      isSymlink: false,
+      providerId: "local",
+      canRead: true,
+      canList: false,
+      canWrite: true,
+      canDelete: true,
+      canRename: true,
+    };
+
+    const handled = dispatchCommand(
+      "op.view",
+      baseDeps({
+        setOperationError,
+        selectedEntries: () => [selected],
+        isPreviewable: () => false,
+      }),
+    );
+
+    expect(handled).toBe(true);
+    expect(setOperationError).toHaveBeenCalledWith(
+      "No preview is available for this file type.",
+    );
   });
 });

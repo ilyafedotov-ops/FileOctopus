@@ -44,6 +44,7 @@ export function ShellToolbar() {
     handleCreateFolder: ctx.handleCreateFolder,
     handleTrash: ctx.handleTrash,
     handleProperties: ctx.handleProperties,
+    setOperationError: ctx.setOperationError,
     isPreviewable,
   });
 

@@ -15,6 +15,7 @@ export interface CommanderActionsDeps {
     panelId: PanelId,
     entry: FileEntryDto | null,
   ) => Promise<void>;
+  setOperationError: (error: string | null) => void;
   isPreviewable: (entry: FileEntryDto | null) => boolean;
 }
 
@@ -28,6 +29,7 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
     handleCreateFolder,
     handleTrash,
     handleProperties,
+    setOperationError,
     isPreviewable,
   } = deps;
 
@@ -44,7 +46,12 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
     hasSelection,
     view: () => {
       if (selectedEntry && isPreviewable(selectedEntry)) {
+        setOperationError(null);
         setPreviewOpen(true);
+        return;
+      }
+      if (selectedEntry) {
+        setOperationError("No preview is available for this file type.");
         return;
       }
       void handleProperties(panelId, selectedEntry);

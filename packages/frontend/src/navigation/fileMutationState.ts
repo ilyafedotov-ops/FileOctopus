@@ -39,9 +39,11 @@ export function fileMutationState(
   const hasSelection = selectionCount > 0;
   const remotePane = isRemoteUri(tab.uri);
   const paneWritable = paneDirectoryCanWrite(tab);
+  const readable = (entry: FileEntryDto) =>
+    entry.kind === "directory" ? entry.canList : entry.canRead;
 
   return {
-    canCopy: hasSelection && selectedEntries.every((entry) => entry.canRead),
+    canCopy: hasSelection && selectedEntries.every(readable),
     canMove:
       hasSelection &&
       selectedEntries.every((entry) => entry.canWrite && entry.canDelete),
