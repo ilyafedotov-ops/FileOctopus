@@ -15,7 +15,9 @@ test.describe("View modes — keyboard shortcuts", () => {
 
     // Verify the view mode changed — look for list/details view indicator
     const panel = page.locator(".fo-panel.fo-panel-active");
-    const hasListView = await panel.locator(".fo-view-list, .fo-view-details, .fo-table-shell").count();
+    const hasListView = await panel
+      .locator(".fo-view-list, .fo-view-details, .fo-table-shell")
+      .count();
     expect(hasListView).toBeGreaterThan(0);
   });
 
@@ -25,7 +27,7 @@ test.describe("View modes — keyboard shortcuts", () => {
 
     // Grid view should show grid-related classes
     const panel = page.locator(".fo-panel.fo-panel-active");
-    const hasGridClass = await panel.locator(".fo-view-grid, .fo-view-icon, .fo-grid").count();
+    await panel.locator(".fo-view-grid, .fo-view-icon, .fo-grid").count();
     // Graceful: if grid view isn't fully implemented, just verify the app didn't crash
     await expect(page.locator(".fo-shell")).toBeVisible();
   });
@@ -103,7 +105,9 @@ test.describe("View modes — persistence", () => {
     await page.waitForTimeout(300);
 
     // Navigate into a folder
-    const folderRow = page.locator('.fo-row[role="row"][data-type="directory"]').first();
+    const folderRow = page
+      .locator('.fo-row[role="row"][data-type="directory"]')
+      .first();
     const count = await folderRow.count();
     test.skip(count === 0, "No directory rows visible");
 
@@ -138,7 +142,9 @@ test.describe("View modes — icon size", () => {
     await expect(page.locator(".fo-shell")).toBeVisible();
   });
 
-  test("Ctrl+Minus decreases icon/item size without error", async ({ page }) => {
+  test("Ctrl+Minus decreases icon/item size without error", async ({
+    page,
+  }) => {
     await shellPress(page, "Control+Minus");
     await page.waitForTimeout(200);
     await expect(page.locator(".fo-shell")).toBeVisible();
