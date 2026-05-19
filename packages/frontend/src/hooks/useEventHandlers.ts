@@ -345,17 +345,25 @@ export function useEventHandlers({
         };
       }
 
-      if (
-        current?.type !== "properties" ||
-        current.folderSizeJobId !== event.jobId ||
-        !current.properties
-      ) {
+      if (current?.type !== "properties" || !current.properties) {
+        return current;
+      }
+
+      const matchesJob = current.folderSizeJobId === event.jobId;
+      const matchesPendingFolder =
+        current.loading &&
+        current.properties.uri === event.uri &&
+        (current.folderSizeJobId === null ||
+          current.folderSizeJobId === event.jobId);
+
+      if (!matchesJob && !matchesPendingFolder) {
         return current;
       }
 
       return {
         ...current,
         loading: false,
+        folderSizeJobId: event.jobId,
         properties: {
           ...current.properties,
           totalSize: event.summary.totalSize,

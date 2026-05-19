@@ -57,6 +57,7 @@ function buildDeps(overrides: Record<string, unknown> = {}) {
   return {
     setDialog,
     entries,
+    state,
     deps: {
       client,
       state,
@@ -97,6 +98,77 @@ describe("useMetadataHandlers", () => {
       fileSizeBaseline: 200,
       error: null,
     });
+  });
+
+  it("shows properties before starting a folder size job", async () => {
+    const directory = makeEntry({
+      uri: "local:///home/user/folder",
+      name: "folder",
+      kind: "directory",
+      size: 0,
+      extension: null,
+    });
+    const { deps, setDialog, state } = buildDeps();
+    deps.client.fs.properties = vi.fn(async () => ({
+      properties: {
+        uri: directory.uri,
+        name: directory.name,
+        kind: "directory",
+        size: null,
+        totalSize: null,
+        itemCount: null,
+        fileCount: null,
+        directoryCount: null,
+        modifiedAt: null,
+        createdAt: null,
+        accessedAt: null,
+        isHidden: false,
+        isSymlink: false,
+        symlinkTarget: null,
+        readonly: false,
+        warnings: [],
+      },
+    }));
+    state.panels.left.tabs.main.selectedIds = [directory.uri];
+    state.panels.left.tabs.main.entriesById = {
+      [directory.uri]: directory,
+    };
+
+    const { result } = renderHook(() => useMetadataHandlers(deps));
+
+    await act(async () => {
+      await result.current.handleProperties("left", directory);
+    });
+
+    expect(setDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "properties",
+        properties: expect.objectContaining({ name: "folder" }),
+        loading: true,
+        folderSizeJobId: null,
+      }),
+    );
+
+    const applyJobId = setDialog.mock.calls
+      .map((call) => call[0])
+      .find((value) => typeof value === "function") as
+      | ((current: unknown) => unknown)
+      | undefined;
+    expect(applyJobId).toBeTypeOf("function");
+    expect(
+      applyJobId?.({
+        type: "properties",
+        panelId: "left",
+        properties: { uri: directory.uri, name: "folder", kind: "directory" },
+        loading: true,
+        folderSizeJobId: null,
+      }),
+    ).toEqual(
+      expect.objectContaining({
+        type: "properties",
+        folderSizeJobId: "job-1",
+      }),
+    );
   });
 
   it("starts folder size jobs for selected directories", async () => {

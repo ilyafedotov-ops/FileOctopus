@@ -69,19 +69,55 @@ export function useMetadataHandlers(
       return;
     }
 
+    setDialog({
+      type: "properties",
+      panelId,
+      entry,
+      properties: null,
+      loading: true,
+      folderSizeJobId: null,
+      error: null,
+    });
+
     try {
-      const result = await client.fs.startFolderSizeJob({ uri: entry.uri });
+      const response = await client.fs.properties({
+        uri: entry.uri,
+        includeFolderSummary: false,
+      });
+
       setDialog({
         type: "properties",
         panelId,
         entry,
-        properties: null,
+        properties: response.properties,
         loading: true,
-        folderSizeJobId: jobIdValue(result.job.jobId),
+        folderSizeJobId: null,
         error: null,
       });
+
+      const result = await client.fs.startFolderSizeJob({ uri: entry.uri });
+      setDialog((current) =>
+        current?.type === "properties" &&
+        current.panelId === panelId &&
+        current.properties?.uri === entry.uri
+          ? {
+              ...current,
+              loading: true,
+              folderSizeJobId: jobIdValue(result.job.jobId),
+            }
+          : current,
+      );
     } catch (error) {
       const normalized = normalizeIpcError(error);
+      setDialog((current) =>
+        current?.type === "properties" && current.panelId === panelId
+          ? {
+              ...current,
+              loading: false,
+              error: operationErrorMessage(normalized.code, normalized.message),
+            }
+          : current,
+      );
       setOperationError(
         operationErrorMessage(normalized.code, normalized.message),
       );
@@ -137,22 +173,47 @@ export function useMetadataHandlers(
         includeFolderSummary: false,
       });
       const properties = response.properties;
-      let folderSizeJobId: string | null = null;
-
-      if (properties.kind === "directory") {
-        const sizeJob = await client.fs.startFolderSizeJob({ uri });
-        folderSizeJobId = jobIdValue(sizeJob.job.jobId);
-      }
 
       setDialog({
         type: "properties",
         panelId,
         entry: target,
         properties,
-        loading: Boolean(folderSizeJobId),
-        folderSizeJobId,
+        loading: properties.kind === "directory",
+        folderSizeJobId: null,
         error: null,
       });
+
+      if (properties.kind === "directory") {
+        try {
+          const sizeJob = await client.fs.startFolderSizeJob({ uri });
+          setDialog((current) =>
+            current?.type === "properties" &&
+            current.panelId === panelId &&
+            current.properties?.uri === uri
+              ? {
+                  ...current,
+                  loading: true,
+                  folderSizeJobId: jobIdValue(sizeJob.job.jobId),
+                }
+              : current,
+          );
+        } catch (error) {
+          const normalized = normalizeIpcError(error);
+          setDialog((current) =>
+            current?.type === "properties" && current.panelId === panelId
+              ? {
+                  ...current,
+                  loading: false,
+                  error: operationErrorMessage(
+                    normalized.code,
+                    normalized.message,
+                  ),
+                }
+              : current,
+          );
+        }
+      }
     } catch (error) {
       setDialog({
         type: "properties",

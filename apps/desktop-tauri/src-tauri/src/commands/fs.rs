@@ -278,9 +278,13 @@ pub async fn fs_properties(
     request: PathPropertiesRequest,
 ) -> Result<PathPropertiesResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
-    let properties =
-        metadata::path_properties(&uri, request.include_folder_summary.unwrap_or(false))
-            .map_err(IpcError::from)?;
+    let include_folder_summary = request.include_folder_summary.unwrap_or(false);
+    let properties = tauri::async_runtime::spawn_blocking(move || {
+        metadata::path_properties(&uri, include_folder_summary)
+    })
+    .await
+    .map_err(|_| IpcError::internal("properties task join failed"))?
+    .map_err(IpcError::from)?;
 
     Ok(PathPropertiesResponse {
         properties: PathPropertiesDto {
