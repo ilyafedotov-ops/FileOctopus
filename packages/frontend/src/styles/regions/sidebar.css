@@ -9,8 +9,10 @@
   gap: 2px;
   min-width: 0;
   overflow: auto;
-  border-radius: 6px;
+  border-radius: 0;
   padding: 2px;
+  border-right: 1px solid var(--fo-classic-shadow, var(--fo-border));
+  background: var(--fo-classic-face, var(--fo-strip-bg));
 }
 
 .fo-sidebar-section {
@@ -63,8 +65,10 @@
 }
 
 .fo-sidebar-active {
-  border-color: #a9c3ff !important;
-  background: var(--fo-accent-soft) !important;
+  border-color: var(--fo-classic-shadow, var(--fo-border))
+    var(--fo-classic-light, #fff) var(--fo-classic-light, #fff)
+    var(--fo-classic-shadow, var(--fo-border)) !important;
+  background: var(--fo-classic-window, var(--fo-accent-soft)) !important;
 }
 
 .fo-workspace[data-layout="medium"] .fo-sidebar {
@@ -82,7 +86,7 @@
 }
 
 .fo-sidebar-active .fo-sidebar-icon {
-  color: var(--fo-accent);
+  color: var(--fo-classic-title, var(--fo-accent));
 }
 
 .fo-sidebar-indented {

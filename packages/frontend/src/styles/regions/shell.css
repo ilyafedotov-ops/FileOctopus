@@ -10,6 +10,14 @@
   --fo-classic-title-end: #3a6ea5;
   --fo-classic-text: #000000;
   --fo-classic-muted: #404040;
+  --fo-commander-bg: var(--fo-classic-window);
+  --fo-commander-strip: var(--fo-classic-face);
+  --fo-commander-border: var(--fo-classic-shadow);
+  --fo-commander-text: var(--fo-classic-text);
+  --fo-commander-muted: var(--fo-classic-muted);
+  --fo-commander-input-bg: var(--fo-classic-window);
+  --fo-commander-input-border: var(--fo-classic-shadow);
+  --fo-commander-keycap: var(--fo-classic-title);
   position: relative;
   height: 100vh;
   padding: 0;
@@ -192,29 +200,61 @@
 
 .fo-workbench-toolbar {
   display: grid;
-  grid-template-rows: 34px 34px;
+  grid-template-rows: auto auto;
   min-width: 0;
   border-bottom: 1px solid var(--fo-classic-dark);
   background: var(--fo-classic-face);
 }
 
-.fo-location-strip {
-  display: flex;
+.fo-workbench-toolbar > .fo-operation-toolbar {
+  border-top: 0;
+}
+
+.fo-drivebar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 6px;
+  gap: var(--fo-spacing-sm, 4px);
   min-width: 0;
-  padding: 4px 8px;
+  min-height: var(--fo-toolbar-height);
+  padding: 3px 5px;
   border-bottom: 1px solid var(--fo-classic-shadow);
   overflow: hidden;
 }
 
-.fo-location-chip {
+.fo-drivebar-title {
+  min-height: 22px;
+  padding: 2px 6px 0;
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
+    var(--fo-classic-light) var(--fo-classic-shadow);
+  background: var(--fo-classic-window);
+  color: var(--fo-classic-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.fo-drivebar-list {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.fo-drivebar-chip,
+.fo-drivebar-more {
   display: inline-flex;
   align-items: center;
   gap: 5px;
   min-width: 0;
   min-height: 22px;
-  padding: 0 9px;
+  max-width: 168px;
+  padding: 0 8px;
   border-width: 1px;
   border-style: solid;
   border-color: var(--fo-classic-light) var(--fo-classic-shadow)
@@ -226,13 +266,51 @@
   white-space: nowrap;
 }
 
-.fo-location-chip:first-child {
+.fo-drivebar-chip {
+  background: var(--fo-classic-window);
+}
+
+.fo-drivebar-chip:hover,
+.fo-drivebar-chip:focus-visible,
+.fo-drivebar-more:hover,
+.fo-drivebar-more:focus-visible {
+  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
+    var(--fo-classic-light) var(--fo-classic-shadow);
   background: var(--fo-classic-window);
   color: var(--fo-classic-text);
 }
 
-.fo-location-chip:hover,
-.fo-location-chip:focus-visible {
+.fo-drivebar-glyph {
+  flex: 0 0 auto;
+  min-width: 13px;
+  color: var(--fo-classic-title);
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+}
+
+.fo-drivebar-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fo-drivebar .fo-drivebar-more.fo-ui-btn {
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--fo-classic-light) var(--fo-classic-shadow)
+    var(--fo-classic-shadow) var(--fo-classic-light);
+  border-radius: 0;
+  background: var(--fo-classic-window);
+  color: var(--fo-classic-text);
+  box-shadow: none;
+  font-weight: 600;
+  transform: none;
+}
+
+.fo-drivebar .fo-drivebar-more.fo-ui-btn:hover:not(:disabled),
+.fo-drivebar .fo-drivebar-more.fo-ui-btn:focus-visible {
   border-color: var(--fo-classic-shadow) var(--fo-classic-light)
     var(--fo-classic-light) var(--fo-classic-shadow);
   background: var(--fo-classic-window);
@@ -430,28 +508,28 @@
 .fo-shell-status-stack {
   display: grid;
   min-width: 0;
-  border-top: 1px solid #334155;
-  background: #111827;
+  border-top: 1px solid var(--fo-commander-border);
+  background: var(--fo-commander-strip);
 }
 
 .fo-bottom-path-rail {
   display: flex;
   justify-content: flex-start;
   min-width: 0;
-  min-height: 26px;
+  min-height: var(--fo-statusbar-height);
   padding: 3px 6px;
-  border-bottom: 1px solid #334155;
-  background: #17202c;
+  border-bottom: 1px solid var(--fo-commander-border);
+  background: var(--fo-commander-bg);
 }
 
 .fo-bottom-path-rail span {
   width: 100%;
   min-width: 0;
   padding: 2px 8px;
-  border: 1px solid #435266;
-  border-radius: 3px;
-  background: #0b111a;
-  color: #d7dee8;
+  border: 1px solid var(--fo-commander-input-border);
+  border-radius: 0;
+  background: var(--fo-commander-input-bg);
+  color: var(--fo-commander-text);
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     monospace;
@@ -468,8 +546,8 @@
   gap: 0;
   min-width: 0;
   padding: 0;
-  border-bottom: 1px solid #334155;
-  background: #0b111a;
+  border-bottom: 1px solid var(--fo-commander-border);
+  background: var(--fo-commander-bg);
 }
 
 .fo-commander-key {
@@ -481,10 +559,10 @@
   min-height: 30px;
   padding: 0 7px;
   border: 0;
-  border-right: 1px solid #334155;
+  border-right: 1px solid var(--fo-commander-border);
   border-radius: 0;
-  background: #17202c;
-  color: #d7dee8;
+  background: var(--fo-commander-strip);
+  color: var(--fo-commander-text);
   font-size: 12px;
   font-weight: 650;
   white-space: nowrap;
@@ -492,16 +570,14 @@
 
 .fo-commander-key:hover:not(:disabled),
 .fo-commander-key:focus-visible {
-  border-color: var(--fo-accent);
-  background: color-mix(
-    in srgb,
-    var(--fo-accent-soft) 55%,
-    var(--fo-control-bg)
-  );
+  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
+    var(--fo-classic-light) var(--fo-classic-shadow);
+  background: var(--fo-classic-window);
+  color: var(--fo-classic-text);
 }
 
 .fo-commander-key:disabled {
-  color: #6b7788;
+  color: var(--fo-commander-muted);
   opacity: 0.48;
 }
 
@@ -510,10 +586,10 @@
   place-items: center;
   min-width: 27px;
   min-height: 18px;
-  border: 1px solid #435266;
-  border-radius: 2px;
-  background: #0b111a;
-  color: #7fb0ff;
+  border: 1px solid var(--fo-commander-input-border);
+  border-radius: 0;
+  background: var(--fo-commander-input-bg);
+  color: var(--fo-commander-keycap);
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     sans-serif;
@@ -604,4 +680,32 @@
 
 :root[data-toolbar-hidden] .fo-operation-toolbar {
   display: none;
+}
+
+:root[data-theme="dark"] .fo-shell {
+  --fo-classic-face: #3a3a3c;
+  --fo-classic-window: #2b2b2d;
+  --fo-classic-light: #5a5a5e;
+  --fo-classic-shadow: #1e1e20;
+  --fo-classic-dark: #121214;
+  --fo-classic-black: #000000;
+  --fo-classic-title: #7eb0ff;
+  --fo-classic-title-end: #5a8fd4;
+  --fo-classic-text: #e6edf3;
+  --fo-classic-muted: #9aa8bb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .fo-shell {
+    --fo-classic-face: #3a3a3c;
+    --fo-classic-window: #2b2b2d;
+    --fo-classic-light: #5a5a5e;
+    --fo-classic-shadow: #1e1e20;
+    --fo-classic-dark: #121214;
+    --fo-classic-black: #000000;
+    --fo-classic-title: #7eb0ff;
+    --fo-classic-title-end: #5a8fd4;
+    --fo-classic-text: #e6edf3;
+    --fo-classic-muted: #9aa8bb;
+  }
 }

@@ -6,22 +6,15 @@
   overflow: hidden;
 }
 
-.fo-topbar,
-.fo-status,
-.fo-panel,
-.fo-sidebar,
-.fo-activity {
-  border: 1px solid var(--fo-border);
-  background: var(--fo-surface);
-}
-
 .fo-activity {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  border: 1px solid var(--fo-border);
   border-radius: 10px;
+  background: var(--fo-surface);
   font-size: 12px;
 }
 
