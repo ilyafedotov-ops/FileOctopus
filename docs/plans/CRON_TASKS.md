@@ -18,13 +18,10 @@
 
 ## Active RC Queue
 
-| ID   | Pri | Status  | Owner | Run ID | Started UTC | Lock Expires UTC | Acceptance refs            | Task                                                                                            | Blockers | Last verified |
-| ---- | --- | ------- | ----- | ------ | ----------- | ---------------- | -------------------------- | ----------------------------------------------------------------------------------------------- | -------- | ------------- |
-| RC-3 | P1  | pending | -     | -      | -           | -                | RC spec §4.2 MVP-PERF      | Manual 10k/100k UI perf capture on target hardware (automated evidence recorded 2026-05-19)     | None     | 2026-05-19    |
-| RC-4 | P2  | pending | -     | -      | -           | -                | M5; mvp-rc-checklist       | MVP RC checklist: local `pnpm rc:validate` + `tauri:build`, manual QA docs, diagnostics export  | None     | 2026-05-19    |
-| RC-5 | P2  | pending | -     | -      | -           | -                | comprehensive plan Phase 2 | IPC test gaps: `ipc_basic`, `ipc_terminal`, `ipc_reveal` + error-path coverage                  | None     | 2026-05-19    |
-| RC-6 | P2  | pending | -     | -      | -           | -                | MVP-UI-001; Menu spec §4   | MenuBar locals (sort/theme/density/favorites-add) through `dispatchCommand` where spec requires | None     | 2026-05-19    |
-| RC-7 | P3  | pending | -     | -      | -           | -                | UI Design Spec dialogs     | Conflict dialog: Apply to all + compare metadata                                                | None     | 2026-05-19    |
+| ID   | Pri | Status  | Owner | Run ID | Started UTC | Lock Expires UTC | Acceptance refs       | Task                                                                                        | Blockers | Last verified |
+| ---- | --- | ------- | ----- | ------ | ----------- | ---------------- | --------------------- | ------------------------------------------------------------------------------------------- | -------- | ------------- |
+| RC-3 | P1  | pending | -     | -      | -           | -                | RC spec §4.2 MVP-PERF | Manual 10k/100k UI perf capture on target hardware (automated evidence recorded 2026-05-19) | None     | 2026-05-19    |
+| RC-4 | P2  | pending | -     | -      | -           | -                | M5; mvp-rc-checklist  | MVP RC: manual sprint QA matrices + 100k UI recording (automated: `rc:qa`, diagnostics E2E) | None     | 2026-05-19    |
 
 ---
 
@@ -49,6 +46,12 @@
 
 | ID    | Result                                                                                         | Commit     |
 | ----- | ---------------------------------------------------------------------------------------------- | ---------- |
+| RC-6  | MenuBar sort/theme/density/favorites/filter/search routed via `runCommand` → `dispatchCommand` | 2026-05-19 |
+| RC-4c | Visual regression baselines + preview `sidebarVisible`; `pnpm test:e2e:vite` 104 pass          | 2026-05-19 |
+| RC-4b | Diagnostics E2E + `scripts/rc-qa-automated.sh` + `docs/qa/rc-automated-evidence.md`            | 2026-05-19 |
+| RC-4a | Automated RC: `pnpm rc:validate` + `pnpm tauri:build` (deb/rpm/AppImage bundles)               | 2026-05-19 |
+| RC-5  | IPC integration: `ipc_basic`, `ipc_terminal`, `ipc_reveal` + error-path coverage               | 2026-05-19 |
+| RC-7  | Conflict dialog destination metadata compare via `fs.stat` + `destinationByUri`                | 2026-05-19 |
 | RC-2  | E2E multi-select Selection Properties smoke (`e2e/dialog.e2e.ts`)                              | 2026-05-19 |
 | P2-9  | Selection Properties dialog wired for multi-select; folder-size aggregate via folder-size jobs | 2026-05-19 |
 | P2-8  | Recent Locations management UI (dialog + clear/remove flows)                                   | preex      |

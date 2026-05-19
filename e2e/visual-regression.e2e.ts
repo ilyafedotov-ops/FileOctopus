@@ -6,7 +6,7 @@ test.describe("Visual Regression", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector(".fo-shell");
-    await page.waitForLoadState("networkidle");
+    await page.waitForSelector("aside.fo-sidebar", { timeout: 15_000 });
   });
 
   test("main shell — full page screenshot", async ({ page }) => {
@@ -101,31 +101,14 @@ test.describe("Visual Regression", () => {
     await expect(shell).toHaveScreenshot("light-theme.png", SNAPSHOT_OPTS);
   });
 
-  test("dark theme (switch in settings)", async ({ page }) => {
-    await page.locator(".fo-shell").press("Control+,");
+  test("dark theme (View menu)", async ({ page }) => {
+    await page.getByRole("menuitem", { name: /View/i }).click();
+    await page.getByRole("menuitem", { name: "Theme: Dark" }).click();
 
-    const dialog = page.locator('[role="dialog"]');
-    await expect(dialog).toBeVisible();
-
-    const themeToggle = dialog
-      .locator(
-        "button:has-text('Dark'), button:has-text('dark'), [aria-label*='theme'], [data-testid*='theme']",
-      )
-      .first();
-
-    if (await themeToggle.isVisible()) {
-      await themeToggle.click();
-    } else {
-      const darkOption = dialog.locator("text=Dark").first();
-      if (await darkOption.isVisible()) {
-        await darkOption.click();
-      }
-    }
-
-    await page.waitForTimeout(300);
-
-    const shell = page.locator(".fo-shell");
-    await expect(shell).toBeVisible();
-    await expect(shell).toHaveScreenshot("dark-theme.png", SNAPSHOT_OPTS);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(page.locator(".fo-shell")).toHaveScreenshot(
+      "dark-theme.png",
+      SNAPSHOT_OPTS,
+    );
   });
 });

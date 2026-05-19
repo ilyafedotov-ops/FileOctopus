@@ -56,5 +56,6 @@ Pass: the table does not mount 100k rows, scrolling remains responsive, and stal
   - `local_provider::list_emits_batches_and_final_completion` — incremental batches + completion
   - `packages/frontend/tests/appShell.test.tsx` — `renders a 100k entry batch without mounting every row` (DOM cap)
   - `fs_core` / `ipc_folder_test` — folder size and metadata paths under load-style fixtures
+- Backend 10k streaming re-verified 2026-05-19: `list_streams_without_collecting_all_entries_first` passes in ~0.53s (creates 10k files in temp, first batch size 128).
 - Manual UI capture still required for MVP-PERF-001/002 (cold/warm start) and formal 10k/100k scroll recordings on target laptop hardware.
 - Previous run (2026-05-14): generator `fileoctopus-test-tree` at `/tmp/fileoctopus-100k`; Vite preview shell smoke at `:1420`.

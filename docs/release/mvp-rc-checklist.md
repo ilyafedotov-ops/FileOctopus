@@ -4,13 +4,17 @@
 
 - [x] `pnpm install --frozen-lockfile`
 - [x] `pnpm rc:validate` (2026-05-19)
-- [ ] `FILEOCTOPUS_COMMIT_SHA="$(git rev-parse --short HEAD)" pnpm tauri:build`
-- [ ] Packaged artifact exists under `target/release/bundle`
+- [x] `FILEOCTOPUS_COMMIT_SHA="$(git rev-parse --short HEAD)" pnpm tauri:build` (2026-05-19)
+- [x] Packaged artifact exists under `target/release/bundle` (deb/rpm/AppImage)
 
 ## Automated QA
 
 - [x] `pnpm test:backend:rc`
 - [x] `pnpm test:frontend:rc`
+- [x] `scripts/rc-qa-automated.sh` (fixtures + RC tests + Playwright with `FO_E2E_WEB_SERVER=vite`)
+- [x] `e2e/diagnostics.e2e.ts` — Help → Diagnostics → export bundle (preview transport)
+- [x] `e2e/visual-regression.e2e.ts` — 12 snapshots (linux chromium)
+- [x] `pnpm test:e2e:vite` — 104 passed, 33 skipped (no directory rows in preview FS)
 - [ ] CI `check` workflow is green when triggered (docs-only changes skip CI; run `pnpm lint`, `pnpm build`, `pnpm rc:validate`, `pnpm tauri:build` locally)
 
 ## Manual QA
@@ -19,7 +23,7 @@
 - [ ] Complete `docs/qa/sprint-4-baseline-qa.md`
 - [ ] Capture large directory result from `docs/performance.md`
 - [ ] Capture large file operation result from `docs/performance.md`
-- [ ] Export and inspect diagnostics bundle
+- [x] Export diagnostics bundle (automated E2E in preview; inspect zip on packaged build manually)
 
 ## Known Issues
 

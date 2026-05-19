@@ -10,6 +10,13 @@ import path from "node:path";
  */
 const mode = (process.env.FO_E2E_MODE || "vite").toLowerCase();
 const isTauri = mode === "tauri";
+const viteOnly =
+  process.env.FO_E2E_WEB_SERVER === "vite" ||
+  process.env.FO_E2E_WEB_SERVER === "light";
+
+const webServerCommand = viteOnly
+  ? "pnpm --filter @fileoctopus/ts-api build && pnpm --filter @fileoctopus/ui build && pnpm --filter @fileoctopus/frontend build && pnpm --filter @fileoctopus/desktop-tauri dev"
+  : "pnpm dev";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -41,9 +48,9 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: "pnpm dev",
+          command: webServerCommand,
           port: 1420,
-          timeout: 60_000,
+          timeout: viteOnly ? 120_000 : 180_000,
           reuseExistingServer: true,
           cwd: path.resolve(import.meta.dirname),
         },
