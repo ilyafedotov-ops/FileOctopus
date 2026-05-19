@@ -540,6 +540,7 @@ describe("FileOctopusClient", () => {
 
   it("exports typed error and warning catalogs", () => {
     expect(isKnownIpcErrorCode(IPC_ERROR_CODES.TIMEOUT)).toBe(true);
+    expect(isKnownIpcErrorCode(IPC_ERROR_CODES.CONNECTION_REQUIRED)).toBe(true);
     expect(isKnownIpcErrorCode("definitely_not_real")).toBe(false);
     expect(
       isKnownFileOperationWarningCode(
@@ -547,5 +548,32 @@ describe("FileOctopusClient", () => {
       ),
     ).toBe(true);
     expect(isKnownFileOperationWarningCode("unknown_warning")).toBe(false);
+  });
+
+  it("routes network profile commands through the network client", async () => {
+    const calls: Array<{ command: string; args?: Record<string, unknown> }> =
+      [];
+    const transport: IpcTransport = {
+      async invoke<TResponse>(command: string, args?: Record<string, unknown>) {
+        calls.push({ command, args });
+        if (command === "network.profilesList") {
+          return { profiles: [] } as TResponse;
+        }
+        if (command === "network.connect") {
+          return { ok: true } as TResponse;
+        }
+        return { ok: true } as TResponse;
+      },
+    };
+
+    const client = new FileOctopusClient(transport);
+    await client.network.listProfiles();
+    await client.network.connect({ id: "profile-1" });
+
+    expect(calls.map((call) => call.command)).toEqual([
+      "network.profilesList",
+      "network.connect",
+    ]);
+    expect(calls[1]?.args).toEqual({ request: { id: "profile-1" } });
   });
 });

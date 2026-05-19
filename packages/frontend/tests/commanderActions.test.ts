@@ -78,6 +78,63 @@ describe("createCommanderActions", () => {
     expect(handleCreateFolder).toHaveBeenCalledWith("left");
   });
 
+  it("disables mutating actions on remote panes", () => {
+    const handleCreateFolder = vi.fn();
+    const handleCopyOrMove = vi.fn();
+    const handleTrash = vi.fn();
+    const tab = {
+      ...activeTab(createInitialState().panels.left),
+      uri: "sftp://550e8400-e29b-41d4-a716-446655440000/home",
+      selectedId: "sftp://550e8400-e29b-41d4-a716-446655440000/home/readme.txt",
+      selectedIds: [
+        "sftp://550e8400-e29b-41d4-a716-446655440000/home/readme.txt",
+      ],
+      entriesById: {
+        "sftp://550e8400-e29b-41d4-a716-446655440000/home/readme.txt": {
+          uri: "sftp://550e8400-e29b-41d4-a716-446655440000/home/readme.txt",
+          name: "readme.txt",
+          kind: "file",
+          size: 12,
+          isHidden: false,
+          isSymlink: false,
+          providerId: "sftp",
+          canRead: true,
+          canList: false,
+          canWrite: false,
+          canDelete: false,
+          canRename: false,
+        },
+      },
+      orderedEntryIds: [
+        "sftp://550e8400-e29b-41d4-a716-446655440000/home/readme.txt",
+      ],
+    };
+
+    const commander = createCommanderActions(
+      baseDeps({
+        tab,
+        handleCreateFolder,
+        handleCopyOrMove,
+        handleTrash,
+      }),
+    );
+
+    expect(commander.canNewFolder).toBe(false);
+    expect(commander.canCopy).toBe(false);
+    expect(commander.canMove).toBe(false);
+    expect(commander.canDelete).toBe(false);
+    expect(commander.canEdit).toBe(false);
+
+    commander.newFolder();
+    commander.copy();
+    commander.move();
+    commander.delete();
+
+    expect(handleCreateFolder).not.toHaveBeenCalled();
+    expect(handleCopyOrMove).not.toHaveBeenCalled();
+    expect(handleTrash).not.toHaveBeenCalled();
+  });
+
   it("starts copy and move dialogs when selection exists", () => {
     const tab = {
       ...activeTab(createInitialState().panels.left),

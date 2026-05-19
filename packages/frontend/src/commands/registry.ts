@@ -45,6 +45,16 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     group: "navigation",
   },
   {
+    id: "nav.networkLocations",
+    label: "Network Locations…",
+    group: "navigation",
+  },
+  {
+    id: "nav.addServer",
+    label: "Add Server…",
+    group: "navigation",
+  },
+  {
     id: "nav.goToLocation",
     label: "Go to Location…",
     group: "navigation",

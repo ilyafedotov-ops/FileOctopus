@@ -8,6 +8,7 @@ import {
   type SetStateAction,
 } from "react";
 import type { OperationDialog } from "../../dialogs/OperationDialogView";
+import type { NetworkProfileDto } from "@fileoctopus/ts-api";
 
 export interface ModalsContextValue {
   settingsOpen: boolean;
@@ -24,6 +25,9 @@ export interface ModalsContextValue {
   errorDetailsOpen: boolean;
   operationHistoryOpen: boolean;
   volumePickerOpen: boolean;
+  networkLocationsOpen: boolean;
+  connectServerOpen: boolean;
+  connectServerProfile: NetworkProfileDto | null;
   toolbarCustomizeOpen: boolean;
   dialog: OperationDialog | null;
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
@@ -40,6 +44,9 @@ export interface ModalsContextValue {
   setErrorDetailsOpen: Dispatch<SetStateAction<boolean>>;
   setOperationHistoryOpen: Dispatch<SetStateAction<boolean>>;
   setVolumePickerOpen: Dispatch<SetStateAction<boolean>>;
+  setNetworkLocationsOpen: Dispatch<SetStateAction<boolean>>;
+  setConnectServerOpen: Dispatch<SetStateAction<boolean>>;
+  setConnectServerProfile: Dispatch<SetStateAction<NetworkProfileDto | null>>;
   setToolbarCustomizeOpen: Dispatch<SetStateAction<boolean>>;
   setDialog: Dispatch<SetStateAction<OperationDialog | null>>;
 }
@@ -70,6 +77,10 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
   const [errorDetailsOpen, setErrorDetailsOpen] = useState(false);
   const [operationHistoryOpen, setOperationHistoryOpen] = useState(false);
   const [volumePickerOpen, setVolumePickerOpen] = useState(false);
+  const [networkLocationsOpen, setNetworkLocationsOpen] = useState(false);
+  const [connectServerOpen, setConnectServerOpen] = useState(false);
+  const [connectServerProfile, setConnectServerProfile] =
+    useState<NetworkProfileDto | null>(null);
   const [toolbarCustomizeOpen, setToolbarCustomizeOpen] = useState(false);
   const [dialog, setDialog] = useState<OperationDialog | null>(null);
 
@@ -89,6 +100,9 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       errorDetailsOpen,
       operationHistoryOpen,
       volumePickerOpen,
+      networkLocationsOpen,
+      connectServerOpen,
+      connectServerProfile,
       toolbarCustomizeOpen,
       dialog,
       setSettingsOpen,
@@ -105,6 +119,9 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       setErrorDetailsOpen,
       setOperationHistoryOpen,
       setVolumePickerOpen,
+      setNetworkLocationsOpen,
+      setConnectServerOpen,
+      setConnectServerProfile,
       setToolbarCustomizeOpen,
       setDialog,
     }),
@@ -123,6 +140,9 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       errorDetailsOpen,
       operationHistoryOpen,
       volumePickerOpen,
+      networkLocationsOpen,
+      connectServerOpen,
+      connectServerProfile,
       toolbarCustomizeOpen,
       dialog,
     ],

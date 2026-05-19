@@ -4,6 +4,7 @@ import { DiagnosticsClient } from "./clients/diagnostics";
 import { FileOperationsClient } from "./clients/fileOperations";
 import { FsClient } from "./clients/fs";
 import { JobsClient } from "./clients/jobs";
+import { NetworkClient } from "./clients/network";
 import { OperationHistoryClient } from "./clients/history";
 import { NavigationClient } from "./clients/navigation";
 import { PreferencesClient } from "./clients/preferences";
@@ -21,6 +22,7 @@ export class FileOctopusClient {
   readonly diagnostics: DiagnosticsClient;
   readonly preferences: PreferencesClient;
   readonly navigation: NavigationClient;
+  readonly network: NetworkClient;
   readonly autostart: AutostartClient;
 
   constructor(private readonly transport: IpcTransport) {
@@ -31,6 +33,7 @@ export class FileOctopusClient {
     this.diagnostics = new DiagnosticsClient(transport);
     this.preferences = new PreferencesClient(transport);
     this.navigation = new NavigationClient(transport);
+    this.network = new NetworkClient(transport);
     this.autostart = new AutostartClient(transport);
   }
 
@@ -54,6 +57,8 @@ export { DiagnosticsClient } from "./clients/diagnostics";
 export { PreferencesClient } from "./clients/preferences";
 export { AutostartClient } from "./clients/autostart";
 export { NavigationClient } from "./clients/navigation";
+export { NetworkClient } from "./clients/network";
 export { FsClient } from "./clients/fs";
+export * from "./uri";
 export { createTauriTransport, isTauriRuntime } from "./transports/tauri";
 export { createPreviewTransport } from "./transports/preview";

@@ -172,4 +172,10 @@ describe("localPathFromUri", () => {
   it("returns the string as-is if not a local:// URI", () => {
     expect(localPathFromUri("/home/user/docs")).toBe("/home/user/docs");
   });
+
+  it("extracts remote path from sftp URIs", () => {
+    expect(
+      localPathFromUri("sftp://77ac077d-d721-480f-9ee0-bb22403f0fd5/home/ilya"),
+    ).toBe("/home/ilya");
+  });
 });

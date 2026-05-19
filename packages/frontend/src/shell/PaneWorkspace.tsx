@@ -18,6 +18,8 @@ export function PaneWorkspace() {
         <>
           <Sidebar
             locations={ctx.locations}
+            networkProfiles={ctx.networkProfiles}
+            networkStatuses={ctx.networkStatuses}
             favorites={ctx.favorites}
             recentToday={ctx.recentToday}
             recentWeek={ctx.recentWeek}
@@ -58,6 +60,17 @@ export function PaneWorkspace() {
                 },
               )
             }
+            onAddServer={() => ctx.handleCommandSelect("nav.addServer")}
+            onConnectProfile={(profileId) => void ctx.connectProfile(profileId)}
+            onDisconnectProfile={(profileId) =>
+              void ctx.disconnectProfile(profileId)
+            }
+            onEditProfile={(profile) =>
+              ctx.handleCommandSelect("nav.connectServer", undefined, {
+                networkProfile: profile,
+              })
+            }
+            onDeleteProfile={(profileId) => void ctx.deleteProfile(profileId)}
           />
           <SidebarResizer
             onSidebarResize={(width) => {

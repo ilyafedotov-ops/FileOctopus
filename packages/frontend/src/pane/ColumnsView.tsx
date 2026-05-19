@@ -3,6 +3,13 @@ import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { createFileOctopusClient } from "@fileoctopus/ts-api";
 import { createRequestId } from "../paneTypes";
 import {
+  isRemoteUri,
+  uriScheme,
+  profileIdFromRemoteUri,
+  buildRemoteUri,
+  remotePathFromUri,
+} from "@fileoctopus/ts-api";
+import {
   isParentDirectoryEntry,
   prependParentDirectoryEntry,
 } from "../utils/parentEntry";
@@ -131,14 +138,34 @@ async function listDirectory(
   });
 }
 
-function uriStack(activeUri: string, rootUri: string): string[] {
+function uriStack(activeUri: string, rootUriValue: string): string[] {
+  if (isRemoteUri(activeUri)) {
+    const scheme = uriScheme(activeUri);
+    const profileId = profileIdFromRemoteUri(activeUri);
+    if (!scheme || !profileId) {
+      return [rootUriValue, activeUri];
+    }
+
+    const path = remotePathFromUri(activeUri) ?? "/";
+    const parts = path.split("/").filter(Boolean);
+    const stack = [rootUriValue];
+    let current = "";
+
+    for (const part of parts) {
+      current = `${current}/${part}`;
+      stack.push(buildRemoteUri(scheme, profileId, current));
+    }
+
+    return stack.length > 0 ? stack : [rootUriValue];
+  }
+
   if (!activeUri.startsWith("local://")) {
-    return [rootUri, activeUri];
+    return [rootUriValue, activeUri];
   }
 
   const path = activeUri.replace("local://", "");
   const parts = path.split("/").filter(Boolean);
-  const stack = [rootUri];
+  const stack = [rootUriValue];
   let current = "local://";
 
   for (const part of parts) {
@@ -146,5 +173,5 @@ function uriStack(activeUri: string, rootUri: string): string[] {
     stack.push(current);
   }
 
-  return stack.length > 0 ? stack : [rootUri];
+  return stack.length > 0 ? stack : [rootUriValue];
 }

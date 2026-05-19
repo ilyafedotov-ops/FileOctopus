@@ -1,4 +1,5 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
+import { isRemoteUri } from "@fileoctopus/ts-api";
 import type { PanelId, PanelTabState } from "../panelStore";
 import { countOperationalSelection, selectVisibleEntries } from "../panelStore";
 
@@ -30,10 +31,17 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
     isPreviewable,
   } = deps;
 
+  const selectedEntries = selectVisibleEntries(tab).filter((entry) =>
+    tab.selectedIds.includes(entry.uri),
+  );
   const selectedEntry =
-    selectVisibleEntries(tab).find((entry) => entry.uri === tab.selectedId) ??
-    null;
+    selectedEntries.find((entry) => entry.uri === tab.selectedId) ?? null;
   const hasSelection = countOperationalSelection(tab) > 0;
+  const remotePane = isRemoteUri(tab.uri);
+  const selectionAllowsWrite =
+    selectedEntries.length > 0 &&
+    selectedEntries.every((entry) => entry.canWrite && entry.canDelete);
+  const paneAllowsMutation = !remotePane && selectionAllowsWrite;
 
   return {
     selectedEntry,
@@ -51,17 +59,43 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
       }
       handleCommandSelect("op.openDefault", panelId);
     },
-    copy: () => handleCopyOrMove(panelId, "copy"),
-    move: () => handleCopyOrMove(panelId, "move"),
-    rename: () => handleCommandSelect("op.rename", panelId),
-    newFolder: () => handleCreateFolder(panelId),
-    delete: () => handleTrash(panelId),
+    copy: () => {
+      if (!paneAllowsMutation) {
+        return;
+      }
+      handleCopyOrMove(panelId, "copy");
+    },
+    move: () => {
+      if (!paneAllowsMutation) {
+        return;
+      }
+      handleCopyOrMove(panelId, "move");
+    },
+    rename: () => {
+      if (!paneAllowsMutation) {
+        return;
+      }
+      handleCommandSelect("op.rename", panelId);
+    },
+    newFolder: () => {
+      if (remotePane) {
+        return;
+      }
+      handleCreateFolder(panelId);
+    },
+    delete: () => {
+      if (!paneAllowsMutation) {
+        return;
+      }
+      handleTrash(panelId);
+    },
     terminal: () => handleCommandSelect("op.openTerminal", panelId),
-    canEdit: Boolean(selectedEntry),
-    canRename: countOperationalSelection(tab) === 1,
-    canCopy: hasSelection,
-    canMove: hasSelection,
-    canDelete: hasSelection,
+    canEdit: Boolean(selectedEntry) && !remotePane,
+    canRename: countOperationalSelection(tab) === 1 && paneAllowsMutation,
+    canCopy: hasSelection && paneAllowsMutation,
+    canMove: hasSelection && paneAllowsMutation,
+    canDelete: hasSelection && paneAllowsMutation,
+    canNewFolder: !remotePane,
   };
 }
 
@@ -84,9 +118,10 @@ export function commanderItemDisabled(
 ): boolean {
   switch (action) {
     case "view":
-    case "newFolder":
     case "terminal":
       return false;
+    case "newFolder":
+      return !commander.canNewFolder;
     case "rename":
       return !commander.canRename;
     case "edit":

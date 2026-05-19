@@ -8,7 +8,6 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
-  IPC_ERROR_CODES,
   type DirectoryBatchEventDto,
   type FileEntryDto,
   type FileOperationRequestDto,
@@ -369,76 +368,129 @@ const cancelJob = vi.fn(async () => ({
   },
 }));
 
-vi.mock("@fileoctopus/ts-api", () => ({
-  createFileOctopusClient: () => ({
-    getAppInfo,
-    fs: {
-      listStart,
-      onDirectoryBatch,
-      standardLocations,
-      startWatching,
-      stopWatching,
-      onWatchChanged,
-      openPathWithDefaultApp,
-      revealPathInFileManager,
-      properties,
-      recursiveSearch,
-      startFolderSizeJob,
-      startRecursiveSearchJob,
-      onFolderSizeCompleted,
-      onRecursiveSearchMatch,
-      onRecursiveSearchCompleted,
-      computeHash,
-      openTerminal,
-    },
-    fileOperations: {
-      planFileOperation,
-      startFileOperation,
-      onJobStarted,
-      onJobProgress,
-      onJobCompleted,
-      onJobFailed: subscribeJob,
-      onJobCancelled: subscribeJob,
-    },
-    jobs: {
-      cancelJob,
-    },
-    operationHistory: {
-      listRecentOperations,
-      clearOperationHistory,
-    },
-    diagnostics: {
-      appDataHealth,
-      exportBundle,
-    },
-    preferences: {
-      get: preferencesGet,
-      set: preferencesSet,
-    },
-    navigation: {
-      recordVisit: vi.fn(async () => ({ ok: true })),
-      listFavorites: vi.fn(async () => ({ favorites: [] })),
-      addFavorite: vi.fn(async () => ({
-        favorite: { id: 1, uri: "local:///test", label: "test" },
-      })),
-      removeFavorite: vi.fn(async () => ({ ok: true })),
-      renameFavorite: vi.fn(async () => ({
-        favorite: { id: 1, uri: "local:///test", label: "test" },
-      })),
-      listRecent: vi.fn(async () => ({ entries: [] })),
-      listStarred: vi.fn(async () => ({ entries: [] })),
-      toggleStarred: vi.fn(async () => ({ starred: true })),
-      isStarred: vi.fn(async () => ({ starred: false })),
-    },
-  }),
-  normalizeIpcError: (error: unknown) =>
-    error && typeof error === "object" && "message" in error
-      ? {
-          code: IPC_ERROR_CODES.UNKNOWN,
-          message: String((error as { message: unknown }).message),
-        }
-      : { code: IPC_ERROR_CODES.UNKNOWN, message: "error" },
-}));
+vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@fileoctopus/ts-api")>();
+  return {
+    ...actual,
+    createFileOctopusClient: () => ({
+      getAppInfo,
+      fs: {
+        listStart,
+        onDirectoryBatch,
+        standardLocations,
+        startWatching,
+        stopWatching,
+        onWatchChanged,
+        openPathWithDefaultApp,
+        revealPathInFileManager,
+        properties,
+        recursiveSearch,
+        startFolderSizeJob,
+        startRecursiveSearchJob,
+        onFolderSizeCompleted,
+        onRecursiveSearchMatch,
+        onRecursiveSearchCompleted,
+        computeHash,
+        openTerminal,
+      },
+      fileOperations: {
+        planFileOperation,
+        startFileOperation,
+        onJobStarted,
+        onJobProgress,
+        onJobCompleted,
+        onJobFailed: subscribeJob,
+        onJobCancelled: subscribeJob,
+      },
+      jobs: {
+        cancelJob,
+      },
+      operationHistory: {
+        listRecentOperations,
+        clearOperationHistory,
+      },
+      diagnostics: {
+        appDataHealth,
+        exportBundle,
+      },
+      preferences: {
+        get: preferencesGet,
+        set: preferencesSet,
+      },
+      navigation: {
+        recordVisit: vi.fn(async () => ({ ok: true })),
+        listFavorites: vi.fn(async () => ({ favorites: [] })),
+        addFavorite: vi.fn(async () => ({
+          favorite: { id: 1, uri: "local:///test", label: "test" },
+        })),
+        removeFavorite: vi.fn(async () => ({ ok: true })),
+        renameFavorite: vi.fn(async () => ({
+          favorite: { id: 1, uri: "local:///test", label: "test" },
+        })),
+        listRecent: vi.fn(async () => ({ entries: [] })),
+        listStarred: vi.fn(async () => ({ entries: [] })),
+        toggleStarred: vi.fn(async () => ({ starred: true })),
+        isStarred: vi.fn(async () => ({ starred: false })),
+      },
+      network: {
+        listProfiles: vi.fn(async () => ({ profiles: [] })),
+        connectionStatus: vi.fn(async () => ({ statuses: [] })),
+        connect: vi.fn(async () => ({ ok: true })),
+        disconnect: vi.fn(async () => ({ ok: true })),
+        addProfile: vi.fn(async () => ({
+          profile: {
+            id: "profile-1",
+            label: "Test",
+            scheme: "sftp",
+            host: "example.com",
+            port: 22,
+            username: "deploy",
+            authKind: "password",
+            privateKeyPath: null,
+            defaultPath: "/",
+            defaultUri: "sftp://profile-1/",
+            sortOrder: 0,
+            createdAt: new Date(0).toISOString(),
+            updatedAt: new Date(0).toISOString(),
+            lastConnectedAt: null,
+            lastError: null,
+            hostKeyFingerprint: null,
+          },
+        })),
+        updateProfile: vi.fn(async () => ({
+          profile: {
+            id: "profile-1",
+            label: "Test",
+            scheme: "sftp",
+            host: "example.com",
+            port: 22,
+            username: "deploy",
+            authKind: "password",
+            privateKeyPath: null,
+            defaultPath: "/",
+            defaultUri: "sftp://profile-1/",
+            sortOrder: 0,
+            createdAt: new Date(0).toISOString(),
+            updatedAt: new Date(0).toISOString(),
+            lastConnectedAt: null,
+            lastError: null,
+            hostKeyFingerprint: null,
+          },
+        })),
+        deleteProfile: vi.fn(async () => ({ ok: true })),
+        setSecret: vi.fn(async () => ({ ok: true })),
+        validateUri: vi.fn(async () => ({ ok: true })),
+      },
+    }),
+    normalizeIpcError: (error: unknown) =>
+      error && typeof error === "object" && "message" in error
+        ? {
+            code: actual.IPC_ERROR_CODES.UNKNOWN,
+            message: String((error as { message: unknown }).message),
+          }
+        : { code: actual.IPC_ERROR_CODES.UNKNOWN, message: "error" },
+  };
+});
 
 import { FileOctopusShell } from "../src";
 

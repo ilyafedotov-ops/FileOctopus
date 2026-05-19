@@ -1,7 +1,10 @@
 import type { Dispatch, SetStateAction } from "react";
 import {
   createFileOctopusClient,
+  isRemoteUri,
+  isSupportedNavigationUri,
   normalizeIpcError,
+  profileIdFromRemoteUri,
 } from "@fileoctopus/ts-api";
 import type {
   AppDataHealthResponse,
@@ -9,6 +12,8 @@ import type {
   FavoriteEntryDto,
   FileEntryDto,
   FolderSizeCompletedEventDto,
+  NetworkConnectionStatusDto,
+  NetworkProfileDto,
   OperationHistoryRecordDto,
   RecursiveSearchCompletedEventDto,
   RecursiveSearchMatchEventDto,
@@ -18,7 +23,7 @@ import type {
 } from "@fileoctopus/ts-api";
 import {
   activeTab,
-  normalizeLocalInput,
+  normalizeUriInput,
   type FileOctopusState,
   type PanelAction,
   type PanelId,
@@ -40,6 +45,8 @@ interface UseNavigationDeps {
   setRecentWeek: (entries: RecentEntryDto[]) => void;
   setStarred: (entries: StarredEntryDto[]) => void;
   setLocations: (locations: StandardLocationDto[]) => void;
+  setNetworkProfiles: (profiles: NetworkProfileDto[]) => void;
+  setNetworkStatuses: (statuses: NetworkConnectionStatusDto[]) => void;
   setHistory: (ops: OperationHistoryRecordDto[]) => void;
   setOperationError: (error: string | null) => void;
   setAppInfo: (info: AppInfoResponse | null) => void;
@@ -61,6 +68,8 @@ export function useNavigation(deps: UseNavigationDeps) {
     setRecentWeek,
     setStarred,
     setLocations,
+    setNetworkProfiles,
+    setNetworkStatuses,
     setHistory,
     setOperationError,
     setAppInfo,
@@ -92,18 +101,37 @@ export function useNavigation(deps: UseNavigationDeps) {
       softRefresh?: boolean;
     } = {},
   ) {
-    const uri = normalizeLocalInput(input);
+    const uri = normalizeUriInput(input);
     const tab = activeTab(state.panels[panelId]);
 
-    if (!uri.startsWith("local://")) {
+    if (!isSupportedNavigationUri(uri)) {
       dispatch({
         type: "setPaneError",
         panelId,
-        error: "Enter a local:// URI or absolute path",
+        error: "Enter a local path or supported remote URI (sftp://)",
         errorCode: "invalid_uri",
         loadState: "error",
       });
       return;
+    }
+
+    if (isRemoteUri(uri)) {
+      try {
+        await client.network.connect({
+          id: profileIdFromRemoteUri(uri) ?? "",
+        });
+        await refreshNetworkProfiles();
+      } catch (error) {
+        const normalized = normalizeIpcError(error);
+        dispatch({
+          type: "setPaneError",
+          panelId,
+          error: operationErrorMessage(normalized.code, normalized.message),
+          errorCode: normalized.code,
+          loadState: "error",
+        });
+        return;
+      }
     }
 
     dispatch({
@@ -122,7 +150,10 @@ export function useNavigation(deps: UseNavigationDeps) {
     await startListing(panelId, uri, options.includeHidden ?? tab.showHidden);
     if (!options.softRefresh) {
       void client.navigation
-        .recordVisit({ uri, label: localPathFromUri(uri) })
+        .recordVisit({
+          uri,
+          label: isRemoteUri(uri) ? uri : localPathFromUri(uri),
+        })
         .then(() => refreshNavigation())
         .catch(() => undefined);
     }
@@ -210,6 +241,19 @@ export function useNavigation(deps: UseNavigationDeps) {
       includeHidden: options.includeHidden ?? tab.showHidden,
       softRefresh: options.softRefresh ?? false,
     });
+  }
+
+  async function refreshNetworkProfiles() {
+    try {
+      const [profilesResponse, statusResponse] = await Promise.all([
+        client.network.listProfiles(),
+        client.network.connectionStatus(),
+      ]);
+      setNetworkProfiles(profilesResponse.profiles);
+      setNetworkStatuses(statusResponse.statuses);
+    } catch (error) {
+      setOperationError(normalizeIpcError(error).message);
+    }
   }
 
   async function refreshLocations() {
@@ -375,6 +419,7 @@ export function useNavigation(deps: UseNavigationDeps) {
     goHistory,
     refreshPanel,
     refreshLocations,
+    refreshNetworkProfiles,
     activateEntry,
     refreshVisiblePanels,
     refreshHistory,

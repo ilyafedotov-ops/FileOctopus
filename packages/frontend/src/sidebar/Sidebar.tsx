@@ -1,5 +1,7 @@
 import type {
   FavoriteEntryDto,
+  NetworkConnectionStatusDto,
+  NetworkProfileDto,
   RecentEntryDto,
   StandardLocationDto,
   StarredEntryDto,
@@ -28,8 +30,16 @@ interface SidebarContextMenuState {
   favorite: FavoriteEntryDto;
 }
 
+interface SidebarNetworkContextMenuState {
+  x: number;
+  y: number;
+  profile: NetworkProfileDto;
+}
+
 interface SidebarProps {
   locations: StandardLocationDto[];
+  networkProfiles: NetworkProfileDto[];
+  networkStatuses: NetworkConnectionStatusDto[];
   favorites: FavoriteEntryDto[];
   recentToday: RecentEntryDto[];
   recentWeek: RecentEntryDto[];
@@ -40,10 +50,17 @@ interface SidebarProps {
   onRemoveFavorite: (id: number) => void;
   onRenameFavorite: (id: number, label: string) => void;
   onRevealFavorite: (uri: string) => void;
+  onAddServer: () => void;
+  onConnectProfile: (profileId: string) => void;
+  onDisconnectProfile: (profileId: string) => void;
+  onEditProfile: (profile: NetworkProfileDto) => void;
+  onDeleteProfile: (profileId: string) => void;
 }
 
 export function Sidebar({
   locations,
+  networkProfiles,
+  networkStatuses,
   favorites,
   recentToday,
   starred,
@@ -53,9 +70,16 @@ export function Sidebar({
   onRemoveFavorite,
   onRenameFavorite,
   onRevealFavorite,
+  onAddServer,
+  onConnectProfile,
+  onDisconnectProfile,
+  onEditProfile,
+  onDeleteProfile,
 }: SidebarProps) {
   const [contextMenu, setContextMenu] =
     useState<SidebarContextMenuState | null>(null);
+  const [networkContextMenu, setNetworkContextMenu] =
+    useState<SidebarNetworkContextMenuState | null>(null);
   const [renamingFavoriteId, setRenamingFavoriteId] = useState<number | null>(
     null,
   );
@@ -142,6 +166,48 @@ export function Sidebar({
         );
       })}
 
+      <SidebarSection title="Network">
+        {networkProfiles.length === 0 ? (
+          <SidebarEmptyHint>No saved servers</SidebarEmptyHint>
+        ) : (
+          networkProfiles.map((profile) => {
+            const status = networkStatuses.find(
+              (item) => item.profileId === profile.id,
+            );
+            return (
+              <SidebarItem
+                key={profile.id}
+                icon={Icons.volume()}
+                label={profile.label}
+                active={profile.defaultUri === activeUri}
+                onClick={() => onNavigate(profile.defaultUri)}
+                onContextMenu={(event) => {
+                  event.preventDefault();
+                  setNetworkContextMenu({
+                    x: event.clientX,
+                    y: event.clientY,
+                    profile,
+                  });
+                }}
+                title={
+                  status?.status === "connected"
+                    ? `${profile.label} (connected)`
+                    : status?.status === "error"
+                      ? `${profile.label} (${status.message ?? "error"})`
+                      : profile.label
+                }
+              />
+            );
+          })
+        )}
+        <SidebarItem
+          icon={Icons.folderPlus()}
+          label="Add server…"
+          active={false}
+          onClick={onAddServer}
+        />
+      </SidebarSection>
+
       {favorites.length > 0 ? (
         <SidebarSection title="Pinned">
           {favorites.map((item) =>
@@ -208,6 +274,32 @@ export function Sidebar({
             />
           ))}
         </SidebarSection>
+      ) : null}
+
+      {networkContextMenu ? (
+        <SidebarNetworkContextMenu
+          profile={networkContextMenu.profile}
+          connected={
+            networkStatuses.find(
+              (item) => item.profileId === networkContextMenu.profile.id,
+            )?.status === "connected"
+          }
+          x={networkContextMenu.x}
+          y={networkContextMenu.y}
+          onClose={() => setNetworkContextMenu(null)}
+          onConnect={() => onConnectProfile(networkContextMenu.profile.id)}
+          onDisconnect={() =>
+            onDisconnectProfile(networkContextMenu.profile.id)
+          }
+          onEdit={() => onEditProfile(networkContextMenu.profile)}
+          onRemove={() => onDeleteProfile(networkContextMenu.profile.id)}
+          onAddFavorite={() =>
+            onAddFavorite(
+              networkContextMenu.profile.defaultUri,
+              networkContextMenu.profile.label,
+            )
+          }
+        />
       ) : null}
 
       {contextMenu ? (
@@ -355,6 +447,159 @@ function SidebarContextMenu({
   );
 }
 
+function SidebarNetworkContextMenu({
+  profile,
+  connected,
+  x,
+  y,
+  onClose,
+  onConnect,
+  onDisconnect,
+  onEdit,
+  onRemove,
+  onAddFavorite,
+}: {
+  profile: NetworkProfileDto;
+  connected: boolean;
+  x: number;
+  y: number;
+  onClose: () => void;
+  onConnect: () => void;
+  onDisconnect: () => void;
+  onEdit: () => void;
+  onRemove: () => void;
+  onAddFavorite: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{
+    left: number;
+    top: number;
+    maxHeight?: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!menuRef.current) {
+      setPos(null);
+      return;
+    }
+    const el = menuRef.current;
+    const pad = 8;
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = x;
+    let top = y;
+    let maxHeight: number | undefined;
+
+    if (left + rect.width > vw - pad) {
+      left = Math.max(pad, vw - rect.width - pad);
+    }
+
+    const availableBelow = vh - top - pad;
+    if (rect.height > availableBelow) {
+      const availableAbove = top - pad;
+      if (availableAbove > availableBelow) {
+        top = Math.max(pad, vh - rect.height - pad);
+        maxHeight = vh - top - pad;
+      } else {
+        maxHeight = availableBelow;
+      }
+    }
+
+    setPos({ left, top, maxHeight });
+  }, [x, y]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    },
+    [onClose],
+  );
+
+  const run = (action: () => void) => {
+    action();
+    onClose();
+  };
+
+  return (
+    <div
+      className="fo-sidebar-menu-backdrop"
+      onClick={onClose}
+      onKeyDown={handleKeyDown}
+      role="presentation"
+    >
+      <div
+        ref={menuRef}
+        className="fo-sidebar-context-menu"
+        role="menu"
+        aria-label={`${profile.label} actions`}
+        style={
+          pos
+            ? { left: pos.left, top: pos.top, maxHeight: pos.maxHeight }
+            : { left: x, top: y }
+        }
+        onClick={(event) => event.stopPropagation()}
+      >
+        {connected ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="fo-context-menu-item"
+            role="menuitem"
+            onClick={() => run(onDisconnect)}
+          >
+            Disconnect
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="fo-context-menu-item"
+            role="menuitem"
+            onClick={() => run(onConnect)}
+          >
+            Connect
+          </Button>
+        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="fo-context-menu-item"
+          role="menuitem"
+          onClick={() => run(onEdit)}
+        >
+          Edit
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="fo-context-menu-item"
+          role="menuitem"
+          onClick={() => run(onAddFavorite)}
+        >
+          Add to Pinned
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="fo-context-menu-item"
+          role="menuitem"
+          onClick={() => run(onRemove)}
+        >
+          Remove
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function SidebarSection({
   title,
   children,
@@ -382,6 +627,7 @@ function SidebarItem({
   onContextMenu,
   indented = false,
   subdued = false,
+  title,
 }: {
   icon: ReactNode;
   label: string;
@@ -390,6 +636,7 @@ function SidebarItem({
   onContextMenu?: (event: ReactMouseEvent<HTMLButtonElement>) => void;
   indented?: boolean;
   subdued?: boolean;
+  title?: string;
 }) {
   return (
     <Button
@@ -402,7 +649,7 @@ function SidebarItem({
         indented && "fo-sidebar-indented",
         subdued && "fo-sidebar-subdued",
       )}
-      title={label}
+      title={title ?? label}
       onClick={onClick}
       onContextMenu={onContextMenu}
     >

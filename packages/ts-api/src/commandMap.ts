@@ -40,4 +40,13 @@ export const commandMap: Record<string, string> = {
   "navigation.isStarred": "navigation_is_starred",
   "navigation.clearRecent": "navigation_clear_recent",
   "navigation.removeRecent": "navigation_remove_recent",
+  "network.profilesList": "network_profiles_list",
+  "network.profileAdd": "network_profile_add",
+  "network.profileUpdate": "network_profile_update",
+  "network.profileDelete": "network_profile_delete",
+  "network.profileSetSecret": "network_profile_set_secret",
+  "network.connect": "network_connect",
+  "network.disconnect": "network_disconnect",
+  "network.connectionStatus": "network_connection_status",
+  "network.validateUri": "network_validate_uri",
 };

@@ -3,6 +3,13 @@ import type {
   PathPropertiesDto,
   RecursiveSearchResultDto,
 } from "@fileoctopus/ts-api";
+import {
+  breadcrumbSegmentsFromUri,
+  displayPathFromUri,
+  parentUriFromUri,
+  rootUriForUri,
+  uriScheme,
+} from "@fileoctopus/ts-api";
 
 export function propertyType(properties: PathPropertiesDto): string {
   if (properties.kind === "directory") {
@@ -17,51 +24,21 @@ export function propertyType(properties: PathPropertiesDto): string {
 }
 
 export function localPathFromUri(uri: string): string {
-  return uri.replace(/^local:\/\//, "");
+  return displayPathFromUri(uri);
 }
 
 export function parentUri(uri: string): string | null {
-  const path = uri.replace(/^local:\/\//, "");
-  const normalized =
-    path.endsWith("/") && path.length > 1 ? path.slice(0, -1) : path;
-  const index = normalized.lastIndexOf("/");
-
-  if (index <= 0) {
-    return null;
-  }
-
-  return `local://${normalized.slice(0, index)}`;
+  return parentUriFromUri(uri);
 }
 
 export function rootUri(currentUri: string): string {
-  const path = localPathFromUri(currentUri);
-  const driveMatch =
-    path.match(/^\/([A-Za-z]:)[\\/]/) ?? path.match(/^([A-Za-z]:)[\\/]/);
-  if (driveMatch) {
-    return `local:///${driveMatch[1]}/`;
-  }
-  return "local:///";
+  return rootUriForUri(currentUri);
 }
 
 export function breadcrumbSegments(
   uri: string,
 ): Array<{ label: string; uri: string }> {
-  const path = localPathFromUri(uri).replace(/\/+$/, "");
-  const segments = path.split("/").filter(Boolean);
-  const result: Array<{ label: string; uri: string }> = [];
-  let current = "";
-
-  const isAbsolute = path.startsWith("/");
-
-  for (const segment of segments) {
-    current = isAbsolute || current ? `${current}/${segment}` : segment;
-    result.push({
-      label: segment,
-      uri: `local://${isAbsolute ? current : `${current}/`}`,
-    });
-  }
-
-  return result.length > 0 ? result : [{ label: uri, uri }];
+  return breadcrumbSegmentsFromUri(uri);
 }
 
 export function searchMatchToEntry(
@@ -82,4 +59,8 @@ export function searchMatchToEntry(
     canDelete: true,
     canRename: true,
   };
+}
+
+export function providerIdFromUri(uri: string): string {
+  return uriScheme(uri) ?? "local";
 }

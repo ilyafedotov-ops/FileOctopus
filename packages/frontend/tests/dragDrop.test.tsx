@@ -113,61 +113,67 @@ const exportBundle = vi.fn(async () => ({ exportedFiles: 1 }));
 const preferencesGet = vi.fn(async () => null);
 const preferencesSet = vi.fn(async () => ({ ok: true }));
 
-vi.mock("@fileoctopus/ts-api", () => ({
-  createFileOctopusClient: () => ({
-    getAppInfo,
-    fs: {
-      listStart,
-      onDirectoryBatch,
-      standardLocations,
-      startWatching,
-      stopWatching,
-      onWatchChanged,
-      openPathWithDefaultApp,
-      revealPathInFileManager,
-      properties,
-      recursiveSearch,
-      startFolderSizeJob,
-      startRecursiveSearchJob,
-      onFolderSizeCompleted,
-      onRecursiveSearchMatch,
-      onRecursiveSearchCompleted,
-      computeHash,
-      openTerminal,
-    },
-    fileOperations: {
-      planFileOperation,
-      startFileOperation,
-      onJobStarted,
-      onJobProgress,
-      onJobCompleted,
-      onJobFailed: subscribeJob,
-      onJobCancelled: subscribeJob,
-    },
-    jobs: { cancelJob },
-    operationHistory: { listRecentOperations, clearOperationHistory },
-    diagnostics: { appDataHealth, exportBundle },
-    preferences: { get: preferencesGet, set: preferencesSet },
-    navigation: {
-      recordVisit: vi.fn(async () => ({ ok: true })),
-      listRecent: vi.fn(async () => ({ entries: [] })),
-      listStarred: vi.fn(async () => ({ entries: [] })),
-      addFavorite: vi.fn(async () => ({ ok: true })),
-      removeFavorite: vi.fn(async () => ({ ok: true })),
-      renameFavorite: vi.fn(async () => ({ ok: true })),
-      getFavorites: vi.fn(async () => ({ favorites: [] })),
-    },
-    search: {
-      startFolderSizeJob,
-      onFolderSizeCompleted,
-    },
-  }),
-  normalizeIpcError: (e: unknown) => ({
-    code: "unknown",
-    message: String(e),
-  }),
-  isTauriRuntime: () => false,
-}));
+vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@fileoctopus/ts-api")>();
+  const { mockNetworkClient } = await import("./mockNetworkClient");
+  return {
+    ...actual,
+    createFileOctopusClient: () => ({
+      getAppInfo,
+      fs: {
+        listStart,
+        onDirectoryBatch,
+        standardLocations,
+        startWatching,
+        stopWatching,
+        onWatchChanged,
+        openPathWithDefaultApp,
+        revealPathInFileManager,
+        properties,
+        recursiveSearch,
+        startFolderSizeJob,
+        startRecursiveSearchJob,
+        onFolderSizeCompleted,
+        onRecursiveSearchMatch,
+        onRecursiveSearchCompleted,
+        computeHash,
+        openTerminal,
+      },
+      fileOperations: {
+        planFileOperation,
+        startFileOperation,
+        onJobStarted,
+        onJobProgress,
+        onJobCompleted,
+        onJobFailed: subscribeJob,
+        onJobCancelled: subscribeJob,
+      },
+      jobs: { cancelJob },
+      operationHistory: { listRecentOperations, clearOperationHistory },
+      diagnostics: { appDataHealth, exportBundle },
+      preferences: { get: preferencesGet, set: preferencesSet },
+      navigation: {
+        recordVisit: vi.fn(async () => ({ ok: true })),
+        listRecent: vi.fn(async () => ({ entries: [] })),
+        listStarred: vi.fn(async () => ({ entries: [] })),
+        addFavorite: vi.fn(async () => ({ ok: true })),
+        removeFavorite: vi.fn(async () => ({ ok: true })),
+        renameFavorite: vi.fn(async () => ({ ok: true })),
+        getFavorites: vi.fn(async () => ({ favorites: [] })),
+      },
+      search: {
+        startFolderSizeJob,
+        onFolderSizeCompleted,
+      },
+      network: mockNetworkClient,
+    }),
+    normalizeIpcError: (e: unknown) => ({
+      code: actual.IPC_ERROR_CODES.UNKNOWN,
+      message: String(e),
+    }),
+    isTauriRuntime: () => false,
+  };
+});
 
 import { FilePanel, type FilePanelProps } from "../src/pane/FilePanel";
 import type { PanelTabState, PanelState } from "../src/panelStore";

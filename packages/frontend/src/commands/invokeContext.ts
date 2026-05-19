@@ -1,4 +1,4 @@
-import type { FileEntryDto } from "@fileoctopus/ts-api";
+import type { FileEntryDto, NetworkProfileDto } from "@fileoctopus/ts-api";
 import type { SortField } from "../panelStore";
 
 export interface CommandInvokeContext {
@@ -8,6 +8,7 @@ export interface CommandInvokeContext {
   sortField?: SortField;
   sortAscending?: boolean;
   preferenceValue?: string;
+  networkProfile?: NetworkProfileDto;
 }
 
 export type CommandInvokeArg = CommandInvokeContext | FileEntryDto | null;

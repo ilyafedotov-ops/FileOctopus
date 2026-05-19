@@ -91,6 +91,7 @@ export interface UseAppInitParams {
   refreshVisiblePanels: () => void;
   refreshHistory: () => Promise<void>;
   refreshLocations: () => Promise<void>;
+  refreshNetworkProfiles: () => Promise<void>;
   refreshNavigation: () => Promise<void>;
   refreshDiagnostics: () => void;
   updatePreference: (key: string, value: string) => Promise<void>;
@@ -155,6 +156,7 @@ export function useAppInit({
   refreshVisiblePanels,
   refreshHistory,
   refreshLocations,
+  refreshNetworkProfiles,
   refreshNavigation,
   refreshDiagnostics,
   updatePreference,
@@ -591,6 +593,7 @@ export function useAppInit({
       let showHidden = false;
 
       void refreshLocations();
+      void refreshNetworkProfiles();
       void refreshNavigation();
 
       try {

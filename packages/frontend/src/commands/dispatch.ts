@@ -44,6 +44,11 @@ export interface CommandDispatchDeps {
   clearRecentEntries: () => Promise<void>;
   setOperationHistoryOpen: (open: boolean) => void;
   setVolumePickerOpen: (open: boolean) => void;
+  setNetworkLocationsOpen: (open: boolean) => void;
+  setConnectServerOpen: (open: boolean) => void;
+  setConnectServerProfile: (
+    profile: import("@fileoctopus/ts-api").NetworkProfileDto | null,
+  ) => void;
   setFilterFocusToken: Dispatch<SetStateAction<number>>;
   setRecursiveSearchFocusToken: Dispatch<SetStateAction<number>>;
   setPreviewOpen: (open: boolean) => void;
@@ -263,6 +268,22 @@ export function dispatchCommand(
     case "nav.volumePicker":
       deps.setVolumePickerOpen(true);
       return true;
+    case "nav.networkLocations":
+      deps.setNetworkLocationsOpen(true);
+      return true;
+    case "nav.addServer":
+      deps.setConnectServerProfile(null);
+      deps.setConnectServerOpen(true);
+      return true;
+    case "nav.connectServer": {
+      const profile = options?.networkProfile;
+      if (profile) {
+        deps.setConnectServerProfile(profile);
+        deps.setConnectServerOpen(true);
+        return true;
+      }
+      return false;
+    }
     case "nav.manageFavorites":
       deps.setManageFavoritesOpen(true);
       return true;

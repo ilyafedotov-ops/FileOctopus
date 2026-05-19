@@ -8,9 +8,13 @@ chrono = { version = "0.4", features = ["serde"] }
 config = { path = "../config" }
 fs-core = { path = "../fs-core" }
 jobs = { path = "../jobs" }
+platform = { path = "../platform" }
+provider-sftp = { path = "../provider-sftp" }
+remote-core = { path = "../remote-core" }
 rusqlite = { version = "0.32", features = ["bundled"] }
 telemetry = { path = "../telemetry" }
 thiserror = "1"
+tokio = { version = "1", features = ["sync"] }
 uuid = { version = "1", features = ["v4"] }
 vfs = { path = "../vfs" }
 

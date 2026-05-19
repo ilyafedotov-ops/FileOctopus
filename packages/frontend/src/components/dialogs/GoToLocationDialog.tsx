@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../../hooks/useDialogEscape";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
-import { normalizeLocalInput } from "../../panelStore";
+import { isSupportedNavigationUri } from "@fileoctopus/ts-api";
+import { normalizeUriInput } from "../../panelStore";
 
 interface GoToLocationDialogProps {
   open: boolean;
@@ -50,7 +51,7 @@ export function GoToLocationDialog({
         <header className="fo-dialog-header">
           <div>
             <h2 id="go-to-title">Go to Location</h2>
-            <p>Enter a folder path to open in the active pane.</p>
+            <p>Enter a folder path or remote URI to open in the active pane.</p>
           </div>
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>
             Close
@@ -61,9 +62,9 @@ export function GoToLocationDialog({
           onSubmit={(event) => {
             event.preventDefault();
             try {
-              const uri = normalizeLocalInput(path);
-              if (!uri.startsWith("local://")) {
-                setError("Enter an absolute local path.");
+              const uri = normalizeUriInput(path);
+              if (!isSupportedNavigationUri(uri)) {
+                setError("Enter an absolute local path or sftp:// URI.");
                 return;
               }
               onNavigate(uri);

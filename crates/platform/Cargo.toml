@@ -4,4 +4,8 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+keyring = { version = "3", features = ["apple-native", "linux-native", "windows-native"] }
+thiserror = "1"
 
+[dev-dependencies]
+uuid = { version = "1", features = ["v4"] }

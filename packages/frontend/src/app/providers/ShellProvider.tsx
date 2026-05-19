@@ -20,6 +20,8 @@ import type {
   AppInfoResponse,
   AutostartStatusDto,
   FavoriteEntryDto,
+  NetworkConnectionStatusDto,
+  NetworkProfileDto,
   RecentEntryDto,
   StandardLocationDto,
   StarredEntryDto,
@@ -53,6 +55,8 @@ export interface ShellContextValue {
   recentToday: RecentEntryDto[];
   recentWeek: RecentEntryDto[];
   starred: StarredEntryDto[];
+  networkProfiles: NetworkProfileDto[];
+  networkStatuses: NetworkConnectionStatusDto[];
   appInfo: AppInfoResponse | null;
   appHealth: AppDataHealthResponse | null;
   autostart: AutostartStatusDto | null;
@@ -79,6 +83,8 @@ export interface ShellContextValue {
   setRecentToday: Dispatch<SetStateAction<RecentEntryDto[]>>;
   setRecentWeek: Dispatch<SetStateAction<RecentEntryDto[]>>;
   setStarred: Dispatch<SetStateAction<StarredEntryDto[]>>;
+  setNetworkProfiles: Dispatch<SetStateAction<NetworkProfileDto[]>>;
+  setNetworkStatuses: Dispatch<SetStateAction<NetworkConnectionStatusDto[]>>;
   setAppInfo: Dispatch<SetStateAction<AppInfoResponse | null>>;
   setAppHealth: Dispatch<SetStateAction<AppDataHealthResponse | null>>;
   setAutostart: Dispatch<SetStateAction<AutostartStatusDto | null>>;
@@ -139,6 +145,12 @@ export function ShellProvider({ children }: { children: ReactNode }) {
   const [recentToday, setRecentToday] = useState<RecentEntryDto[]>([]);
   const [recentWeek, setRecentWeek] = useState<RecentEntryDto[]>([]);
   const [starred, setStarred] = useState<StarredEntryDto[]>([]);
+  const [networkProfiles, setNetworkProfiles] = useState<NetworkProfileDto[]>(
+    [],
+  );
+  const [networkStatuses, setNetworkStatuses] = useState<
+    NetworkConnectionStatusDto[]
+  >([]);
   const [appInfo, setAppInfo] = useState<AppInfoResponse | null>(null);
   const [appHealth, setAppHealth] = useState<AppDataHealthResponse | null>(
     null,
@@ -171,6 +183,8 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       recentToday,
       recentWeek,
       starred,
+      networkProfiles,
+      networkStatuses,
       appInfo,
       appHealth,
       autostart,
@@ -196,6 +210,8 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       setRecentToday,
       setRecentWeek,
       setStarred,
+      setNetworkProfiles,
+      setNetworkStatuses,
       setAppInfo,
       setAppHealth,
       setAutostart,
@@ -221,6 +237,8 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       recentToday,
       recentWeek,
       starred,
+      networkProfiles,
+      networkStatuses,
       appInfo,
       appHealth,
       autostart,

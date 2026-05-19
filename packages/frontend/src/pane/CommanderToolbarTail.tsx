@@ -242,9 +242,9 @@ export function CommanderToolbarTail({
         ) : null}
         {showNetwork ? (
           <ToolbarButton
-            disabled
-            title="Network locations (coming soon)"
+            title="Network locations"
             aria-label="Network"
+            onClick={() => handlers.onCommand("nav.networkLocations")}
           >
             {Icons.volume()}
             <span className="fo-toolbar-label">Network</span>

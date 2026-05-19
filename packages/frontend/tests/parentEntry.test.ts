@@ -46,6 +46,26 @@ describe("parentEntry", () => {
     expect(createParentDirectoryEntry("local:///Users")).toBeNull();
   });
 
+  it("creates a parent directory entry for remote paths", () => {
+    const entry = createParentDirectoryEntry(
+      "sftp://77ac077d-d721-480f-9ee0-bb22403f0fd5/home/ilya",
+    );
+
+    expect(entry).toEqual({
+      uri: "sftp://77ac077d-d721-480f-9ee0-bb22403f0fd5/home",
+      name: "..",
+      kind: "directory",
+      isHidden: false,
+      isSymlink: false,
+      providerId: "sftp",
+      canRead: true,
+      canList: true,
+      canWrite: false,
+      canDelete: false,
+      canRename: false,
+    });
+  });
+
   it("detects synthetic parent entries", () => {
     const parent = createParentDirectoryEntry("local:///tmp/nested")!;
 

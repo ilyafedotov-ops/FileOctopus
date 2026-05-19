@@ -27,12 +27,14 @@ describe("commands/registry", () => {
     ).toBe(true);
   });
 
-  it("includes toolbar metadata commands", () => {
+  it("includes network navigation commands", () => {
     expect(
-      COMMAND_DEFINITIONS.some((command) => command.id === "op.compress"),
+      COMMAND_DEFINITIONS.some(
+        (command) => command.id === "nav.networkLocations",
+      ),
     ).toBe(true);
     expect(
-      COMMAND_DEFINITIONS.some((command) => command.id === "op.checksum"),
+      COMMAND_DEFINITIONS.some((command) => command.id === "nav.addServer"),
     ).toBe(true);
   });
 });

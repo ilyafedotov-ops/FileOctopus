@@ -24,8 +24,12 @@ import { ClearRecentLocationsDialog } from "./dialogs/ClearRecentLocationsDialog
 import { ErrorDetailsDialog } from "./dialogs/ErrorDetailsDialog";
 import { OperationHistoryDialog } from "./dialogs/OperationHistoryDialog";
 import { VolumePickerDialog } from "./dialogs/VolumePickerDialog";
+import { NetworkLocationsDialog } from "./dialogs/NetworkLocationsDialog";
+import { ConnectServerDialog } from "./dialogs/ConnectServerDialog";
 import type {
   FavoriteEntryDto,
+  NetworkConnectionStatusDto,
+  NetworkProfileDto,
   OperationHistoryRecordDto,
   StandardLocationDto,
   RecentEntryDto,
@@ -71,6 +75,11 @@ export interface DialogOverlayGroupProps {
   errorDetailsOpen: boolean;
   operationHistoryOpen: boolean;
   volumePickerOpen: boolean;
+  networkLocationsOpen: boolean;
+  connectServerOpen: boolean;
+  connectServerProfile: NetworkProfileDto | null;
+  networkProfiles: NetworkProfileDto[];
+  networkStatuses: NetworkConnectionStatusDto[];
   goToLocationInitialUri: string;
   favorites: FavoriteEntryDto[];
   history: OperationHistoryRecordDto[];
@@ -105,6 +114,24 @@ export interface DialogOverlayGroupProps {
   setErrorDetailsOpen: (open: boolean) => void;
   setOperationHistoryOpen: (open: boolean) => void;
   setVolumePickerOpen: (open: boolean) => void;
+  setNetworkLocationsOpen: (open: boolean) => void;
+  setConnectServerOpen: (open: boolean) => void;
+  setConnectServerProfile: (profile: NetworkProfileDto | null) => void;
+  connectProfile: (profileId: string) => Promise<void>;
+  disconnectProfile: (profileId: string) => Promise<void>;
+  deleteProfile: (profileId: string) => Promise<void>;
+  saveProfile: (payload: {
+    id?: string;
+    label: string;
+    host: string;
+    port: number;
+    username: string;
+    authKind: "password" | "privateKey";
+    privateKeyPath: string | null;
+    defaultPath: string;
+    password: string;
+    passphrase: string;
+  }) => Promise<NetworkProfileDto>;
   setOperationError: (message: string | null) => void;
   refreshHistory: () => void;
   clearHistory: () => void;
@@ -163,6 +190,11 @@ export function DialogOverlayGroup({
   errorDetailsOpen,
   operationHistoryOpen,
   volumePickerOpen,
+  networkLocationsOpen,
+  connectServerOpen,
+  connectServerProfile,
+  networkProfiles,
+  networkStatuses,
   goToLocationInitialUri,
   favorites,
   history,
@@ -194,6 +226,13 @@ export function DialogOverlayGroup({
   setErrorDetailsOpen,
   setOperationHistoryOpen,
   setVolumePickerOpen,
+  setNetworkLocationsOpen,
+  setConnectServerOpen,
+  setConnectServerProfile,
+  connectProfile,
+  disconnectProfile,
+  deleteProfile,
+  saveProfile,
   setOperationError,
   refreshHistory,
   clearHistory,
@@ -332,6 +371,35 @@ export function DialogOverlayGroup({
         locations={locations}
         favorites={favorites}
         recentDestinations={recentDestinations}
+      />
+      <NetworkLocationsDialog
+        open={networkLocationsOpen}
+        profiles={networkProfiles}
+        statuses={networkStatuses}
+        onClose={() => setNetworkLocationsOpen(false)}
+        onNavigate={onNavigateActivePane}
+        onConnect={connectProfile}
+        onDisconnect={disconnectProfile}
+        onAddServer={() => {
+          setNetworkLocationsOpen(false);
+          setConnectServerProfile(null);
+          setConnectServerOpen(true);
+        }}
+        onEditServer={(profile) => {
+          setNetworkLocationsOpen(false);
+          setConnectServerProfile(profile);
+          setConnectServerOpen(true);
+        }}
+        onDeleteServer={deleteProfile}
+      />
+      <ConnectServerDialog
+        open={connectServerOpen}
+        editingProfile={connectServerProfile}
+        onClose={() => {
+          setConnectServerOpen(false);
+          setConnectServerProfile(null);
+        }}
+        onSave={saveProfile}
       />
       <VolumePickerDialog
         open={volumePickerOpen}

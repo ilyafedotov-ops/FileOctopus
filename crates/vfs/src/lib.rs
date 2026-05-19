@@ -10,23 +10,81 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ResourceUri(String);
 
+pub const REMOTE_SCHEMES: &[&str] = &["sftp", "smb", "webdav"];
+
 impl ResourceUri {
     pub fn parse(input: &str) -> Result<Self, VfsError> {
         let (scheme, body) = input
             .split_once("://")
             .ok_or_else(|| VfsError::invalid_uri(input, "missing URI scheme separator"))?;
 
-        if scheme != "local" {
+        match scheme {
+            "local" => {
+                if !is_valid_local_uri_body(body) {
+                    return Err(VfsError::invalid_uri(input, "invalid local URI path"));
+                }
+            }
+            scheme if REMOTE_SCHEMES.contains(&scheme) => {
+                validate_remote_uri_body(scheme, body, input)?;
+            }
+            _ => {
+                return Err(VfsError::UnsupportedProvider {
+                    scheme: scheme.to_string(),
+                });
+            }
+        }
+
+        Ok(Self(input.to_string()))
+    }
+
+    pub fn is_remote(&self) -> bool {
+        REMOTE_SCHEMES.contains(&self.scheme())
+    }
+
+    pub fn from_remote_profile(
+        scheme: &str,
+        profile_id: &str,
+        path: &str,
+    ) -> Result<Self, VfsError> {
+        if !REMOTE_SCHEMES.contains(&scheme) {
             return Err(VfsError::UnsupportedProvider {
                 scheme: scheme.to_string(),
             });
         }
 
-        if !is_valid_local_uri_body(body) {
-            return Err(VfsError::invalid_uri(input, "invalid local URI path"));
+        if !is_valid_uuid(profile_id) {
+            return Err(VfsError::invalid_uri(
+                profile_id,
+                "remote profile id must be a UUID",
+            ));
         }
 
-        Ok(Self(input.to_string()))
+        let normalized_path = normalize_remote_path(path);
+        Self::parse(&format!("{scheme}://{profile_id}{normalized_path}"))
+    }
+
+    pub fn remote_authority(&self) -> Option<&str> {
+        if self.scheme() == "local" {
+            return None;
+        }
+
+        let body = self.0.split_once("://")?.1;
+        body.split('/').next().filter(|value| !value.is_empty())
+    }
+
+    pub fn remote_path(&self) -> Option<String> {
+        if self.scheme() == "local" {
+            return None;
+        }
+
+        let body = self.0.split_once("://")?.1;
+        let path = match body.split_once('/') {
+            Some((_, rest)) if !rest.is_empty() => format!("/{rest}"),
+            Some(_) => "/".to_string(),
+            None => "/".to_string(),
+        };
+
+        Some(path)
     }
 
     #[cfg(test)]
@@ -60,10 +118,15 @@ impl ResourceUri {
     }
 
     pub fn display_path(&self) -> String {
-        self.0
-            .strip_prefix("local://")
-            .unwrap_or(self.0.as_str())
-            .to_string()
+        if self.scheme() == "local" {
+            return self
+                .0
+                .strip_prefix("local://")
+                .unwrap_or(self.0.as_str())
+                .to_string();
+        }
+
+        self.remote_path().unwrap_or_else(|| self.0.clone())
     }
 
     pub fn to_local_path(&self) -> Result<PathBuf, VfsError> {
@@ -443,6 +506,16 @@ impl From<VfsError> for FileOperationError {
             },
             VfsError::Internal { message } => Self::Internal { message },
             VfsError::DeviceUnavailable { uri } => Self::PermissionDenied { uri },
+            VfsError::ConnectionRequired { uri } => Self::InvalidPath {
+                uri,
+                message: "connection required".to_string(),
+            },
+            VfsError::AuthenticationFailed { uri, message } => Self::PermissionDenied {
+                uri: format!("{uri}: {message}"),
+            },
+            VfsError::ConnectionLost { uri, message } => Self::Io {
+                message: format!("connection lost for `{uri}`: {message}"),
+            },
         }
     }
 }
@@ -537,6 +610,9 @@ pub enum VfsError {
     Timeout { uri: String },
     Cancelled { uri: String },
     DeviceUnavailable { uri: String },
+    ConnectionRequired { uri: String },
+    AuthenticationFailed { uri: String, message: String },
+    ConnectionLost { uri: String, message: String },
     Internal { message: String },
 }
 
@@ -551,7 +627,30 @@ impl VfsError {
             Self::Timeout { .. } => "timeout",
             Self::Cancelled { .. } => "cancelled",
             Self::DeviceUnavailable { .. } => "device_unavailable",
+            Self::ConnectionRequired { .. } => "connection_required",
+            Self::AuthenticationFailed { .. } => "authentication_failed",
+            Self::ConnectionLost { .. } => "connection_lost",
             Self::Internal { .. } => "internal",
+        }
+    }
+
+    pub fn connection_required(uri: &ResourceUri) -> Self {
+        Self::ConnectionRequired {
+            uri: uri.as_str().to_string(),
+        }
+    }
+
+    pub fn authentication_failed(uri: &ResourceUri, message: impl Into<String>) -> Self {
+        Self::AuthenticationFailed {
+            uri: uri.as_str().to_string(),
+            message: message.into(),
+        }
+    }
+
+    pub fn connection_lost(uri: &ResourceUri, message: impl Into<String>) -> Self {
+        Self::ConnectionLost {
+            uri: uri.as_str().to_string(),
+            message: message.into(),
         }
     }
 
@@ -610,6 +709,13 @@ impl fmt::Display for VfsError {
             Self::Timeout { uri } => write!(formatter, "directory listing timed out `{uri}`"),
             Self::Cancelled { uri } => write!(formatter, "directory listing cancelled `{uri}`"),
             Self::DeviceUnavailable { uri } => write!(formatter, "device unavailable `{uri}`"),
+            Self::ConnectionRequired { uri } => write!(formatter, "connection required `{uri}`"),
+            Self::AuthenticationFailed { uri, message } => {
+                write!(formatter, "authentication failed `{uri}`: {message}")
+            }
+            Self::ConnectionLost { uri, message } => {
+                write!(formatter, "connection lost `{uri}`: {message}")
+            }
             Self::Internal { message } => write!(formatter, "{message}"),
         }
     }
@@ -629,6 +735,59 @@ fn has_windows_drive_prefix(value: &str) -> bool {
     let bytes = value.as_bytes();
 
     bytes.len() >= 3 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' && bytes[2] == b'/'
+}
+
+fn validate_remote_uri_body(scheme: &str, body: &str, full: &str) -> Result<(), VfsError> {
+    if body.is_empty() || body.contains('\0') {
+        return Err(VfsError::invalid_uri(full, "missing remote URI authority"));
+    }
+
+    let authority = body
+        .split('/')
+        .next()
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| VfsError::invalid_uri(full, "missing remote URI authority"))?;
+
+    if scheme == "sftp" && !is_valid_uuid(authority) {
+        return Err(VfsError::invalid_uri(
+            full,
+            "sftp authority must be a profile UUID",
+        ));
+    }
+
+    if let Some(path) = body.strip_prefix(authority) {
+        let remote_path = normalize_remote_path(path);
+        if remote_path.split('/').any(|segment| segment == "..") {
+            return Err(VfsError::invalid_uri(full, "path traversal not allowed"));
+        }
+    }
+
+    Ok(())
+}
+
+fn normalize_remote_path(path: &str) -> String {
+    if path.is_empty() || path == "/" {
+        return "/".to_string();
+    }
+
+    if path.starts_with('/') {
+        path.to_string()
+    } else {
+        format!("/{path}")
+    }
+}
+
+fn is_valid_uuid(value: &str) -> bool {
+    let parts: Vec<&str> = value.split('-').collect();
+    if parts.len() != 5 {
+        return false;
+    }
+
+    let lengths = [8, 4, 4, 4, 12];
+    parts
+        .iter()
+        .zip(lengths)
+        .all(|(part, length)| part.len() == length && part.chars().all(|ch| ch.is_ascii_hexdigit()))
 }
 
 #[cfg(test)]
@@ -679,10 +838,48 @@ mod tests {
     }
 
     #[test]
+    fn parses_sftp_profile_uri() {
+        let uri =
+            ResourceUri::parse("sftp://550e8400-e29b-41d4-a716-446655440000/home/user/Documents")
+                .unwrap();
+
+        assert_eq!(uri.scheme(), "sftp");
+        assert_eq!(
+            uri.remote_authority(),
+            Some("550e8400-e29b-41d4-a716-446655440000")
+        );
+        assert_eq!(uri.remote_path(), Some("/home/user/Documents".to_string()));
+        assert_eq!(uri.display_path(), "/home/user/Documents");
+        assert!(uri.is_remote());
+    }
+
+    #[test]
+    fn builds_sftp_uri_from_profile() {
+        let uri = ResourceUri::from_remote_profile(
+            "sftp",
+            "550e8400-e29b-41d4-a716-446655440000",
+            "/home/user",
+        )
+        .unwrap();
+
+        assert_eq!(
+            uri.as_str(),
+            "sftp://550e8400-e29b-41d4-a716-446655440000/home/user"
+        );
+    }
+
+    #[test]
     fn rejects_invalid_scheme() {
-        let error = ResourceUri::parse("sftp:///Users/ilya").unwrap_err();
+        let error = ResourceUri::parse("ftp:///Users/ilya").unwrap_err();
 
         assert_eq!(error.code(), "unsupported_provider");
+    }
+
+    #[test]
+    fn rejects_invalid_sftp_authority() {
+        let error = ResourceUri::parse("sftp://not-a-uuid/home").unwrap_err();
+
+        assert_eq!(error.code(), "invalid_uri");
     }
 
     #[test]
@@ -934,9 +1131,13 @@ mod tests {
     #[test]
     fn registry_rejects_unknown_uri_scheme() {
         let registry = VfsRegistry::new();
-        let uri = ResourceUri::parse("sftp:///Users").unwrap_err();
+        let uri = ResourceUri::parse("sftp://550e8400-e29b-41d4-a716-446655440000/").unwrap();
+        let error = match registry.provider_for(&uri) {
+            Ok(_) => panic!("expected unsupported provider error"),
+            Err(error) => error,
+        };
 
-        assert_eq!(uri.code(), "unsupported_provider");
+        assert_eq!(error.code(), "unsupported_provider");
 
         let unsupported = ResourceUri::unchecked("archive:///tmp/data.zip");
         let error = match registry.provider_for(&unsupported) {

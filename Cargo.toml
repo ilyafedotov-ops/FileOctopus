@@ -9,6 +9,8 @@ members = [
   "crates/fs-core",
   "crates/jobs",
   "crates/platform",
+  "crates/provider-sftp",
+  "crates/remote-core",
   "crates/telemetry",
   "crates/test-support",
   "crates/vfs",

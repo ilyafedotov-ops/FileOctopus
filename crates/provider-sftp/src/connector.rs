@@ -1,0 +1,308 @@
+use std::path::Path;
+use std::sync::{Arc, Mutex};
+
+use async_trait::async_trait;
+use chrono::{DateTime, Utc};
+use config::{AuthKind, NetworkProfile};
+use remote_core::{AuthSecrets, RemoteConnector, RemoteError, RemoteSession};
+use ssh2::{FileStat, FileType, Session};
+use vfs::{EntryCapabilities, FileEntry, FileKind, ProviderId, ResourceUri, VfsError};
+
+pub struct SftpSession {
+    pub(crate) session: Arc<Mutex<Session>>,
+}
+
+impl SftpSession {
+    pub fn with_session(session: Session) -> Self {
+        Self {
+            session: Arc::new(Mutex::new(session)),
+        }
+    }
+
+    pub fn clone_handle(&self) -> Self {
+        Self {
+            session: Arc::clone(&self.session),
+        }
+    }
+
+    pub fn lock_session(&self) -> Result<std::sync::MutexGuard<'_, Session>, RemoteError> {
+        self.session
+            .lock()
+            .map_err(|_| RemoteError::Internal("sftp session lock poisoned".to_string()))
+    }
+}
+
+#[async_trait]
+impl RemoteSession for SftpSession {
+    async fn ping(&self) -> Result<(), RemoteError> {
+        let session = self.lock_session()?;
+        if !session.authenticated() {
+            return Err(RemoteError::ConnectionFailed {
+                message: "session is not authenticated".to_string(),
+            });
+        }
+        Ok(())
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+pub struct SftpConnector;
+
+impl Default for SftpConnector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl SftpConnector {
+    pub fn new() -> Self {
+        Self
+    }
+
+    fn connect_blocking(
+        profile: &NetworkProfile,
+        secrets: &AuthSecrets,
+    ) -> Result<Session, RemoteError> {
+        let address = format!("{}:{}", profile.host, profile.port);
+        let tcp = TcpStream::connect(&address).map_err(|error| RemoteError::ConnectionFailed {
+            message: error.to_string(),
+        })?;
+        let mut session = Session::new().map_err(|error| RemoteError::ConnectionFailed {
+            message: error.to_string(),
+        })?;
+        session.set_tcp_stream(tcp);
+        session
+            .handshake()
+            .map_err(|error| RemoteError::ConnectionFailed {
+                message: error.to_string(),
+            })?;
+
+        let fingerprint = session
+            .host_key()
+            .map(|(key, _)| hex_fingerprint(key))
+            .unwrap_or_default();
+        if let Some(expected) = profile.host_key_fingerprint.as_ref() {
+            if expected != &fingerprint {
+                return Err(RemoteError::AuthenticationFailed {
+                    message: "host key fingerprint mismatch".to_string(),
+                });
+            }
+        }
+
+        match profile.auth_kind {
+            AuthKind::Password => {
+                let password = secrets.password.as_deref().ok_or_else(|| {
+                    RemoteError::AuthenticationFailed {
+                        message: "missing password".to_string(),
+                    }
+                })?;
+                session
+                    .userauth_password(&profile.username, password)
+                    .map_err(|error| RemoteError::AuthenticationFailed {
+                        message: error.to_string(),
+                    })?;
+            }
+            AuthKind::PrivateKey => {
+                let key_path = profile.private_key_path.as_deref().ok_or_else(|| {
+                    RemoteError::AuthenticationFailed {
+                        message: "missing private key path".to_string(),
+                    }
+                })?;
+                session
+                    .userauth_pubkey_file(
+                        &profile.username,
+                        None,
+                        Path::new(key_path),
+                        secrets.passphrase.as_deref(),
+                    )
+                    .map_err(|error| RemoteError::AuthenticationFailed {
+                        message: error.to_string(),
+                    })?;
+            }
+        }
+
+        if !session.authenticated() {
+            return Err(RemoteError::AuthenticationFailed {
+                message: "authentication failed".to_string(),
+            });
+        }
+
+        Ok(session)
+    }
+}
+
+#[async_trait]
+impl RemoteConnector for SftpConnector {
+    fn scheme(&self) -> &'static str {
+        "sftp"
+    }
+
+    async fn connect(
+        &self,
+        profile: &NetworkProfile,
+        secrets: &AuthSecrets,
+    ) -> Result<Arc<dyn RemoteSession>, RemoteError> {
+        let profile = profile.clone();
+        let secrets = secrets.clone();
+        let session =
+            tokio::task::spawn_blocking(move || Self::connect_blocking(&profile, &secrets))
+                .await
+                .map_err(|error| RemoteError::Internal(error.to_string()))??;
+        Ok(Arc::new(SftpSession::with_session(session)))
+    }
+
+    async fn disconnect(&self, _session: Arc<dyn RemoteSession>) -> Result<(), RemoteError> {
+        Ok(())
+    }
+}
+
+pub fn stat_path_blocking(
+    session: &SftpSession,
+    uri: &ResourceUri,
+    remote_path: &str,
+) -> Result<FileEntry, VfsError> {
+    let guard = session.lock_session().map_err(VfsError::from)?;
+    let sftp = guard.sftp().map_err(map_ssh_error)?;
+    let metadata = sftp
+        .stat(Path::new(remote_path))
+        .map_err(|error| map_stat_error(uri, error))?;
+    Ok(build_entry(uri, remote_path, &metadata))
+}
+
+pub fn list_directory_blocking(
+    session: &SftpSession,
+    parent_uri: &ResourceUri,
+    remote_path: &str,
+    include_hidden: bool,
+) -> Result<Vec<FileEntry>, VfsError> {
+    let guard = session.lock_session().map_err(VfsError::from)?;
+    let sftp = guard.sftp().map_err(map_ssh_error)?;
+    let mut directory = sftp
+        .opendir(Path::new(remote_path))
+        .map_err(|error| map_stat_error(parent_uri, error))?;
+    let mut entries = Vec::new();
+
+    loop {
+        let (path, metadata) = match directory.readdir() {
+            Ok(entry) => entry,
+            Err(error) if is_readdir_eof(&error) => break,
+            Err(error) => return Err(map_ssh_error(error)),
+        };
+        let name = path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .unwrap_or_default()
+            .to_string();
+        if name.is_empty() || name == "." || name == ".." {
+            continue;
+        }
+        if !include_hidden && name.starts_with('.') {
+            continue;
+        }
+
+        let child_path = join_remote_path(remote_path, &name);
+        let profile_id = parent_uri
+            .remote_authority()
+            .ok_or_else(|| VfsError::invalid_uri(parent_uri.as_str(), "missing profile id"))?;
+        let child_uri = ResourceUri::from_remote_profile("sftp", profile_id, &child_path)?;
+        entries.push(build_entry(&child_uri, &child_path, &metadata));
+    }
+
+    entries.sort_by_key(|entry| entry.name.to_lowercase());
+    Ok(entries)
+}
+
+fn build_entry(uri: &ResourceUri, remote_path: &str, metadata: &FileStat) -> FileEntry {
+    let name = remote_path
+        .trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .filter(|value| !value.is_empty())
+        .unwrap_or("/")
+        .to_string();
+    let kind = match metadata.file_type() {
+        FileType::Directory => FileKind::Directory,
+        FileType::Symlink => FileKind::Symlink,
+        _ => FileKind::File,
+    };
+    let capabilities = match kind {
+        FileKind::Directory => EntryCapabilities::read_only_directory(),
+        _ => EntryCapabilities::read_only_file(),
+    };
+    let extension = if kind == FileKind::File {
+        name.rsplit('.')
+            .next()
+            .filter(|part| *part != name)
+            .map(str::to_string)
+    } else {
+        None
+    };
+
+    let is_hidden = name.starts_with('.');
+
+    FileEntry {
+        uri: uri.clone(),
+        name,
+        extension,
+        kind,
+        size: metadata.size,
+        modified_at: metadata.mtime.and_then(unix_timestamp_to_utc),
+        created_at: None,
+        accessed_at: metadata.atime.and_then(unix_timestamp_to_utc),
+        is_hidden,
+        is_symlink: kind == FileKind::Symlink,
+        symlink_target: None,
+        provider_id: ProviderId::new("sftp"),
+        capabilities,
+        permissions: metadata.perm.map(|value| format!("{value:o}")),
+        owner: metadata.uid.map(|value| value.to_string()),
+    }
+}
+
+fn join_remote_path(base: &str, name: &str) -> String {
+    if base.ends_with('/') {
+        format!("{base}{name}")
+    } else {
+        format!("{base}/{name}")
+    }
+}
+
+fn is_readdir_eof(error: &ssh2::Error) -> bool {
+    matches!(
+        error.code(),
+        ssh2::ErrorCode::SFTP(1) | ssh2::ErrorCode::Session(-16)
+    )
+}
+
+fn map_ssh_error(error: ssh2::Error) -> VfsError {
+    VfsError::Internal {
+        message: error.to_string(),
+    }
+}
+
+fn map_stat_error(uri: &ResourceUri, error: ssh2::Error) -> VfsError {
+    if error.code() == ssh2::ErrorCode::SFTP(2) {
+        VfsError::not_found(uri)
+    } else {
+        VfsError::Internal {
+            message: error.to_string(),
+        }
+    }
+}
+
+fn hex_fingerprint(bytes: &[u8]) -> String {
+    bytes
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<Vec<_>>()
+        .join(":")
+}
+
+pub fn unix_timestamp_to_utc(value: u64) -> Option<DateTime<Utc>> {
+    DateTime::<Utc>::from_timestamp(value as i64, 0)
+}
+
+use std::net::TcpStream;

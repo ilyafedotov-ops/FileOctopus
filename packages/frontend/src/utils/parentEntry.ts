@@ -1,5 +1,5 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
-import { parentUri } from "./paneUtils";
+import { parentUri, providerIdFromUri } from "./paneUtils";
 
 export const PARENT_DIRECTORY_NAME = "..";
 
@@ -17,7 +17,7 @@ export function createParentDirectoryEntry(
     kind: "directory",
     isHidden: false,
     isSymlink: false,
-    providerId: "local",
+    providerId: providerIdFromUri(currentUri),
     canRead: true,
     canList: true,
     canWrite: false,

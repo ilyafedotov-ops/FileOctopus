@@ -185,7 +185,7 @@ export function countOperationalSelection(tab: PanelTabState): number {
 export function normalizeLocalInput(input: string): string {
   const value = input.trim();
 
-  if (value.startsWith("local://")) {
+  if (value.includes("://")) {
     return value;
   }
 
@@ -198,6 +198,10 @@ export function normalizeLocalInput(input: string): string {
   }
 
   return value;
+}
+
+export function normalizeUriInput(input: string): string {
+  return normalizeLocalInput(input);
 }
 
 export function parentUri(uri: string): string | null {

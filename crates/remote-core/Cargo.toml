@@ -1,0 +1,15 @@
+[package]
+name = "remote-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+async-trait = "0.1"
+config = { path = "../config" }
+platform = { path = "../platform" }
+thiserror = "1"
+tokio = { version = "1", features = ["sync", "time"] }
+vfs = { path = "../vfs" }
+
+[dev-dependencies]
+tempfile = "3"

@@ -1,3 +1,7 @@
+mod secret_store;
+
+pub use secret_store::{SecretStore, SecretStoreError};
+
 pub fn crate_name() -> &'static str {
     "platform"
 }

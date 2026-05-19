@@ -346,6 +346,100 @@ pub struct DiscoverVolumesResponse {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct NetworkProfileDto {
+    pub id: String,
+    pub label: String,
+    pub scheme: String,
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub auth_kind: String,
+    pub private_key_path: Option<String>,
+    pub default_path: String,
+    pub default_uri: String,
+    pub host_key_fingerprint: Option<String>,
+    pub sort_order: i64,
+    pub last_connected_at: Option<String>,
+    pub last_error: Option<String>,
+    pub has_stored_secret: bool,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkConnectionStatusDto {
+    pub profile_id: String,
+    pub status: String,
+    pub message: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkProfilesListResponse {
+    pub profiles: Vec<NetworkProfileDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkProfileAddRequest {
+    pub label: String,
+    pub scheme: String,
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub auth_kind: String,
+    pub private_key_path: Option<String>,
+    pub default_path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkProfileUpdateRequest {
+    pub id: String,
+    pub label: String,
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub auth_kind: String,
+    pub private_key_path: Option<String>,
+    pub default_path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkProfileResponse {
+    pub profile: NetworkProfileDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkProfileDeleteRequest {
+    pub id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkProfileSetSecretRequest {
+    pub id: String,
+    pub secret_kind: String,
+    pub value: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkProfileActionRequest {
+    pub id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkConnectionStatusResponse {
+    pub statuses: Vec<NetworkConnectionStatusDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PathRequest {
     pub uri: String,
 }
@@ -680,6 +774,10 @@ pub mod error_codes {
     pub const NO_TERMINAL: &str = "no_terminal";
     pub const AUTOSTART_UNAVAILABLE: &str = "autostart_unavailable";
     pub const NAVIGATION_ERROR: &str = "navigation_error";
+    pub const NETWORK_ERROR: &str = "network_error";
+    pub const CONNECTION_REQUIRED: &str = "connection_required";
+    pub const AUTHENTICATION_FAILED: &str = "authentication_failed";
+    pub const CONNECTION_LOST: &str = "connection_lost";
     pub const FOLDER_NOT_FOUND: &str = "folder_not_found";
     pub const UNKNOWN: &str = "unknown";
     pub const TAURI_UNAVAILABLE: &str = "tauri_unavailable";
@@ -712,6 +810,10 @@ pub mod error_codes {
         NO_TERMINAL,
         AUTOSTART_UNAVAILABLE,
         NAVIGATION_ERROR,
+        NETWORK_ERROR,
+        CONNECTION_REQUIRED,
+        AUTHENTICATION_FAILED,
+        CONNECTION_LOST,
         FOLDER_NOT_FOUND,
         UNKNOWN,
         TAURI_UNAVAILABLE,
@@ -724,6 +826,35 @@ pub mod error_codes {
 pub struct IpcError {
     pub code: String,
     pub message: String,
+}
+
+impl From<config::NetworkProfile> for NetworkProfileDto {
+    fn from(profile: config::NetworkProfile) -> Self {
+        let default_uri =
+            ResourceUri::from_remote_profile(&profile.scheme, &profile.id, &profile.default_path)
+                .map(|uri| uri.as_str().to_string())
+                .unwrap_or_default();
+
+        Self {
+            id: profile.id,
+            label: profile.label,
+            scheme: profile.scheme,
+            host: profile.host,
+            port: profile.port,
+            username: profile.username,
+            auth_kind: profile.auth_kind.as_str().to_string(),
+            private_key_path: profile.private_key_path,
+            default_path: profile.default_path,
+            default_uri,
+            host_key_fingerprint: profile.host_key_fingerprint,
+            sort_order: profile.sort_order,
+            last_connected_at: profile.last_connected_at,
+            last_error: profile.last_error,
+            has_stored_secret: false,
+            created_at: profile.created_at,
+            updated_at: profile.updated_at,
+        }
+    }
 }
 
 impl From<FileEntry> for FileEntryDto {
@@ -1098,6 +1229,10 @@ impl IpcError {
 
     pub fn navigation_error(message: impl Into<String>) -> Self {
         Self::new(error_codes::NAVIGATION_ERROR, message)
+    }
+
+    pub fn network_error(message: impl Into<String>) -> Self {
+        Self::new(error_codes::NETWORK_ERROR, message)
     }
 
     pub fn folder_not_found(message: impl Into<String>) -> Self {

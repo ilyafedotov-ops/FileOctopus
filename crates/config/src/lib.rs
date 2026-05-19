@@ -1,4 +1,5 @@
 mod navigation;
+mod network;
 
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -9,6 +10,10 @@ use thiserror::Error;
 
 pub use navigation::{
     FavoriteEntry, NavigationError, NavigationRepository, RecentBucket, RecentEntry, StarredEntry,
+};
+pub use network::{
+    AuthKind, NetworkError, NetworkProfile, NetworkProfileRepository, NewNetworkProfile,
+    UpdateNetworkProfile,
 };
 
 pub const SCHEMA_VERSION: u32 = 8;

@@ -32,6 +32,10 @@ export const IPC_ERROR_CODES = {
   NO_TERMINAL: "no_terminal",
   AUTOSTART_UNAVAILABLE: "autostart_unavailable",
   NAVIGATION_ERROR: "navigation_error",
+  NETWORK_ERROR: "network_error",
+  CONNECTION_REQUIRED: "connection_required",
+  AUTHENTICATION_FAILED: "authentication_failed",
+  CONNECTION_LOST: "connection_lost",
   FOLDER_NOT_FOUND: "folder_not_found",
   UNKNOWN: "unknown",
   TAURI_UNAVAILABLE: "tauri_unavailable",
@@ -320,6 +324,80 @@ export interface VolumeDto {
 
 export interface DiscoverVolumesResponse {
   volumes: VolumeDto[];
+}
+
+export interface NetworkProfileDto {
+  id: string;
+  label: string;
+  scheme: string;
+  host: string;
+  port: number;
+  username: string;
+  authKind: string;
+  privateKeyPath: string | null;
+  defaultPath: string;
+  defaultUri: string;
+  hostKeyFingerprint: string | null;
+  sortOrder: number;
+  lastConnectedAt: string | null;
+  lastError: string | null;
+  hasStoredSecret: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface NetworkConnectionStatusDto {
+  profileId: string;
+  status: "connected" | "disconnected" | "error";
+  message: string | null;
+}
+
+export interface NetworkProfilesListResponse {
+  profiles: NetworkProfileDto[];
+}
+
+export interface NetworkProfileAddRequest {
+  label: string;
+  scheme: string;
+  host: string;
+  port: number;
+  username: string;
+  authKind: string;
+  privateKeyPath?: string | null;
+  defaultPath: string;
+}
+
+export interface NetworkProfileUpdateRequest {
+  id: string;
+  label: string;
+  host: string;
+  port: number;
+  username: string;
+  authKind: string;
+  privateKeyPath?: string | null;
+  defaultPath: string;
+}
+
+export interface NetworkProfileResponse {
+  profile: NetworkProfileDto;
+}
+
+export interface NetworkProfileDeleteRequest {
+  id: string;
+}
+
+export interface NetworkProfileSetSecretRequest {
+  id: string;
+  secretKind: "password" | "passphrase";
+  value: string;
+}
+
+export interface NetworkProfileActionRequest {
+  id: string;
+}
+
+export interface NetworkConnectionStatusResponse {
+  statuses: NetworkConnectionStatusDto[];
 }
 
 export interface PathRequest {

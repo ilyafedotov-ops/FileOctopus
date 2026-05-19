@@ -723,6 +723,13 @@ export function operationErrorMessage(code: string, fallback: string): string {
     [IPC_ERROR_CODES.CANCELLED]: "Operation cancelled.",
     interrupted: "Operation interrupted by app shutdown.",
     [IPC_ERROR_CODES.TIMEOUT]: "Directory listing timed out.",
+    [IPC_ERROR_CODES.CONNECTION_REQUIRED]:
+      "Connect to this server before browsing remote files.",
+    [IPC_ERROR_CODES.AUTHENTICATION_FAILED]:
+      "Authentication failed. Edit the server credentials and try again.",
+    [IPC_ERROR_CODES.CONNECTION_LOST]:
+      "The connection was lost. Reconnect from the Network section.",
+    [IPC_ERROR_CODES.NETWORK_ERROR]: "A network error occurred.",
   };
   const key = code as KnownIpcErrorCode | "interrupted";
 

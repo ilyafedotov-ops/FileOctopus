@@ -120,12 +120,87 @@ export function createPreviewTransport(): IpcTransport {
         return { entries: [] } as TResponse;
       }
 
+      if (command === "network.profilesList") {
+        return {
+          profiles: [
+            {
+              id: "550e8400-e29b-41d4-a716-446655440000",
+              label: "Preview SFTP",
+              scheme: "sftp",
+              host: "example.com",
+              port: 22,
+              username: "deploy",
+              authKind: "password",
+              privateKeyPath: null,
+              defaultPath: "/home/deploy",
+              defaultUri:
+                "sftp://550e8400-e29b-41d4-a716-446655440000/home/deploy",
+              hostKeyFingerprint: null,
+              sortOrder: 0,
+              lastConnectedAt: null,
+              lastError: null,
+              hasStoredSecret: false,
+              createdAt: "2026-01-01T00:00:00Z",
+              updatedAt: "2026-01-01T00:00:00Z",
+            },
+          ],
+        } as TResponse;
+      }
+
+      if (command === "network.connectionStatus") {
+        return {
+          statuses: [
+            {
+              profileId: "550e8400-e29b-41d4-a716-446655440000",
+              status: "disconnected",
+              message: null,
+            },
+          ],
+        } as TResponse;
+      }
+
+      if (
+        command === "network.profileAdd" ||
+        command === "network.profileUpdate"
+      ) {
+        const request = args?.request as
+          | { label?: string; id?: string }
+          | undefined;
+        return {
+          profile: {
+            id: request?.id ?? "550e8400-e29b-41d4-a716-446655440000",
+            label: request?.label ?? "Preview SFTP",
+            scheme: "sftp",
+            host: "example.com",
+            port: 22,
+            username: "deploy",
+            authKind: "password",
+            privateKeyPath: null,
+            defaultPath: "/home/deploy",
+            defaultUri:
+              "sftp://550e8400-e29b-41d4-a716-446655440000/home/deploy",
+            hostKeyFingerprint: null,
+            sortOrder: 0,
+            lastConnectedAt: null,
+            lastError: null,
+            hasStoredSecret: false,
+            createdAt: "2026-01-01T00:00:00Z",
+            updatedAt: "2026-01-01T00:00:00Z",
+          },
+        } as TResponse;
+      }
+
       if (
         command === "navigation.recordVisit" ||
         command === "navigation.removeFavorite" ||
         command === "navigation.toggleStarred" ||
         command === "navigation.clearRecent" ||
-        command === "navigation.removeRecent"
+        command === "navigation.removeRecent" ||
+        command === "network.profileDelete" ||
+        command === "network.profileSetSecret" ||
+        command === "network.connect" ||
+        command === "network.disconnect" ||
+        command === "network.validateUri"
       ) {
         return { ok: true } as TResponse;
       }

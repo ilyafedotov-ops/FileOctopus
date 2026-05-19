@@ -7,6 +7,7 @@ import { useEventHandlers } from "../hooks/useEventHandlers";
 import { useAppInit } from "../hooks/useAppInit";
 import { createKeyboardShortcutsHandler } from "../hooks/useKeyboardShortcuts";
 import { useFileOpHandlers } from "../hooks/useFileOpHandlers";
+import { useNetworkHandlers } from "../hooks/useNetworkHandlers";
 import { useCommandDispatch } from "../hooks/useCommandDispatch";
 import type { CommandEntry } from "../components/CommandPalette";
 import { isPreviewable } from "../components/PreviewPanel";
@@ -14,6 +15,7 @@ import type { FilePanelProps } from "../pane/FilePanel";
 import { ShellLayout } from "../shell/ShellLayout";
 import { buildPaletteEntries } from "../commands/paletteEntries";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
+import { isRemoteUri, profileIdFromRemoteUri } from "@fileoctopus/ts-api";
 
 import {
   AppProviders,
@@ -46,6 +48,8 @@ function FileOctopusAppInner({
     recentToday,
     recentWeek,
     starred,
+    networkProfiles,
+    networkStatuses,
     appInfo,
     appHealth,
     autostart,
@@ -69,6 +73,8 @@ function FileOctopusAppInner({
     setRecentToday,
     setRecentWeek,
     setStarred,
+    setNetworkProfiles,
+    setNetworkStatuses,
     setAppInfo,
     setAppHealth,
     setAutostart,
@@ -119,7 +125,13 @@ function FileOctopusAppInner({
     setErrorDetailsOpen,
     setOperationHistoryOpen,
     volumePickerOpen,
+    networkLocationsOpen,
+    connectServerOpen,
+    connectServerProfile,
     setVolumePickerOpen,
+    setNetworkLocationsOpen,
+    setConnectServerOpen,
+    setConnectServerProfile,
     toolbarCustomizeOpen,
     setToolbarCustomizeOpen,
     dialog,
@@ -141,6 +153,7 @@ function FileOctopusAppInner({
     goHistory,
     refreshPanel,
     refreshLocations,
+    refreshNetworkProfiles,
     activateEntry,
     refreshVisiblePanels,
     refreshHistory,
@@ -167,6 +180,8 @@ function FileOctopusAppInner({
     setRecentWeek,
     setStarred,
     setLocations,
+    setNetworkProfiles,
+    setNetworkStatuses,
     setDialog,
     setHistory,
     setAppInfo,
@@ -205,6 +220,7 @@ function FileOctopusAppInner({
     refreshVisiblePanels,
     refreshHistory,
     refreshLocations,
+    refreshNetworkProfiles,
     refreshNavigation,
     refreshDiagnostics,
     updatePreference,
@@ -295,6 +311,13 @@ function FileOctopusAppInner({
   const statusBarVisible = preferences?.statusBarVisible !== false;
   const toolbarVisible = preferences?.toolbarVisible !== false;
 
+  const { connectProfile, disconnectProfile, deleteProfile, saveProfile } =
+    useNetworkHandlers({
+      client,
+      refreshNetworkProfiles,
+      setOperationError,
+    });
+
   const handleCommandSelect = useCommandDispatch({
     state,
     dispatch,
@@ -314,6 +337,9 @@ function FileOctopusAppInner({
     setClearRecentLocationsOpen,
     setOperationHistoryOpen,
     setVolumePickerOpen,
+    setNetworkLocationsOpen,
+    setConnectServerOpen,
+    setConnectServerProfile,
     setFilterFocusToken,
     setRecursiveSearchFocusToken,
     setPreviewOpen,
@@ -553,6 +579,19 @@ function FileOctopusAppInner({
           error: null,
         });
       },
+      onEditNetworkCredentials: isRemoteUri(tab.uri)
+        ? () => {
+            const profileId = profileIdFromRemoteUri(tab.uri);
+            const profile = networkProfiles.find(
+              (item) => item.id === profileId,
+            );
+            if (profile) {
+              handleCommandSelect("nav.connectServer", pid, {
+                networkProfile: profile,
+              });
+            }
+          }
+        : undefined,
       panel: state.panels[pid],
       onSwitchTab: (panelId, tabId) =>
         dispatch({ type: "switchTab", panelId, tabId }),
@@ -585,6 +624,8 @@ function FileOctopusAppInner({
       recentToday={recentToday}
       recentWeek={recentWeek}
       starred={starred}
+      networkProfiles={networkProfiles}
+      networkStatuses={networkStatuses}
       preferences={preferences}
       updatePreference={updatePreference}
       client={client}
@@ -610,6 +651,9 @@ function FileOctopusAppInner({
       errorDetailsOpen={errorDetailsOpen}
       operationHistoryOpen={operationHistoryOpen}
       volumePickerOpen={volumePickerOpen}
+      networkLocationsOpen={networkLocationsOpen}
+      connectServerOpen={connectServerOpen}
+      connectServerProfile={connectServerProfile}
       toolbarCustomizeOpen={toolbarCustomizeOpen}
       setToolbarCustomizeOpen={setToolbarCustomizeOpen}
       setGoToLocationOpen={setGoToLocationOpen}
@@ -619,6 +663,14 @@ function FileOctopusAppInner({
       setErrorDetailsOpen={setErrorDetailsOpen}
       setOperationHistoryOpen={setOperationHistoryOpen}
       setVolumePickerOpen={setVolumePickerOpen}
+      setNetworkLocationsOpen={setNetworkLocationsOpen}
+      setConnectServerOpen={setConnectServerOpen}
+      setConnectServerProfile={setConnectServerProfile}
+      connectProfile={connectProfile}
+      disconnectProfile={disconnectProfile}
+      deleteProfile={deleteProfile}
+      saveProfile={saveProfile}
+      refreshNetworkProfiles={refreshNetworkProfiles}
       dialog={dialog}
       autostart={autostart}
       commandEntries={commandEntries}

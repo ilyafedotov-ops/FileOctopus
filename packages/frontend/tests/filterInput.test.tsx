@@ -121,65 +121,71 @@ const exportBundle = vi.fn(async () => ({ exportedFiles: 1 }));
 const preferencesGet = vi.fn(async () => null);
 const preferencesSet = vi.fn(async () => ({ ok: true }));
 
-vi.mock("@fileoctopus/ts-api", () => ({
-  createFileOctopusClient: () => ({
-    getAppInfo,
-    fs: {
-      listStart,
-      onDirectoryBatch,
-      standardLocations,
-      startWatching,
-      stopWatching,
-      onWatchChanged,
-      openPathWithDefaultApp,
-      revealPathInFileManager,
-      properties,
-      recursiveSearch,
-      startFolderSizeJob,
-      startRecursiveSearchJob,
-      onFolderSizeCompleted,
-      onRecursiveSearchMatch,
-      onRecursiveSearchCompleted,
-      computeHash,
-      openTerminal,
-    },
-    fileOperations: {
-      planFileOperation,
-      startFileOperation,
-      onJobStarted,
-      onJobProgress,
-      onJobCompleted,
-      onJobFailed: subscribeJob,
-      onJobCancelled: subscribeJob,
-    },
-    jobs: { cancelJob },
-    operationHistory: { listRecentOperations, clearOperationHistory },
-    diagnostics: { appDataHealth, exportBundle },
-    preferences: { get: preferencesGet, set: preferencesSet },
-    navigation: {
-      recordVisit: vi.fn(async () => ({ ok: true })),
-      listFavorites: vi.fn(async () => ({ favorites: [] })),
-      addFavorite: vi.fn(async () => ({
-        favorite: { id: 1, uri: "local:///test", label: "test" },
-      })),
-      removeFavorite: vi.fn(async () => ({ ok: true })),
-      renameFavorite: vi.fn(async () => ({
-        favorite: { id: 1, uri: "local:///test", label: "test" },
-      })),
-      listRecent: vi.fn(async () => ({ entries: [] })),
-      listStarred: vi.fn(async () => ({ entries: [] })),
-      toggleStarred: vi.fn(async () => ({ starred: true })),
-      isStarred: vi.fn(async () => ({ starred: false })),
-    },
-  }),
-  normalizeIpcError: (error: unknown) =>
-    error && typeof error === "object" && "message" in error
-      ? {
-          code: "UNKNOWN",
-          message: String((error as { message: unknown }).message),
-        }
-      : { code: "UNKNOWN", message: "error" },
-}));
+vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@fileoctopus/ts-api")>();
+  const { mockNetworkClient } = await import("./mockNetworkClient");
+  return {
+    ...actual,
+    createFileOctopusClient: () => ({
+      getAppInfo,
+      fs: {
+        listStart,
+        onDirectoryBatch,
+        standardLocations,
+        startWatching,
+        stopWatching,
+        onWatchChanged,
+        openPathWithDefaultApp,
+        revealPathInFileManager,
+        properties,
+        recursiveSearch,
+        startFolderSizeJob,
+        startRecursiveSearchJob,
+        onFolderSizeCompleted,
+        onRecursiveSearchMatch,
+        onRecursiveSearchCompleted,
+        computeHash,
+        openTerminal,
+      },
+      fileOperations: {
+        planFileOperation,
+        startFileOperation,
+        onJobStarted,
+        onJobProgress,
+        onJobCompleted,
+        onJobFailed: subscribeJob,
+        onJobCancelled: subscribeJob,
+      },
+      jobs: { cancelJob },
+      operationHistory: { listRecentOperations, clearOperationHistory },
+      diagnostics: { appDataHealth, exportBundle },
+      preferences: { get: preferencesGet, set: preferencesSet },
+      navigation: {
+        recordVisit: vi.fn(async () => ({ ok: true })),
+        listFavorites: vi.fn(async () => ({ favorites: [] })),
+        addFavorite: vi.fn(async () => ({
+          favorite: { id: 1, uri: "local:///test", label: "test" },
+        })),
+        removeFavorite: vi.fn(async () => ({ ok: true })),
+        renameFavorite: vi.fn(async () => ({
+          favorite: { id: 1, uri: "local:///test", label: "test" },
+        })),
+        listRecent: vi.fn(async () => ({ entries: [] })),
+        listStarred: vi.fn(async () => ({ entries: [] })),
+        toggleStarred: vi.fn(async () => ({ starred: true })),
+        isStarred: vi.fn(async () => ({ starred: false })),
+      },
+      network: mockNetworkClient,
+    }),
+    normalizeIpcError: (error: unknown) =>
+      error && typeof error === "object" && "message" in error
+        ? {
+            code: actual.IPC_ERROR_CODES.UNKNOWN,
+            message: String((error as { message: unknown }).message),
+          }
+        : { code: actual.IPC_ERROR_CODES.UNKNOWN, message: "error" },
+  };
+});
 
 import { FileOctopusShell } from "../src";
 

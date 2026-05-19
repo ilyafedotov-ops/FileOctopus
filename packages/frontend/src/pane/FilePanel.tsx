@@ -39,6 +39,7 @@ import {
   type VisibleColumns,
 } from "./columnWidths";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
+import { isRemoteUri } from "@fileoctopus/ts-api";
 import type { ContextMenuState } from "../components/ContextMenu";
 
 export type CopyMoveKind = "copy" | "move";
@@ -80,6 +81,7 @@ export interface FilePanelProps {
     destinationUri: string,
     kind: CopyMoveKind,
   ) => void;
+  onEditNetworkCredentials?: () => void;
   panel: PanelState;
   onSwitchTab: (panelId: PanelId, tabId: string) => void;
   onCloseTab: (panelId: PanelId, tabId: string) => void;
@@ -118,6 +120,7 @@ export function FilePanel({
   onSubmitInlineRename,
   onRefresh,
   onDropFiles,
+  onEditNetworkCredentials,
   panel,
   onSwitchTab,
   onCloseTab,
@@ -248,12 +251,15 @@ export function FilePanel({
           }
           uri={tab.uri}
           message={tab.error}
+          errorCode={tab.errorCode}
           canPaste={canPaste}
+          allowCreation={!isRemoteUri(tab.uri)}
           onRetry={() => onNavigate(tab.uri)}
           onRefresh={onRefresh}
           onCreateFolder={onCreateFolder}
           onCreateFile={onCreateFile}
           onPaste={onPaste}
+          onEditCredentials={onEditNetworkCredentials}
         />
         {tab.viewMode === "columns" ? (
           <ColumnsView

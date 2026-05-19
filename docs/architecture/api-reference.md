@@ -2,10 +2,10 @@
 
 This document is the authoritative description of FileOctopus's runtime API surface: the Tauri IPC commands, the events streamed back from Rust, the `@fileoctopus/ts-api` client that wraps them, and the domain types that flow across the boundary. It is the contract every change to filesystem behaviour must respect (see ADR-0002 and ADR-0003).
 
-> **Doc freshness (2026-05-18):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (37 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (10 channels). After adding IPC, update this page, `commandMap.ts`, `events.ts`, and `clients/*` in the same change.
+> **Doc freshness (2026-05-19):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (46 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (10 channels). After adding IPC, update this page, `commandMap.ts`, `events.ts`, and `clients/*` in the same change.
 
-- Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
-- Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
+- Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/remote-core/src/lib.rs`, `crates/provider-sftp/src/lib.rs`, `crates/config/src/network.rs`, `crates/platform/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
+- Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError,uri}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
 
 When you change any of the above, update the rest as a unit (see [Maintenance](#maintenance)).
 
@@ -35,18 +35,18 @@ React UI ──► @fileoctopus/ts-api ──► Tauri invoke / listen ──►
                                        AppState { VfsRegistry, OperationRuntime, history }
                                                                 │
                                                                 ▼
-                                       LocalFsProvider · file_ops planner/executor · SQLite
+                                       LocalFsProvider · SftpProvider · file_ops planner/executor · SQLite
 ```
 
 Each IPC payload is a `serde(rename_all = "camelCase")` DTO defined in `crates/app-ipc`. The TypeScript types in `packages/ts-api/src/types.ts` mirror those DTOs exactly. The TS client translates dotted method names (e.g. `fs.stat`) into the underlying snake_case Tauri command names (`fs_stat`) via `commandMap`; both sides must stay aligned.
 
 ## Tauri command catalog
 
-The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!` with `commands::*` paths). Handler bodies live in `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,folder_size,recursive_search,watch,preferences,autostart,navigation,file_operations,diagnostics}.rs`. Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/commandMap.ts` and the per-domain methods in `packages/ts-api/src/clients/*.ts`.
+The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!` with `commands::*` paths). Handler bodies live in `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,folder_size,recursive_search,watch,preferences,autostart,navigation,network,file_operations,diagnostics}.rs`. Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/commandMap.ts` and the per-domain methods in `packages/ts-api/src/clients/*.ts`.
 
-### Full registry (2026-05-18)
+### Full registry (2026-05-19)
 
-**37 commands** — verify with `grep` on `generate_handler!` in `apps/desktop-tauri/src-tauri/src/lib.rs` and row count in `packages/ts-api/src/commandMap.ts` if this table drifts.
+**46 commands** — verify with `grep` on `generate_handler!` in `apps/desktop-tauri/src-tauri/src/lib.rs` and row count in `packages/ts-api/src/commandMap.ts` if this table drifts.
 
 | Tauri command                 | TS dotted name (typical)      | Client area              |
 | ----------------------------- | ----------------------------- | ------------------------ |
@@ -79,6 +79,15 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `navigation_list_starred`     | `navigation.listStarred`      | `NavigationClient`       |
 | `navigation_toggle_starred`   | `navigation.toggleStarred`    | `NavigationClient`       |
 | `navigation_is_starred`       | `navigation.isStarred`        | `NavigationClient`       |
+| `network_profiles_list`       | `network.profilesList`        | `NetworkClient`          |
+| `network_profile_add`         | `network.profileAdd`          | `NetworkClient`          |
+| `network_profile_update`      | `network.profileUpdate`       | `NetworkClient`          |
+| `network_profile_delete`      | `network.profileDelete`       | `NetworkClient`          |
+| `network_profile_set_secret`  | `network.profileSetSecret`    | `NetworkClient`          |
+| `network_connect`             | `network.connect`             | `NetworkClient`          |
+| `network_disconnect`          | `network.disconnect`          | `NetworkClient`          |
+| `network_connection_status`   | `network.connectionStatus`    | `NetworkClient`          |
+| `network_validate_uri`        | `network.validateUri`         | `NetworkClient`          |
 | `plan_file_operation`         | `fileOperation.plan`          | `FileOperationsClient`   |
 | `start_file_operation`        | `fileOperation.start`         | `FileOperationsClient`   |
 | `cancel_job`                  | `job.cancel`                  | `JobsClient`             |
@@ -246,6 +255,24 @@ Navigation commands persist UI navigation state in `navigation.sqlite` under the
 | Starred        | `navigation_list_starred`, `navigation_toggle_starred`, `navigation_is_starred`                                    | Starred entries are keyed by `uri`; toggle returns `{ starred }`.                                                                                                                                                               |
 | Autostart      | `get_autostart`, `set_autostart`                                                                                   | Returns `{ enabled, supported }`; `set_autostart` receives `enabled: boolean` as a top-level Tauri argument.                                                                                                                    |
 | Diagnostics    | `diagnostics_app_data_health`, `export_diagnostics_bundle`                                                         | Health returns redacted app paths and history DB schema state. Export writes a zip with `app-info.json`, `app-data-health.json`, `operation-history.json`, and `recent-log.txt`; `destination` is currently a host path string. |
+
+### Network profiles and connections
+
+Network commands manage saved SFTP server profiles in `network.sqlite` under the app data directory. Passwords and key passphrases are stored in the OS keychain via `platform::SecretStore` (`network/{profileId}/password` or `passphrase`); they never cross IPC back to the frontend.
+
+| Command                      | TS dotted name             | Purpose                                                                                                   |
+| ---------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `network_profiles_list`      | `network.profilesList`     | List saved profiles with metadata and `defaultUri` (`sftp://{profileId}{defaultPath}`).                   |
+| `network_profile_add`        | `network.profileAdd`       | Create a profile row (non-secret fields only).                                                            |
+| `network_profile_update`     | `network.profileUpdate`    | Update label, host, port, username, auth kind, default path.                                              |
+| `network_profile_delete`     | `network.profileDelete`    | Remove profile and keychain entries.                                                                      |
+| `network_profile_set_secret` | `network.profileSetSecret` | Store password or key passphrase in keychain (`{ profileId, field: "password" \| "passphrase", value }`). |
+| `network_connect`            | `network.connect`          | Eager connect and validate credentials for `{ id }`.                                                      |
+| `network_disconnect`         | `network.disconnect`       | Drop active session for `{ id }`.                                                                         |
+| `network_connection_status`  | `network.connectionStatus` | Returns `{ statuses: NetworkConnectionStatusDto[] }` with `connected`, `error`, or `offline`.             |
+| `network_validate_uri`       | `network.validateUri`      | Parse-check a remote `ResourceUri`.                                                                       |
+
+Once connected, `fs_stat` and `fs_list_start` work for `sftp://` URIs through `SftpProvider`. File mutations (`plan_file_operation`, watch, folder size, recursive search) remain local-only in v1.
 
 ## Event channels
 
@@ -482,7 +509,11 @@ Implement this to plug an alternative transport (tests, mocks, an out-of-process
 
 ## Resource URIs
 
-Every resource crossing the IPC boundary is identified by a `ResourceUri` — a string `scheme://body`. Only the `local` scheme is currently registered (`LocalFsProvider`). `ResourceUri::parse` enforces:
+Every resource crossing the IPC boundary is identified by a `ResourceUri` — a string `scheme://body`. Registered providers today: `local` (`LocalFsProvider`) and `sftp` (`SftpProvider`). Reserved schemes `smb` and `webdav` parse successfully but return `unsupported_provider` until providers are registered (ADR-0004).
+
+### Local URIs
+
+`ResourceUri::parse` for `local://` enforces:
 
 - Scheme separator `://` is present.
 - Scheme equals `local`.
@@ -496,6 +527,23 @@ let uri = ResourceUri::parse("local:///home/me/Documents")?;
 assert_eq!(uri.scheme(), "local");
 assert_eq!(uri.display_path(), "/home/me/Documents");
 ```
+
+### Remote URIs (SFTP v1)
+
+Remote URIs use POSIX path bodies only:
+
+```
+sftp://{profileUuid}/{remotePath}
+```
+
+Example: `sftp://550e8400-e29b-41d4-a716-446655440000/home/deploy`
+
+- `{profileUuid}` is the saved profile id from `network.sqlite`.
+- `{remotePath}` is a POSIX absolute path (`/home/user/docs`).
+- `ResourceUri::remote_path()` returns the path segment; `to_local_path()` remains local-only.
+- `ResourceUri::from_remote_profile(scheme, profile_id, path)` constructs profile-backed URIs.
+
+The TS helpers in `packages/ts-api/src/uri.ts` expose `isRemoteUri`, `isSupportedNavigationUri`, and `profileIdFromRemoteUri`.
 
 The TS side treats `ResourceUri` values as opaque strings. Do not parse them ad-hoc in the UI; if you need a friendly path, pull it from `FileEntryDto.name` or render `uri.replace(/^local:\/\//, "")` for display only.
 
@@ -704,6 +752,10 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/dial
 | `no_terminal`           | Tauri shell                                   | No terminal emulator was found for `fs.open_terminal`.          |
 | `autostart_unavailable` | Tauri shell                                   | OS autostart integration is unavailable or failed.              |
 | `navigation_error`      | Navigation repository                         | Favorites/recent/starred persistence failed.                    |
+| `network_error`         | `RemoteError`, network handlers               | Generic remote/network failure.                                 |
+| `connection_required`   | `VfsError`, `RemoteError`                     | Remote URI used before session connect.                         |
+| `authentication_failed` | `VfsError`, `RemoteError`                     | SFTP login or key auth rejected.                                |
+| `connection_lost`       | `VfsError`, `RemoteError`                     | Active session dropped mid-operation.                           |
 | `folder_not_found`      | Tauri shell                                   | Watch start requires an existing directory.                     |
 | `invalid_request`       | `FileOperationError`                          | Operation request shape is wrong (missing sources, etc.).       |
 | `invalid_name`          | `FileOperationError`                          | Proposed name is empty, contains separators, or is reserved.    |
@@ -727,7 +779,7 @@ The frontend never imports these directly, but internal callers and tests do.
 
 ### `vfs`
 
-- `ResourceUri::parse(&str) -> Result<ResourceUri, VfsError>` / `ResourceUri::from_local_path(&Path) -> Result<…>` / `as_str()` / `scheme()` / `display_path()` / `to_local_path()`.
+- `ResourceUri::parse(&str) -> Result<ResourceUri, VfsError>` / `ResourceUri::from_local_path(&Path) -> Result<…>` / `ResourceUri::from_remote_profile(scheme, profile_id, path) -> Result<…>` / `as_str()` / `scheme()` / `display_path()` / `to_local_path()` / `remote_path()` / `is_remote()`.
 - `FileEntry`, `FileKind`, `EntryCapabilities`, `ProviderCapabilities`.
 - `FileOperationRequest`, `FileOperationPlan`, `FileOperationItem`, `FileOperationConflict`, `FileOperationWarning`.
 - `FileOperationError` and `VfsError` — each exposes `code()`.
@@ -743,7 +795,11 @@ The frontend never imports these directly, but internal callers and tests do.
 
 ### `fs-core`
 
-- `LocalFsProvider` — the only registered `VfsProvider` today; read-only stat + streamed list.
+- `LocalFsProvider` — local stat + streamed list.
+- `provider-sftp::SftpProvider` — SFTP stat + streamed list (read-only v1); registered alongside local at boot.
+- `remote-core::ConnectionSessionManager` — profile session lifecycle shared by remote providers.
+- `config::NetworkProfileRepository` — persisted server profiles in `network.sqlite`.
+- `platform::SecretStore` — OS keychain wrapper for network credentials.
 - `file_ops::plan_file_operation(FileOperationRequest) -> Result<FileOperationPlan, FileOperationError>` — pure validation, no I/O beyond stat where needed.
 - `file_ops::execute_file_operation(plan, &JobId, &CancellationToken, &FileOperationEventSink) -> Result<(), FileOperationError>` — runs the plan, emits `JobEvent::Progress` through the sink, honours the cancellation token.
 - `metadata::{path_properties, calculate_folder_size, calculate_folder_size_with_progress}` — local metadata helpers for `fs_properties` and folder-size commands.

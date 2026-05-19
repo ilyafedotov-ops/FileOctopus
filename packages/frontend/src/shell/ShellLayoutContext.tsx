@@ -13,6 +13,8 @@ import type {
   FileOctopusClient,
   JobSnapshot,
   OperationHistoryRecordDto,
+  NetworkConnectionStatusDto,
+  NetworkProfileDto,
   RecentEntryDto,
   StarredEntryDto,
   StandardLocationDto,
@@ -42,6 +44,8 @@ export interface ShellLayoutContextValue {
   recentToday: RecentEntryDto[];
   recentWeek: RecentEntryDto[];
   starred: StarredEntryDto[];
+  networkProfiles: NetworkProfileDto[];
+  networkStatuses: NetworkConnectionStatusDto[];
   preferences: UserPreferencesDto | null;
   updatePreference: (key: string, value: string) => Promise<void>;
   client: FileOctopusClient;
@@ -75,6 +79,9 @@ export interface ShellLayoutContextValue {
   errorDetailsOpen: boolean;
   operationHistoryOpen: boolean;
   volumePickerOpen: boolean;
+  networkLocationsOpen: boolean;
+  connectServerOpen: boolean;
+  connectServerProfile: NetworkProfileDto | null;
   toolbarCustomizeOpen: boolean;
   setToolbarCustomizeOpen: (v: boolean) => void;
   setGoToLocationOpen: (v: boolean) => void;
@@ -84,6 +91,25 @@ export interface ShellLayoutContextValue {
   setErrorDetailsOpen: (v: boolean) => void;
   setOperationHistoryOpen: (v: boolean) => void;
   setVolumePickerOpen: (v: boolean) => void;
+  setNetworkLocationsOpen: (v: boolean) => void;
+  setConnectServerOpen: (v: boolean) => void;
+  setConnectServerProfile: (profile: NetworkProfileDto | null) => void;
+  connectProfile: (profileId: string) => Promise<void>;
+  disconnectProfile: (profileId: string) => Promise<void>;
+  deleteProfile: (profileId: string) => Promise<void>;
+  saveProfile: (payload: {
+    id?: string;
+    label: string;
+    host: string;
+    port: number;
+    username: string;
+    authKind: "password" | "privateKey";
+    privateKeyPath: string | null;
+    defaultPath: string;
+    password: string;
+    passphrase: string;
+  }) => Promise<NetworkProfileDto>;
+  refreshNetworkProfiles: () => Promise<void>;
   dialog: OperationDialog | null;
   autostart: AutostartStatusDto | null;
   commandEntries: CommandEntry[];
