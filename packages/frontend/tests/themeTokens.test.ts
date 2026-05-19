@@ -5,11 +5,20 @@ import * as path from "path";
 const TOKENS_PATH = path.resolve(__dirname, "../../ui/src/tokens.css");
 const THEMES_PATH = path.resolve(__dirname, "../src/styles/themes.css");
 const PANE_PATH = path.resolve(__dirname, "../src/styles/regions/pane.css");
+const SHELL_PATH = path.resolve(__dirname, "../src/styles/regions/shell.css");
+const DIALOGS_PATH = path.resolve(
+  __dirname,
+  "../src/styles/regions/dialogs.css",
+);
+const SHARED_PATH = path.resolve(__dirname, "../src/styles/regions/shared.css");
 
 describe("Design token architecture", () => {
   const tokensContent = fs.readFileSync(TOKENS_PATH, "utf-8");
   const themesContent = fs.readFileSync(THEMES_PATH, "utf-8");
   const paneContent = fs.readFileSync(PANE_PATH, "utf-8");
+  const shellContent = fs.readFileSync(SHELL_PATH, "utf-8");
+  const dialogsContent = fs.readFileSync(DIALOGS_PATH, "utf-8");
+  const sharedContent = fs.readFileSync(SHARED_PATH, "utf-8");
 
   const BASE_TOKENS = [
     "--fo-text",
@@ -213,6 +222,32 @@ describe("Design token architecture", () => {
     );
     expect(paneContent).toContain(
       ".fo-view-compact .fo-row > span:nth-child(3)",
+    );
+  });
+
+  it("dialog backdrops leave custom window controls clickable", () => {
+    expect(shellContent).toContain("--fo-titlebar-height: 50px");
+    expect(shellContent).toContain("min-height: var(--fo-titlebar-height)");
+    expect(dialogsContent).toContain(
+      "inset: var(--fo-titlebar-height, 50px) 0 0",
+    );
+  });
+
+  it("dialog chrome follows classic Windows Commander styling", () => {
+    expect(dialogsContent).toContain("--fo-classic-face: #c0c0c0");
+    expect(dialogsContent).toContain("--fo-classic-title: #0a246a");
+    expect(dialogsContent).toContain("border-radius: 0");
+    expect(dialogsContent).toContain(
+      "box-shadow: 2px 2px 0 var(--fo-classic-dark)",
+    );
+    expect(dialogsContent).toMatch(
+      /border-color:\s*var\(--fo-classic-light\)\s+var\(--fo-classic-dark\)\s+var\(--fo-classic-dark\)\s+var\(--fo-classic-light\)/,
+    );
+    expect(dialogsContent).toMatch(
+      /border-color:\s*var\(--fo-classic-shadow\)\s+var\(--fo-classic-light\)\s+var\(--fo-classic-light\)\s+var\(--fo-classic-shadow\)/,
+    );
+    expect(sharedContent).toContain(
+      ".fo-command-palette {\n  max-width: 520px;\n  width: 90vw;\n  padding: 0;\n  border-radius: 0;",
     );
   });
 });

@@ -242,19 +242,25 @@ button:disabled {
   max-width: 520px;
   width: 90vw;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 0;
   top: 15vh;
 }
 
 .fo-command-palette-input {
   padding: 12px;
-  border-bottom: 1px solid var(--fo-subtle-border);
+  border-bottom: 1px solid var(--fo-classic-shadow, var(--fo-subtle-border));
 }
 
 .fo-command-palette-input input {
   width: 100%;
   font-size: 14px;
   padding: 8px;
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--fo-classic-shadow, var(--fo-control-border))
+    var(--fo-classic-light, #ffffff) var(--fo-classic-light, #ffffff)
+    var(--fo-classic-shadow, var(--fo-control-border));
+  border-radius: 0;
 }
 
 .fo-command-palette-list {
@@ -276,7 +282,8 @@ button:disabled {
 
 .fo-command-palette-item:hover,
 .fo-command-palette-item-active {
-  background: var(--fo-selection-bg, rgba(255, 255, 255, 0.08));
+  background: var(--fo-classic-title, var(--fo-selection-bg, #0a246a));
+  color: var(--fo-classic-light, #ffffff);
 }
 
 .fo-command-palette-label {
