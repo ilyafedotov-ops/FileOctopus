@@ -14,6 +14,7 @@ pub mod file_ops;
 pub mod locations;
 pub mod metadata;
 pub mod search;
+pub mod vfs_io;
 
 #[derive(Debug, Default)]
 pub struct LocalFsProvider;

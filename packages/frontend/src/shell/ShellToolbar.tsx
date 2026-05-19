@@ -99,7 +99,7 @@ export function ShellToolbar() {
         <OperationToolbar
           toolbarEntries={entries}
           selectedCount={selectedCount}
-          canRename={selectedCount === 1}
+          canRename={commander.canRename}
           canPaste={canPaste}
           canView={Boolean(selectedEntry) || selectedCount === 0}
           canEdit={commander.canEdit}

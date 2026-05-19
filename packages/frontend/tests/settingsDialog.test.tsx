@@ -38,6 +38,7 @@ function makePreferences(
     toolbarEntries: "",
     paneMode: "dual",
     jobDrawerBehavior: "manual",
+    showAdvancedCopyOptions: false,
     ...overrides,
   };
 }

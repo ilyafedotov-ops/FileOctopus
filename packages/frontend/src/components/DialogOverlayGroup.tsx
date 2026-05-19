@@ -59,6 +59,7 @@ const FALLBACK_PREFERENCES: UserPreferencesDto = {
   toolbarEntries: "",
   paneMode: "dual",
   jobDrawerBehavior: "manual",
+  showAdvancedCopyOptions: false,
 };
 
 export interface DialogOverlayGroupProps {
@@ -378,6 +379,7 @@ export function DialogOverlayGroup({
         locations={locations}
         favorites={favorites}
         recentDestinations={recentDestinations}
+        networkProfiles={networkProfiles}
       />
       <NetworkLocationsDialog
         open={networkLocationsOpen}

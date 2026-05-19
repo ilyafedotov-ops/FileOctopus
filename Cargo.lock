@@ -1065,6 +1065,8 @@ dependencies = [
  "chrono",
  "filetime",
  "jobs",
+ "provider-sftp",
+ "remote-core",
  "tempfile",
  "tokio",
  "uuid",

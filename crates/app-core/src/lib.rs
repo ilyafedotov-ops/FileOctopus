@@ -2,7 +2,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use config::{NavigationRepository, NetworkProfileRepository, PreferencesRepository};
-use fs_core::LocalFsProvider;
+use fs_core::{vfs_io::VfsFilesystem, LocalFsProvider};
 use platform::SecretStore;
 use provider_sftp::{SftpConnector, SftpProvider};
 use remote_core::{ConnectionSessionManager, RemoteConnectorRegistry};
@@ -151,7 +151,8 @@ impl AppCore {
         let startup_recovery_count = history
             .mark_interrupted_jobs()
             .map_err(|error| AppCoreError::History(error.to_string()))?;
-        let operations = Arc::new(OperationRuntime::new(history));
+        let vfs_filesystem = VfsFilesystem::with_sessions(sessions.clone());
+        let operations = Arc::new(OperationRuntime::new(vfs_filesystem, history));
         let preferences = PreferencesRepository::new(paths.preferences_db.clone())
             .map_err(|error| AppCoreError::History(error.to_string()))?;
         let navigation = NavigationRepository::new(paths.navigation_db.clone())

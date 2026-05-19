@@ -544,6 +544,19 @@ export function SettingsDialog({
                 <label className="fo-settings-checkbox">
                   <input
                     type="checkbox"
+                    checked={preferences.showAdvancedCopyOptions}
+                    onChange={(event) =>
+                      onChange(
+                        "showAdvancedCopyOptions",
+                        event.target.checked ? "true" : "false",
+                      )
+                    }
+                  />
+                  <span>Show advanced copy options</span>
+                </label>
+                <label className="fo-settings-checkbox">
+                  <input
+                    type="checkbox"
                     checked={preferences.useTrashByDefault}
                     onChange={(event) =>
                       onChange(
@@ -562,10 +575,13 @@ export function SettingsDialog({
                       onChange("defaultConflictPolicy", event.target.value)
                     }
                   >
-                    <option value="ask">Ask every time</option>
+                    <option value="fail">Fail without changes</option>
+                    <option value="skip">Skip existing destinations</option>
                     <option value="overwrite">Overwrite</option>
-                    <option value="skip">Skip</option>
-                    <option value="keepBoth">Keep both</option>
+                    <option value="renameNew">Rename new items</option>
+                    <option value="renameExisting">
+                      Rename existing items
+                    </option>
                   </select>
                 </label>
               </section>

@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 
 use chrono::Utc;
 use fs_core::file_ops::{execute_file_operation, plan_file_operation, FileOperationEventSink};
+use fs_core::vfs_io::VfsFilesystem;
 use jobs::{
     CancellationToken, JobCancelledEvent, JobCompletedEvent, JobEvent, JobFailedEvent, JobId,
     JobSnapshot, JobStartedEvent, JobStatus,
@@ -13,14 +14,16 @@ use crate::history::{OperationHistoryRecord, OperationHistoryRepository, HISTORY
 
 #[derive(Clone)]
 pub struct OperationRuntime {
+    vfs: VfsFilesystem,
     jobs: Arc<Mutex<HashMap<String, JobRuntimeState>>>,
     planned_operations: Arc<Mutex<HashMap<String, FileOperationPlan>>>,
     history: OperationHistoryRepository,
 }
 
 impl OperationRuntime {
-    pub fn new(history: OperationHistoryRepository) -> Self {
+    pub fn new(vfs: VfsFilesystem, history: OperationHistoryRepository) -> Self {
         Self {
+            vfs,
             jobs: Arc::new(Mutex::new(HashMap::new())),
             planned_operations: Arc::new(Mutex::new(HashMap::new())),
             history,
@@ -32,7 +35,7 @@ impl OperationRuntime {
         request: FileOperationRequest,
     ) -> Result<FileOperationPlan, FileOperationError> {
         let kind = request.kind;
-        let plan = match plan_file_operation(request) {
+        let plan = match plan_file_operation(&self.vfs, request) {
             Ok(plan) => plan,
             Err(error) => {
                 telemetry::error(&format!(
@@ -114,6 +117,7 @@ impl OperationRuntime {
             plan.total_items
         ));
 
+        let vfs = self.vfs.clone();
         let jobs = self.jobs.clone();
         let history = self.history.clone();
         let sink_for_thread = sink.clone();
@@ -139,7 +143,8 @@ impl OperationRuntime {
                 sink_for_thread(event);
             };
             let progress_sink = Arc::new(progress_sink) as Arc<FileOperationEventSink>;
-            let result = execute_file_operation(&plan, &thread_job_id, &token, &*progress_sink);
+            let result =
+                execute_file_operation(&vfs, &plan, &thread_job_id, &token, &*progress_sink);
 
             match result {
                 Ok(()) => {

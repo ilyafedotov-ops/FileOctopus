@@ -3,7 +3,7 @@ use std::path::Path;
 
 use vfs::{
     FileKind, FileOperationConflict, FileOperationError, FileOperationItem, FileOperationRequest,
-    FileOperationWarning, ResourceUri,
+    FileOperationWarning, ResourceUri, REMOTE_SCHEMES,
 };
 
 use super::archive::sanitize_archive_entry_path;
@@ -11,86 +11,130 @@ use super::paths::{
     canonical_existing_path, file_kind, map_io_error, map_std_io_error, reject_self_or_descendant,
     require_existing_directory,
 };
+use crate::vfs_io::VfsFilesystem;
 
 pub(super) fn plan_copy_or_move_items(
+    vfs: &VfsFilesystem,
     request: &FileOperationRequest,
     warnings: &mut Vec<FileOperationWarning>,
 ) -> Result<Vec<FileOperationItem>, FileOperationError> {
-    let destination_dir = request
-        .destination
-        .as_ref()
-        .ok_or_else(|| FileOperationError::InvalidRequest {
-            message: "operation requires a destination".to_string(),
-        })?
-        .to_local_path()?;
+    let destination_uri =
+        request
+            .destination
+            .as_ref()
+            .ok_or_else(|| FileOperationError::InvalidRequest {
+                message: "operation requires a destination".to_string(),
+            })?;
 
-    require_existing_directory(&destination_dir, request.destination.as_ref().unwrap())?;
+    if destination_uri.scheme() == "local" {
+        let destination_dir = destination_uri.to_local_path()?;
+        require_existing_directory(&destination_dir, destination_uri)?;
+    } else if vfs.stat_kind(destination_uri)? != FileKind::Directory {
+        return Err(FileOperationError::DestinationMissing {
+            uri: destination_uri.as_str().to_string(),
+        });
+    }
 
     let mut items = Vec::new();
 
     for source in &request.sources {
-        let source_path = source.to_local_path()?;
-        let source_path = canonical_existing_path(&source_path, source)?;
-        reject_self_or_descendant(request.kind, &source_path, &destination_dir)?;
-        collect_copy_or_move_items(
-            &source_path,
-            &destination_dir,
-            &source_path,
-            &mut items,
-            warnings,
-        )?;
+        if source.scheme() == "local" && destination_uri.scheme() == "local" {
+            let source_path = source.to_local_path()?;
+            let source_path = canonical_existing_path(&source_path, source)?;
+            let destination_dir = destination_uri.to_local_path()?;
+            reject_self_or_descendant(request.kind, &source_path, &destination_dir)?;
+            collect_copy_or_move_items(
+                &source_path,
+                &destination_dir,
+                &source_path,
+                &mut items,
+                warnings,
+            )?;
+        } else {
+            let mut source_items = vfs.collect_copy_items(source, destination_uri, warnings)?;
+            items.append(&mut source_items);
+        }
     }
 
     Ok(items)
 }
 
 pub(super) fn plan_rename_item(
+    vfs: &VfsFilesystem,
     request: &FileOperationRequest,
 ) -> Result<FileOperationItem, FileOperationError> {
     let source = request.sources[0].clone();
-    let source_path = canonical_existing_path(&source.to_local_path()?, &source)?;
-    let parent = source_path
-        .parent()
-        .ok_or_else(|| FileOperationError::InvalidRequest {
-            message: "cannot rename filesystem root".to_string(),
-        })?;
-    let destination = parent.join(request.new_name.as_ref().unwrap());
-    let destination_uri = ResourceUri::from_local_path(&destination)?;
-    let metadata =
-        fs::symlink_metadata(&source_path).map_err(|error| map_io_error(&source, error))?;
+    let new_name = request.new_name.as_ref().unwrap();
+    let kind = vfs.stat_kind(&source)?;
+    let destination_uri = if source.scheme() == "local" {
+        let source_path = canonical_existing_path(&source.to_local_path()?, &source)?;
+        let parent = source_path
+            .parent()
+            .ok_or_else(|| FileOperationError::InvalidRequest {
+                message: "cannot rename filesystem root".to_string(),
+            })?;
+        ResourceUri::from_local_path(&parent.join(new_name))?
+    } else {
+        vfs.join_remote_parent(&source, new_name)?
+    };
+    let size = if kind == FileKind::File {
+        vfs.file_size(&source).ok()
+    } else {
+        None
+    };
 
     Ok(FileOperationItem {
         source: Some(source),
         destination: Some(destination_uri),
-        kind: file_kind(&metadata),
-        size: metadata.is_file().then_some(metadata.len()),
-        recursive: metadata.is_dir(),
+        kind,
+        size,
+        recursive: kind == FileKind::Directory,
     })
 }
 
 pub(super) fn plan_create_directory_item(
+    vfs: &VfsFilesystem,
     request: &FileOperationRequest,
 ) -> Result<FileOperationItem, FileOperationError> {
     let destination = request.destination.as_ref().unwrap().clone();
-    let destination_path = destination.to_local_path()?;
-    let parent =
-        destination_path
-            .parent()
-            .ok_or_else(|| FileOperationError::DestinationMissing {
+    let name = if destination.scheme() == "local" {
+        let destination_path = destination.to_local_path()?;
+        let parent =
+            destination_path
+                .parent()
+                .ok_or_else(|| FileOperationError::DestinationMissing {
+                    uri: destination.as_str().to_string(),
+                })?;
+        super::validate_basename(
+            destination_path
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or_default(),
+        )?;
+        if destination.scheme() == "local" && !parent.is_dir() {
+            return Err(FileOperationError::DestinationMissing {
                 uri: destination.as_str().to_string(),
-            })?;
-
-    super::validate_basename(
+            });
+        }
         destination_path
             .file_name()
             .and_then(|value| value.to_str())
-            .unwrap_or_default(),
-    )?;
-
-    if !parent.is_dir() {
-        return Err(FileOperationError::DestinationMissing {
-            uri: destination.as_str().to_string(),
-        });
+            .unwrap_or_default()
+            .to_string()
+    } else {
+        destination
+            .remote_path()
+            .and_then(|path| {
+                path.trim_end_matches('/')
+                    .rsplit('/')
+                    .next()
+                    .map(str::to_string)
+            })
+            .unwrap_or_default()
+    };
+    super::validate_basename(&name)?;
+    if REMOTE_SCHEMES.contains(&destination.scheme()) {
+        let _ = vfs;
     }
 
     Ok(FileOperationItem {
@@ -103,28 +147,31 @@ pub(super) fn plan_create_directory_item(
 }
 
 pub(super) fn plan_create_file_item(
+    vfs: &VfsFilesystem,
     request: &FileOperationRequest,
 ) -> Result<FileOperationItem, FileOperationError> {
     let destination = request.destination.as_ref().unwrap().clone();
-    let destination_path = destination.to_local_path()?;
-    let parent =
-        destination_path
-            .parent()
-            .ok_or_else(|| FileOperationError::DestinationMissing {
+    if destination.scheme() == "local" {
+        let destination_path = destination.to_local_path()?;
+        let parent =
+            destination_path
+                .parent()
+                .ok_or_else(|| FileOperationError::DestinationMissing {
+                    uri: destination.as_str().to_string(),
+                })?;
+        super::validate_basename(
+            destination_path
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or_default(),
+        )?;
+        if !parent.is_dir() {
+            return Err(FileOperationError::DestinationMissing {
                 uri: destination.as_str().to_string(),
-            })?;
-
-    super::validate_basename(
-        destination_path
-            .file_name()
-            .and_then(|value| value.to_str())
-            .unwrap_or_default(),
-    )?;
-
-    if !parent.is_dir() {
-        return Err(FileOperationError::DestinationMissing {
-            uri: destination.as_str().to_string(),
-        });
+            });
+        }
+    } else {
+        let _ = vfs;
     }
 
     Ok(FileOperationItem {
@@ -137,22 +184,26 @@ pub(super) fn plan_create_file_item(
 }
 
 pub(super) fn plan_delete_items(
+    vfs: &VfsFilesystem,
     request: &FileOperationRequest,
 ) -> Result<Vec<FileOperationItem>, FileOperationError> {
     request
         .sources
         .iter()
         .map(|source| {
-            let path = canonical_existing_path(&source.to_local_path()?, source)?;
-            let metadata =
-                fs::symlink_metadata(&path).map_err(|error| map_io_error(source, error))?;
+            let kind = vfs.stat_kind(source)?;
+            let size = if kind == FileKind::File {
+                vfs.file_size(source).ok()
+            } else {
+                None
+            };
 
             Ok(FileOperationItem {
                 source: Some(source.clone()),
                 destination: None,
-                kind: file_kind(&metadata),
-                size: metadata.is_file().then_some(metadata.len()),
-                recursive: metadata.is_dir(),
+                kind,
+                size,
+                recursive: kind == FileKind::Directory,
             })
         })
         .collect()
@@ -228,7 +279,7 @@ pub(super) fn plan_extract_archive_items(
     Ok(items)
 }
 
-pub(super) fn collect_copy_or_move_items(
+pub(crate) fn collect_copy_or_move_items(
     path: &Path,
     destination_dir: &Path,
     root: &Path,
@@ -283,17 +334,19 @@ pub(super) fn collect_copy_or_move_items(
     Ok(())
 }
 
-pub(super) fn detect_conflicts(items: &[FileOperationItem]) -> Vec<FileOperationConflict> {
+pub(super) fn detect_conflicts(
+    vfs: &VfsFilesystem,
+    items: &[FileOperationItem],
+) -> Vec<FileOperationConflict> {
     items
         .iter()
         .filter_map(|item| {
             let source = item.source.clone()?;
             let destination = item.destination.clone()?;
 
-            destination
-                .to_local_path()
+            vfs.exists(&destination)
                 .ok()
-                .filter(|path| path.exists())
+                .filter(|exists| *exists)
                 .map(|_| FileOperationConflict {
                     source,
                     destination,

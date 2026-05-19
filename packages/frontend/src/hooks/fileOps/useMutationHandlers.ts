@@ -1,14 +1,14 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
-import { normalizeIpcError } from "@fileoctopus/ts-api";
+import { isRemoteUri, normalizeIpcError } from "@fileoctopus/ts-api";
 import type { PanelId } from "../../panelStore";
 import { activeTab } from "../../panelStore";
 import {
   jobIdValue,
-  joinLocalUri,
   isValidName,
   operationErrorMessage,
 } from "../../dialogs/OperationDialogView";
 import type { OperationDialog } from "../../dialogs/OperationDialogView";
+import { joinUri } from "../../navigation/uriJoin";
 import type { UseFileOpHandlersDeps } from "./types";
 import { useOperationCore, type OperationCore } from "./useOperationCore";
 
@@ -92,10 +92,11 @@ export function useMutationHandlers(
   }
 
   async function executeTrash(_panelId: PanelId, entries: FileEntryDto[]) {
-    const ok = await startOperation(
-      "deleteToTrash",
-      entries.map((entry) => entry.uri),
-    );
+    const sources = entries.map((entry) => entry.uri);
+    const kind = sources.some((uri) => isRemoteUri(uri))
+      ? "deletePermanently"
+      : "deleteToTrash";
+    const ok = await startOperation(kind, sources);
 
     if (ok) {
       setDialog(null);
@@ -129,7 +130,7 @@ export function useMutationHandlers(
     const ok = await startOperation(
       "createDirectory",
       [],
-      joinLocalUri(tab.uri, name),
+      joinUri(tab.uri, name),
     );
 
     if (ok) {
@@ -152,7 +153,7 @@ export function useMutationHandlers(
     }
 
     const tab = activeTab(state.panels[current.panelId]);
-    const targetUri = joinLocalUri(tab.uri, name);
+    const targetUri = joinUri(tab.uri, name);
 
     try {
       const planResponse = await planOperation("createFile", [], targetUri);

@@ -37,6 +37,7 @@ const defaultPreferences = {
   toolbarEntries: "",
   paneMode: "dual",
   jobDrawerBehavior: "manual",
+  showAdvancedCopyOptions: false,
 };
 
 describe("visual state fixtures", () => {

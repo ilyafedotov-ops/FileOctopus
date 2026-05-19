@@ -203,6 +203,7 @@ export interface UserPreferencesDto {
   toolbarEntries: string;
   paneMode: string;
   jobDrawerBehavior: string;
+  showAdvancedCopyOptions: boolean;
 }
 
 export interface AutostartStatusDto {

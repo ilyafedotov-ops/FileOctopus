@@ -5,6 +5,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
@@ -17,6 +18,7 @@ import {
   type JobStartedEvent,
   type RecursiveSearchCompletedEventDto,
   type RecursiveSearchMatchEventDto,
+  type UserPreferencesDto,
 } from "@fileoctopus/ts-api";
 
 let batchHandler: ((event: DirectoryBatchEventDto) => void) | null = null;
@@ -53,31 +55,33 @@ const listStart = vi.fn(
     return { sessionId, requestId };
   },
 );
+const appPreferences: UserPreferencesDto = {
+  theme: "system",
+  density: "comfortable",
+  defaultViewMode: "details",
+  showHiddenFiles: false,
+  sidebarWidth: 240,
+  splitRatio: 0.5,
+  activityPanelVisible: false,
+  activityPanelWidth: 288,
+  confirmDelete: true,
+  confirmPermanentDelete: true,
+  useTrashByDefault: true,
+  defaultConflictPolicy: "fail",
+  accentColor: "blue",
+  fontScale: "medium",
+  iconScale: "medium",
+  confirmOverwrite: true,
+  sidebarVisible: true,
+  statusBarVisible: true,
+  toolbarVisible: true,
+  toolbarEntries: "",
+  paneMode: "dual",
+  jobDrawerBehavior: "manual",
+  showAdvancedCopyOptions: false,
+};
 const preferencesGet = vi.fn(async () => ({
-  preferences: {
-    theme: "system",
-    density: "comfortable",
-    defaultViewMode: "details",
-    showHiddenFiles: false,
-    sidebarWidth: 240,
-    splitRatio: 0.5,
-    activityPanelVisible: false,
-    activityPanelWidth: 288,
-    confirmDelete: true,
-    confirmPermanentDelete: true,
-    useTrashByDefault: true,
-    defaultConflictPolicy: "fail",
-    accentColor: "blue",
-    fontScale: "medium",
-    iconScale: "medium",
-    confirmOverwrite: true,
-    sidebarVisible: true,
-    statusBarVisible: true,
-    toolbarVisible: true,
-    toolbarEntries: "",
-    paneMode: "dual",
-    jobDrawerBehavior: "manual",
-  },
+  preferences: appPreferences,
 }));
 const preferencesSet = vi.fn(async () => preferencesGet());
 const standardLocations = vi.fn(async () => ({
@@ -654,30 +658,39 @@ describe("FileOctopusShell", () => {
     });
   });
 
-  it("plans copy conflicts before start and passes selected policy", async () => {
+  it("makes copy planning optional in advanced options", async () => {
+    preferencesGet.mockResolvedValueOnce({
+      preferences: { ...appPreferences, showAdvancedCopyOptions: true },
+    });
+
     render(<FileOctopusShell />);
     await applyLeftEntries([entry("alpha.txt")]);
 
     clickToolbar("Copy", 0);
+    const dialog = within(screen.getByRole("dialog"));
     expect(
-      (screen.getByLabelText("Conflict policy") as HTMLSelectElement).value,
+      (dialog.getByLabelText("Conflict policy") as HTMLSelectElement).value,
     ).toBe("fail");
-    expect((screen.getByText("Start") as HTMLButtonElement).disabled).toBe(
-      true,
+    expect(
+      (dialog.getByRole("button", { name: "Copy" }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(false);
+    expect(dialog.queryByText("Plan")).toBeNull();
+
+    fireEvent.click(
+      dialog.getByLabelText("Preview operation plan before copying"),
     );
 
-    fireEvent.click(screen.getByText("Plan"));
-    expect(
-      await screen.findByText("1 planned item(s), 1 conflict(s)"),
-    ).toBeTruthy();
+    fireEvent.click(dialog.getByText("Plan"));
+    expect(await dialog.findByText("1 planned item, 1 conflict")).toBeTruthy();
     expect(startFileOperation).not.toHaveBeenCalled();
 
-    fireEvent.change(screen.getByLabelText("Conflict policy"), {
+    fireEvent.change(dialog.getByLabelText("Conflict policy"), {
       target: { value: "skip" },
     });
-    fireEvent.click(screen.getByText("Plan"));
-    await screen.findByText("1 planned item(s), 1 conflict(s)");
-    fireEvent.click(screen.getByText("Start"));
+    fireEvent.click(dialog.getByText("Plan"));
+    await dialog.findByText("1 planned item, 1 conflict");
+    fireEvent.click(dialog.getByRole("button", { name: "Copy" }));
 
     await waitFor(() => expect(startFileOperation).toHaveBeenCalledTimes(1));
     expect(planFileOperation.mock.calls.at(-1)?.[0].operation).toMatchObject({
@@ -759,11 +772,11 @@ describe("FileOctopusShell", () => {
     expect(screen.queryByText("Move 1 item(s) to Trash")).toBeNull();
 
     fireEvent.keyDown(screen.getByLabelText("File panels"), { key: "F5" });
-    expect(await screen.findByLabelText("Destination local URI")).toBeTruthy();
+    expect(await screen.findByLabelText("Destination URI")).toBeTruthy();
 
     fireEvent.keyDown(screen.getByLabelText("File panels"), { key: "Escape" });
     await waitFor(() =>
-      expect(screen.queryByLabelText("Destination local URI")).toBeNull(),
+      expect(screen.queryByLabelText("Destination URI")).toBeNull(),
     );
 
     fireEvent.keyDown(screen.getByLabelText("File panels"), {

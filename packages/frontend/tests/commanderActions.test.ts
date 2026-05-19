@@ -78,7 +78,46 @@ describe("createCommanderActions", () => {
     expect(handleCreateFolder).toHaveBeenCalledWith("left");
   });
 
-  it("disables mutating actions on remote panes", () => {
+  it("allows copy on remote panes when entries are readable", () => {
+    const handleCopyOrMove = vi.fn();
+    const tab = {
+      ...activeTab(createInitialState().panels.left),
+      uri: "sftp://550e8400-e29b-41d4-a716-446655440000/home",
+      selectedId: "sftp://550e8400-e29b-41d4-a716-446655440000/home/readme.txt",
+      selectedIds: [
+        "sftp://550e8400-e29b-41d4-a716-446655440000/home/readme.txt",
+      ],
+      entriesById: {
+        "sftp://550e8400-e29b-41d4-a716-446655440000/home/readme.txt": {
+          uri: "sftp://550e8400-e29b-41d4-a716-446655440000/home/readme.txt",
+          name: "readme.txt",
+          kind: "file",
+          size: 12,
+          isHidden: false,
+          isSymlink: false,
+          providerId: "sftp",
+          canRead: true,
+          canList: false,
+          canWrite: true,
+          canDelete: true,
+          canRename: true,
+        },
+      },
+      orderedEntryIds: [
+        "sftp://550e8400-e29b-41d4-a716-446655440000/home/readme.txt",
+      ],
+    };
+
+    const commander = createCommanderActions(
+      baseDeps({ tab, handleCopyOrMove }),
+    );
+
+    expect(commander.canCopy).toBe(true);
+    commander.copy();
+    expect(handleCopyOrMove).toHaveBeenCalledWith("left", "copy");
+  });
+
+  it("disables mutating actions when remote entries are read-only", () => {
     const handleCreateFolder = vi.fn();
     const handleCopyOrMove = vi.fn();
     const handleTrash = vi.fn();
@@ -120,19 +159,21 @@ describe("createCommanderActions", () => {
     );
 
     expect(commander.canNewFolder).toBe(false);
-    expect(commander.canCopy).toBe(false);
+    expect(commander.canCopy).toBe(true);
     expect(commander.canMove).toBe(false);
     expect(commander.canDelete).toBe(false);
+    expect(commander.canRename).toBe(false);
     expect(commander.canEdit).toBe(false);
 
     commander.newFolder();
-    commander.copy();
     commander.move();
     commander.delete();
 
     expect(handleCreateFolder).not.toHaveBeenCalled();
-    expect(handleCopyOrMove).not.toHaveBeenCalled();
     expect(handleTrash).not.toHaveBeenCalled();
+
+    commander.copy();
+    expect(handleCopyOrMove).toHaveBeenCalledWith("left", "copy");
   });
 
   it("starts copy and move dialogs when selection exists", () => {

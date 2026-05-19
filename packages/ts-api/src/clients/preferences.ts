@@ -43,9 +43,11 @@ export function preferenceValue(
     key === "confirmDelete" ||
     key === "confirmPermanentDelete" ||
     key === "useTrashByDefault" ||
+    key === "confirmOverwrite" ||
     key === "sidebarVisible" ||
     key === "statusBarVisible" ||
-    key === "toolbarVisible"
+    key === "toolbarVisible" ||
+    key === "showAdvancedCopyOptions"
   ) {
     return value === "true";
   }

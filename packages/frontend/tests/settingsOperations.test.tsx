@@ -23,7 +23,7 @@ const basePreferences = {
   confirmDelete: true,
   confirmPermanentDelete: true,
   useTrashByDefault: true,
-  defaultConflictPolicy: "ask",
+  defaultConflictPolicy: "fail",
   accentColor: "blue",
   fontScale: "1",
   iconScale: "1",
@@ -34,6 +34,7 @@ const basePreferences = {
   toolbarEntries: "",
   paneMode: "dual",
   jobDrawerBehavior: "auto",
+  showAdvancedCopyOptions: false,
 };
 
 function renderDialog(overrides: Record<string, unknown> = {}) {
@@ -90,6 +91,12 @@ describe("SettingsDialog — Operations tab", () => {
     expect(screen.getByText("Confirm before overwriting files")).toBeTruthy();
   });
 
+  it("shows advanced copy options checkbox", () => {
+    renderDialog();
+    clickOperationsTab();
+    expect(screen.getByText("Show advanced copy options")).toBeTruthy();
+  });
+
   it("shows use trash by default checkbox", () => {
     renderDialog();
     clickOperationsTab();
@@ -126,5 +133,13 @@ describe("SettingsDialog — Operations tab", () => {
     );
     expect(overwriteBox).toBeTruthy();
     expect((overwriteBox as HTMLInputElement).checked).toBe(false);
+  });
+
+  it("toggling advanced copy options fires onChange", () => {
+    const { onChange } = renderDialog({ showAdvancedCopyOptions: false });
+    clickOperationsTab();
+
+    fireEvent.click(screen.getByLabelText("Show advanced copy options"));
+    expect(onChange).toHaveBeenCalledWith("showAdvancedCopyOptions", "true");
   });
 });

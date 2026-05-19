@@ -42,6 +42,7 @@ describe("accessibility basics", () => {
           toolbarEntries: "",
           paneMode: "dual",
           jobDrawerBehavior: "manual",
+          showAdvancedCopyOptions: false,
         }}
         autostart={null}
         onClose={onClose}

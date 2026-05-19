@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
+import { isRemoteUri } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import type { PanelId, SortField, ViewMode } from "../../panelStore";
 import { isParentDirectoryEntry } from "../../utils/parentEntry";
@@ -89,6 +90,7 @@ export function buildFileEntryMenu({
   }
 
   const isDirectory = entry.kind === "directory";
+  const remotePane = isRemoteUri(currentTabUri);
 
   return (
     <>
@@ -120,10 +122,16 @@ export function buildFileEntryMenu({
         </ContextMenuItem>
       ) : null}
       <ContextMenuSeparator />
-      <ContextMenuItem onClick={() => run(() => onCut(panelId))}>
+      <ContextMenuItem
+        disabled={!entry.canWrite || !entry.canDelete}
+        onClick={() => run(() => onCut(panelId))}
+      >
         Cut
       </ContextMenuItem>
-      <ContextMenuItem onClick={() => run(() => onCopy(panelId))}>
+      <ContextMenuItem
+        disabled={!entry.canRead}
+        onClick={() => run(() => onCopy(panelId))}
+      >
         Copy
       </ContextMenuItem>
       <ContextMenuItem
@@ -139,19 +147,34 @@ export function buildFileEntryMenu({
         Copy Name
       </ContextMenuItem>
       <ContextMenuSeparator />
-      <ContextMenuItem onClick={() => run(() => onRename(panelId))}>
+      <ContextMenuItem
+        disabled={!entry.canRename}
+        onClick={() => run(() => onRename(panelId))}
+      >
         Rename…
       </ContextMenuItem>
-      <ContextMenuItem onClick={() => run(() => onCopyTo(panelId))}>
+      <ContextMenuItem
+        disabled={!entry.canRead}
+        onClick={() => run(() => onCopyTo(panelId))}
+      >
         Copy To…
       </ContextMenuItem>
-      <ContextMenuItem onClick={() => run(() => onMoveTo(panelId))}>
+      <ContextMenuItem
+        disabled={!entry.canWrite || !entry.canDelete}
+        onClick={() => run(() => onMoveTo(panelId))}
+      >
         Move To…
       </ContextMenuItem>
-      <ContextMenuItem onClick={() => run(() => onTrash(panelId))}>
-        Move to Trash…
+      <ContextMenuItem
+        disabled={!entry.canDelete}
+        onClick={() => run(() => onTrash(panelId))}
+      >
+        {remotePane ? "Delete…" : "Move to Trash…"}
       </ContextMenuItem>
-      <ContextMenuItem onClick={() => run(() => onPermanentDelete(panelId))}>
+      <ContextMenuItem
+        disabled={!entry.canDelete}
+        onClick={() => run(() => onPermanentDelete(panelId))}
+      >
         Delete Permanently…
       </ContextMenuItem>
       <ContextMenuSeparator />
@@ -169,10 +192,16 @@ export function buildFileEntryMenu({
       <ContextMenuItem onClick={() => run(() => onCopyResourceUri(panelId))}>
         Copy Resource URI
       </ContextMenuItem>
-      <ContextMenuItem onClick={() => run(() => onCompress(panelId))}>
+      <ContextMenuItem
+        disabled={remotePane}
+        onClick={() => run(() => onCompress(panelId))}
+      >
         Pack…
       </ContextMenuItem>
-      <ContextMenuItem onClick={() => run(() => onExtract(panelId))}>
+      <ContextMenuItem
+        disabled={remotePane}
+        onClick={() => run(() => onExtract(panelId))}
+      >
         Unpack…
       </ContextMenuItem>
       <ContextMenuItem onClick={() => run(() => onOpenTerminal(panelId))}>

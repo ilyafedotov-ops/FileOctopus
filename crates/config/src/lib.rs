@@ -16,7 +16,7 @@ pub use network::{
     UpdateNetworkProfile,
 };
 
-pub const SCHEMA_VERSION: u32 = 8;
+pub const SCHEMA_VERSION: u32 = 9;
 
 #[derive(Debug, Error)]
 pub enum PreferencesError {
@@ -53,6 +53,7 @@ pub struct UserPreferences {
     pub toolbar_entries: String,
     pub pane_mode: String,
     pub job_drawer_behavior: String,
+    pub show_advanced_copy_options: bool,
 }
 
 impl Default for UserPreferences {
@@ -80,6 +81,7 @@ impl Default for UserPreferences {
             toolbar_entries: String::new(),
             pane_mode: "dual".to_string(),
             job_drawer_behavior: "manual".to_string(),
+            show_advanced_copy_options: false,
         }
     }
 }
@@ -182,6 +184,11 @@ impl PreferencesRepository {
 
         if user_version < 8 {
             self.backfill_v8_keys(&connection)?;
+            connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
+        if user_version < 9 {
+            self.backfill_v9_keys(&connection)?;
             connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         }
 
@@ -319,6 +326,25 @@ impl PreferencesRepository {
         Ok(())
     }
 
+    fn backfill_v9_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [(
+            "showAdvancedCopyOptions",
+            defaults.show_advanced_copy_options.to_string(),
+        )];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
+        }
+
+        Ok(())
+    }
+
     fn seed_defaults(&self, connection: &Connection) -> Result<(), PreferencesError> {
         let defaults = UserPreferences::default();
         let now = chrono_lite_now();
@@ -412,6 +438,10 @@ impl UserPreferences {
             ("toolbarEntries", self.toolbar_entries.clone()),
             ("paneMode", self.pane_mode.clone()),
             ("jobDrawerBehavior", self.job_drawer_behavior.clone()),
+            (
+                "showAdvancedCopyOptions",
+                self.show_advanced_copy_options.to_string(),
+            ),
         ]
     }
 }
@@ -496,6 +526,9 @@ fn apply_value(
         }
         "jobDrawerBehavior" => {
             preferences.job_drawer_behavior = parse_job_drawer_behavior(value)?;
+        }
+        "showAdvancedCopyOptions" => {
+            preferences.show_advanced_copy_options = parse_bool(value, key)?;
         }
         _ => {}
     }
@@ -661,6 +694,7 @@ mod tests {
         assert_eq!(defaults.pane_mode, "dual");
         assert_eq!(defaults.job_drawer_behavior, "manual");
         assert!(!defaults.activity_panel_visible);
+        assert!(!defaults.show_advanced_copy_options);
     }
 
     #[test]
@@ -677,6 +711,7 @@ mod tests {
         assert_eq!(rows["toolbarEntries"], "");
         assert_eq!(rows["paneMode"], "dual");
         assert_eq!(rows["jobDrawerBehavior"], "manual");
+        assert_eq!(rows["showAdvancedCopyOptions"], "false");
     }
 
     #[test]
@@ -726,9 +761,11 @@ mod tests {
         let repository = PreferencesRepository::new(path.clone()).unwrap();
         repository.set("confirmOverwrite", "false").unwrap();
         repository.set("sidebarVisible", "false").unwrap();
+        repository.set("showAdvancedCopyOptions", "true").unwrap();
         let reloaded = PreferencesRepository::new(path).unwrap().get_all().unwrap();
         assert!(!reloaded.confirm_overwrite);
         assert!(!reloaded.sidebar_visible);
+        assert!(reloaded.show_advanced_copy_options);
     }
 
     #[test]
@@ -785,6 +822,7 @@ mod tests {
         assert!(!prefs.sidebar_visible);
         assert_eq!(prefs.pane_mode, "dual");
         assert_eq!(prefs.job_drawer_behavior, "manual");
+        assert!(!prefs.show_advanced_copy_options);
 
         let connection = Connection::open(&path).unwrap();
         let version: u32 = connection
@@ -860,6 +898,7 @@ mod tests {
         assert_eq!(prefs.theme, "dark");
         assert!(prefs.toolbar_visible);
         assert_eq!(prefs.toolbar_entries, "");
+        assert!(!prefs.show_advanced_copy_options);
 
         let connection = Connection::open(&path).unwrap();
         let version: u32 = connection

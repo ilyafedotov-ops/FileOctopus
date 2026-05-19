@@ -1,7 +1,7 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
-import { isRemoteUri } from "@fileoctopus/ts-api";
 import type { PanelId, PanelTabState } from "../panelStore";
 import { countOperationalSelection, selectVisibleEntries } from "../panelStore";
+import { fileMutationState } from "../navigation/fileMutationState";
 
 export interface CommanderActionsDeps {
   panelId: PanelId;
@@ -37,11 +37,7 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
   const selectedEntry =
     selectedEntries.find((entry) => entry.uri === tab.selectedId) ?? null;
   const hasSelection = countOperationalSelection(tab) > 0;
-  const remotePane = isRemoteUri(tab.uri);
-  const selectionAllowsWrite =
-    selectedEntries.length > 0 &&
-    selectedEntries.every((entry) => entry.canWrite && entry.canDelete);
-  const paneAllowsMutation = !remotePane && selectionAllowsWrite;
+  const mutation = fileMutationState(tab, selectedEntries);
 
   return {
     selectedEntry,
@@ -60,42 +56,42 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
       handleCommandSelect("op.openDefault", panelId);
     },
     copy: () => {
-      if (!paneAllowsMutation) {
+      if (!mutation.canCopy) {
         return;
       }
       handleCopyOrMove(panelId, "copy");
     },
     move: () => {
-      if (!paneAllowsMutation) {
+      if (!mutation.canMove) {
         return;
       }
       handleCopyOrMove(panelId, "move");
     },
     rename: () => {
-      if (!paneAllowsMutation) {
+      if (!mutation.canRename) {
         return;
       }
       handleCommandSelect("op.rename", panelId);
     },
     newFolder: () => {
-      if (remotePane) {
+      if (!mutation.canNewFolder) {
         return;
       }
       handleCreateFolder(panelId);
     },
     delete: () => {
-      if (!paneAllowsMutation) {
+      if (!mutation.canDelete) {
         return;
       }
       handleTrash(panelId);
     },
     terminal: () => handleCommandSelect("op.openTerminal", panelId),
-    canEdit: Boolean(selectedEntry) && !remotePane,
-    canRename: countOperationalSelection(tab) === 1 && paneAllowsMutation,
-    canCopy: hasSelection && paneAllowsMutation,
-    canMove: hasSelection && paneAllowsMutation,
-    canDelete: hasSelection && paneAllowsMutation,
-    canNewFolder: !remotePane,
+    canEdit: mutation.canEdit,
+    canRename: mutation.canRename,
+    canCopy: mutation.canCopy,
+    canMove: mutation.canMove,
+    canDelete: mutation.canDelete,
+    canNewFolder: mutation.canNewFolder,
   };
 }
 

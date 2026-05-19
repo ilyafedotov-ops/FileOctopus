@@ -786,6 +786,15 @@ dialog.fo-dialog[open] {
   align-items: start;
 }
 
+.fo-copy-dialog-form:not(.fo-copy-dialog-form--advanced)
+  .fo-destination-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.fo-copy-dialog-form--advanced {
+  gap: 0.75rem;
+}
+
 .fo-destination-main {
   display: grid;
   gap: 0.5rem;
@@ -793,22 +802,25 @@ dialog.fo-dialog[open] {
 }
 
 .fo-destination-sidebar {
-  width: 200px;
-  max-height: 280px;
+  width: 188px;
+  max-height: 240px;
   overflow-y: auto;
-  border: 1px solid var(--fo-border);
-  border-radius: var(--fo-radius-sm, 6px);
-  background: color-mix(in srgb, var(--fo-strip-bg) 50%, var(--fo-control-bg));
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
+    var(--fo-classic-light) var(--fo-classic-shadow);
+  border-radius: 0;
+  background: var(--fo-classic-window);
   padding: 0.35rem;
 }
 
 .fo-destination-section-label {
   font-size: 11px;
   font-weight: 700;
-  color: var(--fo-muted-text);
+  color: var(--fo-classic-muted);
   padding: 0.2rem 0.4rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
 }
 
 .fo-destination-item {
@@ -817,10 +829,10 @@ dialog.fo-dialog[open] {
   gap: 0.4rem;
   width: 100%;
   padding: 0.25rem 0.4rem;
-  border: none;
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-radius: 0;
   background: transparent;
-  color: var(--fo-text);
+  color: var(--fo-classic-text);
   font-size: 12px;
   cursor: pointer;
   text-align: left;
@@ -830,7 +842,8 @@ dialog.fo-dialog[open] {
 }
 
 .fo-destination-item:hover {
-  background: color-mix(in srgb, var(--fo-accent) 15%, transparent);
+  border-color: var(--fo-classic-shadow);
+  background: var(--fo-classic-face);
 }
 
 .fo-destination-item-label {
@@ -840,9 +853,13 @@ dialog.fo-dialog[open] {
 
 .fo-destination-item-path {
   font-size: 10px;
-  color: var(--fo-muted-text);
+  color: var(--fo-classic-muted);
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.fo-copy-selection .fo-dialog-item-list {
+  max-height: 6.5rem;
 }
 
 .fo-dialog-checkbox {

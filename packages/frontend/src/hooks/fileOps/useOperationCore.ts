@@ -88,7 +88,7 @@ export function useOperationCore(deps: UseFileOpHandlersDeps) {
 
   async function reviewCopyMoveDialog(
     current: Extract<OperationDialog, { type: "copyMove" }>,
-  ) {
+  ): Promise<FileOperationPlanDto | null> {
     setOperationError(null);
     setDialog({ ...current, planning: true, error: null });
 
@@ -102,6 +102,7 @@ export function useOperationCore(deps: UseFileOpHandlersDeps) {
       );
 
       setDialog({ ...current, plan: planResponse.plan, planning: false });
+      return planResponse.plan;
     } catch (error) {
       const normalized = normalizeIpcError(error);
       setDialog({
@@ -109,6 +110,7 @@ export function useOperationCore(deps: UseFileOpHandlersDeps) {
         planning: false,
         error: operationErrorMessage(normalized.code, normalized.message),
       });
+      return null;
     }
   }
 

@@ -7,7 +7,9 @@ use chrono::{DateTime, Utc};
 use config::{AuthKind, NetworkProfile};
 use remote_core::{AuthSecrets, RemoteConnector, RemoteError, RemoteSession};
 use ssh2::{FileStat, FileType, KeyboardInteractivePrompt, Prompt, Session};
-use vfs::{EntryCapabilities, FileEntry, FileKind, ProviderId, ResourceUri, VfsError};
+use vfs::{FileEntry, FileKind, ProviderId, ResourceUri, VfsError};
+
+use crate::ops::capabilities_from_perm;
 
 pub struct SftpSession {
     pub(crate) session: Arc<Mutex<Session>>,
@@ -320,10 +322,7 @@ fn build_entry(uri: &ResourceUri, remote_path: &str, metadata: &FileStat) -> Fil
         FileType::Symlink => FileKind::Symlink,
         _ => FileKind::File,
     };
-    let capabilities = match kind {
-        FileKind::Directory => EntryCapabilities::read_only_directory(),
-        _ => EntryCapabilities::read_only_file(),
-    };
+    let capabilities = capabilities_from_perm(metadata.perm, kind);
     let extension = if kind == FileKind::File {
         name.rsplit('.')
             .next()
@@ -369,13 +368,13 @@ fn is_readdir_eof(error: &ssh2::Error) -> bool {
     )
 }
 
-fn map_ssh_error(error: ssh2::Error) -> VfsError {
+pub(crate) fn map_ssh_error(error: ssh2::Error) -> VfsError {
     VfsError::Internal {
         message: error.to_string(),
     }
 }
 
-fn map_stat_error(uri: &ResourceUri, error: ssh2::Error) -> VfsError {
+pub(crate) fn map_stat_error(uri: &ResourceUri, error: ssh2::Error) -> VfsError {
     if error.code() == ssh2::ErrorCode::SFTP(2) {
         VfsError::not_found(uri)
     } else {

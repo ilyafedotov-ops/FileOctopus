@@ -19,6 +19,7 @@ import type {
   StandardLocationDto,
   FavoriteEntryDto,
   RecentEntryDto,
+  NetworkProfileDto,
 } from "@fileoctopus/ts-api";
 import type { PanelId } from "../panelStore";
 import { useRef } from "react";
@@ -59,6 +60,8 @@ export type OperationDialog =
       entries: FileEntryDto[];
       destination: string;
       conflictPolicy: ConflictPolicy;
+      advancedOptions: boolean;
+      planningEnabled: boolean;
       plan: FileOperationPlanDto | null;
       planning: boolean;
       step: "review" | "confirm-overwrite";
@@ -132,6 +135,11 @@ export interface OperationDialogViewProps {
   locations?: StandardLocationDto[];
   favorites?: FavoriteEntryDto[];
   recentDestinations?: RecentEntryDto[];
+  networkProfiles?: NetworkProfileDto[];
+}
+
+function selectedItemText(count: number) {
+  return `${count} selected item${count === 1 ? "" : "s"}`;
 }
 
 function operationDialogHeading(dialog: OperationDialog): {
@@ -158,12 +166,12 @@ function operationDialogHeading(dialog: OperationDialog): {
     case "copyMove":
       return {
         title: dialog.kind === "copy" ? "Copy" : "Move",
-        subtitle: `${dialog.entries.length} selected item(s)`,
+        subtitle: selectedItemText(dialog.entries.length),
       };
     case "trash":
       return {
         title: "Move to Trash",
-        subtitle: `${dialog.entries.length} selected item(s)`,
+        subtitle: selectedItemText(dialog.entries.length),
       };
     case "permanentDelete":
       return {
@@ -182,7 +190,7 @@ function operationDialogHeading(dialog: OperationDialog): {
     case "selectionProperties":
       return {
         title: "Selection Properties",
-        subtitle: `${dialog.entries.length} selected item(s)`,
+        subtitle: selectedItemText(dialog.entries.length),
         titleId: "selection-properties-dialog-title",
       };
   }
@@ -217,6 +225,7 @@ export function OperationDialogView({
   locations,
   favorites,
   recentDestinations,
+  networkProfiles,
 }: OperationDialogViewProps) {
   const dialogRef = useRef<HTMLElement>(null);
   useDialogEscape(Boolean(dialog), onClose);
@@ -359,7 +368,7 @@ export function OperationDialogView({
             />
           ) : (
             <form
-              className="fo-dialog-form"
+              className={`fo-dialog-form fo-copy-dialog-form${dialog.advancedOptions ? " fo-copy-dialog-form--advanced" : ""}`}
               onSubmit={(event) => {
                 event.preventDefault();
                 onSubmitCopyMove(dialog);
@@ -370,7 +379,7 @@ export function OperationDialogView({
                   <label className="fo-dialog-field">
                     <span>Destination</span>
                     <input
-                      aria-label="Destination local URI"
+                      aria-label="Destination URI"
                       value={dialog.destination}
                       onChange={(event) =>
                         onUpdate({
@@ -382,40 +391,66 @@ export function OperationDialogView({
                       }
                     />
                   </label>
-                  <label className="fo-dialog-field">
-                    <span>Conflict policy</span>
-                    <select
-                      aria-label="Conflict policy"
-                      value={dialog.conflictPolicy}
-                      onChange={(event) =>
-                        onUpdate({
-                          ...dialog,
-                          conflictPolicy: event.target.value as ConflictPolicy,
-                          plan: null,
-                          error: null,
-                        })
-                      }
-                    >
-                      <option value="fail">Fail without changes</option>
-                      <option value="skip">Skip existing destinations</option>
-                      <option value="overwrite">
-                        Overwrite existing destinations
-                      </option>
-                      <option value="renameNew">Rename new items</option>
-                      <option value="renameExisting">
-                        Rename existing items
-                      </option>
-                    </select>
-                  </label>
-                  <div className="fo-dialog-callout">
-                    <strong>{dialog.entries.length} item(s) selected</strong>
+                  {dialog.advancedOptions ? (
+                    <>
+                      <label className="fo-dialog-field">
+                        <span>Conflict policy</span>
+                        <select
+                          aria-label="Conflict policy"
+                          value={dialog.conflictPolicy}
+                          onChange={(event) =>
+                            onUpdate({
+                              ...dialog,
+                              conflictPolicy: event.target
+                                .value as ConflictPolicy,
+                              plan: null,
+                              error: null,
+                            })
+                          }
+                        >
+                          <option value="fail">Fail without changes</option>
+                          <option value="skip">
+                            Skip existing destinations
+                          </option>
+                          <option value="overwrite">
+                            Overwrite existing destinations
+                          </option>
+                          <option value="renameNew">Rename new items</option>
+                          <option value="renameExisting">
+                            Rename existing items
+                          </option>
+                        </select>
+                      </label>
+                      <label className="fo-dialog-checkbox">
+                        <input
+                          type="checkbox"
+                          checked={dialog.planningEnabled}
+                          onChange={(event) =>
+                            onUpdate({
+                              ...dialog,
+                              planningEnabled: event.target.checked,
+                              plan: null,
+                              error: null,
+                            })
+                          }
+                        />
+                        <span>Preview operation plan before copying</span>
+                      </label>
+                    </>
+                  ) : null}
+                  <div className="fo-dialog-callout fo-copy-selection">
+                    <strong>{selectedItemText(dialog.entries.length)}</strong>
                     <OperationItemList entries={dialog.entries.slice(0, 5)} />
                   </div>
-                  {dialog.plan ? (
+                  {dialog.advancedOptions &&
+                  dialog.planningEnabled &&
+                  dialog.plan ? (
                     <div className="fo-dialog-callout">
                       <strong>
-                        {dialog.plan.totalItems} planned item(s),{" "}
-                        {dialog.plan.conflicts.length} conflict(s)
+                        {dialog.plan.totalItems} planned item
+                        {dialog.plan.totalItems === 1 ? "" : "s"},{" "}
+                        {dialog.plan.conflicts.length} conflict
+                        {dialog.plan.conflicts.length === 1 ? "" : "s"}
                       </strong>
                       {dialog.plan.conflicts.slice(0, 3).map((conflict) => (
                         <span
@@ -438,14 +473,17 @@ export function OperationDialogView({
                     <div className="fo-operation-error">{dialog.error}</div>
                   ) : null}
                 </div>
-                {(locations && locations.length > 0) ||
-                (favorites && favorites.length > 0) ||
-                (recentDestinations && recentDestinations.length > 0) ? (
+                {dialog.advancedOptions &&
+                ((locations && locations.length > 0) ||
+                  (favorites && favorites.length > 0) ||
+                  (recentDestinations && recentDestinations.length > 0) ||
+                  (networkProfiles && networkProfiles.length > 0)) ? (
                   <div className="fo-destination-sidebar">
                     <DestinationChooser
                       locations={locations ?? []}
                       favorites={favorites ?? []}
                       recent={recentDestinations ?? []}
+                      networkProfiles={networkProfiles ?? []}
                       onSelect={(uri) =>
                         onUpdate({
                           ...dialog,
@@ -459,22 +497,30 @@ export function OperationDialogView({
                 ) : null}
               </div>
               <div className="fo-dialog-footer">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={dialog.planning}
-                  onClick={() => onReviewCopyMove(dialog)}
-                >
-                  {dialog.planning ? "Planning" : "Plan"}
-                </Button>
+                {dialog.advancedOptions && dialog.planningEnabled ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={dialog.planning}
+                    onClick={() => onReviewCopyMove(dialog)}
+                  >
+                    {dialog.planning ? "Planning" : "Plan"}
+                  </Button>
+                ) : null}
                 <Button
                   type="submit"
                   variant="primary"
                   size="sm"
-                  disabled={dialog.planning || !dialog.plan}
+                  disabled={
+                    dialog.planning || (dialog.planningEnabled && !dialog.plan)
+                  }
                 >
-                  Start
+                  {dialog.planning
+                    ? "Planning"
+                    : dialog.kind === "copy"
+                      ? "Copy"
+                      : "Move"}
                 </Button>
               </div>
             </form>

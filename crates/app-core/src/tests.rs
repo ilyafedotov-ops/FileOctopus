@@ -103,7 +103,10 @@ fn history_cleanup_keeps_active_jobs() {
 fn successful_operation_is_persisted_as_completed() {
     let dir = tempfile::tempdir().unwrap();
     let history_path = dir.path().join("history.sqlite");
-    let runtime = OperationRuntime::new(OperationHistoryRepository::new(history_path).unwrap());
+    let runtime = OperationRuntime::new(
+        fs_core::vfs_io::VfsFilesystem::local_only(),
+        OperationHistoryRepository::new(history_path).unwrap(),
+    );
     let source = dir.path().join("source.txt");
     let destination = dir.path().join("dest");
     let (sender, receiver) = mpsc::channel();
@@ -168,6 +171,7 @@ fn successful_operation_is_persisted_as_completed() {
 fn failed_operation_is_persisted_as_failed() {
     let dir = tempfile::tempdir().unwrap();
     let runtime = OperationRuntime::new(
+        fs_core::vfs_io::VfsFilesystem::local_only(),
         OperationHistoryRepository::new(dir.path().join("history.sqlite")).unwrap(),
     );
     let source = dir.path().join("source.txt");
@@ -216,6 +220,7 @@ fn failed_operation_is_persisted_as_failed() {
 fn cancelled_operation_is_persisted_as_cancelled() {
     let dir = tempfile::tempdir().unwrap();
     let runtime = OperationRuntime::new(
+        fs_core::vfs_io::VfsFilesystem::local_only(),
         OperationHistoryRepository::new(dir.path().join("history.sqlite")).unwrap(),
     );
     let source = dir.path().join("large.bin");
@@ -266,7 +271,10 @@ fn cancelled_operation_is_persisted_as_cancelled() {
 fn planned_operation_is_removed_after_start() {
     let dir = tempfile::tempdir().unwrap();
     let history_path = dir.path().join("history.sqlite");
-    let runtime = OperationRuntime::new(OperationHistoryRepository::new(history_path).unwrap());
+    let runtime = OperationRuntime::new(
+        fs_core::vfs_io::VfsFilesystem::local_only(),
+        OperationHistoryRepository::new(history_path).unwrap(),
+    );
     let source = dir.path().join("source.txt");
     let destination = dir.path().join("dest");
     let (sender, receiver) = mpsc::channel();

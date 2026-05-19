@@ -226,6 +226,26 @@ impl EntryCapabilities {
             can_rename: false,
         }
     }
+
+    pub fn writable_file() -> Self {
+        Self {
+            can_read: true,
+            can_list: false,
+            can_write: true,
+            can_delete: true,
+            can_rename: true,
+        }
+    }
+
+    pub fn writable_directory() -> Self {
+        Self {
+            can_read: false,
+            can_list: true,
+            can_write: true,
+            can_delete: true,
+            can_rename: true,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -246,6 +266,16 @@ impl ProviderCapabilities {
             can_read: true,
             can_write: false,
             can_delete: false,
+        }
+    }
+
+    pub fn read_write() -> Self {
+        Self {
+            can_stat: true,
+            can_list: true,
+            can_read: true,
+            can_write: true,
+            can_delete: true,
         }
     }
 }

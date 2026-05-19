@@ -9,6 +9,8 @@ use vfs::{
     ConflictPolicy, FileKind, FileOperationError, FileOperationItem, FileOperationPlan, ResourceUri,
 };
 
+use crate::vfs_io::VfsFilesystem;
+
 use super::paths::{is_cross_device_error, map_std_io_error};
 use super::trash::move_to_trash;
 use super::FileOperationEventSink;
@@ -17,6 +19,7 @@ pub(super) const COPY_BUFFER_SIZE: usize = 64 * 1024;
 pub(super) const PROGRESS_BYTE_INTERVAL: u64 = 1024 * 1024;
 
 pub(super) fn execute_copy(
+    vfs: &VfsFilesystem,
     plan: &FileOperationPlan,
     job_id: &JobId,
     cancel: &CancellationToken,
@@ -29,32 +32,34 @@ pub(super) fn execute_copy(
         let Some(destination) = &item.destination else {
             continue;
         };
-        let destination_path = destination.to_local_path()?;
 
-        if destination_path.exists() && plan.conflict_policy == ConflictPolicy::Skip {
+        if vfs.exists(destination)? && plan.conflict_policy == ConflictPolicy::Skip {
             progress.complete_item(item, job_id, sink);
             continue;
         }
 
-        let destination = resolve_conflict_path(destination_path, plan.conflict_policy)?;
+        let destination = resolve_conflict_uri(vfs, destination, plan.conflict_policy)?;
 
         match item.kind {
-            FileKind::Directory => fs::create_dir_all(&destination)
-                .map_err(|error| map_std_io_error(&destination, error))?,
+            FileKind::Directory => vfs.mkdir(&destination)?,
             FileKind::File | FileKind::Archive | FileKind::Virtual | FileKind::Unknown => {
-                if let Some(parent) = destination.parent() {
-                    fs::create_dir_all(parent).map_err(|error| map_std_io_error(parent, error))?;
-                }
-
                 if let Some(source) = &item.source {
-                    copy_file_streaming(
-                        &source.to_local_path()?,
-                        &destination,
-                        job_id,
-                        cancel,
-                        &mut progress,
-                        sink,
-                    )?;
+                    if source.scheme() == "local" && destination.scheme() == "local" {
+                        copy_file_streaming(
+                            &source.to_local_path()?,
+                            &destination.to_local_path()?,
+                            job_id,
+                            cancel,
+                            &mut progress,
+                            sink,
+                        )?;
+                    } else {
+                        let destination_uri = destination.clone();
+                        vfs.copy_file(source, &destination_uri, |bytes| {
+                            progress.completed_bytes = bytes;
+                            progress.emit_chunk_uri(job_id, &destination_uri, sink);
+                        })?;
+                    }
                 }
             }
             FileKind::Symlink => {
@@ -79,6 +84,7 @@ pub(super) fn execute_copy(
 }
 
 pub(super) fn execute_move(
+    vfs: &VfsFilesystem,
     plan: &FileOperationPlan,
     job_id: &JobId,
     cancel: &CancellationToken,
@@ -88,65 +94,95 @@ pub(super) fn execute_move(
 
     if plan.sources.len() == 1 {
         let root = &plan.sources[0];
-        let source_path = root.to_local_path()?;
-        let root_name =
-            source_path
-                .file_name()
+        let destination_dir = plan.destination.as_ref().unwrap();
+        let destination = if root.scheme() == "local" && destination_dir.scheme() == "local" {
+            let source_path = root.to_local_path()?;
+            let root_name =
+                source_path
+                    .file_name()
+                    .ok_or_else(|| FileOperationError::InvalidRequest {
+                        message: "source must have a basename".to_string(),
+                    })?;
+            ResourceUri::from_local_path(&destination_dir.to_local_path()?.join(root_name))?
+        } else {
+            let name = root
+                .remote_path()
+                .or_else(|| {
+                    root.to_local_path().ok().and_then(|path| {
+                        path.file_name()
+                            .map(|value| value.to_string_lossy().to_string())
+                    })
+                })
+                .and_then(|path| {
+                    path.trim_end_matches('/')
+                        .rsplit('/')
+                        .next()
+                        .map(str::to_string)
+                })
                 .ok_or_else(|| FileOperationError::InvalidRequest {
                     message: "source must have a basename".to_string(),
                 })?;
-        let destination_dir = plan.destination.as_ref().unwrap().to_local_path()?;
-        let destination = destination_dir.join(root_name);
+            if root.scheme() == "local" {
+                vfs.join_local_parent(destination_dir, &name)?
+            } else {
+                vfs.join_remote_parent(destination_dir, &name)?
+            }
+        };
 
-        if destination.exists() && plan.conflict_policy == ConflictPolicy::Skip {
+        if vfs.exists(&destination)? && plan.conflict_policy == ConflictPolicy::Skip {
             return Ok(());
         }
 
-        let destination = resolve_conflict_path(destination, plan.conflict_policy)?;
-
-        match fs::rename(&source_path, &destination) {
-            Ok(()) => return Ok(()),
-            Err(error) if is_cross_device_error(&error) => {}
-            Err(error) => return Err(map_std_io_error(&source_path, error)),
+        let destination = resolve_conflict_uri(vfs, &destination, plan.conflict_policy)?;
+        if root.scheme() == destination.scheme() {
+            if root.scheme() == "local" {
+                match fs::rename(&root.to_local_path()?, &destination.to_local_path()?) {
+                    Ok(()) => return Ok(()),
+                    Err(error) if is_cross_device_error(&error) => {}
+                    Err(error) => return Err(map_std_io_error(&root.to_local_path()?, error)),
+                }
+            } else if root.remote_authority() == destination.remote_authority() {
+                vfs.rename(root, &destination)?;
+                return Ok(());
+            }
         }
     }
 
-    execute_copy(plan, job_id, cancel, sink)?;
+    execute_copy(vfs, plan, job_id, cancel, sink)?;
 
     for source in &plan.sources {
-        let source_path = source.to_local_path()?;
-
-        if source_path.is_dir() {
-            fs::remove_dir_all(&source_path)
-                .map_err(|error| map_std_io_error(&source_path, error))?;
-        } else if source_path.exists() {
-            fs::remove_file(&source_path).map_err(|error| map_std_io_error(&source_path, error))?;
-        }
+        vfs.remove(source, true)?;
     }
 
     Ok(())
 }
 
-pub(super) fn execute_rename(plan: &FileOperationPlan) -> Result<(), FileOperationError> {
+pub(super) fn execute_rename(
+    vfs: &VfsFilesystem,
+    plan: &FileOperationPlan,
+) -> Result<(), FileOperationError> {
     let item = plan
         .items
         .first()
         .ok_or_else(|| FileOperationError::InvalidRequest {
             message: "rename plan has no item".to_string(),
         })?;
-    let source = item.source.as_ref().unwrap().to_local_path()?;
-    let destination = item.destination.as_ref().unwrap().to_local_path()?;
+    let source = item.source.as_ref().unwrap();
+    let destination = item.destination.as_ref().unwrap();
 
-    if destination.exists() {
+    if vfs.exists(destination)? {
         return Err(FileOperationError::DestinationConflict {
-            uri: item.destination.as_ref().unwrap().as_str().to_string(),
+            uri: destination.as_str().to_string(),
         });
     }
 
-    fs::rename(&source, &destination).map_err(|error| map_std_io_error(&source, error))
+    vfs.rename(source, destination)
 }
 
-pub(super) fn execute_create_directory(plan: &FileOperationPlan) -> Result<(), FileOperationError> {
+pub(super) fn execute_create_directory(
+    vfs: &VfsFilesystem,
+    plan: &FileOperationPlan,
+) -> Result<(), FileOperationError> {
     let destination = plan
         .items
         .first()
@@ -154,18 +190,20 @@ pub(super) fn execute_create_directory(plan: &FileOperationPlan) -> Result<(), F
         .ok_or_else(|| FileOperationError::InvalidRequest {
             message: "create directory plan has no destination".to_string(),
         })?;
-    let destination_path = destination.to_local_path()?;
 
-    if destination_path.exists() {
+    if vfs.exists(destination)? {
         return Err(FileOperationError::DestinationConflict {
             uri: destination.as_str().to_string(),
         });
     }
 
-    fs::create_dir(&destination_path).map_err(|error| map_std_io_error(&destination_path, error))
+    vfs.mkdir(destination)
 }
 
-pub(super) fn execute_create_file(plan: &FileOperationPlan) -> Result<(), FileOperationError> {
+pub(super) fn execute_create_file(
+    vfs: &VfsFilesystem,
+    plan: &FileOperationPlan,
+) -> Result<(), FileOperationError> {
     let destination = plan
         .items
         .first()
@@ -173,40 +211,40 @@ pub(super) fn execute_create_file(plan: &FileOperationPlan) -> Result<(), FileOp
         .ok_or_else(|| FileOperationError::InvalidRequest {
             message: "create file plan has no destination".to_string(),
         })?;
-    let destination_path = destination.to_local_path()?;
 
-    if destination_path.exists() {
+    if vfs.exists(destination)? {
         return Err(FileOperationError::DestinationConflict {
             uri: destination.as_str().to_string(),
         });
     }
 
-    File::create_new(&destination_path)
-        .map(|_| ())
-        .map_err(|error| map_std_io_error(&destination_path, error))
+    vfs.create_empty_file(destination)
 }
 
-pub(super) fn execute_trash(plan: &FileOperationPlan) -> Result<(), FileOperationError> {
+pub(super) fn execute_trash(
+    vfs: &VfsFilesystem,
+    plan: &FileOperationPlan,
+) -> Result<(), FileOperationError> {
     for source in &plan.sources {
-        let path = source.to_local_path()?;
-
-        move_to_trash(&path)?;
+        if source.scheme() == "local" {
+            move_to_trash(&source.to_local_path()?)?;
+        } else {
+            return Err(FileOperationError::UnsupportedTrash {
+                message: "remote trash is not supported".to_string(),
+            });
+        }
     }
 
+    let _ = vfs;
     Ok(())
 }
 
 pub(super) fn execute_delete_permanently(
+    vfs: &VfsFilesystem,
     plan: &FileOperationPlan,
 ) -> Result<(), FileOperationError> {
     for source in &plan.sources {
-        let path = source.to_local_path()?;
-
-        if path.is_dir() {
-            fs::remove_dir_all(&path).map_err(|error| map_std_io_error(&path, error))?;
-        } else {
-            fs::remove_file(&path).map_err(|error| map_std_io_error(&path, error))?;
-        }
+        vfs.remove(source, true)?;
     }
 
     Ok(())
@@ -249,6 +287,37 @@ pub(super) fn copy_file_streaming(
     }
 
     Ok(())
+}
+
+pub(super) fn resolve_conflict_uri(
+    vfs: &VfsFilesystem,
+    destination: &ResourceUri,
+    policy: ConflictPolicy,
+) -> Result<ResourceUri, FileOperationError> {
+    if !vfs.exists(destination)? {
+        return Ok(destination.clone());
+    }
+
+    if destination.scheme() != "local" {
+        return match policy {
+            ConflictPolicy::Fail => Err(FileOperationError::DestinationConflict {
+                uri: destination.as_str().to_string(),
+            }),
+            ConflictPolicy::Skip => Ok(destination.clone()),
+            ConflictPolicy::Overwrite => {
+                vfs.remove(destination, true)?;
+                Ok(destination.clone())
+            }
+            ConflictPolicy::RenameNew | ConflictPolicy::RenameExisting => {
+                Err(FileOperationError::InvalidRequest {
+                    message: "remote conflict rename policies are not supported yet".to_string(),
+                })
+            }
+        };
+    }
+
+    let resolved = resolve_conflict_path(destination.to_local_path()?, policy)?;
+    ResourceUri::from_local_path(&resolved).map_err(FileOperationError::from)
 }
 
 pub(super) fn resolve_conflict_path(
@@ -382,5 +451,19 @@ impl<'a> ExecutionProgress<'a> {
 
         self.last_emitted_bytes = self.completed_bytes;
         self.emit(job_id, Some(path.to_string_lossy().to_string()), sink);
+    }
+
+    pub(super) fn emit_chunk_uri(
+        &mut self,
+        job_id: &JobId,
+        uri: &ResourceUri,
+        sink: &FileOperationEventSink,
+    ) {
+        if self.completed_bytes.saturating_sub(self.last_emitted_bytes) < PROGRESS_BYTE_INTERVAL {
+            return;
+        }
+
+        self.last_emitted_bytes = self.completed_bytes;
+        self.emit(job_id, Some(uri.display_path()), sink);
     }
 }

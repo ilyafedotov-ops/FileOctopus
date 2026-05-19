@@ -44,6 +44,7 @@ export function createPreviewTransport(): IpcTransport {
     toolbarEntries: "",
     paneMode: "dual",
     jobDrawerBehavior: "manual",
+    showAdvancedCopyOptions: false,
   };
   const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
   const folderSizeHandlers = new Set<

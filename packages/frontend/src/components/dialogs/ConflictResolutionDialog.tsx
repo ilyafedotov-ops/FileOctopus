@@ -5,6 +5,7 @@ import type {
   FileEntryDto,
   FsClient,
 } from "@fileoctopus/ts-api";
+import { displayPathFromUri } from "@fileoctopus/ts-api";
 
 type ConflictAction = "overwrite" | "skip" | "renameNew";
 
@@ -28,12 +29,13 @@ interface ConflictResolutionDialogProps {
 }
 
 function fileNameFromUri(uri: string): string {
-  const parts = uri.replace("local://", "").split("/");
+  const path = displayPathFromUri(uri);
+  const parts = path.split("/");
   return parts[parts.length - 1] || uri;
 }
 
 function parentPathFromUri(uri: string): string {
-  const path = uri.replace("local://", "");
+  const path = displayPathFromUri(uri);
   const idx = path.lastIndexOf("/");
   return idx > 0 ? path.substring(0, idx) : "/";
 }

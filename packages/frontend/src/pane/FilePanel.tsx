@@ -39,7 +39,7 @@ import {
   type VisibleColumns,
 } from "./columnWidths";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
-import { isRemoteUri } from "@fileoctopus/ts-api";
+import { paneDirectoryCanWrite } from "../navigation/fileMutationState";
 import type { ContextMenuState } from "../components/ContextMenu";
 
 export type CopyMoveKind = "copy" | "move";
@@ -253,7 +253,7 @@ export function FilePanel({
           message={tab.error}
           errorCode={tab.errorCode}
           canPaste={canPaste}
-          allowCreation={!isRemoteUri(tab.uri)}
+          allowCreation={paneDirectoryCanWrite(tab)}
           onRetry={() => onNavigate(tab.uri)}
           onRefresh={onRefresh}
           onCreateFolder={onCreateFolder}

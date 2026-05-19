@@ -55,6 +55,7 @@ pub struct UserPreferencesDto {
     pub toolbar_entries: String,
     pub pane_mode: String,
     pub job_drawer_behavior: String,
+    pub show_advanced_copy_options: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -932,6 +933,7 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             toolbar_entries: value.toolbar_entries,
             pane_mode: value.pane_mode,
             job_drawer_behavior: value.job_drawer_behavior,
+            show_advanced_copy_options: value.show_advanced_copy_options,
         }
     }
 }

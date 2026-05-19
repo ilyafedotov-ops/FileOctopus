@@ -1,13 +1,14 @@
 mod archive;
 mod execution;
 mod paths;
-mod planning;
+pub(crate) mod planning;
 mod trash;
 
+use crate::vfs_io::VfsFilesystem;
 use jobs::{CancellationToken, JobEvent, JobId};
 use vfs::{
     ConflictPolicy, FileOperationError, FileOperationKind, FileOperationPlan, FileOperationRequest,
-    ResourceUri,
+    ResourceUri, REMOTE_SCHEMES,
 };
 
 use archive::{execute_create_archive, execute_extract_archive};
@@ -24,21 +25,22 @@ use planning::{
 pub type FileOperationEventSink = dyn Fn(JobEvent) + Send + Sync;
 
 pub fn plan_file_operation(
+    vfs: &VfsFilesystem,
     request: FileOperationRequest,
 ) -> Result<FileOperationPlan, FileOperationError> {
-    validate_request_shape(&request)?;
+    validate_request_shape(vfs, &request)?;
 
     let operation_id = uuid::Uuid::new_v4().to_string();
     let mut warnings = Vec::new();
     let mut items = match request.kind {
         FileOperationKind::Copy | FileOperationKind::Move => {
-            plan_copy_or_move_items(&request, &mut warnings)?
+            plan_copy_or_move_items(vfs, &request, &mut warnings)?
         }
-        FileOperationKind::Rename => vec![plan_rename_item(&request)?],
-        FileOperationKind::CreateDirectory => vec![plan_create_directory_item(&request)?],
-        FileOperationKind::CreateFile => vec![plan_create_file_item(&request)?],
+        FileOperationKind::Rename => vec![plan_rename_item(vfs, &request)?],
+        FileOperationKind::CreateDirectory => vec![plan_create_directory_item(vfs, &request)?],
+        FileOperationKind::CreateFile => vec![plan_create_file_item(vfs, &request)?],
         FileOperationKind::DeleteToTrash | FileOperationKind::DeletePermanently => {
-            plan_delete_items(&request)?
+            plan_delete_items(vfs, &request)?
         }
         FileOperationKind::CreateArchive => plan_create_archive_items(&request, &mut warnings)?,
         FileOperationKind::ExtractArchive => plan_extract_archive_items(&request)?,
@@ -66,7 +68,7 @@ pub fn plan_file_operation(
         left_key.cmp(right_key)
     });
 
-    let conflicts = detect_conflicts(&items);
+    let conflicts = detect_conflicts(vfs, &items);
     let total_items = items.len() as u64;
     let total_bytes = items
         .iter()
@@ -88,6 +90,7 @@ pub fn plan_file_operation(
 }
 
 pub fn execute_file_operation(
+    vfs: &VfsFilesystem,
     plan: &FileOperationPlan,
     job_id: &JobId,
     cancel: &CancellationToken,
@@ -99,13 +102,13 @@ pub fn execute_file_operation(
     }
 
     match plan.kind {
-        FileOperationKind::Copy => execute_copy(plan, job_id, cancel, sink),
-        FileOperationKind::Move => execute_move(plan, job_id, cancel, sink),
-        FileOperationKind::Rename => execute_rename(plan),
-        FileOperationKind::CreateDirectory => execute_create_directory(plan),
-        FileOperationKind::CreateFile => execute_create_file(plan),
-        FileOperationKind::DeleteToTrash => execute_trash(plan),
-        FileOperationKind::DeletePermanently => execute_delete_permanently(plan),
+        FileOperationKind::Copy => execute_copy(vfs, plan, job_id, cancel, sink),
+        FileOperationKind::Move => execute_move(vfs, plan, job_id, cancel, sink),
+        FileOperationKind::Rename => execute_rename(vfs, plan),
+        FileOperationKind::CreateDirectory => execute_create_directory(vfs, plan),
+        FileOperationKind::CreateFile => execute_create_file(vfs, plan),
+        FileOperationKind::DeleteToTrash => execute_trash(vfs, plan),
+        FileOperationKind::DeletePermanently => execute_delete_permanently(vfs, plan),
         FileOperationKind::CreateArchive => execute_create_archive(plan, job_id, cancel, sink),
         FileOperationKind::ExtractArchive => execute_extract_archive(plan, job_id, cancel, sink),
         FileOperationKind::FolderSize | FileOperationKind::RecursiveSearch => {
@@ -116,13 +119,36 @@ pub fn execute_file_operation(
     }
 }
 
-fn validate_request_shape(request: &FileOperationRequest) -> Result<(), FileOperationError> {
+fn validate_request_shape(
+    vfs: &VfsFilesystem,
+    request: &FileOperationRequest,
+) -> Result<(), FileOperationError> {
     for source in &request.sources {
-        source.to_local_path()?;
+        vfs.validate_uri(source)?;
     }
 
     if let Some(destination) = &request.destination {
-        destination.to_local_path()?;
+        vfs.validate_uri(destination)?;
+    }
+
+    if matches!(
+        request.kind,
+        FileOperationKind::CreateArchive | FileOperationKind::ExtractArchive
+    ) {
+        for source in &request.sources {
+            if REMOTE_SCHEMES.contains(&source.scheme()) {
+                return Err(FileOperationError::UnsupportedProvider {
+                    scheme: source.scheme().to_string(),
+                });
+            }
+        }
+        if let Some(destination) = &request.destination {
+            if REMOTE_SCHEMES.contains(&destination.scheme()) {
+                return Err(FileOperationError::UnsupportedProvider {
+                    scheme: destination.scheme().to_string(),
+                });
+            }
+        }
     }
 
     match request.kind {

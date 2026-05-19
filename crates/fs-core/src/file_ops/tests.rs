@@ -9,7 +9,13 @@ use zip::write::FileOptions;
 
 use super::execution::PROGRESS_BYTE_INTERVAL;
 use super::planning::collect_copy_or_move_items;
+use crate::vfs_io::VfsFilesystem;
+
 use super::{execute_file_operation, plan_file_operation};
+
+fn vfs() -> VfsFilesystem {
+    VfsFilesystem::local_only()
+}
 
 fn uri(path: &Path) -> ResourceUri {
     ResourceUri::from_local_path(path).unwrap()
@@ -37,11 +43,14 @@ fn planner_rejects_copy_into_itself() {
 
     fs::create_dir_all(&child).unwrap();
 
-    let error = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&child)),
-    ))
+    let error = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&child)),
+        ),
+    )
     .unwrap_err();
 
     assert_eq!(error.code(), "recursive_operation");
@@ -57,11 +66,14 @@ fn planner_reports_destination_conflicts() {
     fs::create_dir(&dest).unwrap();
     fs::write(dest.join("a.txt"), b"existing").unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap();
 
     assert_eq!(plan.conflicts.len(), 1);
@@ -77,11 +89,14 @@ fn planner_reports_directory_destination_conflicts() {
     fs::create_dir(&dest).unwrap();
     fs::create_dir(dest.join("source")).unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap();
 
     assert_eq!(plan.conflicts.len(), 1);
@@ -95,11 +110,14 @@ fn planner_reports_missing_source() {
 
     fs::create_dir(&dest).unwrap();
 
-    let error = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let error = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap_err();
 
     assert_eq!(error.code(), "not_found");
@@ -113,11 +131,14 @@ fn planner_reports_missing_destination_parent() {
 
     fs::write(&source, b"a").unwrap();
 
-    let error = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let error = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap_err();
 
     assert_eq!(error.code(), "destination_missing");
@@ -153,13 +174,17 @@ fn copy_file_produces_identical_content() {
     fs::write(&source, b"hello").unwrap();
     fs::create_dir(&dest).unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap();
     execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -180,13 +205,17 @@ fn copy_directory_preserves_structure() {
     fs::write(source.join("nested/file.txt"), b"nested").unwrap();
     fs::create_dir(&dest).unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap();
     execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -209,13 +238,17 @@ fn unicode_paths_copy_move_rename_and_trash_plan_without_lossy_conversion() {
     fs::write(&source, b"unicode").unwrap();
     fs::create_dir(&dest).unwrap();
 
-    let copy = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let copy = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap();
     execute_file_operation(
+        &vfs(),
         &copy,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -230,8 +263,9 @@ fn unicode_paths_copy_move_rename_and_trash_plan_without_lossy_conversion() {
 
     let mut rename = request(FileOperationKind::Rename, vec![uri(&source)], None);
     rename.new_name = Some("renamed-ß.txt".to_string());
-    let rename = plan_file_operation(rename).unwrap();
+    let rename = plan_file_operation(&vfs(), rename).unwrap();
     execute_file_operation(
+        &vfs(),
         &rename,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -254,16 +288,20 @@ fn symlink_listing_policy_does_not_recurse_or_copy_link_objects() {
     fs::create_dir(&dest).unwrap();
     std::os::unix::fs::symlink(&source, &link).unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap();
 
     assert!(plan.items.iter().any(|item| item.kind == FileKind::Symlink));
 
     let error = execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -285,13 +323,17 @@ fn large_file_copy_emits_multiple_progress_updates() {
     fs::write(&source, vec![7_u8; (PROGRESS_BYTE_INTERVAL as usize) * 3]).unwrap();
     fs::create_dir(&dest).unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap();
     execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -320,13 +362,17 @@ fn move_file_uses_fast_path_and_removes_source() {
     fs::write(&source, b"move").unwrap();
     fs::create_dir(&dest).unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::Move,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Move,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap();
     execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -348,13 +394,17 @@ fn failed_move_conflict_leaves_source_intact() {
     fs::create_dir(&dest).unwrap();
     fs::write(dest.join("move.txt"), b"existing").unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::Move,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Move,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap();
     let error = execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -375,9 +425,10 @@ fn rename_changes_only_basename() {
 
     let mut operation = request(FileOperationKind::Rename, vec![uri(&source)], None);
     operation.new_name = Some("new.txt".to_string());
-    let plan = plan_file_operation(operation).unwrap();
+    let plan = plan_file_operation(&vfs(), operation).unwrap();
 
     execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -399,8 +450,9 @@ fn open_file_rename_does_not_crash() {
 
     let mut operation = request(FileOperationKind::Rename, vec![uri(&source)], None);
     operation.new_name = Some("renamed-open.txt".to_string());
-    let plan = plan_file_operation(operation).unwrap();
+    let plan = plan_file_operation(&vfs(), operation).unwrap();
     let result = execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -422,13 +474,17 @@ fn create_directory_rejects_duplicate() {
 
     fs::create_dir(&target).unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::CreateDirectory,
-        Vec::new(),
-        Some(uri(&target)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::CreateDirectory,
+            Vec::new(),
+            Some(uri(&target)),
+        ),
+    )
     .unwrap();
     let error = execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -444,14 +500,18 @@ fn create_file_creates_empty_file() {
     let dir = tempdir().unwrap();
     let target = dir.path().join("new.txt");
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::CreateFile,
-        Vec::new(),
-        Some(uri(&target)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::CreateFile,
+            Vec::new(),
+            Some(uri(&target)),
+        ),
+    )
     .unwrap();
 
     execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -473,14 +533,18 @@ fn delete_permanently_removes_files_and_directories() {
     fs::create_dir(&folder).unwrap();
     fs::write(folder.join("nested.txt"), b"nested").unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::DeletePermanently,
-        vec![uri(&file), uri(&folder)],
-        None,
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::DeletePermanently,
+            vec![uri(&file), uri(&folder)],
+            None,
+        ),
+    )
     .unwrap();
 
     execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -500,14 +564,18 @@ fn create_archive_writes_zip_file() {
 
     fs::write(&source, b"archive me").unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::CreateArchive,
-        vec![uri(&source)],
-        Some(uri(&archive_path)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::CreateArchive,
+            vec![uri(&source)],
+            Some(uri(&archive_path)),
+        ),
+    )
     .unwrap();
 
     execute_file_operation(
+        &vfs(),
         &plan,
         &JobId::new("job"),
         &CancellationToken::new(),
@@ -530,13 +598,17 @@ fn extract_archive_writes_files_to_destination() {
 
     fs::write(&source, b"archive me").unwrap();
 
-    let create_plan = plan_file_operation(request(
-        FileOperationKind::CreateArchive,
-        vec![uri(&source)],
-        Some(uri(&archive_path)),
-    ))
+    let create_plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::CreateArchive,
+            vec![uri(&source)],
+            Some(uri(&archive_path)),
+        ),
+    )
     .unwrap();
     execute_file_operation(
+        &vfs(),
         &create_plan,
         &JobId::new("job-create"),
         &CancellationToken::new(),
@@ -544,13 +616,17 @@ fn extract_archive_writes_files_to_destination() {
     )
     .unwrap();
 
-    let extract_plan = plan_file_operation(request(
-        FileOperationKind::ExtractArchive,
-        vec![uri(&archive_path)],
-        Some(uri(&extract_dir)),
-    ))
+    let extract_plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::ExtractArchive,
+            vec![uri(&archive_path)],
+            Some(uri(&extract_dir)),
+        ),
+    )
     .unwrap();
     execute_file_operation(
+        &vfs(),
         &extract_plan,
         &JobId::new("job-extract"),
         &CancellationToken::new(),
@@ -578,11 +654,14 @@ fn extract_archive_rejects_path_traversal_entries() {
     archive.write_all(b"nope").unwrap();
     archive.finish().unwrap();
 
-    let error = plan_file_operation(request(
-        FileOperationKind::ExtractArchive,
-        vec![uri(&archive_path)],
-        Some(uri(&extract_dir)),
-    ))
+    let error = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::ExtractArchive,
+            vec![uri(&archive_path)],
+            Some(uri(&extract_dir)),
+        ),
+    )
     .unwrap_err();
 
     assert_eq!(error.code(), "invalid_request");
@@ -598,14 +677,17 @@ fn cancellation_stops_large_copy() {
     fs::write(&source, vec![7_u8; (PROGRESS_BYTE_INTERVAL as usize) * 2]).unwrap();
     fs::create_dir(&dest).unwrap();
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap();
     let token = cancel.clone();
-    let result = execute_file_operation(&plan, &JobId::new("job"), &cancel, &move |_| {
+    let result = execute_file_operation(&vfs(), &plan, &JobId::new("job"), &cancel, &move |_| {
         token.cancel();
     });
 
@@ -625,14 +707,17 @@ fn cancellation_stops_many_small_file_copy() {
         fs::write(source.join(format!("file-{index}.txt")), b"x").unwrap();
     }
 
-    let plan = plan_file_operation(request(
-        FileOperationKind::Copy,
-        vec![uri(&source)],
-        Some(uri(&dest)),
-    ))
+    let plan = plan_file_operation(
+        &vfs(),
+        request(
+            FileOperationKind::Copy,
+            vec![uri(&source)],
+            Some(uri(&dest)),
+        ),
+    )
     .unwrap();
     let token = cancel.clone();
-    let result = execute_file_operation(&plan, &JobId::new("job"), &cancel, &move |_| {
+    let result = execute_file_operation(&vfs(), &plan, &JobId::new("job"), &cancel, &move |_| {
         token.cancel();
     });
 

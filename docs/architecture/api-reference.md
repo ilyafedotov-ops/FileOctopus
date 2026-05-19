@@ -285,7 +285,7 @@ Clears the pinned host-key fingerprint for the given profile. The next successfu
 
 `SftpConnector` computes the SHA-256 base64 (unpadded) fingerprint of the server's host key on every connect. On first successful authentication, the fingerprint is persisted to the `network_profiles.host_key_fingerprint` column. Subsequent connects compare the observed fingerprint against the pinned value and refuse the connection on mismatch with `RemoteError::AuthenticationFailed`. Users can clear the pin from the Edit Server dialog ("Forget pinned fingerprint"); this restores TOFU on the next connect.
 
-Once connected, `fs_stat` and `fs_list_start` work for `sftp://` URIs through `SftpProvider`. File mutations (`plan_file_operation`, watch, folder size, recursive search) remain local-only in v1.
+Once connected, `fs_stat` and `fs_list_start` work for `sftp://` URIs through `SftpProvider`. `plan_file_operation` / `start_file_operation` support copy, move, rename, create, and delete for `local://` and `sftp://` sources and destinations, including cross-scheme transfers (`local` ↔ `sftp`, and `sftp` ↔ `sftp` across profiles). Remote delete uses permanent delete (`unsupported_trash` on `deleteToTrash`). Archive create/extract, watch, folder size, and recursive search remain local-only in v1.
 
 ## Event channels
 

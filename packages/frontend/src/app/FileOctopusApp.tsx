@@ -575,6 +575,7 @@ function FileOctopusAppInner({
           .map((uri) => sourceTab.entriesById[uri])
           .filter(Boolean) as FileEntryDto[];
         if (entries.length === 0) return;
+        const advancedOptions = preferences?.showAdvancedCopyOptions === true;
         setDialog({
           type: "copyMove",
           panelId: sourcePanelId,
@@ -582,6 +583,8 @@ function FileOctopusAppInner({
           entries,
           destination: destinationUri,
           conflictPolicy: "fail",
+          advancedOptions,
+          planningEnabled: false,
           plan: null,
           planning: false,
           step: "review",
