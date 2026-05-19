@@ -222,8 +222,18 @@ describe("ConflictResolutionDialog", () => {
   });
 
   it("shows source file size when available", () => {
-    const conflicts = [makeConflict()];
-    const entries = [makeEntry({ size: 128 })];
+    const conflicts = [
+      makeConflict({
+        source: "local:///home/user/docs/report.pdf",
+        destination: "local:///home/user/backup/report.pdf",
+      }),
+    ];
+    const entries = [
+      makeEntry({
+        uri: "local:///home/user/docs/report.pdf",
+        size: 128,
+      }),
+    ];
 
     render(
       <ConflictResolutionDialog
@@ -235,6 +245,40 @@ describe("ConflictResolutionDialog", () => {
     );
 
     expect(screen.getByText("128 B")).toBeTruthy();
+  });
+
+  it("shows destination size and date when destinationByUri is provided", () => {
+    const conflicts = [
+      makeConflict({
+        source: "local:///home/user/docs/report.pdf",
+        destination: "local:///home/user/backup/report.pdf",
+      }),
+    ];
+    const entries = [
+      makeEntry({
+        uri: "local:///home/user/docs/report.pdf",
+        size: 128,
+      }),
+    ];
+
+    render(
+      <ConflictResolutionDialog
+        conflicts={conflicts}
+        entries={entries}
+        destinationByUri={{
+          "local:///home/user/backup/report.pdf": {
+            size: 4096,
+            modifiedAt: "2026-04-01T10:00:00Z",
+          },
+        }}
+        onBack={vi.fn()}
+        onResolve={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("128 B")).toBeTruthy();
+    expect(screen.getByText("4 KB")).toBeTruthy();
+    expect(screen.getByText(/Apr 1, 2026/)).toBeTruthy();
   });
 
   it("shows source modified date when available", () => {

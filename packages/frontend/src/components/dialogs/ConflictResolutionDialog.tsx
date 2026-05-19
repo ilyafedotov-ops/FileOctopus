@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@fileoctopus/ui";
 import type {
   FileOperationConflictDto,
   FileEntryDto,
+  FsClient,
 } from "@fileoctopus/ts-api";
 
 type ConflictAction = "overwrite" | "skip" | "renameNew";
@@ -12,9 +13,16 @@ interface ConflictResolutionResult {
   applyToAll: boolean;
 }
 
+export interface ConflictEntryMetadata {
+  size: number | null;
+  modifiedAt: string | null;
+}
+
 interface ConflictResolutionDialogProps {
   conflicts: FileOperationConflictDto[];
   entries: FileEntryDto[];
+  fs?: FsClient;
+  destinationByUri?: Record<string, ConflictEntryMetadata>;
   onBack: () => void;
   onResolve: (result: ConflictResolutionResult) => void;
 }
@@ -56,21 +64,94 @@ function formatDate(iso: string | null | undefined): string {
   }
 }
 
+function entryMetadata(
+  entry: FileEntryDto | undefined,
+): ConflictEntryMetadata | undefined {
+  if (!entry) {
+    return undefined;
+  }
+  return {
+    size: entry.size ?? null,
+    modifiedAt: entry.modifiedAt ?? null,
+  };
+}
+
 function findEntryForUri(
   entries: FileEntryDto[],
   uri: string,
 ): FileEntryDto | undefined {
-  return entries.find((e) => uri.indexOf(e.name) !== -1);
+  return entries.find((e) => e.uri === uri);
+}
+
+function useDestinationMetadata(
+  conflicts: FileOperationConflictDto[],
+  provided: Record<string, ConflictEntryMetadata> | undefined,
+  fs: FsClient | undefined,
+): Record<string, ConflictEntryMetadata> {
+  const [loaded, setLoaded] = useState<Record<string, ConflictEntryMetadata>>(
+    {},
+  );
+
+  useEffect(() => {
+    if (provided && Object.keys(provided).length > 0) {
+      setLoaded(provided);
+      return;
+    }
+
+    if (!fs) {
+      return;
+    }
+
+    let cancelled = false;
+    const uris = [...new Set(conflicts.map((c) => c.destination))];
+
+    void (async () => {
+      const next: Record<string, ConflictEntryMetadata> = {};
+      await Promise.all(
+        uris.map(async (uri) => {
+          try {
+            const response = await fs.stat({ uri });
+            next[uri] = {
+              size: response.entry.size ?? null,
+              modifiedAt: response.entry.modifiedAt ?? null,
+            };
+          } catch {
+            next[uri] = { size: null, modifiedAt: null };
+          }
+        }),
+      );
+      if (!cancelled) {
+        setLoaded(next);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fs, conflicts, provided]);
+
+  if (provided && Object.keys(provided).length > 0) {
+    return provided;
+  }
+
+  return loaded;
 }
 
 export function ConflictResolutionDialog({
   conflicts,
   entries,
+  fs,
+  destinationByUri,
   onBack,
   onResolve,
 }: ConflictResolutionDialogProps) {
   const [selectedAction, setSelectedAction] = useState<ConflictAction>("skip");
   const [applyToAll, setApplyToAll] = useState(false);
+  const destinationMetadata = useDestinationMetadata(
+    conflicts,
+    destinationByUri,
+    fs,
+  );
 
   function handleAction(action: ConflictAction) {
     onResolve({ action, applyToAll });
@@ -87,6 +168,8 @@ export function ConflictResolutionDialog({
       <div className="fo-conflict-list">
         {conflicts.map((conflict, i) => {
           const srcEntry = findEntryForUri(entries, conflict.source);
+          const srcMeta = entryMetadata(srcEntry);
+          const destMeta = destinationMetadata[conflict.destination];
           return (
             <div key={i} className="fo-conflict-item">
               <div className="fo-conflict-compare">
@@ -99,8 +182,8 @@ export function ConflictResolutionDialog({
                     {parentPathFromUri(conflict.source)}
                   </div>
                   <div className="fo-conflict-meta">
-                    <span>{formatSize(srcEntry?.size ?? null)}</span>
-                    <span>{formatDate(srcEntry?.modifiedAt ?? null)}</span>
+                    <span>{formatSize(srcMeta?.size ?? null)}</span>
+                    <span>{formatDate(srcMeta?.modifiedAt ?? null)}</span>
                   </div>
                 </div>
                 <div className="fo-conflict-arrow">→</div>
@@ -113,8 +196,8 @@ export function ConflictResolutionDialog({
                     {parentPathFromUri(conflict.destination)}
                   </div>
                   <div className="fo-conflict-meta">
-                    <span>—</span>
-                    <span>—</span>
+                    <span>{formatSize(destMeta?.size ?? null)}</span>
+                    <span>{formatDate(destMeta?.modifiedAt ?? null)}</span>
                   </div>
                 </div>
               </div>
