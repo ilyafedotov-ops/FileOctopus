@@ -30,6 +30,10 @@ export const IPC_ERROR_CODES = {
   UNSUPPORTED_ALGORITHM: "unsupported_algorithm",
   SPAWN_ERROR: "spawn_error",
   NO_TERMINAL: "no_terminal",
+  TERMINAL_SPAWN_FAILED: "terminal_spawn_failed",
+  TERMINAL_NOT_FOUND: "terminal_not_found",
+  INVALID_TERMINAL_SIZE: "invalid_terminal_size",
+  TERMINAL_SESSION_EXITED: "terminal_session_exited",
   AUTOSTART_UNAVAILABLE: "autostart_unavailable",
   NAVIGATION_ERROR: "navigation_error",
   NETWORK_ERROR: "network_error",
@@ -165,6 +169,45 @@ export interface OpenTerminalRequest {
 
 export interface OpenTerminalResponse {
   success: boolean;
+}
+
+export interface TerminalSpawnRequest {
+  uri: string;
+  cols: number;
+  rows: number;
+}
+
+export interface TerminalSpawnResponse {
+  sessionId: string;
+}
+
+export interface TerminalWriteRequest {
+  sessionId: string;
+  data: string;
+}
+
+export interface TerminalResizeRequest {
+  sessionId: string;
+  cols: number;
+  rows: number;
+}
+
+export interface TerminalKillRequest {
+  sessionId: string;
+}
+
+export interface TerminalOkResponse {
+  success: boolean;
+}
+
+export interface TerminalOutputEvent {
+  sessionId: string;
+  data: string;
+}
+
+export interface TerminalExitEvent {
+  sessionId: string;
+  exitCode?: number | null;
 }
 
 export interface ListStartRequest {

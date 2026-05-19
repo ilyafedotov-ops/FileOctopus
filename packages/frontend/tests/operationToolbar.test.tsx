@@ -51,6 +51,7 @@ function createProps(
     onCompress: noop,
     onExtract: noop,
     onOpenTerminal: noop,
+    onOpenTerminalExternal: noop,
     onChecksum: noop,
     onToggleHidden: noop,
     onSelectAll: noop,

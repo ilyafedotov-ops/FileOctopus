@@ -1,0 +1,15 @@
+[package]
+name = "terminal-core"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+dashmap = "6"
+portable-pty = "0.8"
+serde = { version = "1", features = ["derive"] }
+thiserror = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt", "time"] }

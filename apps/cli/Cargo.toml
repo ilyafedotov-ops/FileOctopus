@@ -3,4 +3,14 @@ name = "fileoctopus-cli"
 version.workspace = true
 edition.workspace = true
 
+[[bin]]
+name = "fileoctopus-cli"
+path = "src/main.rs"
+
 [dependencies]
+app-ipc = { path = "../../crates/app-ipc" }
+clap = { version = "4", features = ["derive"] }
+fs-core = { path = "../../crates/fs-core" }
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt"] }
+vfs = { path = "../../crates/vfs" }

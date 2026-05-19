@@ -46,6 +46,7 @@ function createHandlers(): ToolbarActionHandlers {
       onCompress: noop(),
       onExtract: noop(),
       onOpenTerminal: noop(),
+      onOpenTerminalExternal: noop(),
       onChecksum: noop(),
     },
   };
@@ -212,6 +213,12 @@ describe("runToolbarCommand", () => {
     const handlers = createHandlers();
     runToolbarCommand("op.openTerminal", handlers);
     expect(handlers.dropdowns.onOpenTerminal).toHaveBeenCalledOnce();
+  });
+
+  it("dispatches op.openTerminalExternal to dropdowns.onOpenTerminalExternal", () => {
+    const handlers = createHandlers();
+    runToolbarCommand("op.openTerminalExternal", handlers);
+    expect(handlers.dropdowns.onOpenTerminalExternal).toHaveBeenCalledOnce();
   });
 
   it("dispatches op.checksum to dropdowns.onChecksum", () => {

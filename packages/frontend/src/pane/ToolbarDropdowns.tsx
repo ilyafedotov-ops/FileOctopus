@@ -30,6 +30,7 @@ export interface ToolbarDropdownsProps {
   onCompress: () => void;
   onExtract: () => void;
   onOpenTerminal: () => void;
+  onOpenTerminalExternal: () => void;
   onChecksum: () => void;
 }
 
@@ -61,6 +62,7 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
     onCompress,
     onExtract,
     onOpenTerminal,
+    onOpenTerminalExternal,
     onChecksum,
   } = props;
   const [overflowOpen, setOverflowOpen] = useState(false);
@@ -112,6 +114,12 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
               icon: Icons.terminal(),
               separatorBefore: true,
               onSelect: onOpenTerminal,
+            },
+            {
+              id: "open-terminal-external",
+              label: "Open External Terminal",
+              icon: Icons.terminal(),
+              onSelect: onOpenTerminalExternal,
             },
             {
               id: "checksum",
@@ -328,6 +336,12 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
             label: "Open Terminal",
             icon: Icons.terminal(),
             onSelect: onOpenTerminal,
+          },
+          {
+            id: "open-terminal-external",
+            label: "Open External Terminal",
+            icon: Icons.terminal(),
+            onSelect: onOpenTerminalExternal,
           },
           {
             id: "checksum",

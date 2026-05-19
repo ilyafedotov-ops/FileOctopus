@@ -12,6 +12,7 @@ members = [
   "crates/provider-sftp",
   "crates/remote-core",
   "crates/telemetry",
+  "crates/terminal-core",
   "crates/test-support",
   "crates/vfs",
 ]

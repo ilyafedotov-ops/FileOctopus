@@ -139,6 +139,8 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onSearchRecursive: () => runCommand("recursive-search"),
     onChecksum: () => runCommand("op.checksum"),
     onOpenTerminal: () => runCommand("op.openTerminal"),
+    onOpenTerminalExternal: () => runCommand("op.openTerminalExternal"),
+    onToggleTerminal: () => runCommand("view.toggleTerminal"),
     onCalculateSize: () => runCommand("op.calculateSize"),
     onJobActivity: () => {
       runCommand("view.toggleActivity");

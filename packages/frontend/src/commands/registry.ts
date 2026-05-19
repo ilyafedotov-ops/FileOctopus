@@ -214,6 +214,16 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     group: "operation",
   },
   {
+    id: "op.openTerminalExternal",
+    label: "Open External Terminal",
+    group: "operation",
+  },
+  {
+    id: "view.toggleTerminal",
+    label: "Toggle Terminal Panel",
+    group: "view",
+  },
+  {
     id: "op.calculateSize",
     label: "Calculate Size",
     group: "operation",

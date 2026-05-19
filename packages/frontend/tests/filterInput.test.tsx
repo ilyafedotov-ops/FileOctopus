@@ -124,6 +124,7 @@ const preferencesSet = vi.fn(async () => ({ ok: true }));
 vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@fileoctopus/ts-api")>();
   const { mockNetworkClient } = await import("./mockNetworkClient");
+  const { mockTerminalClient } = await import("./mockTerminalClient");
   return {
     ...actual,
     createFileOctopusClient: () => ({
@@ -147,6 +148,7 @@ vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
         computeHash,
         openTerminal,
       },
+      terminal: mockTerminalClient(),
       fileOperations: {
         planFileOperation,
         startFileOperation,

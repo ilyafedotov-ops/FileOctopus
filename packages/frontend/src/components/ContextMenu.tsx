@@ -41,6 +41,7 @@ interface ContextMenuProps {
   onCompress: (panelId: PanelId) => void;
   onExtract: (panelId: PanelId) => void;
   onOpenTerminal: (panelId: PanelId) => void;
+  onOpenTerminalExternal: (panelId: PanelId) => void;
   onChecksum: (panelId: PanelId) => void;
   onCreateFolder: (panelId: PanelId) => void;
   onCreateFile: (panelId: PanelId) => void;
@@ -85,6 +86,7 @@ export function ContextMenu({
   onCompress,
   onExtract,
   onOpenTerminal,
+  onOpenTerminalExternal,
   onChecksum,
   onCreateFolder,
   onCreateFile,
@@ -291,6 +293,7 @@ export function ContextMenu({
       onCompress,
       onExtract,
       onOpenTerminal,
+      onOpenTerminalExternal,
       onChecksum,
       onRefresh,
       onSelectAll,

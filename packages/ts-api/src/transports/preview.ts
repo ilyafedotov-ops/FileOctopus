@@ -417,6 +417,22 @@ export function createPreviewTransport(): IpcTransport {
         return { sessionId, requestId } as TResponse;
       }
 
+      if (command === "terminal.spawn") {
+        return { sessionId: `preview-terminal-${++sessionIndex}` } as TResponse;
+      }
+
+      if (
+        command === "terminal.write" ||
+        command === "terminal.resize" ||
+        command === "terminal.kill"
+      ) {
+        return { success: true } as TResponse;
+      }
+
+      if (command === "fs.open_terminal") {
+        return { success: true } as TResponse;
+      }
+
       throw {
         code: IPC_ERROR_CODES.TAURI_UNAVAILABLE,
         message: "Tauri IPC is unavailable in browser preview",

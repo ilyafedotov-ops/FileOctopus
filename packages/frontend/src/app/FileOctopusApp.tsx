@@ -22,6 +22,7 @@ import {
   useJobs,
   useModals,
   useShell,
+  useTerminal,
 } from "./providers/AppProviders";
 
 const isProductionBuild = Boolean(
@@ -90,6 +91,13 @@ function FileOctopusAppInner({
     setDiagnosticsMessage,
     setExportingDiagnostics,
   } = useShell();
+
+  const {
+    terminal,
+    openEmbeddedTerminal,
+    openExternalTerminal,
+    setRailSegment,
+  } = useTerminal();
 
   const {
     jobs,
@@ -270,7 +278,6 @@ function FileOctopusAppInner({
     handleProperties,
     runRecursiveSearch,
     toggleHidden,
-    openTerminal,
     handleChecksum,
     handleCompress,
     handleExtract,
@@ -377,8 +384,35 @@ function FileOctopusAppInner({
     handleCompress,
     handleExtract,
     handleChecksum,
-    openTerminal: (panelId) =>
-      openTerminal(activeTab(state.panels[panelId]).uri),
+    openEmbeddedTerminal: (panelId) => {
+      const uri = activeTab(state.panels[panelId]).uri;
+      if (isRemoteUri(uri)) {
+        pushToast({
+          tone: "error",
+          title: "Embedded terminal supports local folders only",
+        });
+        return;
+      }
+      void openEmbeddedTerminal(uri).catch((error: unknown) => {
+        pushToast({
+          tone: "error",
+          title:
+            error instanceof Error ? error.message : "Failed to open terminal",
+        });
+      });
+    },
+    openTerminalExternal: (panelId) => {
+      const uri = activeTab(state.panels[panelId]).uri;
+      void openExternalTerminal(uri).catch(() => {
+        pushToast({
+          tone: "error",
+          title: "Failed to open external terminal",
+        });
+      });
+    },
+    activityPanelVisible: preferences?.activityPanelVisible ?? false,
+    terminalRailSegment: terminal.segment,
+    setTerminalRailSegment: setRailSegment,
     calculateSize,
     toggleStarredForEntry,
     addFavorite: async (panelId, uri, label) => {

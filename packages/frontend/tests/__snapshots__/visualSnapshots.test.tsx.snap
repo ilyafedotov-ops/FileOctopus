@@ -87,8 +87,9 @@ exports[`visual regression snapshots > matches the shell chrome structure in dar
       </section>
     </div>
     <aside
-      aria-label="Job activity"
+      aria-label="Activity and terminal"
       class="fo-activity fo-activity-rail"
+      data-segment="activity"
     >
       <header
         class="fo-activity-header"
@@ -128,6 +129,13 @@ exports[`visual regression snapshots > matches the shell chrome structure in dar
           type="button"
         >
           History
+        </button>
+        <button
+          aria-pressed="false"
+          class="fo-ui-segmented-item"
+          type="button"
+        >
+          Terminal
         </button>
       </div>
       <div
@@ -282,8 +290,9 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
       </section>
     </div>
     <aside
-      aria-label="Job activity"
+      aria-label="Activity and terminal"
       class="fo-activity fo-activity-rail"
+      data-segment="activity"
     >
       <header
         class="fo-activity-header"
@@ -323,6 +332,13 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
           type="button"
         >
           History
+        </button>
+        <button
+          aria-pressed="false"
+          class="fo-ui-segmented-item"
+          type="button"
+        >
+          Terminal
         </button>
       </div>
       <div

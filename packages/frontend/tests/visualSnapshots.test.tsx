@@ -14,7 +14,7 @@ describe("visual regression snapshots", () => {
 
     expect(screen.getByText("FileOctopus")).toBeTruthy();
     expect(screen.getByLabelText("File workspace preview")).toBeTruthy();
-    expect(screen.getByLabelText("Job activity")).toBeTruthy();
+    expect(screen.getByLabelText("Activity and terminal")).toBeTruthy();
     expect(document.querySelector(".fo-dual-pane")).toBeTruthy();
     expect(view.container.querySelector(".fo-shell-frame")).toMatchSnapshot();
     view.restore();

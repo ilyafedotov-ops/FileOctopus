@@ -47,7 +47,11 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
     handleCompress: vi.fn(),
     handleExtract: vi.fn(),
     handleChecksum: vi.fn(),
-    openTerminal: vi.fn(),
+    openEmbeddedTerminal: vi.fn(),
+    openTerminalExternal: vi.fn(),
+    activityPanelVisible: false,
+    terminalRailSegment: "activity" as const,
+    setTerminalRailSegment: vi.fn(),
     calculateSize: vi.fn(),
     toggleStarredForEntry: vi.fn(),
     addFavorite: vi.fn(),
@@ -185,6 +189,54 @@ describe("dispatchCommand", () => {
     dispatchCommand("view.toggleStatusBar", baseDeps({ toggleStatusBar }));
 
     expect(toggleStatusBar).toHaveBeenCalled();
+  });
+
+  it("opens terminal rail when view.toggleTerminal and panel hidden", () => {
+    const setActivityCollapsed = vi.fn();
+    const markActivityPinnedOpen = vi.fn();
+    const setTerminalRailSegment = vi.fn();
+    const updatePreference = vi.fn();
+    dispatchCommand(
+      "view.toggleTerminal",
+      baseDeps({
+        activityCollapsed: true,
+        activityPanelVisible: false,
+        terminalRailSegment: "activity",
+        setActivityCollapsed,
+        markActivityPinnedOpen,
+        setTerminalRailSegment,
+        updatePreference,
+      }),
+    );
+
+    expect(markActivityPinnedOpen).toHaveBeenCalled();
+    expect(setActivityCollapsed).toHaveBeenCalledWith(false);
+    expect(setTerminalRailSegment).toHaveBeenCalledWith("terminal");
+    expect(updatePreference).toHaveBeenCalledWith(
+      "activityPanelVisible",
+      "true",
+    );
+  });
+
+  it("collapses activity rail when view.toggleTerminal and terminal visible", () => {
+    const setActivityCollapsed = vi.fn();
+    const updatePreference = vi.fn();
+    dispatchCommand(
+      "view.toggleTerminal",
+      baseDeps({
+        activityCollapsed: false,
+        activityPanelVisible: true,
+        terminalRailSegment: "terminal",
+        setActivityCollapsed,
+        updatePreference,
+      }),
+    );
+
+    expect(setActivityCollapsed).toHaveBeenCalledWith(true);
+    expect(updatePreference).toHaveBeenCalledWith(
+      "activityPanelVisible",
+      "false",
+    );
   });
 
   it("expands activity rail when collapsed", () => {

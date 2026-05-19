@@ -152,6 +152,9 @@ export function ShellToolbar() {
           onCompress={() => handleCommand("op.compress")}
           onExtract={() => handleCommand("op.extract")}
           onOpenTerminal={() => handleCommand("op.openTerminal")}
+          onOpenTerminalExternal={() =>
+            handleCommand("op.openTerminalExternal")
+          }
           onChecksum={() => void handleCommand("op.checksum")}
           onRefresh={() => ctx.refreshPanel(pid)}
           onCommandSearch={() => ctx.setCommandPaletteOpen(true)}

@@ -48,7 +48,12 @@ export const COMMAND_BINDINGS: CommandBinding[] = [
   { commandId: "op.compress", targets: ["toolbar", "context"] },
   { commandId: "op.extract", targets: ["toolbar", "context"] },
   { commandId: "op.checksum", targets: ["toolbar", "context"] },
-  { commandId: "op.openTerminal", targets: ["toolbar", "context"] },
+  { commandId: "op.openTerminal", targets: ["toolbar", "context", "menu"] },
+  {
+    commandId: "op.openTerminalExternal",
+    targets: ["toolbar", "menu", "context"],
+  },
+  { commandId: "view.toggleTerminal", targets: ["menu", "palette"] },
   { commandId: "op.calculateSize", targets: ["toolbar"] },
   { commandId: "op.reveal", targets: ["toolbar", "context"] },
   { commandId: "view.toggleActivity", targets: ["menu", "toolbar"] },

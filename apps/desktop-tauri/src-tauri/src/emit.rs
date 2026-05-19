@@ -2,36 +2,13 @@ use app_ipc::{job_event_name, job_event_payload};
 use jobs::JobEvent;
 use tauri::{AppHandle, Emitter, Manager};
 
-/// Emit a Tauri event AND replay it via `webview.eval()` as a fallback for
-/// WebKitGTK-headless environments where `app.emit()` does not deliver events
-/// to the WebView. The eval path pushes the payload onto a per-event JS queue
-/// and drains it through any handler registered via `__FO_EVENT_HANDLERS__`,
-/// then dispatches a `fo-event-<name>` CustomEvent for redundancy. A
-/// `setTimeout(0)` defers delivery one macrotask so any in-flight `invoke()`
-/// response promise resolves first (avoiding a sessionId race in panel state).
-pub(crate) fn emit_with_eval<S: serde::Serialize + Clone>(
-    app: &AppHandle,
-    event: &str,
-    payload: S,
-) {
-    let json = match serde_json::to_string(&payload) {
-        Ok(j) => j,
-        Err(e) => {
-            telemetry::error(&format!("emit_with_eval: failed to serialize {event}: {e}"));
-            return;
-        }
-    };
-    if let Err(error) = app.emit(event, payload) {
-        telemetry::error(&format!("failed to emit {event}: {error}"));
-    }
-    let Some(webview) = app.get_webview_window("main") else {
-        return;
-    };
+fn eval_event_js(event: &str, payload_json: &str) -> String {
     let event_lit = event.replace('\\', "\\\\").replace('\'', "\\'");
-    let js = format!(
+    let safe = serde_json::to_string(payload_json).unwrap_or_else(|_| "\"{}\"".to_string());
+    format!(
         r#"(function() {{
     try {{
-        var payload = {json};
+        var payload = JSON.parse({safe});
         var name = '{event_lit}';
         if (!window.__FO_EVENT_BUFFER__) {{ window.__FO_EVENT_BUFFER__ = {{}}; }}
         if (!window.__FO_EVENT_BUFFER__[name]) {{ window.__FO_EVENT_BUFFER__[name] = []; }}
@@ -53,12 +30,60 @@ pub(crate) fn emit_with_eval<S: serde::Serialize + Clone>(
         }}, 0);
     }} catch (_) {{}}
 }})();"#
-    );
-    if let Err(e) = webview.eval(&js) {
+    )
+}
+
+fn emit_with_eval_on_webview<S: serde::Serialize + Clone>(
+    app: &AppHandle,
+    window_label: &str,
+    event: &str,
+    payload: S,
+) {
+    if let Err(error) = app.emit_to(window_label, event, payload.clone()) {
         telemetry::error(&format!(
-            "emit_with_eval: webview.eval failed for {event}: {e}"
+            "failed to emit {event} to {window_label}: {error}"
         ));
     }
+    let json = match serde_json::to_string(&payload) {
+        Ok(j) => j,
+        Err(e) => {
+            telemetry::error(&format!("emit_with_eval: failed to serialize {event}: {e}"));
+            return;
+        }
+    };
+    let Some(webview) = app.get_webview_window(window_label) else {
+        return;
+    };
+    let js = eval_event_js(event, &json);
+    if let Err(e) = webview.eval(&js) {
+        telemetry::error(&format!(
+            "emit_with_eval: webview.eval failed for {event} on {window_label}: {e}"
+        ));
+    }
+}
+
+/// Emit a Tauri event AND replay it via `webview.eval()` as a fallback for
+/// WebKitGTK-headless environments where `app.emit()` does not deliver events
+/// to the WebView. The eval path pushes the payload onto a per-event JS queue
+/// and drains it through any handler registered via `__FO_EVENT_HANDLERS__`,
+/// then dispatches a `fo-event-<name>` CustomEvent for redundancy. A
+/// `setTimeout(0)` defers delivery one macrotask so any in-flight `invoke()`
+/// response promise resolves first (avoiding a sessionId race in panel state).
+pub(crate) fn emit_with_eval<S: serde::Serialize + Clone>(
+    app: &AppHandle,
+    event: &str,
+    payload: S,
+) {
+    emit_with_eval_on_webview(app, "main", event, payload);
+}
+
+pub(crate) fn emit_with_eval_to<S: serde::Serialize + Clone>(
+    app: &AppHandle,
+    window_label: &str,
+    event: &str,
+    payload: S,
+) {
+    emit_with_eval_on_webview(app, window_label, event, payload);
 }
 
 pub(crate) fn emit_job(app: &AppHandle, event: JobEvent) {

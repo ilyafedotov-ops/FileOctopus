@@ -29,12 +29,16 @@ describe("useMenuBarProps", () => {
     props.onExtract();
     props.onChecksum();
     props.onOpenTerminal();
+    props.onOpenTerminalExternal();
+    props.onToggleTerminal();
     props.onCalculateSize();
 
     expect(runCommand).toHaveBeenCalledWith("op.compress");
     expect(runCommand).toHaveBeenCalledWith("op.extract");
     expect(runCommand).toHaveBeenCalledWith("op.checksum");
     expect(runCommand).toHaveBeenCalledWith("op.openTerminal");
+    expect(runCommand).toHaveBeenCalledWith("op.openTerminalExternal");
+    expect(runCommand).toHaveBeenCalledWith("view.toggleTerminal");
     expect(runCommand).toHaveBeenCalledWith("op.calculateSize");
   });
 

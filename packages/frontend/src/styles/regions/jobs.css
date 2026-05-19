@@ -6,6 +6,71 @@
   overflow: hidden;
 }
 
+.fo-activity-rail[data-segment="terminal"] {
+  min-width: min(100%, 480px);
+  max-width: none;
+}
+
+.fo-terminal-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.fo-terminal-tab-bar {
+  flex: 0 0 auto;
+  border-bottom: 1px solid var(--fo-editor-bg);
+}
+
+.fo-tab--exited {
+  opacity: 0.65;
+}
+
+.fo-terminal-views {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 180px;
+  overflow: hidden;
+  background: var(--fo-editor-bg);
+}
+
+.fo-terminal-view-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  min-height: 0;
+}
+
+.fo-terminal-view-wrap[hidden] {
+  display: none;
+}
+
+.fo-terminal-view-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 4px;
+}
+
+.fo-terminal-view-host .xterm {
+  height: 100%;
+}
+
+.fo-terminal-view-host .xterm-viewport {
+  overflow-y: auto;
+}
+
+.fo-terminal-empty {
+  display: grid;
+  gap: 10px;
+  place-content: center;
+  min-height: 180px;
+  padding: 16px;
+  text-align: center;
+  color: var(--fo-muted-text);
+}
+
 .fo-activity {
   display: flex;
   flex-direction: column;

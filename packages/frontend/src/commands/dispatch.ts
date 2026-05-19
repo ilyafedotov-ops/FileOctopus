@@ -11,6 +11,7 @@ import {
   type ViewMode,
 } from "../panelStore";
 import { rootUri } from "../utils/paneUtils";
+import type { ActivityRailSegment } from "../terminal/terminalSlice";
 import type { CommandInvokeContext } from "./invokeContext";
 
 const LEGACY_COMMAND_ALIASES: Record<string, string> = {
@@ -54,8 +55,11 @@ export interface CommandDispatchDeps {
   setPreviewOpen: (open: boolean) => void;
   isPreviewable: (entry: FileEntryDto | null) => boolean;
   activityCollapsed: boolean;
+  activityPanelVisible: boolean;
   setActivityCollapsed: (collapsed: boolean) => void;
   markActivityPinnedOpen?: () => void;
+  terminalRailSegment: ActivityRailSegment;
+  setTerminalRailSegment: (segment: ActivityRailSegment) => void;
   handleCreateFolder: (panelId: PanelId) => void;
   handleCreateFile: (panelId: PanelId) => void;
   startInlineRename: (panelId: PanelId) => void;
@@ -86,7 +90,8 @@ export interface CommandDispatchDeps {
   handleCompress: (panelId: PanelId) => void;
   handleExtract: (panelId: PanelId) => void;
   handleChecksum: (panelId: PanelId) => Promise<void>;
-  openTerminal: (panelId: PanelId) => void;
+  openEmbeddedTerminal: (panelId: PanelId) => void;
+  openTerminalExternal: (panelId: PanelId) => void;
   calculateSize: (
     panelId: PanelId,
     entry: FileEntryDto | null,
@@ -380,8 +385,27 @@ export function dispatchCommand(
       void deps.handleChecksum(panelId);
       return true;
     case "op.openTerminal":
-      deps.openTerminal(panelId);
+      deps.openEmbeddedTerminal(panelId);
       return true;
+    case "op.openTerminalExternal":
+      deps.openTerminalExternal(panelId);
+      return true;
+    case "view.toggleTerminal": {
+      const terminalPanelOpen =
+        !deps.activityCollapsed &&
+        deps.activityPanelVisible &&
+        deps.terminalRailSegment === "terminal";
+      if (terminalPanelOpen) {
+        deps.setActivityCollapsed(true);
+        void deps.updatePreference("activityPanelVisible", "false");
+        return true;
+      }
+      deps.markActivityPinnedOpen?.();
+      deps.setActivityCollapsed(false);
+      deps.setTerminalRailSegment("terminal");
+      void deps.updatePreference("activityPanelVisible", "true");
+      return true;
+    }
     case "op.calculateSize":
       void deps.calculateSize(panelId, selectedEntry);
       return true;

@@ -112,6 +112,9 @@ export function runToolbarCommand(
     case "op.openTerminal":
       dropdowns.onOpenTerminal();
       return;
+    case "op.openTerminalExternal":
+      dropdowns.onOpenTerminalExternal();
+      return;
     case "op.checksum":
       dropdowns.onChecksum();
       return;

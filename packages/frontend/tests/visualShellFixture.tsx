@@ -1,6 +1,13 @@
-import { ActivityPanel } from "../src/jobs/ActivityPanel";
+import type { FileOctopusClient } from "@fileoctopus/ts-api";
+import { StubTerminalProvider } from "../src/app/providers/TerminalProvider";
+import { ActivityRailPanel } from "../src/jobs/ActivityRailPanel";
 import { StatusBar } from "../src/shell/StatusBar";
 import { TitleBar } from "../src/shell/TitleBar";
+import { mockTerminalClient } from "./mockTerminalClient";
+
+const visualClient = {
+  terminal: mockTerminalClient(),
+} as unknown as FileOctopusClient;
 
 export function VisualShellFixture() {
   return (
@@ -29,17 +36,22 @@ export function VisualShellFixture() {
               </header>
             </section>
           </div>
-          <ActivityPanel
-            jobs={[]}
-            history={[]}
-            error={null}
-            collapsed={false}
-            jobMetrics={{}}
-            onToggleCollapsed={() => undefined}
-            onCancel={() => undefined}
-            onRefreshHistory={() => undefined}
-            onClearHistory={() => undefined}
-          />
+          <StubTerminalProvider>
+            <ActivityRailPanel
+              client={visualClient}
+              jobs={[]}
+              history={[]}
+              error={null}
+              collapsed={false}
+              jobMetrics={{}}
+              activeFolderUri="local:///Users/ilya/Documents"
+              onToggleCollapsed={() => undefined}
+              onCancel={() => undefined}
+              onRefreshHistory={() => undefined}
+              onClearHistory={() => undefined}
+              onOpenTerminalInFolder={() => undefined}
+            />
+          </StubTerminalProvider>
         </section>
         <StatusBar
           activePanelLabel="Left pane"

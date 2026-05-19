@@ -33,6 +33,7 @@ const baseProps = {
   onCompress: vi.fn(),
   onExtract: vi.fn(),
   onOpenTerminal: vi.fn(),
+  onOpenTerminalExternal: vi.fn(),
   onChecksum: vi.fn(),
   onCreateFolder: vi.fn(),
   onCreateFile: vi.fn(),

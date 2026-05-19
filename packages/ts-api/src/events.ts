@@ -8,3 +8,5 @@ export const WATCH_CHANGED_EVENT = "fs:watch:changed";
 export const FOLDER_SIZE_COMPLETED_EVENT = "fs:folderSize:completed";
 export const RECURSIVE_SEARCH_MATCH_EVENT = "fs:recursiveSearch:match";
 export const RECURSIVE_SEARCH_COMPLETED_EVENT = "fs:recursiveSearch:completed";
+export const TERMINAL_OUTPUT_EVENT = "terminal:output";
+export const TERMINAL_EXIT_EVENT = "terminal:exit";

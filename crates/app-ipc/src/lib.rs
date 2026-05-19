@@ -18,6 +18,8 @@ pub const NETWORK_STATUS_EVENT: &str = "network:status";
 pub const FOLDER_SIZE_COMPLETED_EVENT: &str = "fs:folderSize:completed";
 pub const RECURSIVE_SEARCH_MATCH_EVENT: &str = "fs:recursiveSearch:match";
 pub const RECURSIVE_SEARCH_COMPLETED_EVENT: &str = "fs:recursiveSearch:completed";
+pub const TERMINAL_OUTPUT_EVENT: &str = "terminal:output";
+pub const TERMINAL_EXIT_EVENT: &str = "terminal:exit";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -294,6 +296,61 @@ pub struct OpenTerminalRequest {
 #[serde(rename_all = "camelCase")]
 pub struct OpenTerminalResponse {
     pub success: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalSpawnRequest {
+    pub uri: String,
+    pub cols: u16,
+    pub rows: u16,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalSpawnResponse {
+    pub session_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalWriteRequest {
+    pub session_id: String,
+    pub data: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalResizeRequest {
+    pub session_id: String,
+    pub cols: u16,
+    pub rows: u16,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalKillRequest {
+    pub session_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalOkResponse {
+    pub success: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalOutputEventDto {
+    pub session_id: String,
+    pub data: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TerminalExitEventDto {
+    pub session_id: String,
+    pub exit_code: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -782,6 +839,10 @@ pub mod error_codes {
     pub const UNSUPPORTED_ALGORITHM: &str = "unsupported_algorithm";
     pub const SPAWN_ERROR: &str = "spawn_error";
     pub const NO_TERMINAL: &str = "no_terminal";
+    pub const TERMINAL_SPAWN_FAILED: &str = "terminal_spawn_failed";
+    pub const TERMINAL_NOT_FOUND: &str = "terminal_not_found";
+    pub const INVALID_TERMINAL_SIZE: &str = "invalid_terminal_size";
+    pub const TERMINAL_SESSION_EXITED: &str = "terminal_session_exited";
     pub const AUTOSTART_UNAVAILABLE: &str = "autostart_unavailable";
     pub const NAVIGATION_ERROR: &str = "navigation_error";
     pub const NETWORK_ERROR: &str = "network_error";
@@ -818,6 +879,10 @@ pub mod error_codes {
         UNSUPPORTED_ALGORITHM,
         SPAWN_ERROR,
         NO_TERMINAL,
+        TERMINAL_SPAWN_FAILED,
+        TERMINAL_NOT_FOUND,
+        INVALID_TERMINAL_SIZE,
+        TERMINAL_SESSION_EXITED,
         AUTOSTART_UNAVAILABLE,
         NAVIGATION_ERROR,
         NETWORK_ERROR,
@@ -1228,6 +1293,22 @@ impl IpcError {
 
     pub fn no_terminal(message: impl Into<String>) -> Self {
         Self::new(error_codes::NO_TERMINAL, message)
+    }
+
+    pub fn terminal_spawn_failed(message: impl Into<String>) -> Self {
+        Self::new(error_codes::TERMINAL_SPAWN_FAILED, message)
+    }
+
+    pub fn terminal_not_found(message: impl Into<String>) -> Self {
+        Self::new(error_codes::TERMINAL_NOT_FOUND, message)
+    }
+
+    pub fn invalid_terminal_size(message: impl Into<String>) -> Self {
+        Self::new(error_codes::INVALID_TERMINAL_SIZE, message)
+    }
+
+    pub fn terminal_session_exited(message: impl Into<String>) -> Self {
+        Self::new(error_codes::TERMINAL_SESSION_EXITED, message)
     }
 
     pub fn preferences_error(message: impl Into<String>) -> Self {

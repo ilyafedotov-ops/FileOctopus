@@ -23,6 +23,7 @@
     "rust:test": "cargo test --workspace",
     "rust:fmt": "cargo fmt --all --check",
     "rust:clippy": "cargo clippy --workspace --all-targets -- -D warnings",
+    "cli": "cargo run -p fileoctopus-cli --",
     "prepare": "simple-git-hooks",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

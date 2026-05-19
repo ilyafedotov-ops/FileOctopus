@@ -39,6 +39,8 @@ export type CommandId =
   | "op.extract"
   | "op.checksum"
   | "op.openTerminal"
+  | "op.openTerminalExternal"
+  | "view.toggleTerminal"
   | "op.calculateSize"
   | "op.toggleStarred"
   | "nav.addFavorite"

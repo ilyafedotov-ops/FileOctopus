@@ -29,6 +29,8 @@ pub fn run() {
                 .inner()
                 .clone();
 
+            commands::terminal::start_terminal_event_bridge(app_handle.clone(), state.clone());
+
             let sessions_for_reaper = state.sessions();
             tauri::async_runtime::spawn(async move {
                 remote_core::run_idle_reaper(sessions_for_reaper).await;
@@ -113,6 +115,10 @@ pub fn run() {
             commands::file_operations::clear_operation_history,
             commands::diagnostics::diagnostics_app_data_health,
             commands::diagnostics::export_diagnostics_bundle,
+            commands::terminal::terminal_spawn,
+            commands::terminal::terminal_write,
+            commands::terminal::terminal_resize,
+            commands::terminal::terminal_kill,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run FileOctopus");

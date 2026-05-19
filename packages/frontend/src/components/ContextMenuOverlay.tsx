@@ -83,6 +83,7 @@ export function ContextMenuOverlay({
       onCompress={() => run("op.compress")}
       onExtract={() => run("op.extract")}
       onOpenTerminal={() => run("op.openTerminal")}
+      onOpenTerminalExternal={() => run("op.openTerminalExternal")}
       onChecksum={() => void run("op.checksum")}
       onCreateFolder={() => run("create.folder")}
       onCreateFile={() => run("create.file")}

@@ -125,26 +125,8 @@ pub async fn fs_open_terminal(
         ));
     }
 
-    let terminals = [
-        "gnome-terminal",
-        "konsole",
-        "xfce4-terminal",
-        "alacritty",
-        "kitty",
-        "xterm",
-    ];
-    let cmd = terminals.iter().find(|t| which::which(t).is_ok());
-
-    match cmd {
-        Some(term) => {
-            std::process::Command::new(*term)
-                .current_dir(&path)
-                .spawn()
-                .map_err(|e| IpcError::spawn_error(e.to_string()))?;
-            Ok(OpenTerminalResponse { success: true })
-        }
-        None => Err(IpcError::no_terminal("no terminal emulator found")),
-    }
+    platform::open_external_terminal(&path).map_err(|error| IpcError::no_terminal(error.0))?;
+    Ok(OpenTerminalResponse { success: true })
 }
 
 #[tauri::command]

@@ -6,6 +6,7 @@ use fs_core::{vfs_io::VfsFilesystem, LocalFsProvider};
 use platform::SecretStore;
 use provider_sftp::{SftpConnector, SftpProvider};
 use remote_core::{ConnectionSessionManager, RemoteConnectorRegistry};
+use terminal_core::TerminalService;
 use thiserror::Error;
 use vfs::VfsRegistry;
 
@@ -40,6 +41,7 @@ pub struct AppState {
     secrets: SecretStore,
     paths: AppPaths,
     startup_recovery_count: usize,
+    terminals: Arc<TerminalService>,
 }
 
 impl AppState {
@@ -101,6 +103,10 @@ impl AppState {
     pub fn paths(&self) -> &AppPaths {
         &self.paths
     }
+
+    pub fn terminals(&self) -> Arc<TerminalService> {
+        self.terminals.clone()
+    }
 }
 
 pub struct AppCore;
@@ -158,6 +164,8 @@ impl AppCore {
         let navigation = NavigationRepository::new(paths.navigation_db.clone())
             .map_err(|error| AppCoreError::History(error.to_string()))?;
 
+        let terminals = Arc::new(TerminalService::new());
+
         telemetry::info("FileOctopus app core booted");
 
         Ok(Arc::new(AppState {
@@ -170,6 +178,7 @@ impl AppCore {
             secrets,
             paths,
             startup_recovery_count,
+            terminals,
         }))
     }
 }

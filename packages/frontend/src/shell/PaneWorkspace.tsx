@@ -1,6 +1,6 @@
 import { Sidebar } from "../sidebar/Sidebar";
 import { FilePanel } from "../pane/FilePanel";
-import { ActivityPanel } from "../jobs/ActivityPanel";
+import { ActivityRailPanel } from "../jobs/ActivityRailPanel";
 import { SidebarResizer, SplitResizer } from "./LayoutResizers";
 import { useShellLayout } from "./ShellLayoutContext";
 
@@ -112,16 +112,21 @@ export function PaneWorkspace() {
           </>
         ) : null}
       </div>
-      <ActivityPanel
+      <ActivityRailPanel
+        client={ctx.client}
         jobs={Object.values(ctx.jobs)}
         history={ctx.history}
         error={ctx.operationError}
         collapsed={ctx.activityCollapsed}
         jobMetrics={ctx.jobMetrics}
+        activeFolderUri={ctx.activeTabUri}
         onToggleCollapsed={() => ctx.handleCommandSelect("view.toggleActivity")}
         onCancel={(jobId) => void ctx.client.jobs.cancelJob({ jobId })}
         onRefreshHistory={() => void ctx.refreshHistory()}
         onClearHistory={() => void ctx.clearHistory()}
+        onOpenTerminalInFolder={() =>
+          ctx.handleCommandSelect("op.openTerminal", ctx.state.activePanelId)
+        }
       />
     </section>
   );

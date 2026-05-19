@@ -13,6 +13,7 @@ provider-sftp = { path = "../provider-sftp" }
 remote-core = { path = "../remote-core" }
 rusqlite = { version = "0.32", features = ["bundled"] }
 telemetry = { path = "../telemetry" }
+terminal-core = { path = "../terminal-core" }
 thiserror = "1"
 tokio = { version = "1", features = ["sync"] }
 uuid = { version = "1", features = ["v4"] }

@@ -65,6 +65,8 @@ export interface MenuBarProps {
   onSearchRecursive: () => void;
   onChecksum: () => void;
   onOpenTerminal: () => void;
+  onOpenTerminalExternal: () => void;
+  onToggleTerminal: () => void;
   onCalculateSize: () => void;
   onJobActivity: () => void;
   onOperationHistory: () => void;
@@ -635,6 +637,16 @@ export function MenuBar(props: MenuBarProps) {
       id: "open-terminal",
       label: "Open Terminal",
       onSelect: wrap(props.onOpenTerminal),
+    },
+    {
+      id: "open-terminal-external",
+      label: "Open External Terminal",
+      onSelect: wrap(props.onOpenTerminalExternal),
+    },
+    {
+      id: "toggle-terminal",
+      label: "Toggle Terminal Panel",
+      onSelect: wrap(props.onToggleTerminal),
     },
     {
       id: "checksum",

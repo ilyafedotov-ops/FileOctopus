@@ -36,6 +36,7 @@ interface FileEntryMenuParams {
   onCompress: (panelId: PanelId) => void;
   onExtract: (panelId: PanelId) => void;
   onOpenTerminal: (panelId: PanelId) => void;
+  onOpenTerminalExternal: (panelId: PanelId) => void;
   onChecksum: (panelId: PanelId) => void;
   onRefresh: (panelId: PanelId) => void;
   onSelectAll: (panelId: PanelId) => void;
@@ -74,6 +75,7 @@ export function buildFileEntryMenu({
   onCompress,
   onExtract,
   onOpenTerminal,
+  onOpenTerminalExternal,
   onChecksum,
   onRefresh,
   onSelectAll,
@@ -206,6 +208,11 @@ export function buildFileEntryMenu({
       </ContextMenuItem>
       <ContextMenuItem onClick={() => run(() => onOpenTerminal(panelId))}>
         Open Terminal
+      </ContextMenuItem>
+      <ContextMenuItem
+        onClick={() => run(() => onOpenTerminalExternal(panelId))}
+      >
+        Open External Terminal
       </ContextMenuItem>
       <ContextMenuItem onClick={() => run(() => onChecksum(panelId))}>
         Checksum…

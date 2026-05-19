@@ -59,6 +59,8 @@ function createMenuBarProps(
     onSearchRecursive: noop,
     onChecksum: noop,
     onOpenTerminal: noop,
+    onOpenTerminalExternal: noop,
+    onToggleTerminal: noop,
     onCalculateSize: noop,
     onJobActivity: noop,
     onOperationHistory: noop,

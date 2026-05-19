@@ -374,6 +374,7 @@ const cancelJob = vi.fn(async () => ({
 
 vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@fileoctopus/ts-api")>();
+  const { mockTerminalClient } = await import("./mockTerminalClient");
   return {
     ...actual,
     createFileOctopusClient: () => ({
@@ -397,6 +398,7 @@ vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
         computeHash,
         openTerminal,
       },
+      terminal: mockTerminalClient(),
       fileOperations: {
         planFileOperation,
         startFileOperation,
@@ -549,7 +551,7 @@ describe("FileOctopusShell", () => {
     const { container } = render(<FileOctopusShell />);
 
     expect(screen.getByLabelText("File panels")).toBeTruthy();
-    expect(screen.getByLabelText("Job activity")).toBeTruthy();
+    expect(screen.getByLabelText("Activity and terminal")).toBeTruthy();
     expect(container.querySelectorAll(".fo-panel").length).toBe(2);
   });
 
