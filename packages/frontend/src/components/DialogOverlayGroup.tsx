@@ -305,6 +305,7 @@ export function DialogOverlayGroup({
       />
       <OperationDialogView
         dialog={dialog}
+        fs={fs}
         onClose={() => setDialog(null)}
         onUpdate={(next) => setDialog(next)}
         onReviewCopyMove={(current) => void reviewCopyMoveDialog(current)}

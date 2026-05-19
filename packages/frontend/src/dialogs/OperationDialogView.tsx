@@ -5,6 +5,7 @@ import {
   type KnownIpcErrorCode,
   ConflictPolicy,
   FileEntryDto,
+  FsClient,
   FileOperationPlanDto,
   PathPropertiesDto,
   JobSnapshot,
@@ -100,6 +101,7 @@ export type OperationDialog =
 
 export interface OperationDialogViewProps {
   dialog: OperationDialog | null;
+  fs?: FsClient;
   onClose: () => void;
   onUpdate: (dialog: OperationDialog) => void;
   onReviewCopyMove: (
@@ -198,6 +200,7 @@ function OperationItemList({ entries }: { entries: FileEntryDto[] }) {
 
 export function OperationDialogView({
   dialog,
+  fs,
   onClose,
   onUpdate,
   onReviewCopyMove,
@@ -344,6 +347,7 @@ export function OperationDialogView({
             <ConflictResolutionDialog
               conflicts={dialog.plan?.conflicts ?? []}
               entries={dialog.entries}
+              fs={fs}
               onBack={() => onUpdate({ ...dialog, step: "review" })}
               onResolve={(result) => {
                 if (result.action === "overwrite") {

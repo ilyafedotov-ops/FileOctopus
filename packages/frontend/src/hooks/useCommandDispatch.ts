@@ -20,6 +20,11 @@ export function useCommandDispatch(deps: CommandDispatchDeps) {
         return;
       }
 
+      if (id === "recursive-search" || id === "search-recursive") {
+        deps.setRecursiveSearchFocusToken((value) => value + 1);
+        return;
+      }
+
       const invoke = normalizeCommandContext(context);
       dispatchCommand(id, deps, {
         panelId: activePanelId,

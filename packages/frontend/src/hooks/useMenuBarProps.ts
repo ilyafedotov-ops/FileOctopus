@@ -25,8 +25,6 @@ export interface UseMenuBarPropsParams {
   preferences: UserPreferencesDto | null;
   navigatePanel: (panelId: PanelId, uri: string) => void;
   handleRename: (panelId: PanelId) => void;
-  setFilterFocusToken: (fn: (v: number) => number) => void;
-  setRecursiveSearchFocusToken: (fn: (v: number) => number) => void;
   setDiagnosticsOpen: (v: boolean) => void;
   onRequestExit?: () => void;
   runCommand: (
@@ -48,8 +46,6 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     preferences,
     navigatePanel,
     handleRename,
-    setFilterFocusToken,
-    setRecursiveSearchFocusToken,
     setDiagnosticsOpen,
     onRequestExit,
     runCommand,
@@ -136,8 +132,8 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onClearRecentLocations: () => runCommand("nav.clearRecentLocations"),
     recentLocations: recentLocations,
     onOperationHistory: () => runCommand("app.operationHistory"),
-    onFilter: () => setFilterFocusToken((v) => v + 1),
-    onSearchRecursive: () => setRecursiveSearchFocusToken((v) => v + 1),
+    onFilter: () => runCommand("filter"),
+    onSearchRecursive: () => runCommand("recursive-search"),
     onChecksum: () => runCommand("op.checksum"),
     onOpenTerminal: () => runCommand("op.openTerminal"),
     onCalculateSize: () => runCommand("op.calculateSize"),

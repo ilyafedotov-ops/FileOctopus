@@ -11,8 +11,6 @@ function baseParams(overrides: Record<string, unknown> = {}) {
     preferences: null,
     navigatePanel: vi.fn(),
     handleRename: vi.fn(),
-    setFilterFocusToken: vi.fn(),
-    setRecursiveSearchFocusToken: vi.fn(),
     setDiagnosticsOpen: vi.fn(),
     runCommand: vi.fn(),
     statusBarVisible: true,
@@ -70,15 +68,37 @@ describe("useMenuBarProps", () => {
     closeSpy.mockRestore();
   });
 
-  it("bumps recursive search focus token from menu action", () => {
-    const setRecursiveSearchFocusToken = vi.fn(
-      (updater: (value: number) => number) => updater(2),
-    );
-    const props = useMenuBarProps(baseParams({ setRecursiveSearchFocusToken }));
+  it("routes view appearance and sort commands through runCommand", () => {
+    const runCommand = vi.fn();
+    const props = useMenuBarProps(baseParams({ runCommand }));
 
+    props.onSortBy("size");
+    props.onSortDirection("descending");
+    props.onTheme("dark");
+    props.onDensity("compact");
+    props.onAddFavorite();
+
+    expect(runCommand).toHaveBeenCalledWith("view.sort", "left", {
+      sortField: "size",
+    });
+    expect(runCommand).toHaveBeenCalledWith("view.sortDescending", "left");
+    expect(runCommand).toHaveBeenCalledWith("preferences.theme", undefined, {
+      preferenceValue: "dark",
+    });
+    expect(runCommand).toHaveBeenCalledWith("preferences.density", undefined, {
+      preferenceValue: "compact",
+    });
+    expect(runCommand).toHaveBeenCalledWith("nav.addFavorite", "left");
+  });
+
+  it("routes filter and recursive search through runCommand", () => {
+    const runCommand = vi.fn();
+    const props = useMenuBarProps(baseParams({ runCommand }));
+
+    props.onFilter();
     props.onSearchRecursive();
 
-    expect(setRecursiveSearchFocusToken).toHaveBeenCalledOnce();
-    expect(setRecursiveSearchFocusToken.mock.results[0]?.value).toBe(3);
+    expect(runCommand).toHaveBeenCalledWith("filter");
+    expect(runCommand).toHaveBeenCalledWith("recursive-search");
   });
 });
