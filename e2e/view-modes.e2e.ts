@@ -40,20 +40,30 @@ test.describe("View modes — keyboard shortcuts", () => {
     await expect(page.locator(".fo-shell")).toBeVisible();
   });
 
-  test("view mode segmented control is visible", async ({ page }) => {
-    const segmented = page
-      .locator("[aria-label='left view mode'], [aria-label='right view mode']")
+  test("view mode dropdown trigger is visible in toolbar", async ({ page }) => {
+    const viewButton = page
+      .locator(".fo-operation-toolbar")
+      .getByRole("button", { name: "View" })
       .first();
-    await expect(segmented).toBeVisible();
+    await expect(viewButton).toBeVisible();
   });
 
-  test("view mode segmented control has multiple buttons", async ({ page }) => {
-    const segmented = page
-      .locator("[aria-label='left view mode'], [aria-label='right view mode']")
+  test("view mode dropdown lists multiple view modes", async ({ page }) => {
+    const viewButton = page
+      .locator(".fo-operation-toolbar")
+      .getByRole("button", { name: "View" })
       .first();
-    const buttons = segmented.locator("button");
-    const count = await buttons.count();
-    expect(count).toBeGreaterThanOrEqual(2);
+    await viewButton.click();
+    const modes = [
+      "Details view",
+      "List view",
+      "Compact view",
+      "Icons view",
+      "Columns view",
+    ];
+    for (const label of modes) {
+      await expect(page.getByRole("menuitem", { name: label })).toBeVisible();
+    }
   });
 });
 

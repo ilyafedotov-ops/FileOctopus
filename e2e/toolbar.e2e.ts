@@ -1,146 +1,149 @@
 import { test, expect } from "@playwright/test";
 
+function workbenchToolbar(page: import("@playwright/test").Page) {
+  return page.locator(".fo-workbench-toolbar .fo-operation-toolbar");
+}
+
+async function openMoreMenu(page: import("@playwright/test").Page) {
+  const toolbar = workbenchToolbar(page);
+  await toolbar.getByRole("button", { name: "More" }).click();
+  await expect(moreMenu(page)).toBeVisible();
+}
+
+function moreMenu(page: import("@playwright/test").Page) {
+  return page.getByRole("menu").filter({
+    has: page.locator(".fo-ui-dropdown-label", {
+      hasText: "New Folder",
+      exact: true,
+    }),
+  });
+}
+
+function moreMenuItem(page: import("@playwright/test").Page, label: string) {
+  if (label === "Copy") {
+    return moreMenu(page).getByRole("menuitem", { name: /^Copy [⌘Ctrl]/ });
+  }
+  return moreMenu(page).getByRole("menuitem", { name: label });
+}
+
+function selectableFileRow(page: import("@playwright/test").Page) {
+  return page.locator(
+    ".fo-panel.fo-panel-active .fo-row[role='row']:not(.fo-row-parent)",
+  );
+}
+
+async function clearFileSelection(page: import("@playwright/test").Page) {
+  const activeStatus = page.locator(
+    ".fo-panel.fo-panel-active footer.fo-pane-status",
+  );
+  const status = await activeStatus.textContent();
+  if (status?.startsWith("0 selected")) {
+    return;
+  }
+  await page.getByRole("menubar").getByRole("button", { name: "Edit" }).click();
+  await page.getByRole("menuitem", { name: /Clear Selection/i }).click();
+  await expect(activeStatus).toHaveText(/^0 selected/);
+}
+
 test.describe("Toolbar — visibility and structure", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector(".fo-panel");
+    await page.waitForSelector(".fo-shell");
   });
 
-  test("operation toolbar is visible in each panel", async ({ page }) => {
-    const toolbars = page.locator(".fo-operation-toolbar");
-    const count = await toolbars.count();
-    expect(count).toBeGreaterThanOrEqual(2);
-
-    for (let i = 0; i < count; i++) {
-      await expect(toolbars.nth(i)).toBeVisible();
-    }
+  test("shared operation toolbar is visible once in workbench", async ({
+    page,
+  }) => {
+    const toolbars = page.locator(
+      ".fo-workbench-toolbar .fo-operation-toolbar",
+    );
+    await expect(toolbars).toHaveCount(1);
+    await expect(toolbars.first()).toBeVisible();
   });
 
-  test("toolbar contains New Folder button", async ({ page }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
+  test("toolbar contains Back, Forward, and Up navigation", async ({
+    page,
+  }) => {
+    const toolbar = workbenchToolbar(page);
+    await expect(toolbar.getByRole("button", { name: "Back" })).toBeVisible();
     await expect(
-      toolbar.locator("button:has-text('New Folder')").first(),
+      toolbar.getByRole("button", { name: "Forward" }),
+    ).toBeVisible();
+    await expect(toolbar.getByRole("button", { name: "Up" })).toBeVisible();
+  });
+
+  test("toolbar contains Refresh and More buttons", async ({ page }) => {
+    const toolbar = workbenchToolbar(page);
+    await expect(
+      toolbar.getByRole("button", { name: "Refresh" }),
+    ).toBeVisible();
+    await expect(toolbar.getByRole("button", { name: "More" })).toBeVisible();
+  });
+
+  test("toolbar contains View and Tools dropdowns", async ({ page }) => {
+    const toolbar = workbenchToolbar(page);
+    await expect(toolbar.getByRole("button", { name: "View" })).toBeVisible();
+    await expect(toolbar.getByRole("button", { name: "Tools" })).toBeVisible();
+  });
+
+  test("More menu exposes New Folder and New File", async ({ page }) => {
+    await openMoreMenu(page);
+    await expect(
+      page.getByRole("menuitem", { name: "New Folder" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("menuitem", { name: "New File" }),
     ).toBeVisible();
   });
 
-  test("toolbar contains New File button", async ({ page }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
+  test("More menu exposes Copy, Move, Rename, and Trash", async ({ page }) => {
+    await openMoreMenu(page);
+    await expect(moreMenuItem(page, "Copy")).toBeVisible();
+    await expect(moreMenuItem(page, "Rename")).toBeVisible();
+    await expect(moreMenuItem(page, "Move To…")).toBeVisible();
+    await expect(moreMenuItem(page, "Trash")).toBeVisible();
+  });
+
+  test("command palette search field is visible", async ({ page }) => {
+    const toolbar = workbenchToolbar(page);
     await expect(
-      toolbar.locator("button:has-text('New File')").first(),
+      toolbar.getByRole("searchbox", { name: "Open command palette" }),
     ).toBeVisible();
-  });
-
-  test("toolbar contains Rename button", async ({ page }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    await expect(
-      toolbar.locator("button:has-text('Rename')").first(),
-    ).toBeVisible();
-  });
-
-  test("toolbar contains Copy button (may be in overflow)", async ({
-    page,
-  }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    await expect(
-      toolbar.locator("button:has-text('Copy')").first(),
-    ).toBeAttached();
-  });
-
-  test("toolbar contains Move button (may be in overflow)", async ({
-    page,
-  }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    await expect(
-      toolbar.locator("button:has-text('Move')").first(),
-    ).toBeAttached();
-  });
-
-  test("toolbar contains Trash button (may be in overflow)", async ({
-    page,
-  }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    await expect(
-      toolbar.locator("button:has-text('Trash')").first(),
-    ).toBeAttached();
-  });
-
-  test("toolbar contains Refresh button (may be in overflow)", async ({
-    page,
-  }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    await expect(
-      toolbar.locator("button:has-text('Refresh')").first(),
-    ).toBeAttached();
-  });
-
-  test("toolbar contains More overflow button", async ({ page }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    await expect(
-      toolbar.locator("button:has-text('More')").first(),
-    ).toBeVisible();
-  });
-
-  test("panel header contains back navigation button", async ({ page }) => {
-    const header = page.locator("header.fo-panel-header").first();
-    const nav = header.locator(".fo-panel-nav");
-    await expect(nav.locator('[aria-label*="back"]')).toBeVisible();
-  });
-
-  test("panel header contains forward navigation button", async ({ page }) => {
-    const header = page.locator("header.fo-panel-header").first();
-    const nav = header.locator(".fo-panel-nav");
-    await expect(nav.locator('[aria-label*="forward"]')).toBeVisible();
-  });
-
-  test("panel header contains up navigation button", async ({ page }) => {
-    const header = page.locator("header.fo-panel-header").first();
-    const nav = header.locator(".fo-panel-nav");
-    await expect(nav.locator('[aria-label*="up"]')).toBeVisible();
   });
 });
 
 test.describe("Toolbar — button state without selection", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector(".fo-panel");
+    await page.waitForSelector(".fo-shell");
+    await clearFileSelection(page);
   });
 
-  test("Rename button is present and actionable without selection", async ({
+  test("New Folder menu item is enabled without selection", async ({
     page,
   }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    const renameBtn = toolbar.locator("button:has-text('Rename')").first();
-    await expect(renameBtn).toBeAttached();
+    await openMoreMenu(page);
+    await expect(moreMenuItem(page, "New Folder")).toBeEnabled();
   });
 
-  test("Copy button is present and actionable without selection", async ({
-    page,
-  }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    const copyBtn = toolbar.locator("button:has-text('Copy')").first();
-    await expect(copyBtn).toBeAttached();
+  test("New File menu item is enabled without selection", async ({ page }) => {
+    await openMoreMenu(page);
+    await expect(moreMenuItem(page, "New File")).toBeEnabled();
   });
 
-  test("Move button is present and actionable without selection", async ({
-    page,
-  }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    const moveBtn = toolbar.locator("button:has-text('Move')").first();
-    await expect(moveBtn).toBeAttached();
+  test("Copy menu item is disabled without selection", async ({ page }) => {
+    await openMoreMenu(page);
+    await expect(moreMenuItem(page, "Copy")).toBeDisabled();
   });
 
-  test("New Folder button is enabled without selection", async ({ page }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    const newFolderBtn = toolbar
-      .locator("button:has-text('New Folder')")
-      .first();
-    await expect(newFolderBtn).toBeEnabled();
+  test("Rename menu item is disabled without selection", async ({ page }) => {
+    await openMoreMenu(page);
+    await expect(moreMenuItem(page, "Rename")).toBeDisabled();
   });
 
-  test("New File button is enabled without selection", async ({ page }) => {
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    const newFileBtn = toolbar.locator("button:has-text('New File')").first();
-    await expect(newFileBtn).toBeEnabled();
+  test("Move To menu item is disabled without selection", async ({ page }) => {
+    await openMoreMenu(page);
+    await expect(moreMenuItem(page, "Move To…")).toBeDisabled();
   });
 });
 
@@ -150,82 +153,65 @@ test.describe("Toolbar — button enabled state with selection", () => {
     await page.waitForSelector(".fo-panel");
   });
 
-  test("Copy button becomes enabled when a file row is clicked", async ({
+  test("Copy menu item becomes enabled when a file row is clicked", async ({
     page,
   }) => {
-    const fileRow = page.locator('.fo-row[role="row"]').first();
+    const fileRow = selectableFileRow(page).first();
     const rowCount = await fileRow.count();
     test.skip(rowCount === 0, "No file rows visible in active panel");
 
     await fileRow.click();
-
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    const copyBtn = toolbar.locator("button:has-text('Copy')").first();
-    await expect(copyBtn).toBeEnabled();
+    await openMoreMenu(page);
+    await expect(moreMenuItem(page, "Copy")).toBeEnabled();
   });
 
-  test("Move button becomes enabled when a file row is clicked", async ({
+  test("Move To menu item becomes enabled when a file row is clicked", async ({
     page,
   }) => {
-    const fileRow = page.locator('.fo-row[role="row"]').first();
+    const fileRow = selectableFileRow(page).first();
     const rowCount = await fileRow.count();
     test.skip(rowCount === 0, "No file rows visible in active panel");
 
     await fileRow.click();
-
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    const moveBtn = toolbar.locator("button:has-text('Move')").first();
-    await expect(moveBtn).toBeEnabled();
+    await openMoreMenu(page);
+    await expect(moreMenuItem(page, "Move To…")).toBeEnabled();
   });
 
-  test("Rename button becomes enabled when a file row is clicked", async ({
+  test("Rename menu item becomes enabled when a file row is clicked", async ({
     page,
   }) => {
-    const fileRow = page.locator('.fo-row[role="row"]').first();
+    const fileRow = selectableFileRow(page).first();
     const rowCount = await fileRow.count();
     test.skip(rowCount === 0, "No file rows visible in active panel");
 
     await fileRow.click();
-
-    const toolbar = page.locator(".fo-operation-toolbar").first();
-    const renameBtn = toolbar.locator("button:has-text('Rename')").first();
-    await expect(renameBtn).toBeEnabled();
+    await openMoreMenu(page);
+    await expect(moreMenuItem(page, "Rename")).toBeEnabled();
   });
 });
 
-test.describe("Toolbar — aria-labels", () => {
+test.describe("Toolbar — navigation aria-labels", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
-    await page.waitForSelector(".fo-panel");
+    await page.waitForSelector(".fo-shell");
   });
 
-  test("panel nav back button has aria-label containing 'back'", async ({
-    page,
-  }) => {
-    const nav = page.locator(".fo-panel-nav").first();
-    const backBtn = nav.locator('[aria-label*="back"]');
+  test("Back button is exposed with accessible name", async ({ page }) => {
+    const backBtn = workbenchToolbar(page).getByRole("button", {
+      name: "Back",
+    });
     await expect(backBtn).toBeVisible();
-    const label = await backBtn.getAttribute("aria-label");
-    expect(label?.toLowerCase()).toContain("back");
   });
 
-  test("panel nav forward button has aria-label containing 'forward'", async ({
-    page,
-  }) => {
-    const nav = page.locator(".fo-panel-nav").first();
-    const fwdBtn = nav.locator('[aria-label*="forward"]');
+  test("Forward button is exposed with accessible name", async ({ page }) => {
+    const fwdBtn = workbenchToolbar(page).getByRole("button", {
+      name: "Forward",
+    });
     await expect(fwdBtn).toBeVisible();
-    const label = await fwdBtn.getAttribute("aria-label");
-    expect(label?.toLowerCase()).toContain("forward");
   });
 
-  test("panel nav up button has aria-label containing 'up'", async ({
-    page,
-  }) => {
-    const nav = page.locator(".fo-panel-nav").first();
-    const upBtn = nav.locator('[aria-label*="up"]');
+  test("Up button is exposed with accessible name", async ({ page }) => {
+    const upBtn = workbenchToolbar(page).getByRole("button", { name: "Up" });
     await expect(upBtn).toBeVisible();
-    const label = await upBtn.getAttribute("aria-label");
-    expect(label?.toLowerCase()).toContain("up");
   });
 });
