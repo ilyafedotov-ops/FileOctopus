@@ -82,7 +82,9 @@ export interface ShellLayoutContextValue {
   networkLocationsOpen: boolean;
   connectServerOpen: boolean;
   connectServerProfile: NetworkProfileDto | null;
+  removeServerProfile: NetworkProfileDto | null;
   toolbarCustomizeOpen: boolean;
+  busyProfileIds: Set<string>;
   setToolbarCustomizeOpen: (v: boolean) => void;
   setGoToLocationOpen: (v: boolean) => void;
   setManageFavoritesOpen: (v: boolean) => void;
@@ -94,9 +96,11 @@ export interface ShellLayoutContextValue {
   setNetworkLocationsOpen: (v: boolean) => void;
   setConnectServerOpen: (v: boolean) => void;
   setConnectServerProfile: (profile: NetworkProfileDto | null) => void;
+  setRemoveServerProfile: (profile: NetworkProfileDto | null) => void;
   connectProfile: (profileId: string) => Promise<void>;
   disconnectProfile: (profileId: string) => Promise<void>;
   deleteProfile: (profileId: string) => Promise<void>;
+  forgetFingerprint: (profileId: string) => Promise<void>;
   saveProfile: (payload: {
     id?: string;
     label: string;
