@@ -37,9 +37,16 @@ fi
 if echo "$staged" | grep -qx 'package.json'; then
   if ! echo "$staged" | grep -qx 'pnpm-lock.yaml'; then
     if [ -f pnpm-lock.yaml ]; then
-      printf 'pre-commit: package.json is staged but pnpm-lock.yaml is not.\n' >&2
-      printf 'Run "pnpm install" and stage the updated lockfile.\n' >&2
-      exit 1
+      dep_change="$(
+        git diff --cached -- package.json |
+          grep -E '^[+-].*"(dependencies|devDependencies|peerDependencies|optionalDependencies|pnpm)"\s*:' ||
+          true
+      )"
+      if [ -n "$dep_change" ]; then
+        printf 'pre-commit: package.json is staged but pnpm-lock.yaml is not.\n' >&2
+        printf 'Run "pnpm install" and stage the updated lockfile.\n' >&2
+        exit 1
+      fi
     fi
   fi
 fi
