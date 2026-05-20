@@ -69,14 +69,14 @@ const SUPPLEMENTAL_SHORTCUTS: ShortcutHelpEntry[] = [
   },
   {
     id: "preview-f3",
-    label: "Quick view / properties",
+    label: "View selected file (built-in viewer)",
     mac: "F3",
     windowsLinux: "F3",
     category: "File operations",
   },
   {
     id: "edit-f4",
-    label: "Open with default app",
+    label: "Edit selected file (built-in editor)",
     mac: "F4",
     windowsLinux: "F4",
     category: "File operations",

@@ -15,7 +15,14 @@ export interface UseKeyboardShortcutsDeps {
   commandPaletteOpen: boolean;
   setCommandPaletteOpen: (open: boolean) => void;
   previewOpen: boolean;
+  viewerOpen: boolean;
+  editorOpen: boolean;
   setPreviewOpen: (open: boolean) => void;
+  setViewerOpen: (open: boolean) => void;
+  setViewerEntry: (entry: FileEntryDto | null) => void;
+  setEditorOpen: (open: boolean) => void;
+  setEditorEntry: (entry: FileEntryDto | null) => void;
+  isTextEditable: (entry: FileEntryDto | null) => boolean;
   dialog: unknown;
   setDialog: (dialog: null) => void;
   contextMenu: unknown;
@@ -46,7 +53,14 @@ export function createKeyboardShortcutsHandler(
       commandPaletteOpen,
       setCommandPaletteOpen,
       previewOpen,
+      viewerOpen,
+      editorOpen,
       setPreviewOpen,
+      setViewerOpen,
+      setViewerEntry,
+      setEditorOpen,
+      setEditorEntry,
+      isTextEditable,
       dialog,
       setDialog,
       contextMenu,
@@ -73,6 +87,16 @@ export function createKeyboardShortcutsHandler(
       if (previewOpen) {
         event.preventDefault();
         setPreviewOpen(false);
+        return;
+      }
+      if (viewerOpen) {
+        event.preventDefault();
+        setViewerOpen(false);
+        return;
+      }
+      if (editorOpen) {
+        event.preventDefault();
+        setEditorOpen(false);
         return;
       }
       if (dialog) {
@@ -225,14 +249,17 @@ export function createKeyboardShortcutsHandler(
     const commander = createCommanderActions({
       panelId,
       tab,
-      setPreviewOpen,
+      setViewerOpen,
+      setViewerEntry,
+      setEditorOpen,
+      setEditorEntry,
+      isTextEditable,
       handleCommandSelect,
       handleCopyOrMove,
       handleCreateFolder,
       handleTrash,
       handleProperties,
       setOperationError,
-      isPreviewable,
     });
 
     if (event.key === "F3") {

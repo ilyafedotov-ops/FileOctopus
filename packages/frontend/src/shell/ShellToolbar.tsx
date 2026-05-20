@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { isPreviewable } from "../components/PreviewPanel";
 import { ToolbarCustomizeDialog } from "../components/ToolbarCustomizeDialog";
 import { useToolbarConfig } from "../hooks/useToolbarConfig";
 import { OperationToolbar } from "../pane/OperationToolbar";
@@ -38,14 +37,17 @@ export function ShellToolbar() {
   const commander = createCommanderActions({
     panelId: pid,
     tab,
-    setPreviewOpen: ctx.setPreviewOpen,
+    setViewerOpen: ctx.setViewerOpen,
+    setViewerEntry: ctx.setViewerEntry,
+    setEditorOpen: ctx.setEditorOpen,
+    setEditorEntry: ctx.setEditorEntry,
+    isTextEditable: ctx.isTextEditable,
     handleCommandSelect: ctx.handleCommandSelect,
     handleCopyOrMove: ctx.handleCopyOrMove,
     handleCreateFolder: ctx.handleCreateFolder,
     handleTrash: ctx.handleTrash,
     handleProperties: ctx.handleProperties,
     setOperationError: ctx.setOperationError,
-    isPreviewable,
   });
 
   const hotlist = useMemo(

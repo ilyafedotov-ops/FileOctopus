@@ -12,6 +12,8 @@ import { SettingsDialog } from "./SettingsDialog";
 import { ShortcutsDialog } from "./ShortcutsDialog";
 import { CommandPalette, type CommandEntry } from "./CommandPalette";
 import { PreviewPanel } from "./PreviewPanel";
+import { ViewerDialog } from "./viewer/ViewerDialog";
+import { EditorDialog } from "./editor/EditorDialog";
 import {
   OperationDialogView,
   type OperationDialog,
@@ -76,6 +78,13 @@ export interface DialogOverlayGroupProps {
   shortcutsOpen: boolean;
   commandPaletteOpen: boolean;
   previewOpen: boolean;
+  viewerOpen: boolean;
+  viewerEntry: FileEntryDto | null;
+  setViewerOpen: (open: boolean) => void;
+  editorOpen: boolean;
+  editorEntry: FileEntryDto | null;
+  setEditorOpen: (open: boolean) => void;
+  refreshActivePane?: () => void;
   diagnosticsOpen: boolean;
   aboutOpen: boolean;
   goToLocationOpen: boolean;
@@ -198,6 +207,13 @@ export function DialogOverlayGroup({
   shortcutsOpen,
   commandPaletteOpen,
   previewOpen,
+  viewerOpen,
+  viewerEntry,
+  setViewerOpen,
+  editorOpen,
+  editorEntry,
+  setEditorOpen,
+  refreshActivePane,
   diagnosticsOpen,
   aboutOpen,
   goToLocationOpen,
@@ -315,6 +331,19 @@ export function DialogOverlayGroup({
           onClose={() => setPreviewOpen(false)}
         />
       )}
+      <ViewerDialog
+        open={viewerOpen}
+        entry={viewerEntry}
+        fs={fs}
+        onClose={() => setViewerOpen(false)}
+      />
+      <EditorDialog
+        open={editorOpen}
+        entry={editorEntry}
+        fs={fs}
+        onClose={() => setEditorOpen(false)}
+        onSaved={() => refreshActivePane?.()}
+      />
       <AboutDialog
         open={aboutOpen}
         appInfo={appInfo}

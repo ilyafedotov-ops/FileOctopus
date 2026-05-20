@@ -18,7 +18,8 @@ export interface ToolbarCommandMeta {
 
 const TOOLBAR_LABELS: Partial<Record<CommandId, string>> = {
   "op.view": "View",
-  "op.openDefault": "Edit",
+  "op.edit": "Edit",
+  "op.openDefault": "Open with default",
   "op.copyTo": "Copy",
   "op.moveTo": "Move",
   "create.folder": "Folder+",
@@ -28,7 +29,8 @@ const TOOLBAR_LABELS: Partial<Record<CommandId, string>> = {
 
 const TOOLBAR_DESCRIPTIONS: Partial<Record<CommandId, string>> = {
   "op.view": "View selected item",
-  "op.openDefault": "Edit selected file with default app",
+  "op.edit": "Edit selected file in built-in editor",
+  "op.openDefault": "Open selected file with system default app",
   "op.rename": "Rename selected item",
   "op.copyTo": "Copy selected items to the opposite pane",
   "op.moveTo": "Move selected items to the opposite pane",
@@ -50,6 +52,7 @@ const TOOLBAR_DESCRIPTIONS: Partial<Record<CommandId, string>> = {
 
 export const DEFAULT_TOOLBAR_ENTRIES: ToolbarEntry[] = [
   { kind: "command", commandId: "op.view" },
+  { kind: "command", commandId: "op.edit" },
   { kind: "command", commandId: "op.openDefault" },
   { kind: "command", commandId: "op.rename" },
   { kind: "command", commandId: "op.copyTo" },

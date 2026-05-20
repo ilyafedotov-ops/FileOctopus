@@ -1,5 +1,5 @@
 use std::fs::{self, File};
-use std::io::{Read, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
@@ -108,6 +108,106 @@ impl VfsFilesystem {
         let remote_path = remote_path(uri)?;
         read_file_prefix_blocking(&session, uri, &remote_path, max_bytes)
             .map_err(FileOperationError::from)
+    }
+
+    /// Read `length` bytes starting at `offset`. Returns the actual bytes read
+    /// and the total file size (capped at u64::MAX).
+    ///
+    /// Local-only in v1; remote URIs return `UnsupportedProvider`.
+    pub fn read_file_range(
+        &self,
+        uri: &ResourceUri,
+        offset: u64,
+        length: u64,
+    ) -> Result<(Vec<u8>, u64), FileOperationError> {
+        if uri.scheme() != "local" {
+            return Err(FileOperationError::UnsupportedProvider {
+                scheme: uri.scheme().to_string(),
+            });
+        }
+
+        let path = uri.to_local_path()?;
+        let metadata = fs::metadata(&path).map_err(|error| map_local_io(uri, error))?;
+        let total_size = metadata.len();
+
+        if offset >= total_size {
+            return Ok((Vec::new(), total_size));
+        }
+
+        let mut file = File::open(&path).map_err(|error| map_local_io(uri, error))?;
+        file.seek(SeekFrom::Start(offset))
+            .map_err(|error| map_local_io(uri, error))?;
+
+        let remaining = total_size - offset;
+        let to_read = length.min(remaining) as usize;
+        let mut buffer = vec![0_u8; to_read];
+        let read = file
+            .read(&mut buffer)
+            .map_err(|error| map_local_io(uri, error))?;
+        buffer.truncate(read);
+        Ok((buffer, total_size))
+    }
+
+    /// Write `content` to `uri` atomically by staging to a sibling temp file
+    /// and renaming over the destination. Local-only in v1.
+    ///
+    /// Creates the file if it does not exist; otherwise replaces it. Parent
+    /// directory must already exist.
+    pub fn write_file_atomic(
+        &self,
+        uri: &ResourceUri,
+        content: &[u8],
+    ) -> Result<(), FileOperationError> {
+        if uri.scheme() != "local" {
+            return Err(FileOperationError::UnsupportedProvider {
+                scheme: uri.scheme().to_string(),
+            });
+        }
+
+        let path = uri.to_local_path()?;
+        let parent = path
+            .parent()
+            .ok_or_else(|| FileOperationError::DestinationMissing {
+                uri: uri.as_str().to_string(),
+            })?;
+        if !parent.is_dir() {
+            return Err(FileOperationError::DestinationMissing {
+                uri: uri.as_str().to_string(),
+            });
+        }
+
+        let file_name = path
+            .file_name()
+            .and_then(|value| value.to_str())
+            .ok_or_else(|| FileOperationError::InvalidPath {
+                uri: uri.as_str().to_string(),
+                message: "destination has no file name".to_string(),
+            })?;
+
+        let temp_name = format!(".{file_name}.fileoctopus-tmp.{}", uuid::Uuid::new_v4());
+        let temp_path = parent.join(temp_name);
+
+        {
+            let mut temp = File::create(&temp_path).map_err(|error| {
+                let _ = fs::remove_file(&temp_path);
+                map_local_io(uri, error)
+            })?;
+            if let Err(error) = temp.write_all(content) {
+                let _ = fs::remove_file(&temp_path);
+                return Err(map_local_io(uri, error));
+            }
+            if let Err(error) = temp.sync_all() {
+                let _ = fs::remove_file(&temp_path);
+                return Err(map_local_io(uri, error));
+            }
+        }
+
+        if let Err(error) = fs::rename(&temp_path, &path) {
+            let _ = fs::remove_file(&temp_path);
+            return Err(map_local_io(uri, error));
+        }
+
+        Ok(())
     }
 
     pub fn mkdir(&self, uri: &ResourceUri) -> Result<(), FileOperationError> {

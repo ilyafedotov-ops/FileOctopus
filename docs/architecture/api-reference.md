@@ -53,6 +53,8 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `app_get_info`                       | `app.get_info`                     | `FileOctopusClient`      |
 | `fs_stat`                            | `fs.stat`                          | `FsClient`               |
 | `fs_read_text_file`                  | `fs.read_text_file`                | `FsClient`               |
+| `fs_read_file_range`                 | `fs.read_file_range`               | `FsClient`               |
+| `fs_write_text_file`                 | `fs.write_text_file`               | `FsClient`               |
 | `fs_compute_hash`                    | `fs.compute_hash`                  | `FsClient`               |
 | `fs_open_terminal`                   | `fs.open_terminal`                 | `FsClient`               |
 | `terminal_spawn`                     | `terminal.spawn`                   | `TerminalClient`         |
@@ -169,19 +171,21 @@ Errors arrive on the event stream as `DirectoryBatchEventDto.error` when listing
 
 The `FsClient` exposes several one-shot filesystem helpers. These still cross the Rust trust boundary, so every path argument is a `local://` `ResourceUri`.
 
-| Command                                           | Request                          | Response                           | Notes                                                                                                         |
-| ------------------------------------------------- | -------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `fs_read_text_file` / `fs.read_text_file`         | `{ uri, maxBytes? }`             | `{ content, truncated, byteSize }` | Reads up to `maxBytes` bytes, default 1 MiB. Uses lossy UTF-8 decoding. Directories fail with `is_directory`. |
-| `fs_compute_hash` / `fs.compute_hash`             | `{ uri, algorithm }`             | `{ hash, algorithm, byteSize }`    | Supports `sha256` / `sha-256`; files over 100 MiB fail with `file_too_large`.                                 |
-| `fs_open_terminal` / `fs.open_terminal`           | `{ uri }`                        | `{ success }`                      | Opens the platform external terminal in an existing local directory; can fail with `no_terminal`.             |
-| `terminal_spawn` / `terminal.spawn`               | `{ uri, cols, rows }`            | `{ sessionId }`                    | Spawns an embedded PTY session with cwd set to the local directory URI.                                       |
-| `terminal_write` / `terminal.write`               | `{ sessionId, data }`            | `{ success }`                      | Writes base64-encoded bytes to the PTY stdin.                                                                 |
-| `terminal_resize` / `terminal.resize`             | `{ sessionId, cols, rows }`      | `{ success }`                      | Resizes the PTY window.                                                                                       |
-| `terminal_kill` / `terminal.kill`                 | `{ sessionId }`                  | `{ success }`                      | Closes the PTY session.                                                                                       |
-| `fs_standard_locations` / `fs.standard_locations` | none                             | `{ locations }`                    | Returns standard local locations as `{ id, name, uri, section }`.                                             |
-| `fs_open_default` / `fs.open_default`             | `{ uri }`                        | `{ ok }`                           | Opens the resource with the OS default application.                                                           |
-| `fs_reveal` / `fs.reveal`                         | `{ uri }`                        | `{ ok }`                           | Reveals the resource in the platform file manager.                                                            |
-| `fs_properties` / `fs.properties`                 | `{ uri, includeFolderSummary? }` | `{ properties }`                   | Returns metadata plus optional recursive summary for directories.                                             |
+| Command                                           | Request                          | Response                                    | Notes                                                                                                                               |
+| ------------------------------------------------- | -------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `fs_read_text_file` / `fs.read_text_file`         | `{ uri, maxBytes? }`             | `{ content, truncated, byteSize }`          | Reads up to `maxBytes` bytes, default 1 MiB. Uses lossy UTF-8 decoding. Directories fail with `is_directory`.                       |
+| `fs_read_file_range` / `fs.read_file_range`       | `{ uri, offset, length }`        | `{ bytesBase64, bytesRead, byteSize, eof }` | Paged binary read for the built-in viewer. `length` capped at 4 MiB. `local://` only; remote schemes return `unsupported_provider`. |
+| `fs_write_text_file` / `fs.write_text_file`       | `{ uri, content, maxBytes? }`    | `{ byteSize }`                              | Atomic temp+rename write for the built-in editor. Default 10 MiB cap. `local://` only. v1 does not create operation history rows.   |
+| `fs_compute_hash` / `fs.compute_hash`             | `{ uri, algorithm }`             | `{ hash, algorithm, byteSize }`             | Supports `sha256` / `sha-256`; files over 100 MiB fail with `file_too_large`.                                                       |
+| `fs_open_terminal` / `fs.open_terminal`           | `{ uri }`                        | `{ success }`                               | Opens the platform external terminal in an existing local directory; can fail with `no_terminal`.                                   |
+| `terminal_spawn` / `terminal.spawn`               | `{ uri, cols, rows }`            | `{ sessionId }`                             | Spawns an embedded PTY session with cwd set to the local directory URI.                                                             |
+| `terminal_write` / `terminal.write`               | `{ sessionId, data }`            | `{ success }`                               | Writes base64-encoded bytes to the PTY stdin.                                                                                       |
+| `terminal_resize` / `terminal.resize`             | `{ sessionId, cols, rows }`      | `{ success }`                               | Resizes the PTY window.                                                                                                             |
+| `terminal_kill` / `terminal.kill`                 | `{ sessionId }`                  | `{ success }`                               | Closes the PTY session.                                                                                                             |
+| `fs_standard_locations` / `fs.standard_locations` | none                             | `{ locations }`                             | Returns standard local locations as `{ id, name, uri, section }`.                                                                   |
+| `fs_open_default` / `fs.open_default`             | `{ uri }`                        | `{ ok }`                                    | Opens the resource with the OS default application.                                                                                 |
+| `fs_reveal` / `fs.reveal`                         | `{ uri }`                        | `{ ok }`                                    | Reveals the resource in the platform file manager.                                                                                  |
+| `fs_properties` / `fs.properties`                 | `{ uri, includeFolderSummary? }` | `{ properties }`                            | Returns metadata plus optional recursive summary for directories.                                                                   |
 
 `PathPropertiesDto` includes `uri`, `name`, `kind`, file `size`, optional `totalSize`/`itemCount`/`fileCount`/`directoryCount`, timestamps, hidden/symlink flags, `symlinkTarget`, `readonly`, and non-fatal `warnings`.
 

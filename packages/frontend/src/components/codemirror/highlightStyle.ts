@@ -1,0 +1,72 @@
+import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { tags as t } from "@lezer/highlight";
+
+export const fileOctopusHighlightStyle = HighlightStyle.define([
+  { tag: t.keyword, color: "var(--fo-syntax-keyword)" },
+  { tag: t.controlKeyword, color: "var(--fo-syntax-keyword)" },
+  { tag: t.definitionKeyword, color: "var(--fo-syntax-keyword)" },
+  { tag: t.moduleKeyword, color: "var(--fo-syntax-keyword)" },
+  { tag: t.operatorKeyword, color: "var(--fo-syntax-keyword)" },
+  { tag: t.self, color: "var(--fo-syntax-keyword)" },
+  { tag: t.null, color: "var(--fo-syntax-keyword)" },
+  { tag: t.atom, color: "var(--fo-syntax-constant)" },
+  { tag: t.number, color: "var(--fo-syntax-constant)" },
+  { tag: t.bool, color: "var(--fo-syntax-constant)" },
+  { tag: t.string, color: "var(--fo-syntax-string)" },
+  { tag: t.special(t.string), color: "var(--fo-syntax-string)" },
+  { tag: t.regexp, color: "var(--fo-syntax-regexp)" },
+  { tag: t.comment, color: "var(--fo-syntax-comment)", fontStyle: "italic" },
+  {
+    tag: t.lineComment,
+    color: "var(--fo-syntax-comment)",
+    fontStyle: "italic",
+  },
+  {
+    tag: t.blockComment,
+    color: "var(--fo-syntax-comment)",
+    fontStyle: "italic",
+  },
+  { tag: t.docComment, color: "var(--fo-syntax-comment)", fontStyle: "italic" },
+  { tag: t.meta, color: "var(--fo-syntax-meta)" },
+  { tag: t.processingInstruction, color: "var(--fo-syntax-meta)" },
+  {
+    tag: t.function(t.variableName),
+    color: "var(--fo-syntax-function)",
+  },
+  {
+    tag: t.function(t.propertyName),
+    color: "var(--fo-syntax-function)",
+  },
+  {
+    tag: t.definition(t.function(t.variableName)),
+    color: "var(--fo-syntax-function)",
+  },
+  { tag: t.className, color: "var(--fo-syntax-type)" },
+  { tag: t.typeName, color: "var(--fo-syntax-type)" },
+  { tag: t.namespace, color: "var(--fo-syntax-type)" },
+  { tag: t.definition(t.typeName), color: "var(--fo-syntax-type)" },
+  { tag: t.standard(t.typeName), color: "var(--fo-syntax-type)" },
+  { tag: t.variableName, color: "var(--fo-syntax-variable)" },
+  { tag: t.definition(t.variableName), color: "var(--fo-syntax-variable)" },
+  { tag: t.local(t.variableName), color: "var(--fo-syntax-variable)" },
+  { tag: t.propertyName, color: "var(--fo-syntax-property)" },
+  { tag: t.operator, color: "var(--fo-syntax-operator)" },
+  { tag: t.punctuation, color: "var(--fo-syntax-punctuation)" },
+  { tag: t.bracket, color: "var(--fo-syntax-punctuation)" },
+  { tag: t.separator, color: "var(--fo-syntax-punctuation)" },
+  { tag: t.angleBracket, color: "var(--fo-syntax-punctuation)" },
+  { tag: t.tagName, color: "var(--fo-syntax-tag)" },
+  { tag: t.attributeName, color: "var(--fo-syntax-attribute)" },
+  { tag: t.attributeValue, color: "var(--fo-syntax-string)" },
+  { tag: t.heading, color: "var(--fo-syntax-heading)", fontWeight: "bold" },
+  { tag: t.strong, fontWeight: "bold" },
+  { tag: t.emphasis, fontStyle: "italic" },
+  { tag: t.link, color: "var(--fo-syntax-link)", textDecoration: "underline" },
+  { tag: t.url, color: "var(--fo-syntax-link)" },
+  { tag: t.invalid, color: "var(--fo-syntax-invalid)" },
+]);
+
+export const syntaxHighlightExtension = syntaxHighlighting(
+  fileOctopusHighlightStyle,
+  { fallback: true },
+);

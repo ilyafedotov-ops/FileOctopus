@@ -8,13 +8,17 @@ import {
   type SetStateAction,
 } from "react";
 import type { OperationDialog } from "../../dialogs/OperationDialogView";
-import type { NetworkProfileDto } from "@fileoctopus/ts-api";
+import type { FileEntryDto, NetworkProfileDto } from "@fileoctopus/ts-api";
 
 export interface ModalsContextValue {
   settingsOpen: boolean;
   shortcutsOpen: boolean;
   commandPaletteOpen: boolean;
   previewOpen: boolean;
+  viewerOpen: boolean;
+  viewerEntry: FileEntryDto | null;
+  editorOpen: boolean;
+  editorEntry: FileEntryDto | null;
   diagnosticsOpen: boolean;
   helpOpen: boolean;
   aboutOpen: boolean;
@@ -36,6 +40,10 @@ export interface ModalsContextValue {
   setShortcutsOpen: Dispatch<SetStateAction<boolean>>;
   setCommandPaletteOpen: Dispatch<SetStateAction<boolean>>;
   setPreviewOpen: Dispatch<SetStateAction<boolean>>;
+  setViewerOpen: Dispatch<SetStateAction<boolean>>;
+  setViewerEntry: Dispatch<SetStateAction<FileEntryDto | null>>;
+  setEditorOpen: Dispatch<SetStateAction<boolean>>;
+  setEditorEntry: Dispatch<SetStateAction<FileEntryDto | null>>;
   setDiagnosticsOpen: Dispatch<SetStateAction<boolean>>;
   setHelpOpen: Dispatch<SetStateAction<boolean>>;
   setAboutOpen: Dispatch<SetStateAction<boolean>>;
@@ -70,6 +78,10 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [viewerOpen, setViewerOpen] = useState(false);
+  const [viewerEntry, setViewerEntry] = useState<FileEntryDto | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editorEntry, setEditorEntry] = useState<FileEntryDto | null>(null);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
@@ -98,6 +110,10 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       shortcutsOpen,
       commandPaletteOpen,
       previewOpen,
+      viewerOpen,
+      viewerEntry,
+      editorOpen,
+      editorEntry,
       diagnosticsOpen,
       helpOpen,
       aboutOpen,
@@ -119,6 +135,10 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       setShortcutsOpen,
       setCommandPaletteOpen,
       setPreviewOpen,
+      setViewerOpen,
+      setViewerEntry,
+      setEditorOpen,
+      setEditorEntry,
       setDiagnosticsOpen,
       setHelpOpen,
       setAboutOpen,
@@ -142,6 +162,10 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       shortcutsOpen,
       commandPaletteOpen,
       previewOpen,
+      viewerOpen,
+      viewerEntry,
+      editorOpen,
+      editorEntry,
       diagnosticsOpen,
       helpOpen,
       aboutOpen,

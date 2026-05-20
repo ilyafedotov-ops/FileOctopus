@@ -54,6 +54,11 @@ export interface CommandDispatchDeps {
   setFilterFocusToken: Dispatch<SetStateAction<number>>;
   setRecursiveSearchFocusToken: Dispatch<SetStateAction<number>>;
   setPreviewOpen: (open: boolean) => void;
+  setViewerOpen: (open: boolean) => void;
+  setViewerEntry: (entry: FileEntryDto | null) => void;
+  setEditorOpen: (open: boolean) => void;
+  setEditorEntry: (entry: FileEntryDto | null) => void;
+  isTextEditable: (entry: FileEntryDto | null) => boolean;
   isPreviewable: (entry: FileEntryDto | null) => boolean;
   activityCollapsed: boolean;
   activityPanelVisible: boolean;
@@ -362,13 +367,10 @@ export function dispatchCommand(
       return true;
     case "op.view": {
       const entry = selectedEntry;
-      if (entry && deps.isPreviewable(entry)) {
-        deps.setOperationError(null);
-        deps.setPreviewOpen(true);
-        return true;
-      }
       if (entry) {
-        deps.setOperationError("No preview is available for this file type.");
+        deps.setOperationError(null);
+        deps.setViewerEntry(entry);
+        deps.setViewerOpen(true);
         return true;
       }
       void deps.handleProperties(panelId, entry);
@@ -436,6 +438,18 @@ export function dispatchCommand(
     case "op.open":
       deps.activateEntry(panelId, selectedEntry);
       return true;
+    case "op.edit": {
+      const entry = selectedEntry;
+      if (!entry) return true;
+      if (deps.isTextEditable(entry)) {
+        deps.setOperationError(null);
+        deps.setEditorEntry(entry);
+        deps.setEditorOpen(true);
+        return true;
+      }
+      void deps.openExternal(entry);
+      return true;
+    }
     case "op.openDefault":
       if (selectedEntry) {
         void deps.openExternal(selectedEntry);

@@ -34,6 +34,7 @@ export type CommandId =
   | "op.reveal"
   | "op.open"
   | "op.view"
+  | "op.edit"
   | "op.openDefault"
   | "op.compress"
   | "op.extract"

@@ -15,7 +15,7 @@ export function isToolbarCommandDisabled(
   if (commandId === "op.view") {
     return false;
   }
-  if (commandId === "op.openDefault") {
+  if (commandId === "op.edit" || commandId === "op.openDefault") {
     return !ctx.canEdit;
   }
   if (commandId === "op.rename") {

@@ -10,14 +10,17 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
   return {
     panelId,
     tab,
-    setPreviewOpen: vi.fn(),
+    setViewerOpen: vi.fn(),
+    setViewerEntry: vi.fn(),
+    setEditorOpen: vi.fn(),
+    setEditorEntry: vi.fn(),
+    isTextEditable: () => false,
     handleCommandSelect: vi.fn(),
     handleCopyOrMove: vi.fn(),
     handleCreateFolder: vi.fn(),
     handleTrash: vi.fn(),
     handleProperties: vi.fn(async () => undefined),
     setOperationError: vi.fn(),
-    isPreviewable: () => false,
     ...overrides,
   };
 }
@@ -32,44 +35,9 @@ describe("createCommanderActions", () => {
     expect(handleProperties).toHaveBeenCalledWith("left", null);
   });
 
-  it("shows an unsupported preview message for selected unknown files", () => {
-    const setOperationError = vi.fn();
-    const tab = {
-      ...activeTab(createInitialState().panels.left),
-      selectedId: "local:///tmp/archive.bin",
-      selectedIds: ["local:///tmp/archive.bin"],
-      entriesById: {
-        "local:///tmp/archive.bin": {
-          uri: "local:///tmp/archive.bin",
-          name: "archive.bin",
-          kind: "file",
-          size: 12,
-          isHidden: false,
-          isSymlink: false,
-          providerId: "local",
-          canRead: true,
-          canList: false,
-          canWrite: true,
-          canDelete: true,
-          canRename: true,
-        },
-      },
-      orderedEntryIds: ["local:///tmp/archive.bin"],
-    };
-
-    const commander = createCommanderActions(
-      baseDeps({ tab, setOperationError }),
-    );
-
-    commander.view();
-
-    expect(setOperationError).toHaveBeenCalledWith(
-      "No preview is available for this file type.",
-    );
-  });
-
-  it("opens preview for previewable files on view", () => {
-    const setPreviewOpen = vi.fn();
+  it("opens viewer for selected files on view", () => {
+    const setViewerOpen = vi.fn();
+    const setViewerEntry = vi.fn();
     const tab = {
       ...activeTab(createInitialState().panels.left),
       selectedId: "local:///tmp/readme.txt",
@@ -96,14 +64,52 @@ describe("createCommanderActions", () => {
     const commander = createCommanderActions(
       baseDeps({
         tab,
-        setPreviewOpen,
-        isPreviewable: () => true,
+        setViewerOpen,
+        setViewerEntry,
       }),
     );
 
     commander.view();
 
-    expect(setPreviewOpen).toHaveBeenCalledWith(true);
+    expect(setViewerEntry).toHaveBeenCalled();
+    expect(setViewerOpen).toHaveBeenCalledWith(true);
+  });
+
+  it("opens viewer for binary files on view", () => {
+    const setViewerOpen = vi.fn();
+    const setViewerEntry = vi.fn();
+    const setOperationError = vi.fn();
+    const tab = {
+      ...activeTab(createInitialState().panels.left),
+      selectedId: "local:///tmp/archive.bin",
+      selectedIds: ["local:///tmp/archive.bin"],
+      entriesById: {
+        "local:///tmp/archive.bin": {
+          uri: "local:///tmp/archive.bin",
+          name: "archive.bin",
+          kind: "file",
+          size: 12,
+          isHidden: false,
+          isSymlink: false,
+          providerId: "local",
+          canRead: true,
+          canList: false,
+          canWrite: true,
+          canDelete: true,
+          canRename: true,
+        },
+      },
+      orderedEntryIds: ["local:///tmp/archive.bin"],
+    };
+
+    const commander = createCommanderActions(
+      baseDeps({ tab, setViewerOpen, setViewerEntry, setOperationError }),
+    );
+
+    commander.view();
+
+    expect(setOperationError).toHaveBeenCalledWith(null);
+    expect(setViewerOpen).toHaveBeenCalledWith(true);
   });
 
   it("creates a folder from F7 action", () => {

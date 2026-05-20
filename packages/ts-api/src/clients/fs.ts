@@ -20,8 +20,12 @@ import type {
   PathRequest,
   ReadImageAsDataUriRequest,
   ReadImageAsDataUriResponse,
+  ReadFileRangeRequest,
+  ReadFileRangeResponse,
   ReadTextFileRequest,
   ReadTextFileResponse,
+  WriteTextFileRequest,
+  WriteTextFileResponse,
   RecursiveSearchCompletedEventDto,
   RecursiveSearchJobResponse,
   RecursiveSearchMatchEventDto,
@@ -61,6 +65,32 @@ export class FsClient {
     try {
       return await this.transport.invoke<ReadTextFileResponse>(
         "fs.read_text_file",
+        { request },
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async readFileRange(
+    request: ReadFileRangeRequest,
+  ): Promise<ReadFileRangeResponse> {
+    try {
+      return await this.transport.invoke<ReadFileRangeResponse>(
+        "fs.read_file_range",
+        { request },
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async writeTextFile(
+    request: WriteTextFileRequest,
+  ): Promise<WriteTextFileResponse> {
+    try {
+      return await this.transport.invoke<WriteTextFileResponse>(
+        "fs.write_text_file",
         { request },
       );
     } catch (error) {

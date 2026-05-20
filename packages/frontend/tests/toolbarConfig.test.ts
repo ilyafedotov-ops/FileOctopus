@@ -18,6 +18,7 @@ describe("toolbarConfig", () => {
     expect(labels).toEqual([
       "View",
       "Edit",
+      "Open with default",
       "Rename",
       "Copy",
       "Move",

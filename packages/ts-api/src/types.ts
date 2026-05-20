@@ -152,6 +152,29 @@ export interface ReadImageAsDataUriResponse {
   mimeType: string;
 }
 
+export interface ReadFileRangeRequest {
+  uri: string;
+  offset: number;
+  length: number;
+}
+
+export interface ReadFileRangeResponse {
+  bytesBase64: string;
+  bytesRead: number;
+  byteSize: number;
+  eof: boolean;
+}
+
+export interface WriteTextFileRequest {
+  uri: string;
+  content: string;
+  maxBytes?: number;
+}
+
+export interface WriteTextFileResponse {
+  byteSize: number;
+}
+
 export interface ComputeHashRequest {
   uri: string;
   algorithm: string;

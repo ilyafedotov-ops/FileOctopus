@@ -23,6 +23,7 @@ export const COMMAND_BINDINGS: CommandBinding[] = [
     targets: ["menu", "toolbar", "context", "shortcut"],
   },
   { commandId: "op.view", targets: ["menu", "toolbar", "context"] },
+  { commandId: "op.edit", targets: ["menu", "toolbar", "context"] },
   { commandId: "op.properties", targets: ["menu", "toolbar", "context"] },
   { commandId: "op.openDefault", targets: ["menu", "toolbar", "context"] },
   { commandId: "op.copyTo", targets: ["menu", "toolbar", "context"] },

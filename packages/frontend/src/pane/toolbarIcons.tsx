@@ -6,8 +6,10 @@ export function toolbarCommandIcon(commandId: CommandId): ReactNode | null {
   switch (commandId) {
     case "op.view":
       return Icons.file();
-    case "op.openDefault":
+    case "op.edit":
       return Icons.pencil();
+    case "op.openDefault":
+      return Icons.desktop();
     case "op.rename":
       return Icons.pencil();
     case "op.copyTo":

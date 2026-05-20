@@ -77,6 +77,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onNewFile: () => runCommand("create.file"),
     onOpenSelected: () => runCommand("op.open"),
     onView: () => runCommand("op.view"),
+    onEdit: () => runCommand("op.edit"),
     onOpenWithDefaultApp: () => runCommand("op.openDefault"),
     onRevealInFileManager: () => runCommand("op.reveal"),
     onRename: () => handleRename(panelId),

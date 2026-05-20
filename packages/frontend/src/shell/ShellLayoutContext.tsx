@@ -74,6 +74,10 @@ export interface ShellLayoutContextValue {
   shortcutsOpen: boolean;
   commandPaletteOpen: boolean;
   previewOpen: boolean;
+  viewerOpen: boolean;
+  viewerEntry: FileEntryDto | null;
+  editorOpen: boolean;
+  editorEntry: FileEntryDto | null;
   diagnosticsOpen: boolean;
   aboutOpen: boolean;
   goToLocationOpen: boolean;
@@ -132,6 +136,12 @@ export interface ShellLayoutContextValue {
   setShortcutsOpen: (v: boolean) => void;
   setCommandPaletteOpen: (v: boolean) => void;
   setPreviewOpen: (v: boolean) => void;
+  setViewerOpen: (v: boolean) => void;
+  setViewerEntry: (entry: FileEntryDto | null) => void;
+  setEditorOpen: (v: boolean) => void;
+  setEditorEntry: (entry: FileEntryDto | null) => void;
+  isTextEditable: (entry: FileEntryDto | null) => boolean;
+  refreshActivePane: () => void;
   setDiagnosticsOpen: (v: boolean) => void;
   setAboutOpen: (v: boolean) => void;
   setDialog: (d: OperationDialog | null) => void;

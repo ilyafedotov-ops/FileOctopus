@@ -20,6 +20,13 @@ export function ShellOverlays() {
         shortcutsOpen={ctx.shortcutsOpen}
         commandPaletteOpen={ctx.commandPaletteOpen}
         previewOpen={ctx.previewOpen}
+        viewerOpen={ctx.viewerOpen}
+        viewerEntry={ctx.viewerEntry}
+        setViewerOpen={ctx.setViewerOpen}
+        editorOpen={ctx.editorOpen}
+        editorEntry={ctx.editorEntry}
+        setEditorOpen={ctx.setEditorOpen}
+        refreshActivePane={ctx.refreshActivePane}
         diagnosticsOpen={ctx.diagnosticsOpen}
         aboutOpen={ctx.aboutOpen}
         goToLocationOpen={ctx.goToLocationOpen}

@@ -6,7 +6,11 @@ import { fileMutationState } from "../navigation/fileMutationState";
 export interface CommanderActionsDeps {
   panelId: PanelId;
   tab: PanelTabState;
-  setPreviewOpen: (open: boolean) => void;
+  setViewerOpen: (open: boolean) => void;
+  setViewerEntry: (entry: FileEntryDto | null) => void;
+  setEditorOpen: (open: boolean) => void;
+  setEditorEntry: (entry: FileEntryDto | null) => void;
+  isTextEditable: (entry: FileEntryDto | null) => boolean;
   handleCommandSelect: (id: string, panelId?: PanelId) => void;
   handleCopyOrMove: (panelId: PanelId, mode: "copy" | "move") => void;
   handleCreateFolder: (panelId: PanelId) => void;
@@ -16,21 +20,23 @@ export interface CommanderActionsDeps {
     entry: FileEntryDto | null,
   ) => Promise<void>;
   setOperationError: (error: string | null) => void;
-  isPreviewable: (entry: FileEntryDto | null) => boolean;
 }
 
 export function createCommanderActions(deps: CommanderActionsDeps) {
   const {
     panelId,
     tab,
-    setPreviewOpen,
+    setViewerOpen,
+    setViewerEntry,
+    setEditorOpen,
+    setEditorEntry,
+    isTextEditable,
     handleCommandSelect,
     handleCopyOrMove,
     handleCreateFolder,
     handleTrash,
     handleProperties,
     setOperationError,
-    isPreviewable,
   } = deps;
 
   const selectedEntries = selectVisibleEntries(tab).filter((entry) =>
@@ -45,19 +51,22 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
     selectedEntry,
     hasSelection,
     view: () => {
-      if (selectedEntry && isPreviewable(selectedEntry)) {
-        setOperationError(null);
-        setPreviewOpen(true);
-        return;
-      }
       if (selectedEntry) {
-        setOperationError("No preview is available for this file type.");
+        setOperationError(null);
+        setViewerEntry(selectedEntry);
+        setViewerOpen(true);
         return;
       }
       void handleProperties(panelId, selectedEntry);
     },
     edit: () => {
       if (!selectedEntry) {
+        return;
+      }
+      if (isTextEditable(selectedEntry)) {
+        setOperationError(null);
+        setEditorEntry(selectedEntry);
+        setEditorOpen(true);
         return;
       }
       handleCommandSelect("op.openDefault", panelId);

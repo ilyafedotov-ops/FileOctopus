@@ -25,6 +25,13 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
     clearRecentEntries: vi.fn(),
     setOperationHistoryOpen: vi.fn(),
     setFilterFocusToken: vi.fn(),
+    setPreviewOpen: vi.fn(),
+    setViewerOpen: vi.fn(),
+    setViewerEntry: vi.fn(),
+    setEditorOpen: vi.fn(),
+    setEditorEntry: vi.fn(),
+    isTextEditable: () => false,
+    isPreviewable: () => false,
     activityCollapsed: true,
     setActivityCollapsed: vi.fn(),
     handleCreateFolder: vi.fn(),
@@ -351,7 +358,9 @@ describe("dispatchCommand", () => {
     expect(handleProperties).toHaveBeenCalledWith("left", null);
   });
 
-  it("reports unsupported preview for op.view on unknown file types", () => {
+  it("opens viewer for op.view on any selected file", () => {
+    const setViewerOpen = vi.fn();
+    const setViewerEntry = vi.fn();
     const setOperationError = vi.fn();
     const selected = {
       uri: "local:///tmp/archive.bin",
@@ -371,14 +380,15 @@ describe("dispatchCommand", () => {
       "op.view",
       baseDeps({
         setOperationError,
+        setViewerOpen,
+        setViewerEntry,
         selectedEntries: () => [selected],
-        isPreviewable: () => false,
       }),
     );
 
     expect(handled).toBe(true);
-    expect(setOperationError).toHaveBeenCalledWith(
-      "No preview is available for this file type.",
-    );
+    expect(setOperationError).toHaveBeenCalledWith(null);
+    expect(setViewerEntry).toHaveBeenCalledWith(selected);
+    expect(setViewerOpen).toHaveBeenCalledWith(true);
   });
 });

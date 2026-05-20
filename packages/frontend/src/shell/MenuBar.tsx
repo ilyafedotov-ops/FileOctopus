@@ -24,6 +24,7 @@ export interface MenuBarProps {
   onNewFile: () => void;
   onOpenSelected: () => void;
   onView: () => void;
+  onEdit: () => void;
   onOpenWithDefaultApp: () => void;
   onRevealInFileManager: () => void;
   onRename: () => void;
@@ -205,17 +206,24 @@ export function MenuBar(props: MenuBarProps) {
       onSelect: wrap(props.onOpenSelected),
     },
     {
+      id: "view-selected",
+      label: "View",
+      shortcut: menuShortcut("op.view"),
+      onSelect: wrap(props.onView),
+    },
+    {
+      id: "edit-selected",
+      label: "Edit",
+      shortcut: menuShortcut("op.edit"),
+      disabled: !props.hasSelection,
+      onSelect: wrap(props.onEdit),
+    },
+    {
       id: "open-default",
       label: "Open With Default App",
       shortcut: menuShortcut("op.openDefault"),
       disabled: !props.hasSelection,
       onSelect: wrap(props.onOpenWithDefaultApp),
-    },
-    {
-      id: "view-selected",
-      label: "View",
-      shortcut: menuShortcut("op.view"),
-      onSelect: wrap(props.onView),
     },
     {
       id: "reveal-fm",

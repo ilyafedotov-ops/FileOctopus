@@ -1,7 +1,6 @@
 import { StatusBarSection } from "../components/StatusBarSection";
 import { activeTab } from "../panelStore";
 import { localPathFromUri } from "../utils/paneUtils";
-import { isPreviewable } from "../components/PreviewPanel";
 import {
   COMMANDER_FUNCTION_ITEMS,
   commanderItemDisabled,
@@ -17,14 +16,17 @@ export function ShellStatusBar() {
   const commander = createCommanderActions({
     panelId,
     tab,
-    setPreviewOpen: ctx.setPreviewOpen,
+    setViewerOpen: ctx.setViewerOpen,
+    setViewerEntry: ctx.setViewerEntry,
+    setEditorOpen: ctx.setEditorOpen,
+    setEditorEntry: ctx.setEditorEntry,
+    isTextEditable: ctx.isTextEditable,
     handleCommandSelect: ctx.handleCommandSelect,
     handleCopyOrMove: ctx.handleCopyOrMove,
     handleCreateFolder: ctx.handleCreateFolder,
     handleTrash: ctx.handleTrash,
     handleProperties: ctx.handleProperties,
     setOperationError: ctx.setOperationError,
-    isPreviewable,
   });
 
   return (

@@ -187,11 +187,16 @@ export const COMMAND_DEFINITIONS: CommandDefinition[] = [
     shortcutWin: "F3",
   },
   {
-    id: "op.openDefault",
-    label: "Open With Default App",
+    id: "op.edit",
+    label: "Edit",
     group: "operation",
     shortcutMac: "F4",
     shortcutWin: "F4",
+  },
+  {
+    id: "op.openDefault",
+    label: "Open With Default App",
+    group: "operation",
   },
   {
     id: "op.compress",

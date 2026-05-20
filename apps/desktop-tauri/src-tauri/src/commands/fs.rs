@@ -6,9 +6,10 @@ use app_ipc::{
     error_codes, ComputeHashRequest, ComputeHashResponse, DirectoryBatchEventDto,
     DiscoverVolumesResponse, IpcError, ListStartRequest, ListStartResponse, OkResponse,
     OpenTerminalRequest, OpenTerminalResponse, PathPropertiesDto, PathPropertiesRequest,
-    PathPropertiesResponse, PathRequest, ReadImageAsDataUriRequest, ReadImageAsDataUriResponse,
-    ReadTextFileRequest, ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse,
-    StatRequest, StatResponse, DIRECTORY_BATCH_EVENT,
+    PathPropertiesResponse, PathRequest, ReadFileRangeRequest, ReadFileRangeResponse,
+    ReadImageAsDataUriRequest, ReadImageAsDataUriResponse, ReadTextFileRequest,
+    ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse, StatRequest,
+    StatResponse, WriteTextFileRequest, WriteTextFileResponse, DIRECTORY_BATCH_EVENT,
 };
 use fs_core::{external_open, locations, metadata, vfs_io::VfsFilesystem};
 use tauri::{AppHandle, State};
@@ -64,6 +65,45 @@ pub async fn fs_read_text_file(
         content,
         truncated: byte_size > max_bytes,
         byte_size,
+    })
+}
+
+const MAX_RANGE_READ_BYTES: u64 = 4 * 1024 * 1024; // 4 MiB per request
+
+#[tauri::command]
+pub async fn fs_read_file_range(
+    request: ReadFileRangeRequest,
+    state: State<'_, Arc<AppState>>,
+) -> Result<ReadFileRangeResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+
+    if request.length > MAX_RANGE_READ_BYTES {
+        return Err(IpcError::new(
+            error_codes::INVALID_REQUEST,
+            format!(
+                "requested length {} exceeds max {}",
+                request.length, MAX_RANGE_READ_BYTES
+            ),
+        ));
+    }
+
+    let vfs = VfsFilesystem::with_sessions(state.sessions());
+    let (bytes, total) = tauri::async_runtime::spawn_blocking(move || {
+        vfs.read_file_range(&uri, request.offset, request.length)
+    })
+    .await
+    .map_err(|_| IpcError::internal("read_file_range task join failed"))?
+    .map_err(IpcError::from)?;
+
+    let bytes_read = bytes.len() as u64;
+    let eof = request.offset.saturating_add(bytes_read) >= total;
+    let bytes_base64 = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &bytes);
+
+    Ok(ReadFileRangeResponse {
+        bytes_base64,
+        bytes_read,
+        byte_size: total,
+        eof,
     })
 }
 
@@ -420,4 +460,33 @@ pub async fn fs_discover_volumes() -> Result<DiscoverVolumesResponse, IpcError> 
     }
 
     Ok(DiscoverVolumesResponse { volumes })
+}
+
+const MAX_WRITE_TEXT_BYTES_DEFAULT: u64 = 10 * 1024 * 1024; // 10 MiB
+
+#[tauri::command]
+pub async fn fs_write_text_file(
+    request: WriteTextFileRequest,
+    state: State<'_, Arc<AppState>>,
+) -> Result<WriteTextFileResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let cap = request.max_bytes.unwrap_or(MAX_WRITE_TEXT_BYTES_DEFAULT);
+    let bytes = request.content.into_bytes();
+
+    if bytes.len() as u64 > cap {
+        return Err(IpcError::file_too_large(format!(
+            "content {} bytes exceeds cap {} bytes",
+            bytes.len(),
+            cap
+        )));
+    }
+
+    let byte_size = bytes.len() as u64;
+    let vfs = VfsFilesystem::with_sessions(state.sessions());
+    tauri::async_runtime::spawn_blocking(move || vfs.write_file_atomic(&uri, &bytes))
+        .await
+        .map_err(|_| IpcError::internal("write_text_file task join failed"))?
+        .map_err(IpcError::from)?;
+
+    Ok(WriteTextFileResponse { byte_size })
 }

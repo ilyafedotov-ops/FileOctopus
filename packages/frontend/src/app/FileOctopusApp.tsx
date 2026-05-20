@@ -10,7 +10,7 @@ import { useFileOpHandlers } from "../hooks/useFileOpHandlers";
 import { useNetworkHandlers } from "../hooks/useNetworkHandlers";
 import { useCommandDispatch } from "../hooks/useCommandDispatch";
 import type { CommandEntry } from "../components/CommandPalette";
-import { isPreviewable } from "../components/PreviewPanel";
+import { isPreviewable, isTextPreviewable } from "../components/PreviewPanel";
 import type { FilePanelProps } from "../pane/FilePanel";
 import { ShellLayout } from "../shell/ShellLayout";
 import { buildPaletteEntries } from "../commands/paletteEntries";
@@ -119,6 +119,10 @@ function FileOctopusAppInner({
     shortcutsOpen,
     commandPaletteOpen,
     previewOpen,
+    viewerOpen,
+    viewerEntry,
+    editorOpen,
+    editorEntry,
     diagnosticsOpen,
     helpOpen,
     aboutOpen,
@@ -154,6 +158,10 @@ function FileOctopusAppInner({
     setShortcutsOpen,
     setCommandPaletteOpen,
     setPreviewOpen,
+    setViewerOpen,
+    setViewerEntry,
+    setEditorOpen,
+    setEditorEntry,
     setDiagnosticsOpen,
     setHelpOpen,
     setDialog,
@@ -382,6 +390,14 @@ function FileOctopusAppInner({
     setOperationError,
   });
 
+  const isTextEditable = useCallback(
+    (entry: import("@fileoctopus/ts-api").FileEntryDto | null) =>
+      entry !== null &&
+      entry.uri.startsWith("local://") &&
+      isTextPreviewable(entry),
+    [],
+  );
+
   const handleCommandSelect = useCommandDispatch({
     state,
     dispatch,
@@ -408,7 +424,12 @@ function FileOctopusAppInner({
     setFilterFocusToken,
     setRecursiveSearchFocusToken,
     setPreviewOpen,
+    setViewerOpen,
+    setViewerEntry,
+    setEditorOpen,
+    setEditorEntry,
     isPreviewable,
+    isTextEditable,
     activityCollapsed,
     setActivityCollapsed,
     markActivityPinnedOpen,
@@ -556,7 +577,14 @@ function FileOctopusAppInner({
         commandPaletteOpen,
         setCommandPaletteOpen,
         previewOpen,
+        viewerOpen,
         setPreviewOpen,
+        setViewerOpen,
+        setViewerEntry,
+        editorOpen,
+        setEditorOpen,
+        setEditorEntry,
+        isTextEditable,
         dialog,
         setDialog,
         contextMenu,
@@ -579,7 +607,14 @@ function FileOctopusAppInner({
       commandPaletteOpen,
       setCommandPaletteOpen,
       previewOpen,
+      viewerOpen,
+      editorOpen,
       setPreviewOpen,
+      setViewerOpen,
+      setViewerEntry,
+      setEditorOpen,
+      setEditorEntry,
+      isTextEditable,
       dialog,
       setDialog,
       contextMenu,
@@ -766,6 +801,10 @@ function FileOctopusAppInner({
       shortcutsOpen={shortcutsOpen}
       commandPaletteOpen={commandPaletteOpen}
       previewOpen={previewOpen}
+      viewerOpen={viewerOpen}
+      viewerEntry={viewerEntry}
+      editorOpen={editorOpen}
+      editorEntry={editorEntry}
       diagnosticsOpen={diagnosticsOpen}
       aboutOpen={aboutOpen}
       goToLocationOpen={goToLocationOpen}
@@ -813,6 +852,12 @@ function FileOctopusAppInner({
       setShortcutsOpen={setShortcutsOpen}
       setCommandPaletteOpen={setCommandPaletteOpen}
       setPreviewOpen={setPreviewOpen}
+      setViewerOpen={setViewerOpen}
+      setViewerEntry={setViewerEntry}
+      setEditorOpen={setEditorOpen}
+      setEditorEntry={setEditorEntry}
+      isTextEditable={isTextEditable}
+      refreshActivePane={() => refreshPanel(state.activePanelId)}
       setDiagnosticsOpen={setDiagnosticsOpen}
       setAboutOpen={setAboutOpen}
       setDialog={setDialog}
