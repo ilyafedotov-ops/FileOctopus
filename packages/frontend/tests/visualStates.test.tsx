@@ -43,6 +43,8 @@ const defaultPreferences = {
   paneTerminalDefaultOpen: false,
   terminalCdOnNavigate: false,
   confirmClosePaneWithTerminal: true,
+  terminalShell: "",
+  terminalArgs: "",
 };
 
 describe("visual state fixtures", () => {

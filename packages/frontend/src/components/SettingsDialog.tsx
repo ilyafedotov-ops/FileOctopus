@@ -514,6 +514,32 @@ export function SettingsDialog({
                 aria-label="Terminal settings"
               >
                 <h3>Terminal</h3>
+                <label className="fo-settings-field">
+                  <span>Shell program</span>
+                  <input
+                    value={preferences.terminalShell}
+                    placeholder="Use OS default"
+                    onChange={(event) =>
+                      onChange("terminalShell", event.target.value)
+                    }
+                  />
+                </label>
+                <label className="fo-settings-field">
+                  <span>Launch arguments</span>
+                  <textarea
+                    value={preferences.terminalArgs}
+                    placeholder="-l"
+                    rows={4}
+                    onChange={(event) =>
+                      onChange("terminalArgs", event.target.value)
+                    }
+                  />
+                </label>
+                <p className="fo-settings-hint">
+                  Leave shell blank for the OS default. Put one argument per
+                  line; leave arguments blank for default shell startup
+                  arguments.
+                </p>
                 <label className="fo-settings-checkbox">
                   <input
                     type="checkbox"

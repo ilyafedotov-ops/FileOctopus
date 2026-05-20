@@ -48,6 +48,8 @@ describe("accessibility basics", () => {
           paneTerminalDefaultOpen: false,
           terminalCdOnNavigate: false,
           confirmClosePaneWithTerminal: true,
+          terminalShell: "",
+          terminalArgs: "",
         }}
         autostart={null}
         onClose={onClose}

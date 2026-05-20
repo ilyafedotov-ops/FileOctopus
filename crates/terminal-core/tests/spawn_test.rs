@@ -17,6 +17,7 @@ fn spawn_shell_emits_output() {
             cols: 80,
             rows: 24,
             shell: Some("/bin/sh".to_string()),
+            args: Some(Vec::new()),
             owner: TEST_OWNER.to_string(),
         })
         .expect("spawn");
@@ -64,6 +65,7 @@ fn kill_actually_terminates_child() {
             cols: 80,
             rows: 24,
             shell: Some("/bin/sh".to_string()),
+            args: Some(Vec::new()),
             owner: TEST_OWNER.to_string(),
         })
         .expect("spawn");
@@ -86,6 +88,7 @@ fn resize_rejects_zero_dimensions() {
             cols: 80,
             rows: 24,
             shell: None,
+            args: None,
             owner: TEST_OWNER.to_string(),
         })
         .expect("spawn");
@@ -105,6 +108,7 @@ fn write_rejects_wrong_owner() {
             cols: 80,
             rows: 24,
             shell: None,
+            args: None,
             owner: TEST_OWNER.to_string(),
         })
         .expect("spawn");

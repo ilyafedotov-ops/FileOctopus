@@ -175,6 +175,8 @@ export interface TerminalSpawnRequest {
   uri: string;
   cols: number;
   rows: number;
+  shell?: string | null;
+  args?: string[] | null;
 }
 
 export interface TerminalSpawnResponse {
@@ -252,6 +254,8 @@ export interface UserPreferencesDto {
   paneTerminalDefaultOpen: boolean;
   terminalCdOnNavigate: boolean;
   confirmClosePaneWithTerminal: boolean;
+  terminalShell: string;
+  terminalArgs: string;
 }
 
 export interface AutostartStatusDto {

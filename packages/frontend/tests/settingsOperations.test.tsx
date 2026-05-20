@@ -40,6 +40,8 @@ const basePreferences = {
   paneTerminalDefaultOpen: false,
   terminalCdOnNavigate: false,
   confirmClosePaneWithTerminal: true,
+  terminalShell: "",
+  terminalArgs: "",
 };
 
 function renderDialog(overrides: Record<string, unknown> = {}) {

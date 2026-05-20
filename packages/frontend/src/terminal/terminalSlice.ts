@@ -22,6 +22,7 @@ export interface TerminalSession {
 export interface PaneTerminalChrome {
   open: boolean;
   collapsed: boolean;
+  maximized: boolean;
   splitRatio: number;
   sessionId: string | null;
 }
@@ -64,6 +65,11 @@ export type TerminalAction =
       collapsed: boolean;
     }
   | {
+      type: "setPaneTerminalMaximized";
+      panelId: PanelId;
+      maximized: boolean;
+    }
+  | {
       type: "setPaneTerminalSplit";
       panelId: PanelId;
       splitRatio: number;
@@ -84,6 +90,7 @@ function createPaneTerminalChrome(): PaneTerminalChrome {
   return {
     open: false,
     collapsed: false,
+    maximized: false,
     splitRatio: DEFAULT_PANE_TERMINAL_SPLIT,
     sessionId: null,
   };
@@ -132,6 +139,7 @@ function clearPaneBinding(
       ...pane[panelId],
       open: sibling !== undefined,
       collapsed: false,
+      maximized: false,
       sessionId: sibling?.id ?? null,
     };
   }
@@ -159,6 +167,7 @@ export function terminalReducer(
             ...state.pane[session.paneId],
             open: true,
             collapsed: false,
+            maximized: false,
             sessionId: session.id,
           },
         };
@@ -251,6 +260,7 @@ export function terminalReducer(
             ...state.pane[action.panelId],
             open: true,
             collapsed: false,
+            maximized: false,
             sessionId: action.sessionId,
             splitRatio: clampPaneSplit(
               action.splitRatio ?? state.pane[action.panelId].splitRatio,
@@ -267,6 +277,23 @@ export function terminalReducer(
           [action.panelId]: {
             ...state.pane[action.panelId],
             collapsed: action.collapsed,
+            maximized: action.collapsed
+              ? false
+              : state.pane[action.panelId].maximized,
+          },
+        },
+      };
+    case "setPaneTerminalMaximized":
+      return {
+        ...state,
+        pane: {
+          ...state.pane,
+          [action.panelId]: {
+            ...state.pane[action.panelId],
+            maximized: action.maximized,
+            collapsed: action.maximized
+              ? false
+              : state.pane[action.panelId].collapsed,
           },
         },
       };
@@ -304,6 +331,7 @@ export function terminalReducer(
             ...state.pane[action.panelId],
             open: false,
             collapsed: false,
+            maximized: false,
             sessionId: null,
           },
         },

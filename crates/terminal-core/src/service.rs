@@ -48,6 +48,7 @@ pub struct SpawnTerminalRequest {
     pub cols: u16,
     pub rows: u16,
     pub shell: Option<String>,
+    pub args: Option<Vec<String>>,
     pub owner: String,
 }
 
@@ -132,7 +133,8 @@ impl TerminalService {
 
         let mut command = CommandBuilder::new(&shell);
         command.cwd(&request.cwd);
-        for arg in shell_login_args(&shell) {
+        let args = request.args.unwrap_or_else(|| shell_login_args(&shell));
+        for arg in args {
             command.arg(arg);
         }
 

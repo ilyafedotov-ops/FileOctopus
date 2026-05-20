@@ -84,6 +84,8 @@ const appPreferences: UserPreferencesDto = {
   paneTerminalDefaultOpen: false,
   terminalCdOnNavigate: false,
   confirmClosePaneWithTerminal: true,
+  terminalShell: "",
+  terminalArgs: "",
 };
 const preferencesGet = vi.fn(async () => ({
   preferences: appPreferences,

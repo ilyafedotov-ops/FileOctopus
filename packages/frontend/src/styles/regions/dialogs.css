@@ -1007,25 +1007,40 @@ dialog.fo-dialog[open] {
   font-weight: 700;
 }
 
-.fo-settings-field select {
+.fo-settings-field select,
+.fo-settings-field input,
+.fo-settings-field textarea {
   width: 100%;
   min-height: 28px;
-  padding: 0.3rem 2rem 0.3rem 0.45rem;
+  padding: 0.3rem 0.45rem;
   border-width: 2px;
   border-style: solid;
   border-color: var(--fo-classic-shadow) var(--fo-classic-light)
     var(--fo-classic-light) var(--fo-classic-shadow);
   border-radius: 0;
+  background: var(--fo-classic-window);
+  color: var(--fo-classic-text);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.fo-settings-field select {
+  padding-right: 2rem;
   background: var(--fo-classic-window)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b95a8' d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E")
     no-repeat right 0.55rem center;
-  color: var(--fo-classic-text);
-  font-size: 13px;
   appearance: none;
   cursor: pointer;
 }
 
-.fo-settings-field select:focus-visible {
+.fo-settings-field textarea {
+  min-height: 88px;
+  resize: vertical;
+}
+
+.fo-settings-field select:focus-visible,
+.fo-settings-field input:focus-visible,
+.fo-settings-field textarea:focus-visible {
   outline: 2px solid color-mix(in srgb, var(--fo-accent) 45%, transparent);
   outline-offset: 1px;
 }

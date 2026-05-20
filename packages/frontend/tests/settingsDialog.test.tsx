@@ -44,6 +44,8 @@ function makePreferences(
     paneTerminalDefaultOpen: false,
     terminalCdOnNavigate: false,
     confirmClosePaneWithTerminal: true,
+    terminalShell: "",
+    terminalArgs: "",
     ...overrides,
   };
 }
@@ -149,6 +151,29 @@ describe("SettingsDialog", () => {
     });
     expect(onChange).toHaveBeenCalledWith("paneMode", "single");
     expect(onChange).toHaveBeenCalledWith("jobDrawerBehavior", "openOnError");
+  });
+
+  it("fires onChange for terminal launch settings", () => {
+    const onChange = vi.fn();
+    render(
+      <SettingsDialog
+        open
+        preferences={makePreferences()}
+        autostart={null}
+        onClose={() => {}}
+        onChange={onChange}
+        onSetAutostart={async () => {}}
+      />,
+    );
+    fireEvent.click(navButton("Terminal"));
+    fireEvent.change(screen.getByLabelText("Shell program"), {
+      target: { value: "/bin/zsh" },
+    });
+    fireEvent.change(screen.getByLabelText("Launch arguments"), {
+      target: { value: "-l\n--interactive" },
+    });
+    expect(onChange).toHaveBeenCalledWith("terminalShell", "/bin/zsh");
+    expect(onChange).toHaveBeenCalledWith("terminalArgs", "-l\n--interactive");
   });
 
   it("opens toolbar customization from the layout section", () => {

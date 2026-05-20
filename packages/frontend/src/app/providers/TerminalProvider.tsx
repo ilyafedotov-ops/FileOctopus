@@ -49,8 +49,10 @@ interface TerminalContextValue {
   switchTerminalTab: (sessionId: string) => void;
   setRailSegment: (segment: ActivityRailSegment) => void;
   setPaneTerminalCollapsed: (panelId: PanelId, collapsed: boolean) => void;
+  setPaneTerminalMaximized: (panelId: PanelId, maximized: boolean) => void;
   setPaneTerminalSplit: (panelId: PanelId, splitRatio: number) => void;
   setPaneActiveSession: (panelId: PanelId, sessionId: string) => void;
+  closePaneTerminal: (panelId: PanelId) => void;
   syncTerminalCwd: (panelId: PanelId, uri: string) => void;
   openExternalTerminal: (uri: string) => Promise<void>;
   registerTerminalSessionHandlers: (
@@ -72,10 +74,22 @@ export function useTerminal(): TerminalContextValue {
 async function spawnSession(
   client: FileOctopusClient,
   uri: string,
+  preferences: UserPreferencesDto | null,
   cols = 80,
   rows = 24,
 ) {
-  const response = await client.terminal.spawn({ uri, cols, rows });
+  const shell = preferences?.terminalShell.trim() || null;
+  const args = preferences?.terminalArgs
+    .split(/\r?\n/)
+    .map((arg) => arg.trim())
+    .filter(Boolean);
+  const response = await client.terminal.spawn({
+    uri,
+    cols,
+    rows,
+    shell,
+    args: args && args.length > 0 ? args : null,
+  });
   return response.sessionId;
 }
 
@@ -118,12 +132,20 @@ export function TerminalProvider({
   const terminalRef = useRef(terminal);
   terminalRef.current = terminal;
   const sessionHandlers = useRef(new Map<string, TerminalSessionHandlers>());
+  const outputBuffer = useRef(new Map<string, string[]>());
   const heightPersistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hydratedPreferencesRef = useRef(false);
 
   const registerTerminalSessionHandlers = useCallback(
     (sessionId: string, handlers: TerminalSessionHandlers) => {
       sessionHandlers.current.set(sessionId, handlers);
+      const pending = outputBuffer.current.get(sessionId);
+      if (pending) {
+        outputBuffer.current.delete(sessionId);
+        for (const data of pending) {
+          handlers.onOutput(data);
+        }
+      }
       return () => {
         sessionHandlers.current.delete(sessionId);
       };
@@ -173,7 +195,7 @@ export function TerminalProvider({
         return;
       }
 
-      const sessionId = await spawnSession(client, uri);
+      const sessionId = await spawnSession(client, uri, preferences);
       dispatch({
         type: "addSession",
         session: {
@@ -191,7 +213,7 @@ export function TerminalProvider({
         splitRatio,
       });
     },
-    [client, paneSplitRatio],
+    [client, paneSplitRatio, preferences],
   );
 
   const openEmbeddedTerminal = useCallback(
@@ -213,7 +235,7 @@ export function TerminalProvider({
       onExpandActivity();
       dispatch({ type: "setSegment", segment: "terminal" });
       await ensureRailWidth();
-      const sessionId = await spawnSession(client, uri);
+      const sessionId = await spawnSession(client, uri, preferences);
       dispatch({
         type: "addSession",
         session: {
@@ -225,7 +247,7 @@ export function TerminalProvider({
         },
       });
     },
-    [client, ensureRailWidth, onExpandActivity, openPaneTerminal],
+    [client, ensureRailWidth, onExpandActivity, openPaneTerminal, preferences],
   );
 
   const togglePaneTerminal = useCallback(
@@ -280,6 +302,13 @@ export function TerminalProvider({
   const setPaneTerminalCollapsed = useCallback(
     (panelId: PanelId, collapsed: boolean) => {
       dispatch({ type: "setPaneTerminalCollapsed", panelId, collapsed });
+    },
+    [],
+  );
+
+  const setPaneTerminalMaximized = useCallback(
+    (panelId: PanelId, maximized: boolean) => {
+      dispatch({ type: "setPaneTerminalMaximized", panelId, maximized });
     },
     [],
   );
@@ -362,6 +391,10 @@ export function TerminalProvider({
     [],
   );
 
+  const closePaneTerminal = useCallback((panelId: PanelId) => {
+    dispatch({ type: "closePaneTerminal", panelId });
+  }, []);
+
   const openExternalTerminal = useCallback(
     async (uri: string) => {
       try {
@@ -387,7 +420,17 @@ export function TerminalProvider({
         if (cancelled) {
           return;
         }
-        sessionHandlers.current.get(event.sessionId)?.onOutput(event.data);
+        const handler = sessionHandlers.current.get(event.sessionId);
+        if (handler) {
+          handler.onOutput(event.data);
+          return;
+        }
+        const pending = outputBuffer.current.get(event.sessionId) ?? [];
+        pending.push(event.data);
+        if (pending.length > 100) {
+          pending.splice(0, pending.length - 100);
+        }
+        outputBuffer.current.set(event.sessionId, pending);
       })
       .then((unlisten) => {
         if (!cancelled) {
@@ -436,8 +479,10 @@ export function TerminalProvider({
       switchTerminalTab,
       setRailSegment,
       setPaneTerminalCollapsed,
+      setPaneTerminalMaximized,
       setPaneTerminalSplit,
       setPaneActiveSession,
+      closePaneTerminal,
       syncTerminalCwd,
       openExternalTerminal,
       registerTerminalSessionHandlers,
@@ -453,8 +498,10 @@ export function TerminalProvider({
       switchTerminalTab,
       setRailSegment,
       setPaneTerminalCollapsed,
+      setPaneTerminalMaximized,
       setPaneTerminalSplit,
       setPaneActiveSession,
+      closePaneTerminal,
       syncTerminalCwd,
       openExternalTerminal,
       registerTerminalSessionHandlers,
@@ -481,8 +528,10 @@ export function StubTerminalProvider({ children }: { children: ReactNode }) {
       switchTerminalTab: () => {},
       setRailSegment: () => {},
       setPaneTerminalCollapsed: () => {},
+      setPaneTerminalMaximized: () => {},
       setPaneTerminalSplit: () => {},
       setPaneActiveSession: () => {},
+      closePaneTerminal: () => {},
       syncTerminalCwd: () => {},
       openExternalTerminal: async () => {},
       registerTerminalSessionHandlers: () => () => {},

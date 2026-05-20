@@ -63,6 +63,8 @@ pub struct UserPreferencesDto {
     pub pane_terminal_default_open: bool,
     pub terminal_cd_on_navigate: bool,
     pub confirm_close_pane_with_terminal: bool,
+    pub terminal_shell: String,
+    pub terminal_args: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -309,6 +311,10 @@ pub struct TerminalSpawnRequest {
     pub uri: String,
     pub cols: u16,
     pub rows: u16,
+    #[serde(default)]
+    pub shell: Option<String>,
+    #[serde(default)]
+    pub args: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1009,6 +1015,8 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             pane_terminal_default_open: value.pane_terminal_default_open,
             terminal_cd_on_navigate: value.terminal_cd_on_navigate,
             confirm_close_pane_with_terminal: value.confirm_close_pane_with_terminal,
+            terminal_shell: value.terminal_shell,
+            terminal_args: value.terminal_args,
         }
     }
 }

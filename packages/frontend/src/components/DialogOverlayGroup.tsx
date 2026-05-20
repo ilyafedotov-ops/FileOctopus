@@ -66,6 +66,8 @@ const FALLBACK_PREFERENCES: UserPreferencesDto = {
   paneTerminalDefaultOpen: false,
   terminalCdOnNavigate: false,
   confirmClosePaneWithTerminal: true,
+  terminalShell: "",
+  terminalArgs: "",
 };
 
 export interface DialogOverlayGroupProps {

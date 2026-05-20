@@ -28,7 +28,8 @@ fn preferences_dto_includes_new_fields() {
         "showAdvancedCopyOptions":true,
         "paneTerminalHeightLeft":0.4,"paneTerminalHeightRight":0.45,
         "paneTerminalDefaultOpen":true,"terminalCdOnNavigate":true,
-        "confirmClosePaneWithTerminal":false
+        "confirmClosePaneWithTerminal":false,
+        "terminalShell":"/bin/zsh","terminalArgs":"-l"
     }"#;
     let dto: UserPreferencesDto = serde_json::from_str(json).unwrap();
     assert_eq!(dto.accent_color, "violet");
@@ -46,4 +47,6 @@ fn preferences_dto_includes_new_fields() {
     assert!(dto.pane_terminal_default_open);
     assert!(dto.terminal_cd_on_navigate);
     assert!(!dto.confirm_close_pane_with_terminal);
+    assert_eq!(dto.terminal_shell, "/bin/zsh");
+    assert_eq!(dto.terminal_args, "-l");
 }

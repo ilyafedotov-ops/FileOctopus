@@ -16,7 +16,7 @@ pub use network::{
     UpdateNetworkProfile,
 };
 
-pub const SCHEMA_VERSION: u32 = 10;
+pub const SCHEMA_VERSION: u32 = 11;
 
 #[derive(Debug, Error)]
 pub enum PreferencesError {
@@ -59,6 +59,8 @@ pub struct UserPreferences {
     pub pane_terminal_default_open: bool,
     pub terminal_cd_on_navigate: bool,
     pub confirm_close_pane_with_terminal: bool,
+    pub terminal_shell: String,
+    pub terminal_args: String,
 }
 
 impl Default for UserPreferences {
@@ -92,6 +94,8 @@ impl Default for UserPreferences {
             pane_terminal_default_open: false,
             terminal_cd_on_navigate: false,
             confirm_close_pane_with_terminal: true,
+            terminal_shell: String::new(),
+            terminal_args: String::new(),
         }
     }
 }
@@ -204,6 +208,11 @@ impl PreferencesRepository {
 
         if user_version < 10 {
             self.backfill_v10_keys(&connection)?;
+            connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
+        if user_version < 11 {
+            self.backfill_v11_keys(&connection)?;
             connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         }
 
@@ -397,6 +406,25 @@ impl PreferencesRepository {
         Ok(())
     }
 
+    fn backfill_v11_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [
+            ("terminalShell", defaults.terminal_shell.clone()),
+            ("terminalArgs", defaults.terminal_args.clone()),
+        ];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
+        }
+
+        Ok(())
+    }
+
     fn seed_defaults(&self, connection: &Connection) -> Result<(), PreferencesError> {
         let defaults = UserPreferences::default();
         let now = chrono_lite_now();
@@ -514,6 +542,8 @@ impl UserPreferences {
                 "confirmClosePaneWithTerminal",
                 self.confirm_close_pane_with_terminal.to_string(),
             ),
+            ("terminalShell", self.terminal_shell.clone()),
+            ("terminalArgs", self.terminal_args.clone()),
         ]
     }
 }
@@ -617,10 +647,42 @@ fn apply_value(
         "confirmClosePaneWithTerminal" => {
             preferences.confirm_close_pane_with_terminal = parse_bool(value, key)?;
         }
+        "terminalShell" => {
+            preferences.terminal_shell = parse_terminal_shell(value)?;
+        }
+        "terminalArgs" => {
+            preferences.terminal_args = parse_terminal_args(value)?;
+        }
         _ => {}
     }
 
     Ok(())
+}
+
+fn parse_terminal_shell(value: &str) -> Result<String, PreferencesError> {
+    let trimmed = value.trim();
+    if trimmed.len() > 512 {
+        return Err(invalid_value(
+            "terminalShell",
+            "value is too long".to_string(),
+        ));
+    }
+    Ok(trimmed.to_string())
+}
+
+fn parse_terminal_args(value: &str) -> Result<String, PreferencesError> {
+    if value.len() > 2048 {
+        return Err(invalid_value(
+            "terminalArgs",
+            "value is too long".to_string(),
+        ));
+    }
+    Ok(value
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n"))
 }
 
 fn parse_pane_terminal_height(value: &str) -> Result<f64, PreferencesError> {
@@ -949,12 +1011,18 @@ mod tests {
         repository
             .set("confirmClosePaneWithTerminal", "false")
             .unwrap();
+        repository.set("terminalShell", " /bin/zsh ").unwrap();
+        repository
+            .set("terminalArgs", " -l \n  \n --interactive ")
+            .unwrap();
         let reloaded = PreferencesRepository::new(path).unwrap().get_all().unwrap();
         assert!((reloaded.pane_terminal_height_left - 0.42).abs() < f64::EPSILON);
         assert!((reloaded.pane_terminal_height_right - 0.38).abs() < f64::EPSILON);
         assert!(reloaded.pane_terminal_default_open);
         assert!(reloaded.terminal_cd_on_navigate);
         assert!(!reloaded.confirm_close_pane_with_terminal);
+        assert_eq!(reloaded.terminal_shell, "/bin/zsh");
+        assert_eq!(reloaded.terminal_args, "-l\n--interactive");
     }
 
     #[test]

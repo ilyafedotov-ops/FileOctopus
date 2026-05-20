@@ -259,9 +259,11 @@ export function FilePanel({
         <div
           className="fo-panel-main"
           style={
-            paneChrome.open && !paneChrome.collapsed
-              ? { flex: `${1 - paneChrome.splitRatio} 1 0` }
-              : undefined
+            paneChrome.open && paneChrome.maximized
+              ? { display: "none" }
+              : paneChrome.open && !paneChrome.collapsed
+                ? { flex: `${1 - paneChrome.splitRatio} 1 0` }
+                : undefined
           }
         >
           {dragOver ? (
@@ -368,6 +370,7 @@ export function FilePanel({
             activeSessionId={paneChrome.sessionId ?? terminal.activeSessionId}
             splitRatio={paneChrome.splitRatio}
             collapsed={paneChrome.collapsed}
+            maximized={paneChrome.maximized}
             panelActive={active}
             onResize={(ratio) => setPaneTerminalSplit(panelId, ratio)}
             onSwitch={(sessionId) => setPaneActiveSession(panelId, sessionId)}

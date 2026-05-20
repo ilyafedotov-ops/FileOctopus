@@ -93,6 +93,65 @@ describe("terminalReducer", () => {
     expect(state.pane.left.splitRatio).toBe(0.35);
   });
 
+  it("hides a pane terminal without destroying its session", () => {
+    let state = createInitialTerminalState();
+    state = terminalReducer(state, {
+      type: "addSession",
+      session: {
+        id: "session-1",
+        uri: "local:///tmp",
+        label: "tmp",
+        status: "running",
+        paneId: "left",
+      },
+    });
+    state = terminalReducer(state, {
+      type: "closePaneTerminal",
+      panelId: "left",
+    });
+
+    expect(state.pane.left.open).toBe(false);
+    expect(state.pane.left.sessionId).toBeNull();
+    expect(state.sessions).toHaveLength(1);
+  });
+
+  it("maximizes and restores a pane terminal without changing split size", () => {
+    let state = createInitialTerminalState();
+    state = terminalReducer(state, {
+      type: "setPaneTerminalSplit",
+      panelId: "left",
+      splitRatio: 0.42,
+    });
+    state = terminalReducer(state, {
+      type: "addSession",
+      session: {
+        id: "session-1",
+        uri: "local:///tmp",
+        label: "tmp",
+        status: "running",
+        paneId: "left",
+      },
+    });
+    state = terminalReducer(state, {
+      type: "setPaneTerminalMaximized",
+      panelId: "left",
+      maximized: true,
+    });
+
+    expect(state.pane.left.maximized).toBe(true);
+    expect(state.pane.left.collapsed).toBe(false);
+    expect(state.pane.left.splitRatio).toBe(0.42);
+
+    state = terminalReducer(state, {
+      type: "setPaneTerminalMaximized",
+      panelId: "left",
+      maximized: false,
+    });
+
+    expect(state.pane.left.maximized).toBe(false);
+    expect(state.pane.left.splitRatio).toBe(0.42);
+  });
+
   it("closes the active tab and falls back to a neighbor", () => {
     let state = createInitialTerminalState();
     state = terminalReducer(state, {

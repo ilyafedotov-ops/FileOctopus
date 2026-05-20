@@ -11,6 +11,7 @@ import type {
   RecursiveSearchCompletedEventDto,
   RecursiveSearchRequest,
   SetPreferenceRequest,
+  TerminalOutputEvent,
   UserPreferencesDto,
 } from "../types";
 import { preferenceValue } from "../clients/preferences";
@@ -18,6 +19,7 @@ import {
   DIRECTORY_BATCH_EVENT,
   FOLDER_SIZE_COMPLETED_EVENT,
   RECURSIVE_SEARCH_COMPLETED_EVENT,
+  TERMINAL_OUTPUT_EVENT,
 } from "../events";
 export function createPreviewTransport(): IpcTransport {
   let sessionIndex = 0;
@@ -50,6 +52,8 @@ export function createPreviewTransport(): IpcTransport {
     paneTerminalDefaultOpen: false,
     terminalCdOnNavigate: false,
     confirmClosePaneWithTerminal: true,
+    terminalShell: "",
+    terminalArgs: "",
   };
   const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
   const folderSizeHandlers = new Set<
@@ -58,6 +62,23 @@ export function createPreviewTransport(): IpcTransport {
   const recursiveSearchCompletedHandlers = new Set<
     (payload: RecursiveSearchCompletedEventDto) => void
   >();
+  const terminalOutputHandlers = new Set<
+    (payload: TerminalOutputEvent) => void
+  >();
+  const terminalOutputBuffer: TerminalOutputEvent[] = [];
+
+  const emitTerminalOutput = (payload: TerminalOutputEvent) => {
+    if (terminalOutputHandlers.size === 0) {
+      terminalOutputBuffer.push(payload);
+      if (terminalOutputBuffer.length > 100) {
+        terminalOutputBuffer.splice(0, terminalOutputBuffer.length - 100);
+      }
+      return;
+    }
+    for (const handler of terminalOutputHandlers) {
+      handler(payload);
+    }
+  };
 
   return {
     async invoke<TResponse>(command: string, args?: Record<string, unknown>) {
@@ -423,14 +444,30 @@ export function createPreviewTransport(): IpcTransport {
       }
 
       if (command === "terminal.spawn") {
-        return { sessionId: `preview-terminal-${++sessionIndex}` } as TResponse;
+        const sessionId = `preview-terminal-${++sessionIndex}`;
+        globalThis.setTimeout(() => {
+          const data = btoa("fileoctopus-preview % ");
+          emitTerminalOutput({ sessionId, data });
+        }, 0);
+        return { sessionId } as TResponse;
       }
 
-      if (
-        command === "terminal.write" ||
-        command === "terminal.resize" ||
-        command === "terminal.kill"
-      ) {
+      if (command === "terminal.write") {
+        const request = args?.request as
+          | { sessionId?: string; data?: string }
+          | undefined;
+        if (request?.sessionId && request.data) {
+          globalThis.setTimeout(() => {
+            emitTerminalOutput({
+              sessionId: request.sessionId ?? "",
+              data: request.data ?? "",
+            });
+          }, 0);
+        }
+        return { success: true } as TResponse;
+      }
+
+      if (command === "terminal.resize" || command === "terminal.kill") {
         return { success: true } as TResponse;
       }
 
@@ -465,6 +502,18 @@ export function createPreviewTransport(): IpcTransport {
         recursiveSearchCompletedHandlers.add(typedHandler);
 
         return () => recursiveSearchCompletedHandlers.delete(typedHandler);
+      }
+
+      if (event === TERMINAL_OUTPUT_EVENT) {
+        const typedHandler = handler as (payload: TerminalOutputEvent) => void;
+        terminalOutputHandlers.add(typedHandler);
+        if (terminalOutputBuffer.length > 0) {
+          const pending = terminalOutputBuffer.splice(0);
+          for (const payload of pending) {
+            typedHandler(payload);
+          }
+        }
+        return () => terminalOutputHandlers.delete(typedHandler);
       }
 
       if (event !== DIRECTORY_BATCH_EVENT) {

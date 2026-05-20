@@ -170,6 +170,7 @@
 .fo-panel-main {
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
   gap: 3px;
   min-height: 0;
   overflow: hidden;
@@ -193,6 +194,11 @@
   overflow: hidden;
   border-top: 1px solid var(--fo-border);
   background: var(--fo-editor-bg);
+}
+
+.fo-panel-terminal-maximized {
+  flex: 1 1 0;
+  min-height: 0;
 }
 
 .fo-panel-terminal-header {
@@ -247,11 +253,26 @@
   color: var(--fo-text);
   font-size: 11px;
   font-weight: 700;
-  cursor: pointer;
 }
 
 .fo-panel-terminal-collapsed:hover {
   background: var(--fo-tab-hover-bg);
+}
+
+.fo-panel-terminal-collapsed-expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 26px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .fo-panel-terminal-collapsed-hint {
@@ -260,7 +281,7 @@
   font-weight: 500;
 }
 
-.fo-panel-body > .fo-table-shell {
+.fo-panel-main > .fo-table-shell {
   flex: 1 1 0;
   min-height: 0;
 }

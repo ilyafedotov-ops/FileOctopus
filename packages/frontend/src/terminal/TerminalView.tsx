@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 import type { FileOctopusClient } from "@fileoctopus/ts-api";
 import { useTerminal } from "../app/providers/TerminalProvider";
 import { buildTerminalTheme } from "./terminalTheme";
+import { encodeTerminalInput } from "./shellEscape";
 
 const SAFE_LINK_SCHEMES = new Set(["http:", "https:"]);
 
@@ -26,6 +27,7 @@ export function TerminalView({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
+  const decoderRef = useRef(new TextDecoder());
 
   useEffect(() => {
     const container = containerRef.current;
@@ -61,6 +63,9 @@ export function TerminalView({
 
     const focusTerminal = () => {
       terminal.focus();
+      container
+        .querySelector<HTMLTextAreaElement>(".xterm-helper-textarea")
+        ?.focus();
     };
     const stopKeyBubble = (event: KeyboardEvent) => {
       event.stopPropagation();
@@ -68,6 +73,7 @@ export function TerminalView({
 
     container.addEventListener("mousedown", focusTerminal);
     container.addEventListener("pointerdown", focusTerminal);
+    container.addEventListener("click", focusTerminal);
     container.addEventListener("keydown", stopKeyBubble);
     container.addEventListener("keyup", stopKeyBubble);
 
@@ -82,22 +88,25 @@ export function TerminalView({
 
     const observer = new ResizeObserver(() => resize());
     observer.observe(container);
-    requestAnimationFrame(resize);
+    requestAnimationFrame(() => {
+      resize();
+      if (active) {
+        focusTerminal();
+      }
+    });
 
     const onData = terminal.onData((data) => {
-      const encoded = btoa(
-        Array.from(new TextEncoder().encode(data), (byte) =>
-          String.fromCharCode(byte),
-        ).join(""),
-      );
-      void client.terminal.write({ sessionId, data: encoded });
+      void client.terminal.write({
+        sessionId,
+        data: encodeTerminalInput(data),
+      });
     });
 
     const unregister = registerTerminalSessionHandlers(sessionId, {
       onOutput: (data) => {
         const binary = atob(data);
         const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
-        terminal.write(bytes);
+        terminal.write(decoderRef.current.decode(bytes, { stream: true }));
       },
       onExit: (exitCode) => {
         onExit(exitCode);
@@ -107,6 +116,7 @@ export function TerminalView({
     return () => {
       container.removeEventListener("mousedown", focusTerminal);
       container.removeEventListener("pointerdown", focusTerminal);
+      container.removeEventListener("click", focusTerminal);
       container.removeEventListener("keydown", stopKeyBubble);
       container.removeEventListener("keyup", stopKeyBubble);
       observer.disconnect();
@@ -115,6 +125,7 @@ export function TerminalView({
       terminal.dispose();
       terminalRef.current = null;
       fitRef.current = null;
+      decoderRef.current = new TextDecoder();
     };
   }, [client, onExit, registerTerminalSessionHandlers, sessionId]);
 

@@ -45,6 +45,16 @@ pub async fn terminal_spawn(
     state: State<'_, Arc<AppState>>,
 ) -> Result<TerminalSpawnResponse, IpcError> {
     let cwd = local_directory(&request.uri)?;
+    let preferences = state
+        .preferences()
+        .get_all()
+        .map_err(|error| IpcError::new(error_codes::INVALID_REQUEST, error.to_string()))?;
+    let shell = request
+        .shell
+        .or_else(|| non_empty_string(preferences.terminal_shell));
+    let args = request
+        .args
+        .or_else(|| non_empty_args(preferences.terminal_args));
     let owner = window.label().to_string();
     let id = state
         .terminals()
@@ -52,13 +62,37 @@ pub async fn terminal_spawn(
             cwd,
             cols: request.cols,
             rows: request.rows,
-            shell: None,
+            shell,
+            args,
             owner,
         })
         .map_err(terminal_ipc_error)?;
     Ok(TerminalSpawnResponse {
         session_id: id.to_string(),
     })
+}
+
+fn non_empty_string(value: String) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+fn non_empty_args(value: String) -> Option<Vec<String>> {
+    let args = value
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    if args.is_empty() {
+        None
+    } else {
+        Some(args)
+    }
 }
 
 #[tauri::command]
