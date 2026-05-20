@@ -33,6 +33,15 @@ describe("terminalControlFromKeydown", () => {
     expect(terminalControlFromKeydown(event)).toBeNull();
   });
 
+  it("maps Ctrl+C even when Cmd is still held (modifier race)", () => {
+    const event = new KeyboardEvent("keydown", {
+      ctrlKey: true,
+      metaKey: true,
+      key: "c",
+    });
+    expect(terminalControlFromKeydown(event)).toBe("\x03");
+  });
+
   it("maps Ctrl+Shift+C to SIGINT", () => {
     const event = new KeyboardEvent("keydown", {
       ctrlKey: true,

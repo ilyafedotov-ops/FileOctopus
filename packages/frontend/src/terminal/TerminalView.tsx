@@ -5,17 +5,50 @@ import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef } from "react";
 import type { FileOctopusClient } from "@fileoctopus/ts-api";
 import { useTerminal } from "../app/providers/TerminalProvider";
-import { isTerminalInputContext } from "../shortcuts";
 import { buildTerminalTheme } from "./terminalTheme";
 import { encodeTerminalInput, terminalControlFromKeydown } from "./shellEscape";
 
 const SAFE_LINK_SCHEMES = new Set(["http:", "https:"]);
+const TERMINAL_DEBUG_PREFIX = "[fileoctopus:terminal]";
+const IS_MAC =
+  typeof navigator !== "undefined" &&
+  /mac/i.test(
+    (navigator as Navigator & { userAgentData?: { platform?: string } })
+      .userAgentData?.platform ??
+      navigator.platform ??
+      navigator.userAgent,
+  );
+const TERMINAL_DEBUG_ENABLED =
+  typeof globalThis !== "undefined" &&
+  (globalThis as { __FILEOCTOPUS_TERMINAL_DEBUG__?: boolean })
+    .__FILEOCTOPUS_TERMINAL_DEBUG__ !== false;
 
 interface TerminalViewProps {
   client: FileOctopusClient;
   sessionId: string;
   active: boolean;
   onExit: (exitCode?: number | null) => void;
+}
+
+function terminalDebug(event: string, payload: Record<string, unknown>) {
+  if (!TERMINAL_DEBUG_ENABLED) {
+    return;
+  }
+  // Render the payload as a JSON-ish string so it's readable in DevTools without
+  // having to expand the object (which is awkward when triaging quickly).
+  let summary = "";
+  try {
+    summary = JSON.stringify(payload);
+  } catch {
+    summary = String(payload);
+  }
+  console.warn(`${TERMINAL_DEBUG_PREFIX} ${event} ${summary}`);
+}
+
+function dataToHex(data: string): string {
+  return Array.from(data, (char) =>
+    char.charCodeAt(0).toString(16).padStart(2, "0"),
+  ).join(" ");
 }
 
 export function TerminalView({
@@ -66,6 +99,25 @@ export function TerminalView({
       }),
     );
     terminal.open(container);
+    terminal.attachCustomKeyEventHandler((event) => {
+      if (
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        event.key === "Backspace" ||
+        event.key === "Delete"
+      ) {
+        terminalDebug("xterm-key", {
+          type: event.type,
+          key: event.key,
+          code: event.code,
+          ctrlKey: event.ctrlKey,
+          metaKey: event.metaKey,
+          altKey: event.altKey,
+        });
+      }
+      return true;
+    });
     terminalRef.current = terminal;
     fitRef.current = fitAddon;
 
@@ -77,22 +129,144 @@ export function TerminalView({
     };
 
     const sendControlSequence = (sequence: string) => {
+      const sid = sessionIdRef.current;
+      terminalDebug("control-write", {
+        sessionId: sid,
+        hex: dataToHex(sequence),
+      });
       void client.terminal
         .write({
-          sessionId: sessionIdRef.current,
+          sessionId: sid,
           data: encodeTerminalInput(sequence),
         })
-        .catch(() => {
-          /* session may have exited */
+        .catch((error) => {
+          terminalDebug("control-write-error", {
+            sessionId: sid,
+            message: error instanceof Error ? error.message : String(error),
+          });
         });
     };
 
+    const eventTargetsThisTerminal = (event: KeyboardEvent): boolean => {
+      const host = containerRef.current;
+      if (!host) {
+        return false;
+      }
+      const path =
+        typeof event.composedPath === "function" ? event.composedPath() : [];
+      if (path.includes(host)) {
+        return true;
+      }
+      if (event.target instanceof Node && host.contains(event.target)) {
+        return true;
+      }
+      const activeElement = document.activeElement;
+      if (activeElement instanceof Node && host.contains(activeElement)) {
+        return true;
+      }
+      return false;
+    };
+
+    const handleMacClipboardShortcuts = (event: KeyboardEvent): boolean => {
+      if (!IS_MAC) {
+        return false;
+      }
+      // Only plain Cmd+letter (no Ctrl/Opt/Shift) is treated as a Mac clipboard shortcut.
+      if (!event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) {
+        return false;
+      }
+      const key = event.key.toLowerCase();
+      const term = terminalRef.current;
+      if (!term) {
+        return false;
+      }
+      if (key === "c") {
+        // Copy if there is a selection, otherwise send SIGINT — matching iTerm2 /
+        // Terminal.app convention so Mac users can still interrupt running commands
+        // with the muscle-memory Cmd+C.
+        if (term.hasSelection()) {
+          const text = term.getSelection();
+          terminalDebug("cmd-c-copy", {
+            sessionId: sessionIdRef.current,
+            length: text.length,
+          });
+          if (text) {
+            void navigator.clipboard.writeText(text).catch((error) => {
+              terminalDebug("clipboard-write-error", {
+                message: error instanceof Error ? error.message : String(error),
+              });
+            });
+          }
+          term.clearSelection();
+        } else {
+          terminalDebug("cmd-c-sigint", { sessionId: sessionIdRef.current });
+          sendControlSequence("\x03");
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return true;
+      }
+      if (key === "v") {
+        terminalDebug("cmd-v-paste", { sessionId: sessionIdRef.current });
+        navigator.clipboard
+          .readText()
+          .then((text) => {
+            if (text && terminalRef.current) {
+              terminalRef.current.paste(text);
+            }
+          })
+          .catch((error) => {
+            terminalDebug("clipboard-read-error", {
+              message: error instanceof Error ? error.message : String(error),
+            });
+          });
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return true;
+      }
+      return false;
+    };
+
     const handleInterruptKeys = (event: KeyboardEvent) => {
-      if (!isTerminalInputContext()) {
+      const ownsEvent = eventTargetsThisTerminal(event);
+      // Log every keydown that either belongs to this terminal OR uses a modifier —
+      // this lets us prove Ctrl+C is actually reaching the window listener.
+      if (
+        ownsEvent ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        event.key === "Backspace" ||
+        event.key === "Delete"
+      ) {
+        terminalDebug("keydown", {
+          sessionId: sessionIdRef.current,
+          ownsEvent,
+          key: event.key,
+          code: event.code,
+          ctrlKey: event.ctrlKey,
+          metaKey: event.metaKey,
+          altKey: event.altKey,
+          shiftKey: event.shiftKey,
+          activeTag:
+            document.activeElement instanceof HTMLElement
+              ? document.activeElement.tagName.toLowerCase()
+              : null,
+        });
+      }
+      if (!ownsEvent) {
+        return;
+      }
+      if (handleMacClipboardShortcuts(event)) {
         return;
       }
       const control = terminalControlFromKeydown(event);
       if (!control) {
+        terminalDebug("keydown-no-control", {
+          sessionId: sessionIdRef.current,
+          key: event.key,
+          code: event.code,
+        });
         return;
       }
       event.preventDefault();
@@ -101,15 +275,37 @@ export function TerminalView({
     };
 
     const stopKeyBubble = (event: KeyboardEvent) => {
+      if (
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        event.key === "Backspace" ||
+        event.key === "Delete"
+      ) {
+        terminalDebug("container-key", {
+          type: event.type,
+          key: event.key,
+          code: event.code,
+          ctrlKey: event.ctrlKey,
+          metaKey: event.metaKey,
+          altKey: event.altKey,
+          defaultPrevented: event.defaultPrevented,
+        });
+      }
       event.stopPropagation();
     };
 
     window.addEventListener("keydown", handleInterruptKeys, true);
+    document.addEventListener("keydown", handleInterruptKeys, true);
     container.addEventListener("keydown", stopKeyBubble);
     container.addEventListener("keyup", stopKeyBubble);
     container.addEventListener("mousedown", focusTerminal);
     container.addEventListener("pointerdown", focusTerminal);
     container.addEventListener("click", focusTerminal);
+    terminalDebug("mount", {
+      sessionId: sessionIdRef.current,
+      hasContainer: true,
+    });
 
     const resize = () => {
       fitAddon.fit();
@@ -134,10 +330,20 @@ export function TerminalView({
     });
 
     const onData = terminal.onData((data) => {
-      void client.terminal.write({
-        sessionId: sessionIdRef.current,
-        data: encodeTerminalInput(data),
+      const sid = sessionIdRef.current;
+      terminalDebug("xterm-data", {
+        sessionId: sid,
+        length: data.length,
+        hex: dataToHex(data),
       });
+      void client.terminal
+        .write({ sessionId: sid, data: encodeTerminalInput(data) })
+        .catch((error) => {
+          terminalDebug("xterm-write-error", {
+            sessionId: sid,
+            message: error instanceof Error ? error.message : String(error),
+          });
+        });
     });
 
     const unregister = registerTerminalSessionHandlers(sessionId, {
@@ -153,6 +359,7 @@ export function TerminalView({
 
     return () => {
       window.removeEventListener("keydown", handleInterruptKeys, true);
+      document.removeEventListener("keydown", handleInterruptKeys, true);
       container.removeEventListener("keydown", stopKeyBubble);
       container.removeEventListener("keyup", stopKeyBubble);
       container.removeEventListener("mousedown", focusTerminal);

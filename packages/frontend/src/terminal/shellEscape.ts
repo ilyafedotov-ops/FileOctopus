@@ -16,7 +16,19 @@ export function encodeTerminalInput(data: string): string {
 export function terminalControlFromKeydown(
   event: KeyboardEvent,
 ): string | null {
-  if (event.type !== "keydown" || event.metaKey || event.altKey) {
+  if (event.type !== "keydown") {
+    return null;
+  }
+  // Cmd alone (no Ctrl) is reserved for OS shortcuts like copy/paste — never
+  // map those to PTY control bytes. But when Ctrl is also held — which can
+  // happen briefly after a Cmd-modified shortcut like ⌘+Opt+L if Cmd hasn't
+  // released yet — we prefer the Ctrl semantics so Ctrl+C still works.
+  if (event.metaKey && !event.ctrlKey) {
+    return null;
+  }
+  // Alt acts as a Meta modifier in terminals (sends ESC prefix). For now don't
+  // translate Alt-combos here; they pass through xterm.js's native onData.
+  if (event.altKey) {
     return null;
   }
   if (event.key === "Backspace") {

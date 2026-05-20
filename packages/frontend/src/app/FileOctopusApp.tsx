@@ -18,6 +18,7 @@ import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { isRemoteUri, profileIdFromRemoteUri } from "@fileoctopus/ts-api";
 
 import { hasRunningPaneSessions } from "../terminal/terminalSlice";
+import { DebugConsolePanel } from "../dev/DebugConsolePanel";
 import {
   AppProviders,
   useJobs,
@@ -931,6 +932,7 @@ export function FileOctopusApp({
         onRequestMinimize={onRequestMinimize}
         onRequestToggleMaximize={onRequestToggleMaximize}
       />
+      <DebugConsolePanel />
     </AppProviders>
   );
 }

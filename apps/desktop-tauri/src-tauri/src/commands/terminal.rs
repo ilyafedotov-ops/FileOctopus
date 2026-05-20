@@ -26,6 +26,14 @@ fn parse_session_id(value: &str) -> Result<TerminalId, IpcError> {
     TerminalId::parse(value).map_err(terminal_ipc_error)
 }
 
+fn debug_hex_prefix(data: &[u8]) -> String {
+    data.iter()
+        .take(32)
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 fn local_directory(uri_str: &str) -> Result<std::path::PathBuf, IpcError> {
     let uri = ResourceUri::parse(uri_str).map_err(IpcError::from)?;
     let path = uri.to_local_path().map_err(IpcError::from)?;
@@ -106,10 +114,25 @@ pub async fn terminal_write(
     let data = BASE64
         .decode(&request.data)
         .map_err(|error| IpcError::new(error_codes::INVALID_REQUEST, error.to_string()))?;
-    state
-        .terminals()
-        .write(id, owner, &data)
-        .map_err(terminal_ipc_error)?;
+    if data.iter().any(|b| *b < 0x20 || *b == 0x7f) {
+        telemetry::info(&format!(
+            "terminal.write session={} owner={} bytes={} hex={}",
+            id,
+            owner,
+            data.len(),
+            debug_hex_prefix(&data)
+        ));
+    }
+    match state.terminals().write(id, owner, &data) {
+        Ok(()) => {}
+        Err(error) => {
+            telemetry::error(&format!(
+                "terminal.write failed session={} owner={} code={:?} message={}",
+                id, owner, error.code, error.message
+            ));
+            return Err(terminal_ipc_error(error));
+        }
+    }
     Ok(TerminalOkResponse { success: true })
 }
 
