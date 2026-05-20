@@ -40,7 +40,7 @@ export function TitleBar({
 
   return (
     <header className="fo-topbar" data-tauri-drag-region="">
-      <div className="fo-brand" data-tauri-drag-region="">
+      <div className="fo-brand" data-tauri-drag-region="false">
         {controls.map((control) =>
           control.onClick ? (
             <button
@@ -59,7 +59,11 @@ export function TitleBar({
           ),
         )}
       </div>
-      {menuBarProps ? <MenuBar {...menuBarProps} /> : null}
+      {menuBarProps ? (
+        <div className="fo-menubar-host" data-tauri-drag-region="false">
+          <MenuBar {...menuBarProps} />
+        </div>
+      ) : null}
       {titlePath !== "FileOctopus" ? (
         <span className="fo-brand-product" data-tauri-drag-region="">
           FileOctopus
@@ -68,7 +72,7 @@ export function TitleBar({
       <h1 title={titlePath} data-tauri-drag-region="">
         {titlePath}
       </h1>
-      <div className="fo-topbar-actions">
+      <div className="fo-topbar-actions" data-tauri-drag-region="false">
         <Button type="button" variant="ghost" size="sm" onClick={onSettings}>
           Settings
         </Button>

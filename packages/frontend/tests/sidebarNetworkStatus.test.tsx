@@ -36,6 +36,7 @@ function renderSidebar(
       locations={[]}
       networkProfiles={[profile]}
       networkStatuses={statuses}
+      networkEnabled
       favorites={[]}
       recentToday={[]}
       recentWeek={[]}
@@ -110,6 +111,7 @@ describe("Sidebar network section", () => {
         locations={[]}
         networkProfiles={[baseProfile]}
         networkStatuses={[]}
+        networkEnabled
         favorites={[]}
         recentToday={[]}
         recentWeek={[]}

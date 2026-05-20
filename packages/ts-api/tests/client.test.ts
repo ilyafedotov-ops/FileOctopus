@@ -25,6 +25,8 @@ describe("FileOctopusClient", () => {
           buildProfile: "debug",
           commitSha: null,
           targetOs: "linux",
+          dataDir: "/tmp/fileoctopus",
+          networkEnabled: true,
         } as TResponse;
       },
     };

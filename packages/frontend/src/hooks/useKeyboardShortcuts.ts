@@ -116,7 +116,11 @@ export function createKeyboardShortcutsHandler(
       }
     }
 
-    if (isEditableTarget(event.target) || isTerminalInputContext()) {
+    if (
+      isEditableTarget(event.target) ||
+      isTerminalInputContext(event.target) ||
+      isTerminalInputContext()
+    ) {
       return;
     }
 

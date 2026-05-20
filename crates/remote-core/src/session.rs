@@ -233,6 +233,9 @@ impl ConnectionSessionManager {
                     .insert(profile_id.to_string(), ConnectionStatus::Connected);
                 self.publish_status(profile_id, ConnectionStatus::Connected);
                 let _ = self.profiles.set_connection_state(profile_id, true, None);
+                if profile.auth_kind == config::AuthKind::Password {
+                    let _ = self.profiles.set_has_stored_secret(profile_id, true);
+                }
                 if let Some(observed) = observed_fingerprint.as_deref() {
                     if profile.host_key_fingerprint.as_deref() != Some(observed) {
                         let _ = self.profiles.set_host_key_fingerprint(profile_id, observed);

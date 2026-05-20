@@ -10,10 +10,12 @@ use terminal_core::TerminalService;
 use thiserror::Error;
 use vfs::VfsRegistry;
 
+pub mod boot_config;
 pub mod history;
 pub mod paths;
 pub mod runtime;
 
+pub use boot_config::is_network_enabled;
 pub use history::{OperationHistoryRecord, OperationHistoryRepository};
 pub use paths::{AppDataHealth, AppPaths};
 pub use runtime::OperationRuntime;

@@ -10,6 +10,7 @@ import {
 import { normalizeIpcError, type FileOctopusClient } from "@fileoctopus/ts-api";
 import type {
   AutostartStatusDto,
+  AppInfoResponse,
   JobSnapshot,
   StarredEntryDto,
   UserPreferencesDto,
@@ -95,6 +96,8 @@ export interface UseAppInitParams {
   refreshNetworkProfiles: () => Promise<void>;
   refreshNavigation: () => Promise<void>;
   refreshDiagnostics: () => void;
+  setAppInfo: Dispatch<SetStateAction<AppInfoResponse | null>>;
+  appInfo: AppInfoResponse | null;
   updatePreference: (key: string, value: string) => Promise<void>;
   navigatePanel: (
     panelId: PanelId,
@@ -161,6 +164,8 @@ export function useAppInit({
   refreshNetworkProfiles,
   refreshNavigation,
   refreshDiagnostics,
+  setAppInfo,
+  appInfo,
   updatePreference,
   navigatePanel,
   applyFolderSizeCompleted,
@@ -522,6 +527,10 @@ export function useAppInit({
   }, [client]);
 
   useEffect(() => {
+    if (!appInfo?.networkEnabled) {
+      return;
+    }
+
     let dispose: (() => void) | null = null;
     void client.network
       .subscribeStatusEvents((event) => {
@@ -547,7 +556,7 @@ export function useAppInit({
     return () => {
       dispose?.();
     };
-  }, [client, setNetworkStatuses]);
+  }, [appInfo?.networkEnabled, client, setNetworkStatuses]);
 
   // ── On-demand hash computation for selected file ──────────────────
   useEffect(() => {
@@ -623,8 +632,17 @@ export function useAppInit({
     void (async () => {
       let showHidden = false;
 
+      try {
+        const info = await client.getAppInfo();
+        setAppInfo(info);
+        if (info.networkEnabled) {
+          void refreshNetworkProfiles();
+        }
+      } catch {
+        /* app info unavailable */
+      }
+
       void refreshLocations();
-      void refreshNetworkProfiles();
       void refreshNavigation();
 
       try {

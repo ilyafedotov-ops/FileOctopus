@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
 
-pub const NETWORK_SCHEMA_VERSION: u32 = 1;
+pub const NETWORK_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Error)]
 pub enum NetworkError {
@@ -64,6 +64,7 @@ pub struct NetworkProfile {
     pub sort_order: i64,
     pub last_connected_at: Option<String>,
     pub last_error: Option<String>,
+    pub has_stored_secret: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -116,7 +117,7 @@ impl NetworkProfileRepository {
         let mut statement = connection.prepare(
             "select id, label, scheme, host, port, username, auth_kind, private_key_path,
                     default_path, host_key_fingerprint, sort_order, last_connected_at,
-                    last_error, created_at, updated_at
+                    last_error, has_stored_secret, created_at, updated_at
              from network_profiles
              order by sort_order asc, label asc",
         )?;
@@ -130,7 +131,7 @@ impl NetworkProfileRepository {
         let mut statement = connection.prepare(
             "select id, label, scheme, host, port, username, auth_kind, private_key_path,
                     default_path, host_key_fingerprint, sort_order, last_connected_at,
-                    last_error, created_at, updated_at
+                    last_error, has_stored_secret, created_at, updated_at
              from network_profiles
              where id = ?1",
         )?;
@@ -157,12 +158,17 @@ impl NetworkProfileRepository {
             [],
             |row| row.get::<_, i64>(0),
         )?;
+        let has_stored_secret = profile.auth_kind == AuthKind::PrivateKey
+            && profile
+                .private_key_path
+                .as_ref()
+                .is_some_and(|path| !path.is_empty());
         connection.execute(
             "insert into network_profiles (
                 id, label, scheme, host, port, username, auth_kind, private_key_path,
                 default_path, host_key_fingerprint, sort_order, last_connected_at,
-                last_error, created_at, updated_at
-             ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, null, ?10, null, null, ?11, ?11)",
+                last_error, has_stored_secret, created_at, updated_at
+             ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, null, ?10, null, null, ?11, ?12, ?12)",
             params![
                 id,
                 profile.label,
@@ -174,6 +180,7 @@ impl NetworkProfileRepository {
                 profile.private_key_path,
                 profile.default_path,
                 sort_order,
+                i64::from(has_stored_secret),
                 now,
             ],
         )?;
@@ -195,10 +202,17 @@ impl NetworkProfileRepository {
         )?;
         let connection = self.connect()?;
         let now = Utc::now().to_rfc3339();
+        let has_stored_secret = stored_secret_flag_for_profile(
+            existing.auth_kind,
+            profile.auth_kind,
+            existing.has_stored_secret,
+            profile.private_key_path.as_deref(),
+        );
         let updated = connection.execute(
             "update network_profiles
              set label = ?2, host = ?3, port = ?4, username = ?5, auth_kind = ?6,
-                 private_key_path = ?7, default_path = ?8, updated_at = ?9
+                 private_key_path = ?7, default_path = ?8, has_stored_secret = ?9,
+                 updated_at = ?10
              where id = ?1",
             params![
                 id,
@@ -209,6 +223,7 @@ impl NetworkProfileRepository {
                 profile.auth_kind.as_str(),
                 profile.private_key_path,
                 profile.default_path,
+                i64::from(has_stored_secret),
                 now,
             ],
         )?;
@@ -279,6 +294,29 @@ impl NetworkProfileRepository {
         Ok(())
     }
 
+    pub fn set_has_stored_secret(
+        &self,
+        id: &str,
+        has_stored_secret: bool,
+    ) -> Result<(), NetworkError> {
+        let connection = self.connect()?;
+        let now = Utc::now().to_rfc3339();
+        let updated = connection.execute(
+            "update network_profiles
+             set has_stored_secret = ?2, updated_at = ?3
+             where id = ?1",
+            params![id, i64::from(has_stored_secret), now],
+        )?;
+        if updated == 0 {
+            return Err(NetworkError::ProfileNotFound);
+        }
+        Ok(())
+    }
+
+    pub fn clear_has_stored_secret(&self, id: &str) -> Result<(), NetworkError> {
+        self.set_has_stored_secret(id, false)
+    }
+
     pub fn clear_host_key_fingerprint(&self, id: &str) -> Result<(), NetworkError> {
         let connection = self.connect()?;
         let now = Utc::now().to_rfc3339();
@@ -321,6 +359,7 @@ impl NetworkProfileRepository {
                     sort_order integer not null default 0,
                     last_connected_at text,
                     last_error text,
+                    has_stored_secret integer not null default 0,
                     created_at text not null,
                     updated_at text not null
                 );",
@@ -328,7 +367,41 @@ impl NetworkProfileRepository {
             connection.pragma_update(None, "user_version", NETWORK_SCHEMA_VERSION)?;
         }
 
+        if version == 1 {
+            connection.execute_batch(
+                "alter table network_profiles
+                 add column has_stored_secret integer not null default 0;
+                 update network_profiles
+                 set has_stored_secret = 1
+                 where auth_kind = 'password';
+                 update network_profiles
+                 set has_stored_secret = 1
+                 where auth_kind = 'privateKey'
+                   and private_key_path is not null
+                   and trim(private_key_path) != '';",
+            )?;
+            connection.pragma_update(None, "user_version", NETWORK_SCHEMA_VERSION)?;
+        }
+
         Ok(())
+    }
+}
+
+fn stored_secret_flag_for_profile(
+    previous_auth_kind: AuthKind,
+    next_auth_kind: AuthKind,
+    previous_has_stored_secret: bool,
+    private_key_path: Option<&str>,
+) -> bool {
+    match next_auth_kind {
+        AuthKind::Password => {
+            if previous_auth_kind == AuthKind::Password {
+                previous_has_stored_secret
+            } else {
+                false
+            }
+        }
+        AuthKind::PrivateKey => private_key_path.is_some_and(|path| !path.trim().is_empty()),
     }
 }
 
@@ -351,8 +424,9 @@ fn map_profile_row(row: &rusqlite::Row<'_>) -> Result<NetworkProfile, rusqlite::
         sort_order: row.get(10)?,
         last_connected_at: row.get(11)?,
         last_error: row.get(12)?,
-        created_at: row.get(13)?,
-        updated_at: row.get(14)?,
+        has_stored_secret: row.get::<_, i64>(13)? != 0,
+        created_at: row.get(14)?,
+        updated_at: row.get(15)?,
     })
 }
 

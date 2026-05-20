@@ -64,10 +64,32 @@ interface TerminalContextValue {
 
 export const TerminalContext = createContext<TerminalContextValue | null>(null);
 
+const fallbackTerminalContext: TerminalContextValue = {
+  terminal: createInitialTerminalState(),
+  openEmbeddedTerminal: async () => {},
+  openPaneTerminal: async () => {},
+  openAdditionalPaneTab: async () => {},
+  openNewTerminalTab: async () => {},
+  togglePaneTerminal: async () => {},
+  markSessionExited: () => {},
+  closeTerminalTab: () => {},
+  switchTerminalTab: () => {},
+  setRailSegment: () => {},
+  setPaneTerminalCollapsed: () => {},
+  setPaneTerminalMaximized: () => {},
+  setPaneTerminalSplit: () => {},
+  setPaneActiveSession: () => {},
+  closePaneTerminal: () => {},
+  syncTerminalCwd: () => {},
+  openExternalTerminal: async () => {},
+  registerTerminalSessionHandlers: () => () => {},
+};
+
 export function useTerminal(): TerminalContextValue {
   const ctx = useContext(TerminalContext);
   if (!ctx) {
-    throw new Error("useTerminal must be used within TerminalProvider");
+    console.error("useTerminal must be used within TerminalProvider");
+    return fallbackTerminalContext;
   }
   return ctx;
 }
@@ -547,26 +569,7 @@ export function TerminalProvider({
 
 export function StubTerminalProvider({ children }: { children: ReactNode }) {
   const value = useMemo<TerminalContextValue>(
-    () => ({
-      terminal: createInitialTerminalState(),
-      openEmbeddedTerminal: async () => {},
-      openPaneTerminal: async () => {},
-      openAdditionalPaneTab: async () => {},
-      openNewTerminalTab: async () => {},
-      togglePaneTerminal: async () => {},
-      markSessionExited: () => {},
-      closeTerminalTab: () => {},
-      switchTerminalTab: () => {},
-      setRailSegment: () => {},
-      setPaneTerminalCollapsed: () => {},
-      setPaneTerminalMaximized: () => {},
-      setPaneTerminalSplit: () => {},
-      setPaneActiveSession: () => {},
-      closePaneTerminal: () => {},
-      syncTerminalCwd: () => {},
-      openExternalTerminal: async () => {},
-      registerTerminalSessionHandlers: () => () => {},
-    }),
+    () => fallbackTerminalContext,
     [],
   );
 

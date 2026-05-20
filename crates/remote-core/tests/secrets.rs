@@ -1,5 +1,4 @@
 use config::{AuthKind, NetworkProfileRepository, NewNetworkProfile, UpdateNetworkProfile};
-use platform::SecretStore;
 use remote_core::AuthSecrets;
 use tempfile::TempDir;
 
@@ -24,8 +23,7 @@ fn private_key_with_empty_path_has_no_stored_secret() {
         .add(profile_with(AuthKind::PrivateKey, Some(String::new())))
         .unwrap();
 
-    let secrets = SecretStore::new();
-    assert!(!AuthSecrets::profile_has_stored_secret(&secrets, &profile));
+    assert!(!AuthSecrets::profile_has_stored_secret(&profile));
 }
 
 #[test]
@@ -39,22 +37,24 @@ fn private_key_with_path_reports_stored_secret() {
         ))
         .unwrap();
 
-    let secrets = SecretStore::new();
-    assert!(AuthSecrets::profile_has_stored_secret(&secrets, &profile));
+    assert!(AuthSecrets::profile_has_stored_secret(&profile));
 }
 
 #[test]
-fn private_key_load_returns_no_password() {
+fn password_profile_uses_persisted_secret_flag() {
     let temp = TempDir::new().unwrap();
     let repository = NetworkProfileRepository::new(temp.path().join("network.sqlite")).unwrap();
     let profile = repository
-        .add(profile_with(AuthKind::PrivateKey, Some("/path".into())))
+        .add(profile_with(AuthKind::Password, None))
         .unwrap();
 
-    let secrets = SecretStore::new();
-    let loaded = AuthSecrets::load(&secrets, &profile).unwrap();
-    assert!(loaded.password.is_none());
-    assert!(loaded.passphrase.is_none());
+    assert!(!AuthSecrets::profile_has_stored_secret(&profile));
+
+    repository
+        .set_has_stored_secret(&profile.id, true)
+        .expect("set flag");
+    let updated = repository.get(&profile.id).unwrap();
+    assert!(AuthSecrets::profile_has_stored_secret(&updated));
 }
 
 #[test]
@@ -81,4 +81,5 @@ fn private_key_update_round_trips_key_path() {
         .unwrap();
 
     assert_eq!(updated.private_key_path.as_deref(), Some("/new"));
+    assert!(AuthSecrets::profile_has_stored_secret(&updated));
 }

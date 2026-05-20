@@ -20,6 +20,7 @@ export function PaneWorkspace() {
             locations={ctx.locations}
             networkProfiles={ctx.networkProfiles}
             networkStatuses={ctx.networkStatuses}
+            networkEnabled={ctx.appInfo?.networkEnabled ?? false}
             favorites={ctx.favorites}
             recentToday={ctx.recentToday}
             recentWeek={ctx.recentWeek}

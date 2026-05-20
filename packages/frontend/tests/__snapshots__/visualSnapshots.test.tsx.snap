@@ -10,7 +10,7 @@ exports[`visual regression snapshots > matches the shell chrome structure in dar
   >
     <div
       class="fo-brand"
-      data-tauri-drag-region=""
+      data-tauri-drag-region="false"
     >
       <span
         aria-hidden="true"
@@ -33,6 +33,7 @@ exports[`visual regression snapshots > matches the shell chrome structure in dar
     </h1>
     <div
       class="fo-topbar-actions"
+      data-tauri-drag-region="false"
     >
       <button
         class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"
@@ -213,7 +214,7 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
   >
     <div
       class="fo-brand"
-      data-tauri-drag-region=""
+      data-tauri-drag-region="false"
     >
       <span
         aria-hidden="true"
@@ -236,6 +237,7 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
     </h1>
     <div
       class="fo-topbar-actions"
+      data-tauri-drag-region="false"
     >
       <button
         class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"

@@ -61,6 +61,7 @@ interface SidebarProps {
   onEditProfile: (profile: NetworkProfileDto) => void;
   onDeleteProfile: (profileId: string) => void;
   busyProfileIds: Set<string>;
+  networkEnabled?: boolean;
 }
 
 export function Sidebar({
@@ -82,6 +83,7 @@ export function Sidebar({
   onEditProfile,
   onDeleteProfile,
   busyProfileIds,
+  networkEnabled = false,
 }: SidebarProps) {
   const [contextMenu, setContextMenu] =
     useState<SidebarContextMenuState | null>(null);
@@ -190,7 +192,7 @@ export function Sidebar({
         if (section === "Devices/Volumes") {
           const localItems = grouped[section] ?? [];
           const hasLocal = localItems.length > 0;
-          const hasNetwork = networkProfiles.length > 0;
+          const hasNetwork = networkEnabled && networkProfiles.length > 0;
 
           return (
             <SidebarSection key={section} title={sidebarSectionTitle(section)}>
@@ -246,19 +248,21 @@ export function Sidebar({
         );
       })}
 
-      <SidebarSection title="Network">
-        {networkProfiles.length === 0 ? (
-          <SidebarEmptyHint>No saved servers</SidebarEmptyHint>
-        ) : (
-          networkProfiles.map((profile) => renderNetworkProfileItem(profile))
-        )}
-        <SidebarItem
-          icon={Icons.folderPlus()}
-          label="Add server…"
-          active={false}
-          onClick={onAddServer}
-        />
-      </SidebarSection>
+      {networkEnabled ? (
+        <SidebarSection title="Network">
+          {networkProfiles.length === 0 ? (
+            <SidebarEmptyHint>No saved servers</SidebarEmptyHint>
+          ) : (
+            networkProfiles.map((profile) => renderNetworkProfileItem(profile))
+          )}
+          <SidebarItem
+            icon={Icons.folderPlus()}
+            label="Add server…"
+            active={false}
+            onClick={onAddServer}
+          />
+        </SidebarSection>
+      ) : null}
 
       {favorites.length > 0 ? (
         <SidebarSection title="Pinned">

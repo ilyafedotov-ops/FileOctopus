@@ -35,6 +35,7 @@ export const IPC_ERROR_CODES = {
   INVALID_TERMINAL_SIZE: "invalid_terminal_size",
   TERMINAL_SESSION_EXITED: "terminal_session_exited",
   AUTOSTART_UNAVAILABLE: "autostart_unavailable",
+  NETWORK_DISABLED: "network_disabled",
   NAVIGATION_ERROR: "navigation_error",
   NETWORK_ERROR: "network_error",
   CONNECTION_REQUIRED: "connection_required",
@@ -92,6 +93,8 @@ export interface AppInfoResponse {
   buildProfile: string;
   commitSha?: string | null;
   targetOs: string;
+  dataDir: string;
+  networkEnabled: boolean;
 }
 
 export interface AppDataHealthResponse {

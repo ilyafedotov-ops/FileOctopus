@@ -89,6 +89,8 @@ export function createPreviewTransport(): IpcTransport {
           buildProfile: "preview",
           commitSha: null,
           targetOs: "browser",
+          dataDir: "~/.fileoctopus",
+          networkEnabled: true,
         } as TResponse;
       }
 

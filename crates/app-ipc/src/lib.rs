@@ -29,6 +29,8 @@ pub struct AppInfoResponse {
     pub build_profile: String,
     pub commit_sha: Option<String>,
     pub target_os: String,
+    pub data_dir: String,
+    pub network_enabled: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -889,6 +891,7 @@ pub mod error_codes {
     pub const INVALID_TERMINAL_SIZE: &str = "invalid_terminal_size";
     pub const TERMINAL_SESSION_EXITED: &str = "terminal_session_exited";
     pub const AUTOSTART_UNAVAILABLE: &str = "autostart_unavailable";
+    pub const NETWORK_DISABLED: &str = "network_disabled";
     pub const NAVIGATION_ERROR: &str = "navigation_error";
     pub const NETWORK_ERROR: &str = "network_error";
     pub const CONNECTION_REQUIRED: &str = "connection_required";
@@ -929,6 +932,7 @@ pub mod error_codes {
         INVALID_TERMINAL_SIZE,
         TERMINAL_SESSION_EXITED,
         AUTOSTART_UNAVAILABLE,
+        NETWORK_DISABLED,
         NAVIGATION_ERROR,
         NETWORK_ERROR,
         CONNECTION_REQUIRED,
@@ -970,7 +974,7 @@ impl From<config::NetworkProfile> for NetworkProfileDto {
             sort_order: profile.sort_order,
             last_connected_at: profile.last_connected_at,
             last_error: profile.last_error,
-            has_stored_secret: false,
+            has_stored_secret: profile.has_stored_secret,
             created_at: profile.created_at,
             updated_at: profile.updated_at,
         }

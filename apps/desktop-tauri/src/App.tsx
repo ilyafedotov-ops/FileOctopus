@@ -4,22 +4,29 @@ import "@fileoctopus/ui/tokens.css";
 import "@fileoctopus/ui/components.css";
 import "./App.css";
 
-function App() {
-  const appWindow =
-    typeof globalThis === "object" && "__TAURI_INTERNALS__" in globalThis
-      ? getCurrentWindow()
-      : null;
+function isDesktopShell(): boolean {
+  return typeof globalThis === "object" && "__TAURI_INTERNALS__" in globalThis;
+}
 
+function App() {
   return (
     <FileOctopusShell
       onRequestExit={() => {
-        void appWindow?.close();
+        if (isDesktopShell()) {
+          void getCurrentWindow().close();
+          return;
+        }
+        globalThis.close();
       }}
       onRequestMinimize={() => {
-        void appWindow?.minimize();
+        if (isDesktopShell()) {
+          void getCurrentWindow().minimize();
+        }
       }}
       onRequestToggleMaximize={() => {
-        void appWindow?.toggleMaximize();
+        if (isDesktopShell()) {
+          void getCurrentWindow().toggleMaximize();
+        }
       }}
     />
   );

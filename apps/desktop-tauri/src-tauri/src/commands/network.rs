@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use app_core::AppState;
+use app_core::{is_network_enabled, AppState};
 use app_ipc::{
     IpcError, NetworkConnectionStatusDto, NetworkConnectionStatusResponse,
     NetworkProfileActionRequest, NetworkProfileAddRequest, NetworkProfileDeleteRequest,
@@ -38,15 +38,29 @@ fn remote_error(error: remote_core::RemoteError) -> IpcError {
     }
 }
 
-fn profile_to_dto(profile: config::NetworkProfile, secrets: &SecretStore) -> NetworkProfileDto {
-    let has_stored_secret = remote_core::AuthSecrets::profile_has_stored_secret(secrets, &profile);
-    let mut dto = NetworkProfileDto::from(profile);
-    dto.has_stored_secret = has_stored_secret;
+fn profile_to_dto(profile: config::NetworkProfile) -> NetworkProfileDto {
+    let mut dto = NetworkProfileDto::from(profile.clone());
+    dto.has_stored_secret = remote_core::AuthSecrets::profile_has_stored_secret(&profile);
     dto
 }
 
 fn secret_error(error: platform::SecretStoreError) -> IpcError {
     IpcError::network_error(error.to_string())
+}
+
+fn network_disabled_error() -> IpcError {
+    IpcError::new(
+        app_ipc::error_codes::NETWORK_DISABLED,
+        "network features are disabled; set FILEOCTOPUS_ENABLE_NETWORK=1 to enable them",
+    )
+}
+
+fn ensure_network_enabled() -> Result<(), IpcError> {
+    if is_network_enabled() {
+        Ok(())
+    } else {
+        Err(network_disabled_error())
+    }
 }
 
 fn status_to_dto(profile_id: &str, status: ConnectionStatus) -> NetworkConnectionStatusDto {
@@ -73,12 +87,16 @@ fn status_to_dto(profile_id: &str, status: ConnectionStatus) -> NetworkConnectio
 pub async fn network_profiles_list(
     state: State<'_, Arc<AppState>>,
 ) -> Result<NetworkProfilesListResponse, IpcError> {
+    if !is_network_enabled() {
+        return Ok(NetworkProfilesListResponse { profiles: vec![] });
+    }
+
     let profiles = state
         .network()
         .list()
         .map_err(network_error)?
         .into_iter()
-        .map(|profile| profile_to_dto(profile, state.secrets()))
+        .map(profile_to_dto)
         .collect();
 
     Ok(NetworkProfilesListResponse { profiles })
@@ -89,6 +107,7 @@ pub fn network_profile_add(
     request: NetworkProfileAddRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<NetworkProfileResponse, IpcError> {
+    ensure_network_enabled()?;
     let profile = state
         .network()
         .add(NewNetworkProfile {
@@ -104,7 +123,7 @@ pub fn network_profile_add(
         .map_err(network_error)?;
 
     Ok(NetworkProfileResponse {
-        profile: profile_to_dto(profile, state.secrets()),
+        profile: profile_to_dto(profile),
     })
 }
 
@@ -113,6 +132,7 @@ pub fn network_profile_update(
     request: NetworkProfileUpdateRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<NetworkProfileResponse, IpcError> {
+    ensure_network_enabled()?;
     let profile = state
         .network()
         .update(
@@ -130,7 +150,7 @@ pub fn network_profile_update(
         .map_err(network_error)?;
 
     Ok(NetworkProfileResponse {
-        profile: profile_to_dto(profile, state.secrets()),
+        profile: profile_to_dto(profile),
     })
 }
 
@@ -139,6 +159,7 @@ pub async fn network_profile_delete(
     request: NetworkProfileDeleteRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<OkResponse, IpcError> {
+    ensure_network_enabled()?;
     let _ = state.sessions().disconnect(&request.id).await;
 
     state.network().delete(&request.id).map_err(network_error)?;
@@ -157,7 +178,8 @@ pub fn network_profile_set_secret(
     request: NetworkProfileSetSecretRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<OkResponse, IpcError> {
-    let _ = state.network().get(&request.id).map_err(network_error)?;
+    ensure_network_enabled()?;
+    let profile = state.network().get(&request.id).map_err(network_error)?;
     let key = match request.secret_kind.as_str() {
         "password" => SecretStore::network_password_key(&request.id),
         "passphrase" => SecretStore::network_passphrase_key(&request.id),
@@ -174,6 +196,17 @@ pub fn network_profile_set_secret(
         .set(&key, &request.value)
         .map_err(secret_error)?;
 
+    if request.secret_kind == "password" {
+        state
+            .network()
+            .set_has_stored_secret(&request.id, true)
+            .map_err(network_error)?;
+    }
+
+    if request.secret_kind == "passphrase" && profile.auth_kind == AuthKind::PrivateKey {
+        let _ = state.network().set_has_stored_secret(&request.id, true);
+    }
+
     Ok(OkResponse { ok: true })
 }
 
@@ -182,6 +215,7 @@ pub async fn network_connect(
     request: NetworkProfileActionRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<OkResponse, IpcError> {
+    ensure_network_enabled()?;
     state
         .sessions()
         .connect(&request.id)
@@ -196,6 +230,7 @@ pub async fn network_disconnect(
     request: NetworkProfileActionRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<OkResponse, IpcError> {
+    ensure_network_enabled()?;
     state
         .sessions()
         .disconnect(&request.id)
@@ -209,6 +244,10 @@ pub async fn network_disconnect(
 pub async fn network_connection_status(
     state: State<'_, Arc<AppState>>,
 ) -> Result<NetworkConnectionStatusResponse, IpcError> {
+    if !is_network_enabled() {
+        return Ok(NetworkConnectionStatusResponse { statuses: vec![] });
+    }
+
     let profiles = state.network().list().map_err(network_error)?;
     let mut statuses = Vec::with_capacity(profiles.len());
 
@@ -225,6 +264,7 @@ pub fn network_profile_forget_fingerprint(
     request: NetworkProfileActionRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<OkResponse, IpcError> {
+    ensure_network_enabled()?;
     state
         .network()
         .clear_host_key_fingerprint(&request.id)
@@ -234,6 +274,7 @@ pub fn network_profile_forget_fingerprint(
 
 #[tauri::command]
 pub fn network_validate_uri(uri: String) -> Result<OkResponse, IpcError> {
+    ensure_network_enabled()?;
     ResourceUri::parse(&uri).map_err(IpcError::from)?;
     Ok(OkResponse { ok: true })
 }

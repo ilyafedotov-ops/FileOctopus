@@ -289,6 +289,8 @@ function FileOctopusAppInner({
     refreshNetworkProfiles,
     refreshNavigation,
     refreshDiagnostics,
+    setAppInfo,
+    appInfo,
     updatePreference,
     navigatePanel,
     applyFolderSizeCompleted,

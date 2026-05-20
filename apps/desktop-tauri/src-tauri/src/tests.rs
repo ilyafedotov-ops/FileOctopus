@@ -27,6 +27,8 @@ fn app_info_response_has_stable_metadata_fields() {
     assert!(!info.version.is_empty());
     assert!(!info.build_profile.is_empty());
     assert!(!info.target_os.is_empty());
+    assert!(!info.data_dir.is_empty());
+    assert_eq!(info.network_enabled, app_core::is_network_enabled());
 }
 
 #[test]

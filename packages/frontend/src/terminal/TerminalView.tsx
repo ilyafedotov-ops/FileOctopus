@@ -5,8 +5,9 @@ import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef } from "react";
 import type { FileOctopusClient } from "@fileoctopus/ts-api";
 import { useTerminal } from "../app/providers/TerminalProvider";
+import { isTerminalInputContext } from "../shortcuts";
 import { buildTerminalTheme } from "./terminalTheme";
-import { encodeTerminalInput } from "./shellEscape";
+import { encodeTerminalInput, terminalControlFromKeydown } from "./shellEscape";
 
 const SAFE_LINK_SCHEMES = new Set(["http:", "https:"]);
 
@@ -29,7 +30,9 @@ export function TerminalView({
   const fitRef = useRef<FitAddon | null>(null);
   const decoderRef = useRef(new TextDecoder());
   const onExitRef = useRef(onExit);
+  const sessionIdRef = useRef(sessionId);
   onExitRef.current = onExit;
+  sessionIdRef.current = sessionId;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -72,22 +75,52 @@ export function TerminalView({
         .querySelector<HTMLTextAreaElement>(".xterm-helper-textarea")
         ?.focus();
     };
+
+    const sendControlSequence = (sequence: string) => {
+      void client.terminal
+        .write({
+          sessionId: sessionIdRef.current,
+          data: encodeTerminalInput(sequence),
+        })
+        .catch(() => {
+          /* session may have exited */
+        });
+    };
+
+    const handleInterruptKeys = (event: KeyboardEvent) => {
+      if (!isTerminalInputContext()) {
+        return;
+      }
+      const control = terminalControlFromKeydown(event);
+      if (!control) {
+        return;
+      }
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      sendControlSequence(control);
+    };
+
     const stopKeyBubble = (event: KeyboardEvent) => {
       event.stopPropagation();
     };
 
+    window.addEventListener("keydown", handleInterruptKeys, true);
+    container.addEventListener("keydown", stopKeyBubble);
+    container.addEventListener("keyup", stopKeyBubble);
     container.addEventListener("mousedown", focusTerminal);
     container.addEventListener("pointerdown", focusTerminal);
     container.addEventListener("click", focusTerminal);
-    container.addEventListener("keydown", stopKeyBubble);
-    container.addEventListener("keyup", stopKeyBubble);
 
     const resize = () => {
       fitAddon.fit();
       const cols = terminal.cols;
       const rows = terminal.rows;
       if (cols > 0 && rows > 0) {
-        void client.terminal.resize({ sessionId, cols, rows });
+        void client.terminal.resize({
+          sessionId: sessionIdRef.current,
+          cols,
+          rows,
+        });
       }
     };
 
@@ -102,7 +135,7 @@ export function TerminalView({
 
     const onData = terminal.onData((data) => {
       void client.terminal.write({
-        sessionId,
+        sessionId: sessionIdRef.current,
         data: encodeTerminalInput(data),
       });
     });
@@ -119,11 +152,12 @@ export function TerminalView({
     });
 
     return () => {
+      window.removeEventListener("keydown", handleInterruptKeys, true);
+      container.removeEventListener("keydown", stopKeyBubble);
+      container.removeEventListener("keyup", stopKeyBubble);
       container.removeEventListener("mousedown", focusTerminal);
       container.removeEventListener("pointerdown", focusTerminal);
       container.removeEventListener("click", focusTerminal);
-      container.removeEventListener("keydown", stopKeyBubble);
-      container.removeEventListener("keyup", stopKeyBubble);
       observer.disconnect();
       onData.dispose();
       unregister();
@@ -140,6 +174,15 @@ export function TerminalView({
     }
     requestAnimationFrame(() => {
       fitRef.current?.fit();
+      const container = containerRef.current;
+      const terminal = terminalRef.current;
+      if (!container || !terminal) {
+        return;
+      }
+      terminal.focus();
+      container
+        .querySelector<HTMLTextAreaElement>(".xterm-helper-textarea")
+        ?.focus();
     });
   }, [active]);
 

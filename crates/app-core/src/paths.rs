@@ -66,6 +66,13 @@ pub struct AppDataHealth {
 }
 
 fn fileoctopus_home() -> PathBuf {
+    if let Ok(dir) = std::env::var("FILEOCTOPUS_DATA_DIR") {
+        let trimmed = dir.trim();
+        if !trimmed.is_empty() {
+            return PathBuf::from(trimmed);
+        }
+    }
+
     home_dir()
         .unwrap_or_else(|| PathBuf::from("."))
         .join(".fileoctopus")

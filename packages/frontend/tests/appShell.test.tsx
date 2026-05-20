@@ -270,6 +270,8 @@ const getAppInfo = vi.fn(async () => ({
   buildProfile: "debug",
   commitSha: null,
   targetOs: "linux",
+  dataDir: "~/.fileoctopus-dev",
+  networkEnabled: false,
 }));
 const appDataHealth = vi.fn(async () => ({
   configDir: "~/.fileoctopus/config",
