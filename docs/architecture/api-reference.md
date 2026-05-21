@@ -171,21 +171,21 @@ Errors arrive on the event stream as `DirectoryBatchEventDto.error` when listing
 
 The `FsClient` exposes several one-shot filesystem helpers. These still cross the Rust trust boundary, so every path argument is a `local://` `ResourceUri`.
 
-| Command                                           | Request                          | Response                                    | Notes                                                                                                                               |
-| ------------------------------------------------- | -------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `fs_read_text_file` / `fs.read_text_file`         | `{ uri, maxBytes? }`             | `{ content, truncated, byteSize }`          | Reads up to `maxBytes` bytes, default 1 MiB. Uses lossy UTF-8 decoding. Directories fail with `is_directory`.                       |
-| `fs_read_file_range` / `fs.read_file_range`       | `{ uri, offset, length }`        | `{ bytesBase64, bytesRead, byteSize, eof }` | Paged binary read for the built-in viewer. `length` capped at 4 MiB. `local://` only; remote schemes return `unsupported_provider`. |
-| `fs_write_text_file` / `fs.write_text_file`       | `{ uri, content, maxBytes? }`    | `{ byteSize }`                              | Atomic temp+rename write for the built-in editor. Default 10 MiB cap. `local://` only. v1 does not create operation history rows.   |
-| `fs_compute_hash` / `fs.compute_hash`             | `{ uri, algorithm }`             | `{ hash, algorithm, byteSize }`             | Supports `sha256` / `sha-256`; files over 100 MiB fail with `file_too_large`.                                                       |
-| `fs_open_terminal` / `fs.open_terminal`           | `{ uri }`                        | `{ success }`                               | Opens the platform external terminal in an existing local directory; can fail with `no_terminal`.                                   |
-| `terminal_spawn` / `terminal.spawn`               | `{ uri, cols, rows }`            | `{ sessionId }`                             | Spawns an embedded PTY session with cwd set to the local directory URI.                                                             |
-| `terminal_write` / `terminal.write`               | `{ sessionId, data }`            | `{ success }`                               | Writes base64-encoded bytes to the PTY stdin.                                                                                       |
-| `terminal_resize` / `terminal.resize`             | `{ sessionId, cols, rows }`      | `{ success }`                               | Resizes the PTY window.                                                                                                             |
-| `terminal_kill` / `terminal.kill`                 | `{ sessionId }`                  | `{ success }`                               | Closes the PTY session.                                                                                                             |
-| `fs_standard_locations` / `fs.standard_locations` | none                             | `{ locations }`                             | Returns standard local locations as `{ id, name, uri, section }`.                                                                   |
-| `fs_open_default` / `fs.open_default`             | `{ uri }`                        | `{ ok }`                                    | Opens the resource with the OS default application.                                                                                 |
-| `fs_reveal` / `fs.reveal`                         | `{ uri }`                        | `{ ok }`                                    | Reveals the resource in the platform file manager.                                                                                  |
-| `fs_properties` / `fs.properties`                 | `{ uri, includeFolderSummary? }` | `{ properties }`                            | Returns metadata plus optional recursive summary for directories.                                                                   |
+| Command                                           | Request                                           | Response                                    | Notes                                                                                                                               |
+| ------------------------------------------------- | ------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `fs_read_text_file` / `fs.read_text_file`         | `{ uri, maxBytes? }`                              | `{ content, truncated, byteSize }`          | Reads up to `maxBytes` bytes, default 1 MiB. Uses lossy UTF-8 decoding. Directories fail with `is_directory`.                       |
+| `fs_read_file_range` / `fs.read_file_range`       | `{ uri, offset, length }`                         | `{ bytesBase64, bytesRead, byteSize, eof }` | Paged binary read for the built-in viewer. `length` capped at 4 MiB. `local://` only; remote schemes return `unsupported_provider`. |
+| `fs_write_text_file` / `fs.write_text_file`       | `{ uri, content, maxBytes? }`                     | `{ byteSize }`                              | Atomic temp+rename write for the built-in editor. Default 10 MiB cap. `local://` only. v1 does not create operation history rows.   |
+| `fs_compute_hash` / `fs.compute_hash`             | `{ uri, algorithm }`                              | `{ hash, algorithm, byteSize }`             | Supports `sha256` / `sha-256`; files over 100 MiB fail with `file_too_large`.                                                       |
+| `fs_open_terminal` / `fs.open_terminal`           | `{ uri }`                                         | `{ success }`                               | Opens the platform external terminal in an existing local directory; can fail with `no_terminal`.                                   |
+| `terminal_spawn` / `terminal.spawn`               | `{ uri?, profileId?, cols, rows, shell?, args? }` | `{ sessionId }`                             | Spawns a local PTY for `local://` `uri` or an SSH PTY for terminal-capable network `profileId`.                                     |
+| `terminal_write` / `terminal.write`               | `{ sessionId, data }`                             | `{ success }`                               | Writes base64-encoded bytes to the PTY stdin. Applies to local and SSH terminal sessions.                                           |
+| `terminal_resize` / `terminal.resize`             | `{ sessionId, cols, rows }`                       | `{ success }`                               | Resizes the PTY window. Applies to local and SSH terminal sessions.                                                                 |
+| `terminal_kill` / `terminal.kill`                 | `{ sessionId }`                                   | `{ success }`                               | Closes the PTY session. Applies to local and SSH terminal sessions.                                                                 |
+| `fs_standard_locations` / `fs.standard_locations` | none                                              | `{ locations }`                             | Returns standard local locations as `{ id, name, uri, section }`.                                                                   |
+| `fs_open_default` / `fs.open_default`             | `{ uri }`                                         | `{ ok }`                                    | Opens the resource with the OS default application.                                                                                 |
+| `fs_reveal` / `fs.reveal`                         | `{ uri }`                                         | `{ ok }`                                    | Reveals the resource in the platform file manager.                                                                                  |
+| `fs_properties` / `fs.properties`                 | `{ uri, includeFolderSummary? }`                  | `{ properties }`                            | Returns metadata plus optional recursive summary for directories.                                                                   |
 
 `PathPropertiesDto` includes `uri`, `name`, `kind`, file `size`, optional `totalSize`/`itemCount`/`fileCount`/`directoryCount`, timestamps, hidden/symlink flags, `symlinkTarget`, `readonly`, and non-fatal `warnings`.
 
@@ -295,7 +295,9 @@ Clears the pinned host-key fingerprint for the given profile. The next successfu
 
 ### Host-key TOFU
 
-`SftpConnector` computes the SHA-256 base64 (unpadded) fingerprint of the server's host key on every connect. On first successful authentication, the fingerprint is persisted to the `network_profiles.host_key_fingerprint` column. Subsequent connects compare the observed fingerprint against the pinned value and refuse the connection on mismatch with `RemoteError::AuthenticationFailed`. Users can clear the pin from the Edit Server dialog ("Forget pinned fingerprint"); this restores TOFU on the next connect.
+SFTP sessions and SSH terminal sessions compute the SHA-256 base64 (unpadded) fingerprint of the server's host key on every connect. On first successful authentication, the fingerprint is persisted to the `network_profiles.host_key_fingerprint` column. Subsequent connects compare the observed fingerprint against the pinned value and refuse the connection on mismatch. Users can clear the pin from the Edit Server dialog ("Forget pinned fingerprint"); this restores TOFU on the next connect.
+
+Network profiles support `sftp` and `ssh` schemes. `sftp` profiles are file-capable and can also open SSH terminals. `ssh` profiles are terminal-only: they can be used as `terminal.spawn` `profileId` targets but do not produce browsable `sftp://` `defaultUri` values.
 
 Once connected, `fs_stat` and `fs_list_start` work for `sftp://` URIs through `SftpProvider`. `plan_file_operation` / `start_file_operation` support copy, move, rename, create, and delete for `local://` and `sftp://` sources and destinations, including cross-scheme transfers (`local` ↔ `sftp`, and `sftp` ↔ `sftp` across profiles). Remote delete uses permanent delete (`unsupported_trash` on `deleteToTrash`). Archive create/extract, watch, folder size, and recursive search remain local-only in v1.
 
@@ -313,6 +315,8 @@ Rust pushes events via `app.emit(name, payload)`. The TS client wraps them in `t
 | `fileOperation:job:cancelled` (`JOB_CANCELLED_EVENT`)               | `JobCancelledEvent`                | File-operation and metadata job runtimes  |
 | `fs:watch:changed` (`WATCH_CHANGED_EVENT`)                          | `WatchEventDto`                    | Watch worker                              |
 | `network:status` (`NETWORK_STATUS_EVENT`)                           | `NetworkStatusEventDto`            | `ConnectionSessionManager` status changes |
+| `terminal:output` (`TERMINAL_OUTPUT_EVENT`)                         | `TerminalOutputEventDto`           | Local and SSH PTY sessions                |
+| `terminal:exit` (`TERMINAL_EXIT_EVENT`)                             | `TerminalExitEventDto`             | Local and SSH PTY sessions                |
 | `fs:folderSize:completed` (`FOLDER_SIZE_COMPLETED_EVENT`)           | `FolderSizeCompletedEventDto`      | Folder-size metadata job                  |
 | `fs:recursiveSearch:match` (`RECURSIVE_SEARCH_MATCH_EVENT`)         | `RecursiveSearchMatchEventDto`     | Recursive-search metadata job             |
 | `fs:recursiveSearch:completed` (`RECURSIVE_SEARCH_COMPLETED_EVENT`) | `RecursiveSearchCompletedEventDto` | Recursive-search metadata job             |
@@ -543,7 +547,7 @@ Implement this to plug an alternative transport (tests, mocks, an out-of-process
 
 ## Resource URIs
 
-Every resource crossing the IPC boundary is identified by a `ResourceUri` — a string `scheme://body`. Registered providers today: `local` (`LocalFsProvider`) and `sftp` (`SftpProvider`). Reserved schemes `smb` and `webdav` parse successfully but return `unsupported_provider` until providers are registered (ADR-0004).
+Every filesystem resource crossing the IPC boundary is identified by a `ResourceUri` — a string `scheme://body`. Registered providers today: `local` (`LocalFsProvider`) and `sftp` (`SftpProvider`). Network profile scheme `ssh` is terminal-only and does not map to a browsable filesystem URI. Reserved schemes `smb` and `webdav` parse successfully but return `unsupported_provider` until providers are registered (ADR-0004).
 
 ### Local URIs
 
@@ -792,7 +796,7 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/dial
 | `navigation_error`        | Navigation repository                         | Favorites/recent/starred persistence failed.                    |
 | `network_error`           | `RemoteError`, network handlers               | Generic remote/network failure.                                 |
 | `connection_required`     | `VfsError`, `RemoteError`                     | Remote URI used before session connect.                         |
-| `authentication_failed`   | `VfsError`, `RemoteError`                     | SFTP login or key auth rejected.                                |
+| `authentication_failed`   | `VfsError`, `RemoteError`, `terminal-core`    | SFTP or SSH terminal login/key auth rejected.                   |
 | `connection_lost`         | `VfsError`, `RemoteError`                     | Active session dropped mid-operation.                           |
 | `folder_not_found`        | Tauri shell                                   | Watch start requires an existing directory.                     |
 | `invalid_request`         | `FileOperationError`                          | Operation request shape is wrong (missing sources, etc.).       |

@@ -98,6 +98,7 @@ function FileOctopusAppInner({
     terminal,
     openEmbeddedTerminal,
     openExternalTerminal,
+    openProfileTerminalTab,
     setRailSegment,
     togglePaneTerminal,
     syncTerminalCwd,
@@ -459,13 +460,6 @@ function FileOctopusAppInner({
     handleChecksum,
     openEmbeddedTerminal: (panelId) => {
       const uri = activeTab(state.panels[panelId]).uri;
-      if (isRemoteUri(uri)) {
-        pushToast({
-          tone: "error",
-          title: "Embedded terminal supports local folders only",
-        });
-        return;
-      }
       void openEmbeddedTerminal(uri, panelId).catch((error: unknown) => {
         pushToast({
           tone: "error",
@@ -476,13 +470,6 @@ function FileOctopusAppInner({
     },
     togglePaneTerminal: (panelId) => {
       const uri = activeTab(state.panels[panelId]).uri;
-      if (isRemoteUri(uri)) {
-        pushToast({
-          tone: "error",
-          title: "Embedded terminal supports local folders only",
-        });
-        return;
-      }
       void togglePaneTerminal(uri, panelId).catch((error: unknown) => {
         pushToast({
           tone: "error",
@@ -760,7 +747,7 @@ function FileOctopusAppInner({
         dispatch({ type: "setActivePanel", panelId: pid });
         handleCommandSelect("op.openTerminal", pid);
       },
-      terminalDisabled: isRemoteUri(tab.uri),
+      terminalDisabled: false,
     };
   }
 
@@ -841,6 +828,7 @@ function FileOctopusAppInner({
       saveProfile={saveProfile}
       forgetFingerprint={forgetFingerprint}
       refreshNetworkProfiles={refreshNetworkProfiles}
+      openProfileTerminalTab={openProfileTerminalTab}
       dialog={dialog}
       autostart={autostart}
       commandEntries={commandEntries}

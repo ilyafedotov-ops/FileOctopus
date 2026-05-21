@@ -1,13 +1,17 @@
 use std::fmt;
 use std::io::{Read, Write};
+use std::net::TcpStream;
+use std::path::Path;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use dashmap::DashMap;
 use portable_pty::{native_pty_system, CommandBuilder, PtyPair, PtySize};
 use serde::{Deserialize, Serialize};
+use ssh2::{Channel, KeyboardInteractivePrompt, Prompt, Session};
 use uuid::Uuid;
 
 use crate::error::TerminalError;
@@ -53,6 +57,35 @@ pub struct SpawnTerminalRequest {
 }
 
 #[derive(Debug, Clone)]
+pub enum RemoteTerminalAuth {
+    Password {
+        password: String,
+    },
+    PrivateKey {
+        private_key_path: String,
+        passphrase: Option<String>,
+    },
+}
+
+#[derive(Debug, Clone)]
+pub struct SpawnRemoteTerminalRequest {
+    pub host: String,
+    pub port: u16,
+    pub username: String,
+    pub auth: RemoteTerminalAuth,
+    pub expected_host_key_fingerprint: Option<String>,
+    pub cols: u16,
+    pub rows: u16,
+    pub owner: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SpawnRemoteTerminalResponse {
+    pub id: TerminalId,
+    pub observed_host_key_fingerprint: Option<String>,
+}
+
+#[derive(Debug, Clone)]
 pub enum TerminalEvent {
     Output {
         id: TerminalId,
@@ -72,10 +105,26 @@ struct SessionWriter {
 }
 
 struct SessionState {
-    writer: Arc<SessionWriter>,
-    master: Mutex<Option<Box<dyn portable_pty::MasterPty + Send>>>,
-    child: Arc<Mutex<Option<Box<dyn portable_pty::Child + Send + Sync>>>>,
+    backend: SessionBackend,
     owner: String,
+}
+
+enum SessionBackend {
+    Local {
+        writer: Arc<SessionWriter>,
+        master: Mutex<Option<Box<dyn portable_pty::MasterPty + Send>>>,
+        child: Arc<Mutex<Option<Box<dyn portable_pty::Child + Send + Sync>>>>,
+    },
+    Ssh {
+        commands: Sender<SshTerminalCommand>,
+        alive: Arc<AtomicBool>,
+    },
+}
+
+enum SshTerminalCommand {
+    Write(Vec<u8>),
+    Resize { cols: u16, rows: u16 },
+    Kill,
 }
 
 pub struct TerminalService {
@@ -161,9 +210,11 @@ impl TerminalService {
         self.sessions.insert(
             id,
             SessionState {
-                writer: session_writer.clone(),
-                master: Mutex::new(Some(master)),
-                child,
+                backend: SessionBackend::Local {
+                    writer: session_writer.clone(),
+                    master: Mutex::new(Some(master)),
+                    child,
+                },
                 owner: owner.clone(),
             },
         );
@@ -213,6 +264,65 @@ impl TerminalService {
         Ok(id)
     }
 
+    pub fn spawn_ssh(
+        &self,
+        request: SpawnRemoteTerminalRequest,
+    ) -> Result<SpawnRemoteTerminalResponse, TerminalError> {
+        if request.cols == 0 || request.rows == 0 {
+            return Err(TerminalError::invalid_size());
+        }
+
+        let id = TerminalId::new();
+        let owner = request.owner.clone();
+        let (session, observed_host_key_fingerprint) = connect_ssh_session(&request)?;
+        session.set_blocking(false);
+        let mut channel = session
+            .channel_session()
+            .map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
+        channel
+            .request_pty(
+                "xterm-256color",
+                None,
+                Some((request.cols as u32, request.rows as u32, 0, 0)),
+            )
+            .map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
+        channel
+            .shell()
+            .map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
+
+        let (commands, rx) = mpsc::channel();
+        let alive = Arc::new(AtomicBool::new(true));
+        let alive_for_thread = alive.clone();
+        let events_tx = self.events_tx.clone();
+        let session_id = id;
+        let thread_owner = owner.clone();
+
+        std::thread::spawn(move || {
+            let exit_code =
+                run_ssh_terminal_loop(&mut channel, rx, &events_tx, session_id, &thread_owner);
+            alive_for_thread.store(false, Ordering::SeqCst);
+            let _ = events_tx.send(TerminalEvent::Exit {
+                id: session_id,
+                owner: thread_owner,
+                exit_code,
+            });
+            drop(session);
+        });
+
+        self.sessions.insert(
+            id,
+            SessionState {
+                backend: SessionBackend::Ssh { commands, alive },
+                owner,
+            },
+        );
+
+        Ok(SpawnRemoteTerminalResponse {
+            id,
+            observed_host_key_fingerprint,
+        })
+    }
+
     pub fn write(&self, id: TerminalId, owner: &str, data: &[u8]) -> Result<(), TerminalError> {
         let session = self
             .sessions
@@ -221,20 +331,31 @@ impl TerminalService {
         if session.owner != owner {
             return Err(TerminalError::not_found());
         }
-        if !session.writer.alive.load(Ordering::SeqCst) {
-            return Err(TerminalError::session_exited());
+        match &session.backend {
+            SessionBackend::Local { writer, .. } => {
+                if !writer.alive.load(Ordering::SeqCst) {
+                    return Err(TerminalError::session_exited());
+                }
+                let mut writer = writer
+                    .writer
+                    .lock()
+                    .map_err(|_| TerminalError::io("terminal writer lock poisoned"))?;
+                writer
+                    .write_all(data)
+                    .map_err(|e| TerminalError::io(e.to_string()))?;
+                writer
+                    .flush()
+                    .map_err(|e| TerminalError::io(e.to_string()))?;
+            }
+            SessionBackend::Ssh { commands, alive } => {
+                if !alive.load(Ordering::SeqCst) {
+                    return Err(TerminalError::session_exited());
+                }
+                commands
+                    .send(SshTerminalCommand::Write(data.to_vec()))
+                    .map_err(|_| TerminalError::session_exited())?;
+            }
         }
-        let mut writer = session
-            .writer
-            .writer
-            .lock()
-            .map_err(|_| TerminalError::io("terminal writer lock poisoned"))?;
-        writer
-            .write_all(data)
-            .map_err(|e| TerminalError::io(e.to_string()))?;
-        writer
-            .flush()
-            .map_err(|e| TerminalError::io(e.to_string()))?;
         Ok(())
     }
 
@@ -254,21 +375,35 @@ impl TerminalService {
         if session.owner != owner {
             return Err(TerminalError::not_found());
         }
-        let mut master_guard = session
-            .master
-            .lock()
-            .map_err(|_| TerminalError::io("terminal master lock poisoned"))?;
-        let master = master_guard
-            .as_mut()
-            .ok_or_else(TerminalError::session_exited)?;
-        master
-            .resize(PtySize {
-                rows: size.rows,
-                cols: size.cols,
-                pixel_width: 0,
-                pixel_height: 0,
-            })
-            .map_err(|e| TerminalError::io(e.to_string()))?;
+        match &session.backend {
+            SessionBackend::Local { master, .. } => {
+                let mut master_guard = master
+                    .lock()
+                    .map_err(|_| TerminalError::io("terminal master lock poisoned"))?;
+                let master = master_guard
+                    .as_mut()
+                    .ok_or_else(TerminalError::session_exited)?;
+                master
+                    .resize(PtySize {
+                        rows: size.rows,
+                        cols: size.cols,
+                        pixel_width: 0,
+                        pixel_height: 0,
+                    })
+                    .map_err(|e| TerminalError::io(e.to_string()))?;
+            }
+            SessionBackend::Ssh { commands, alive } => {
+                if !alive.load(Ordering::SeqCst) {
+                    return Err(TerminalError::session_exited());
+                }
+                commands
+                    .send(SshTerminalCommand::Resize {
+                        cols: size.cols,
+                        rows: size.rows,
+                    })
+                    .map_err(|_| TerminalError::session_exited())?;
+            }
+        }
         Ok(())
     }
 
@@ -280,9 +415,16 @@ impl TerminalService {
         if session.owner != owner {
             return Err(TerminalError::not_found());
         }
-        if let Ok(mut guard) = session.child.lock() {
-            if let Some(mut child) = guard.take() {
-                let _ = child.kill();
+        match session.backend {
+            SessionBackend::Local { child, .. } => {
+                if let Ok(mut guard) = child.lock() {
+                    if let Some(mut child) = guard.take() {
+                        let _ = child.kill();
+                    }
+                }
+            }
+            SessionBackend::Ssh { commands, .. } => {
+                let _ = commands.send(SshTerminalCommand::Kill);
             }
         }
         Ok(())
@@ -291,4 +433,158 @@ impl TerminalService {
     pub fn contains(&self, id: TerminalId) -> bool {
         self.sessions.contains_key(&id)
     }
+}
+
+fn connect_ssh_session(
+    request: &SpawnRemoteTerminalRequest,
+) -> Result<(Session, Option<String>), TerminalError> {
+    let address = format!("{}:{}", request.host, request.port);
+    let tcp = TcpStream::connect(&address)
+        .map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
+    let mut session =
+        Session::new().map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
+    session.set_tcp_stream(tcp);
+    session
+        .handshake()
+        .map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
+
+    let fingerprint = session
+        .host_key()
+        .map(|(key, _)| sha256_base64_fingerprint(key));
+    if let (Some(expected), Some(observed)) = (
+        request.expected_host_key_fingerprint.as_deref(),
+        fingerprint.as_deref(),
+    ) {
+        if expected != observed {
+            return Err(TerminalError::spawn_failed(format!(
+                "host key fingerprint mismatch (expected {expected}, got {observed})"
+            )));
+        }
+    }
+
+    match &request.auth {
+        RemoteTerminalAuth::Password { password } => {
+            let password_error = session.userauth_password(&request.username, password).err();
+            if !session.authenticated() {
+                let mut prompter = PasswordPrompter(password);
+                let _ = session.userauth_keyboard_interactive(&request.username, &mut prompter);
+            }
+            if !session.authenticated() {
+                return Err(authentication_failed_error(
+                    &session,
+                    &request.username,
+                    password_error,
+                ));
+            }
+        }
+        RemoteTerminalAuth::PrivateKey {
+            private_key_path,
+            passphrase,
+        } => {
+            let key_error = session
+                .userauth_pubkey_file(
+                    &request.username,
+                    None,
+                    Path::new(private_key_path),
+                    passphrase.as_deref(),
+                )
+                .err();
+            if !session.authenticated() {
+                return Err(authentication_failed_error(
+                    &session,
+                    &request.username,
+                    key_error,
+                ));
+            }
+        }
+    }
+
+    Ok((session, fingerprint))
+}
+
+struct PasswordPrompter<'a>(&'a str);
+
+impl KeyboardInteractivePrompt for PasswordPrompter<'_> {
+    fn prompt<'a>(
+        &mut self,
+        _username: &str,
+        _instructions: &str,
+        prompts: &[Prompt<'a>],
+    ) -> Vec<String> {
+        prompts.iter().map(|_| self.0.to_string()).collect()
+    }
+}
+
+fn authentication_failed_error(
+    session: &Session,
+    username: &str,
+    cause: Option<ssh2::Error>,
+) -> TerminalError {
+    let detail = cause
+        .map(|error| error.to_string())
+        .unwrap_or_else(|| "authentication failed".to_string());
+    let suffix = match session.auth_methods(username) {
+        Ok(methods) if !methods.is_empty() => format!(" (server accepts: {methods})"),
+        _ => String::new(),
+    };
+    TerminalError::authentication_failed(format!("{detail}{suffix}"))
+}
+
+fn run_ssh_terminal_loop(
+    channel: &mut Channel,
+    rx: Receiver<SshTerminalCommand>,
+    events_tx: &Sender<TerminalEvent>,
+    id: TerminalId,
+    owner: &str,
+) -> Option<i32> {
+    let mut buffer = [0u8; OUTPUT_CHUNK_BYTES];
+    loop {
+        while let Ok(command) = rx.try_recv() {
+            match command {
+                SshTerminalCommand::Write(data) => {
+                    let _ = channel.write_all(&data);
+                    let _ = channel.flush();
+                }
+                SshTerminalCommand::Resize { cols, rows } => {
+                    let _ = channel.request_pty_size(cols as u32, rows as u32, None, None);
+                }
+                SshTerminalCommand::Kill => {
+                    let _ = channel.close();
+                    return channel.exit_status().ok();
+                }
+            }
+        }
+
+        match channel.read(&mut buffer) {
+            Ok(0) => {
+                if channel.eof() {
+                    return channel.exit_status().ok();
+                }
+            }
+            Ok(count) => {
+                if events_tx
+                    .send(TerminalEvent::Output {
+                        id,
+                        owner: owner.to_string(),
+                        data: buffer[..count].to_vec(),
+                    })
+                    .is_err()
+                {
+                    return None;
+                }
+            }
+            Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {}
+            Err(_) => return channel.exit_status().ok(),
+        }
+
+        std::thread::sleep(Duration::from_millis(10));
+    }
+}
+
+fn sha256_base64_fingerprint(bytes: &[u8]) -> String {
+    use sha2::{Digest, Sha256};
+
+    let digest = Sha256::digest(bytes);
+    let encoded = data_encoding::BASE64_NOPAD.encode(&digest);
+    format!("SHA256:{encoded}")
 }

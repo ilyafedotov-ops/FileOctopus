@@ -6,6 +6,8 @@ export type TerminalSessionStatus = "starting" | "running" | "exited";
 
 export type TerminalPaneId = PanelId | "rail";
 
+export type TerminalTransport = "local" | "ssh";
+
 export const DEFAULT_PANE_TERMINAL_SPLIT = 0.35;
 export const MIN_PANE_TERMINAL_SPLIT = 0.15;
 export const MAX_PANE_TERMINAL_SPLIT = 0.85;
@@ -17,6 +19,7 @@ export interface TerminalSession {
   status: TerminalSessionStatus;
   exitCode?: number | null;
   paneId: TerminalPaneId;
+  transport?: TerminalTransport;
 }
 
 export interface PaneTerminalChrome {
@@ -157,6 +160,7 @@ export function terminalReducer(
       const session: TerminalSession = {
         ...action.session,
         paneId: action.session.paneId ?? "rail",
+        transport: action.session.transport ?? "local",
       };
       const sessions = [...state.sessions, session];
       let pane = state.pane;

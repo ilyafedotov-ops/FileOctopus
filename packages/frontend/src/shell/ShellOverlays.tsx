@@ -88,6 +88,9 @@ export function ShellOverlays() {
         deleteProfile={ctx.deleteProfile}
         saveProfile={ctx.saveProfile}
         forgetFingerprint={ctx.forgetFingerprint}
+        onOpenProfileTerminal={(profile) =>
+          void ctx.openProfileTerminalTab(profile)
+        }
         setOperationError={ctx.setOperationError}
         refreshHistory={ctx.refreshHistory}
         clearHistory={ctx.clearHistory}

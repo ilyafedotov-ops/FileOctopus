@@ -10,6 +10,7 @@ interface ConnectServerDialogProps {
   onClose: () => void;
   onSave: (payload: {
     id?: string;
+    scheme: "sftp" | "ssh";
     label: string;
     host: string;
     port: number;
@@ -34,6 +35,7 @@ export function ConnectServerDialog({
   useDialogEscape(open, onClose);
   useFocusTrap(dialogRef, open);
   const [label, setLabel] = useState("");
+  const [scheme, setScheme] = useState<"sftp" | "ssh">("sftp");
   const [host, setHost] = useState("");
   const [port, setPort] = useState("22");
   const [username, setUsername] = useState("");
@@ -52,6 +54,7 @@ export function ConnectServerDialog({
       return;
     }
     setLabel(editingProfile?.label ?? "");
+    setScheme(editingProfile?.scheme === "ssh" ? "ssh" : "sftp");
     setHost(editingProfile?.host ?? "");
     setPort(String(editingProfile?.port ?? 22));
     setUsername(editingProfile?.username ?? "");
@@ -112,6 +115,7 @@ export function ConnectServerDialog({
     try {
       await onSave({
         id: editingProfile?.id,
+        scheme,
         label: trimmedLabel,
         host: trimmedHost,
         port: parsedPort,
@@ -119,7 +123,7 @@ export function ConnectServerDialog({
         authKind,
         privateKeyPath:
           authKind === "privateKey" ? privateKeyPath.trim() : null,
-        defaultPath: defaultPath.trim() || "/",
+        defaultPath: scheme === "sftp" ? defaultPath.trim() || "/" : "",
         password,
         passphrase,
       });
@@ -151,7 +155,7 @@ export function ConnectServerDialog({
               {editingProfile ? "Edit Server" : "Add Server"}
             </h2>
             <p>
-              Save an SFTP connection profile. Credentials stay in the OS
+              Save a remote connection profile. Credentials stay in the OS
               keychain.
             </p>
           </div>
@@ -167,6 +171,19 @@ export function ConnectServerDialog({
               onChange={(event) => setLabel(event.target.value)}
               placeholder="Production SFTP"
             />
+          </label>
+          <label className="fo-dialog-field">
+            <span>Protocol</span>
+            <select
+              value={scheme}
+              disabled={editingProfile !== null}
+              onChange={(event) =>
+                setScheme(event.target.value === "ssh" ? "ssh" : "sftp")
+              }
+            >
+              <option value="sftp">SFTP files + SSH terminal</option>
+              <option value="ssh">SSH terminal only</option>
+            </select>
           </label>
           <label className="fo-dialog-field">
             <span>Host</span>
@@ -253,14 +270,16 @@ export function ConnectServerDialog({
               </label>
             </>
           )}
-          <label className="fo-dialog-field">
-            <span>Default path</span>
-            <input
-              value={defaultPath}
-              onChange={(event) => setDefaultPath(event.target.value)}
-              placeholder="/home/deploy"
-            />
-          </label>
+          {scheme === "sftp" ? (
+            <label className="fo-dialog-field">
+              <span>Default path</span>
+              <input
+                value={defaultPath}
+                onChange={(event) => setDefaultPath(event.target.value)}
+                placeholder="/home/deploy"
+              />
+            </label>
+          ) : null}
           {editingProfile?.hostKeyFingerprint ? (
             <div className="fo-dialog-field fo-dialog-field-static">
               <span>Pinned host key</span>

@@ -3,6 +3,7 @@ use thiserror::Error;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TerminalErrorCode {
     SpawnFailed,
+    AuthenticationFailed,
     NotFound,
     InvalidSize,
     Io,
@@ -13,6 +14,7 @@ impl TerminalErrorCode {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::SpawnFailed => "terminal_spawn_failed",
+            Self::AuthenticationFailed => "authentication_failed",
             Self::NotFound => "terminal_not_found",
             Self::InvalidSize => "invalid_terminal_size",
             Self::Io => "io_error",
@@ -32,6 +34,13 @@ impl TerminalError {
     pub fn spawn_failed(message: impl Into<String>) -> Self {
         Self {
             code: TerminalErrorCode::SpawnFailed,
+            message: message.into(),
+        }
+    }
+
+    pub fn authentication_failed(message: impl Into<String>) -> Self {
+        Self {
+            code: TerminalErrorCode::AuthenticationFailed,
             message: message.into(),
         }
     }

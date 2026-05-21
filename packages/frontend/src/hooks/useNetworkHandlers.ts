@@ -98,6 +98,7 @@ export function useNetworkHandlers({
   const saveProfile = useCallback(
     async (payload: {
       id?: string;
+      scheme: "sftp" | "ssh";
       label: string;
       host: string;
       port: number;
@@ -123,7 +124,7 @@ export function useNetworkHandlers({
             })
           : await client.network.addProfile({
               label: payload.label,
-              scheme: "sftp",
+              scheme: payload.scheme,
               host: payload.host,
               port: payload.port,
               username: payload.username,
@@ -149,9 +150,10 @@ export function useNetworkHandlers({
         }
 
         const shouldConnect =
-          !payload.id ||
-          (payload.authKind === "password" && Boolean(payload.password)) ||
-          (payload.authKind === "privateKey" && Boolean(payload.passphrase));
+          payload.scheme === "sftp" &&
+          (!payload.id ||
+            (payload.authKind === "password" && Boolean(payload.password)) ||
+            (payload.authKind === "privateKey" && Boolean(payload.passphrase)));
 
         await refreshNetworkProfiles();
 

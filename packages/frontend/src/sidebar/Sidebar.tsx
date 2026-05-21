@@ -60,6 +60,7 @@ interface SidebarProps {
   onDisconnectProfile: (profileId: string) => void;
   onEditProfile: (profile: NetworkProfileDto) => void;
   onDeleteProfile: (profileId: string) => void;
+  onOpenProfileTerminal: (profile: NetworkProfileDto) => void;
   busyProfileIds: Set<string>;
   networkEnabled?: boolean;
 }
@@ -82,6 +83,7 @@ export function Sidebar({
   onDisconnectProfile,
   onEditProfile,
   onDeleteProfile,
+  onOpenProfileTerminal,
   busyProfileIds,
   networkEnabled = false,
 }: SidebarProps) {
@@ -144,15 +146,20 @@ export function Sidebar({
       status,
     };
 
+    const browseable = profile.scheme === "sftp";
     return (
       <SidebarItem
         key={`network-${profile.id}`}
         icon={Icons.server()}
         label={profile.label}
-        active={isDriveTargetActive(networkTarget, activeUri)}
+        active={browseable && isDriveTargetActive(networkTarget, activeUri)}
         busy={busyProfileIds.has(profile.id)}
         badge={networkProfileBadge(profile, status)}
-        onClick={() => onNavigate(profile.defaultUri)}
+        onClick={() =>
+          browseable
+            ? onNavigate(profile.defaultUri)
+            : onOpenProfileTerminal(profile)
+        }
         onContextMenu={(event) => {
           event.preventDefault();
           setNetworkContextMenu({
@@ -191,8 +198,12 @@ export function Sidebar({
       {STANDARD_SECTION_ORDER.map((section) => {
         if (section === "Devices/Volumes") {
           const localItems = grouped[section] ?? [];
+          const browseableNetworkProfiles = networkProfiles.filter(
+            (profile) => profile.scheme === "sftp",
+          );
           const hasLocal = localItems.length > 0;
-          const hasNetwork = networkEnabled && networkProfiles.length > 0;
+          const hasNetwork =
+            networkEnabled && browseableNetworkProfiles.length > 0;
 
           return (
             <SidebarSection key={section} title={sidebarSectionTitle(section)}>
@@ -216,7 +227,7 @@ export function Sidebar({
                   {hasNetwork ? (
                     <>
                       <p className="fo-sidebar-group-label">Network drives</p>
-                      {networkProfiles.map((profile) =>
+                      {browseableNetworkProfiles.map((profile) =>
                         renderNetworkProfileItem(profile),
                       )}
                     </>
@@ -349,6 +360,9 @@ export function Sidebar({
           }
           onEdit={() => onEditProfile(networkContextMenu.profile)}
           onRemove={() => onDeleteProfile(networkContextMenu.profile.id)}
+          onOpenTerminal={() =>
+            onOpenProfileTerminal(networkContextMenu.profile)
+          }
           onAddFavorite={() =>
             onAddFavorite(
               networkContextMenu.profile.defaultUri,
@@ -513,6 +527,7 @@ function SidebarNetworkContextMenu({
   onDisconnect,
   onEdit,
   onRemove,
+  onOpenTerminal,
   onAddFavorite,
 }: {
   profile: NetworkProfileDto;
@@ -524,6 +539,7 @@ function SidebarNetworkContextMenu({
   onDisconnect: () => void;
   onEdit: () => void;
   onRemove: () => void;
+  onOpenTerminal: () => void;
   onAddFavorite: () => void;
 }) {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -598,7 +614,17 @@ function SidebarNetworkContextMenu({
         }
         onClick={(event) => event.stopPropagation()}
       >
-        {connected ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="fo-context-menu-item"
+          role="menuitem"
+          onClick={() => run(onOpenTerminal)}
+        >
+          Open Terminal
+        </Button>
+        {profile.scheme === "sftp" && connected ? (
           <Button
             type="button"
             variant="ghost"
@@ -609,7 +635,7 @@ function SidebarNetworkContextMenu({
           >
             Disconnect
           </Button>
-        ) : (
+        ) : profile.scheme === "sftp" ? (
           <Button
             type="button"
             variant="ghost"
@@ -620,7 +646,7 @@ function SidebarNetworkContextMenu({
           >
             Connect
           </Button>
-        )}
+        ) : null}
         <Button
           type="button"
           variant="ghost"
@@ -631,16 +657,18 @@ function SidebarNetworkContextMenu({
         >
           Edit
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="fo-context-menu-item"
-          role="menuitem"
-          onClick={() => run(onAddFavorite)}
-        >
-          Add to Pinned
-        </Button>
+        {profile.scheme === "sftp" ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="fo-context-menu-item"
+            role="menuitem"
+            onClick={() => run(onAddFavorite)}
+          >
+            Add to Pinned
+          </Button>
+        ) : null}
         <Button
           type="button"
           variant="ghost"

@@ -198,7 +198,8 @@ export interface OpenTerminalResponse {
 }
 
 export interface TerminalSpawnRequest {
-  uri: string;
+  uri?: string | null;
+  profileId?: string | null;
   cols: number;
   rows: number;
   shell?: string | null;

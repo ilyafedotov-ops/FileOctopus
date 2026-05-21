@@ -19,6 +19,7 @@ interface NetworkLocationsDialogProps {
   onAddServer: () => void;
   onEditServer: (profile: NetworkProfileDto) => void;
   onDeleteServer: (profileId: string) => void;
+  onOpenTerminal: (profile: NetworkProfileDto) => void;
 }
 
 function statusLabel(status: NetworkConnectionStatusDto | undefined): string {
@@ -46,6 +47,7 @@ export function NetworkLocationsDialog({
   onAddServer,
   onEditServer,
   onDeleteServer,
+  onOpenTerminal,
 }: NetworkLocationsDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [connectingId, setConnectingId] = useState<string | null>(null);
@@ -121,6 +123,7 @@ export function NetworkLocationsDialog({
                 const status = statusById.get(profile.id);
                 const connected = status?.status === "connected";
                 const busy = connectingId === profile.id;
+                const browseable = profile.scheme === "sftp";
                 return (
                   <li key={profile.id} className="fo-network-profile-item">
                     <div className="fo-network-profile-main">
@@ -147,18 +150,31 @@ export function NetworkLocationsDialog({
                       </div>
                     </div>
                     <div className="fo-network-profile-actions">
+                      {browseable ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="default"
+                          onClick={() => {
+                            void onNavigate(profile.defaultUri);
+                            onClose();
+                          }}
+                        >
+                          Open
+                        </Button>
+                      ) : null}
                       <Button
                         type="button"
                         size="sm"
-                        variant="default"
+                        variant={browseable ? "ghost" : "default"}
                         onClick={() => {
-                          void onNavigate(profile.defaultUri);
+                          onOpenTerminal(profile);
                           onClose();
                         }}
                       >
-                        Open
+                        Open Terminal
                       </Button>
-                      {connected ? (
+                      {profile.scheme === "sftp" && connected ? (
                         <Button
                           type="button"
                           size="sm"
@@ -168,7 +184,7 @@ export function NetworkLocationsDialog({
                         >
                           {busy ? "Disconnecting…" : "Disconnect"}
                         </Button>
-                      ) : (
+                      ) : profile.scheme === "sftp" ? (
                         <Button
                           type="button"
                           size="sm"
@@ -178,7 +194,7 @@ export function NetworkLocationsDialog({
                         >
                           {busy ? "Connecting…" : "Connect"}
                         </Button>
-                      )}
+                      ) : null}
                       <Button
                         type="button"
                         size="sm"

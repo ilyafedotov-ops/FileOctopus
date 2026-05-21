@@ -30,6 +30,7 @@ function renderSidebar(
   profile: NetworkProfileDto,
   statuses: NetworkConnectionStatusDto[] = [],
   busyProfileIds: Set<string> = new Set(),
+  onOpenProfileTerminal = vi.fn(),
 ) {
   return render(
     <Sidebar
@@ -53,6 +54,7 @@ function renderSidebar(
       onDisconnectProfile={vi.fn()}
       onEditProfile={vi.fn()}
       onDeleteProfile={vi.fn()}
+      onOpenProfileTerminal={onOpenProfileTerminal}
     />,
   );
 }
@@ -104,6 +106,26 @@ describe("Sidebar network section", () => {
     expect(screen.getAllByTitle("Prod (credentials missing)")).toHaveLength(2);
   });
 
+  it("treats ssh-only profiles as terminal entries instead of drives", () => {
+    const onOpenProfileTerminal = vi.fn();
+    renderSidebar(
+      {
+        ...baseProfile,
+        scheme: "ssh",
+        defaultUri: "",
+      },
+      [],
+      new Set(),
+      onOpenProfileTerminal,
+    );
+
+    expect(screen.queryByText("Network drives")).toBeNull();
+    screen.getByTitle("Prod (credentials missing)").click();
+    expect(onOpenProfileTerminal).toHaveBeenCalledWith(
+      expect.objectContaining({ scheme: "ssh" }),
+    );
+  });
+
   it("highlights network profile when browsing inside its tree", () => {
     const nestedUri = "sftp://550e8400-e29b-41d4-a716-446655440000/var/log";
     render(
@@ -128,6 +150,7 @@ describe("Sidebar network section", () => {
         onDisconnectProfile={vi.fn()}
         onEditProfile={vi.fn()}
         onDeleteProfile={vi.fn()}
+        onOpenProfileTerminal={vi.fn()}
       />,
     );
 

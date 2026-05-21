@@ -111,6 +111,7 @@ export interface ShellLayoutContextValue {
   forgetFingerprint: (profileId: string) => Promise<void>;
   saveProfile: (payload: {
     id?: string;
+    scheme: "sftp" | "ssh";
     label: string;
     host: string;
     port: number;
@@ -122,6 +123,10 @@ export interface ShellLayoutContextValue {
     passphrase: string;
   }) => Promise<NetworkProfileDto>;
   refreshNetworkProfiles: () => Promise<void>;
+  openProfileTerminalTab: (
+    profile: NetworkProfileDto,
+    panelId?: PanelId,
+  ) => Promise<void>;
   dialog: OperationDialog | null;
   autostart: AutostartStatusDto | null;
   commandEntries: CommandEntry[];

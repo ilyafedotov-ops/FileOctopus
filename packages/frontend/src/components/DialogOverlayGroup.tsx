@@ -148,6 +148,7 @@ export interface DialogOverlayGroupProps {
   deleteProfile: (profileId: string) => Promise<void>;
   saveProfile: (payload: {
     id?: string;
+    scheme: "sftp" | "ssh";
     label: string;
     host: string;
     port: number;
@@ -158,6 +159,7 @@ export interface DialogOverlayGroupProps {
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileDto>;
+  onOpenProfileTerminal: (profile: NetworkProfileDto) => void;
   setOperationError: (message: string | null) => void;
   refreshHistory: () => void;
   clearHistory: () => void;
@@ -273,6 +275,7 @@ export function DialogOverlayGroup({
   deleteProfile,
   saveProfile,
   forgetFingerprint,
+  onOpenProfileTerminal,
   setOperationError,
   refreshHistory,
   clearHistory,
@@ -458,6 +461,7 @@ export function DialogOverlayGroup({
             setRemoveServerProfile(profile);
           }
         }}
+        onOpenTerminal={onOpenProfileTerminal}
       />
       <ConnectServerDialog
         open={connectServerOpen}
