@@ -1,7 +1,10 @@
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use terminal_core::{SpawnTerminalRequest, TerminalEvent, TerminalService, TerminalSize};
+use terminal_core::{
+    SpawnTerminalRequest, TerminalError, TerminalErrorCode, TerminalEvent, TerminalService,
+    TerminalSize,
+};
 
 const TEST_OWNER: &str = "main";
 
@@ -115,4 +118,11 @@ fn write_rejects_wrong_owner() {
     let result = service.write(id, "other-window", b"x");
     assert!(result.is_err());
     let _ = service.kill(id, TEST_OWNER);
+}
+
+#[test]
+fn authentication_failed_has_distinct_error_code() {
+    let error = TerminalError::authentication_failed("bad credentials");
+    assert_eq!(error.code, TerminalErrorCode::AuthenticationFailed);
+    assert_eq!(error.code.as_str(), "authentication_failed");
 }

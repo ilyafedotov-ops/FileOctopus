@@ -31,6 +31,7 @@ describe("terminalReducer", () => {
       label: "tmp",
       status: "running",
       paneId: "left",
+      transport: "local",
     };
     const next = terminalReducer(createInitialTerminalState(), {
       type: "addSession",
@@ -38,6 +39,39 @@ describe("terminalReducer", () => {
     });
     expect(next.sessions).toHaveLength(1);
     expect(next.sessions[0]?.paneId).toBe("left");
+    expect(next.sessions[0]?.transport).toBe("local");
+  });
+
+  it("preserves ssh terminal transport for pane and rail sessions", () => {
+    let state = createInitialTerminalState();
+    state = terminalReducer(state, {
+      type: "addSession",
+      session: {
+        id: "ssh-pane",
+        uri: "sftp://550e8400-e29b-41d4-a716-446655440000/",
+        label: "Prod SSH",
+        status: "running",
+        paneId: "left",
+        transport: "ssh",
+      },
+    });
+    state = terminalReducer(state, {
+      type: "addSession",
+      session: {
+        id: "ssh-rail",
+        uri: "ssh://550e8400-e29b-41d4-a716-446655440000",
+        label: "Prod SSH",
+        status: "running",
+        paneId: "rail",
+        transport: "ssh",
+      },
+    });
+
+    expect(state.sessions.map((session) => session.transport)).toEqual([
+      "ssh",
+      "ssh",
+    ]);
+    expect(state.pane.left.sessionId).toBe("ssh-pane");
   });
 
   it("addSession defaults paneId to rail if missing", () => {

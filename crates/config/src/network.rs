@@ -436,7 +436,7 @@ fn validate_profile_fields(
     username: &str,
     port: u16,
 ) -> Result<(), NetworkError> {
-    if scheme != "sftp" {
+    if !matches!(scheme, "sftp" | "ssh") {
         return Err(NetworkError::InvalidValue {
             field: "scheme".to_string(),
             reason: format!("unsupported scheme `{scheme}`"),
@@ -562,6 +562,20 @@ mod tests {
         new.scheme = "smb".to_string();
         let error = repository.add(new).unwrap_err();
         assert!(matches!(error, NetworkError::InvalidValue { ref field, .. } if field == "scheme"));
+    }
+
+    #[test]
+    fn accepts_ssh_terminal_only_profiles() {
+        let dir = tempdir().unwrap();
+        let repository = NetworkProfileRepository::new(dir.path().join("network.sqlite")).unwrap();
+        let mut new = sample_profile();
+        new.scheme = "ssh".to_string();
+        new.default_path = "".to_string();
+
+        let profile = repository.add(new).unwrap();
+
+        assert_eq!(profile.scheme, "ssh");
+        assert_eq!(profile.default_path, "");
     }
 
     #[test]

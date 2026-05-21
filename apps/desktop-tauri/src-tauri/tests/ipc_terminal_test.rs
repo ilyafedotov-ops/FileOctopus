@@ -71,3 +71,10 @@ fn fs_open_terminal_rejects_invalid_uri() {
     let err = result.unwrap_err();
     assert!(err.code == error_codes::UNSUPPORTED_PROVIDER || err.code == error_codes::INVALID_URI);
 }
+
+#[test]
+fn terminal_write_does_not_log_input_bytes() {
+    let source = include_str!("../src/commands/terminal.rs");
+    assert!(!source.contains("hex={}"));
+    assert!(!source.contains("debug_hex_prefix"));
+}

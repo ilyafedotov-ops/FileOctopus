@@ -68,7 +68,10 @@ export function VolumePickerDialog({
   const [error, setError] = useState<string | null>(null);
 
   const networkVolumes = useMemo(
-    () => networkProfiles.map(networkProfileToVolume),
+    () =>
+      networkProfiles
+        .filter((profile) => profile.scheme === "sftp")
+        .map(networkProfileToVolume),
     [networkProfiles],
   );
 

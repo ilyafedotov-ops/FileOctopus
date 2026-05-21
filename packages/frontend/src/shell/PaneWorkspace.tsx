@@ -80,6 +80,9 @@ export function PaneWorkspace() {
                 ctx.setRemoveServerProfile(profile);
               }
             }}
+            onOpenProfileTerminal={(profile) =>
+              void ctx.openProfileTerminalTab(profile)
+            }
           />
           <SidebarResizer
             onSidebarResize={(width) => {

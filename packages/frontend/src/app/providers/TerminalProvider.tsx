@@ -11,7 +11,9 @@ import {
 import {
   isRemoteUri,
   normalizeIpcError,
+  profileIdFromRemoteUri,
   type FileOctopusClient,
+  type NetworkProfileDto,
   type UserPreferencesDto,
 } from "@fileoctopus/ts-api";
 import { useShell } from "./ShellProvider";
@@ -44,6 +46,10 @@ interface TerminalContextValue {
   openPaneTerminal: (panelId: PanelId, uri: string) => Promise<void>;
   openAdditionalPaneTab: (panelId: PanelId, uri: string) => Promise<void>;
   openNewTerminalTab: (uri: string, panelId?: PanelId) => Promise<void>;
+  openProfileTerminalTab: (
+    profile: NetworkProfileDto,
+    panelId?: PanelId,
+  ) => Promise<void>;
   togglePaneTerminal: (uri: string, panelId: PanelId) => Promise<void>;
   markSessionExited: (sessionId: string, exitCode?: number | null) => void;
   closeTerminalTab: (sessionId: string) => void;
@@ -70,6 +76,7 @@ const fallbackTerminalContext: TerminalContextValue = {
   openPaneTerminal: async () => {},
   openAdditionalPaneTab: async () => {},
   openNewTerminalTab: async () => {},
+  openProfileTerminalTab: async () => {},
   togglePaneTerminal: async () => {},
   markSessionExited: () => {},
   closeTerminalTab: () => {},
@@ -98,6 +105,7 @@ async function spawnSession(
   client: FileOctopusClient,
   uri: string,
   preferences: UserPreferencesDto | null,
+  profileId?: string | null,
   cols = 80,
   rows = 24,
 ) {
@@ -106,14 +114,36 @@ async function spawnSession(
     .split(/\r?\n/)
     .map((arg) => arg.trim())
     .filter(Boolean);
-  const response = await client.terminal.spawn({
-    uri,
-    cols,
-    rows,
-    shell,
-    args: args && args.length > 0 ? args : null,
-  });
+  const response = profileId
+    ? await client.terminal.spawn({
+        profileId,
+        cols,
+        rows,
+      })
+    : await client.terminal.spawn({
+        uri,
+        cols,
+        rows,
+        shell,
+        args: args && args.length > 0 ? args : null,
+      });
   return response.sessionId;
+}
+
+function profileTerminalUri(profile: NetworkProfileDto): string {
+  return profile.defaultUri || `${profile.scheme}://${profile.id}`;
+}
+
+function profileTerminalLabel(profile: NetworkProfileDto): string {
+  return `${profile.label || `${profile.username}@${profile.host}`} SSH`;
+}
+
+function profileForUri(
+  profiles: NetworkProfileDto[],
+  uri: string,
+): NetworkProfileDto | null {
+  const profileId = profileIdFromRemoteUri(uri);
+  return profiles.find((profile) => profile.id === profileId) ?? null;
 }
 
 function findRunningPaneSession(
@@ -146,7 +176,7 @@ export function TerminalProvider({
   preferences: UserPreferencesDto | null;
   onExpandActivity: () => void;
 }) {
-  const { client } = useShell();
+  const { client, networkProfiles } = useShell();
   const [terminal, dispatch] = useReducer(
     terminalReducer,
     undefined,
@@ -203,7 +233,38 @@ export function TerminalProvider({
   const openPaneTerminal = useCallback(
     async (panelId: PanelId, uri: string) => {
       if (isRemoteUri(uri)) {
-        throw new Error("Embedded terminal supports local folders only");
+        const profile = profileForUri(networkProfiles, uri);
+        const profileId = profile?.id ?? profileIdFromRemoteUri(uri);
+        if (!profileId) {
+          throw new Error("Remote terminal requires a saved server profile");
+        }
+        const splitRatio = paneSplitRatio(panelId);
+        const sessionId = await spawnSession(
+          client,
+          uri,
+          preferences,
+          profileId,
+        );
+        dispatch({
+          type: "addSession",
+          session: {
+            id: sessionId,
+            uri,
+            label: profile
+              ? profileTerminalLabel(profile)
+              : tabLabelForUri(uri),
+            status: "running",
+            paneId: panelId,
+            transport: "ssh",
+          },
+        });
+        dispatch({
+          type: "openPaneTerminal",
+          panelId,
+          sessionId,
+          splitRatio,
+        });
+        return;
       }
 
       const splitRatio = paneSplitRatio(panelId);
@@ -227,6 +288,7 @@ export function TerminalProvider({
           label: tabLabelForUri(uri),
           status: "running",
           paneId: panelId,
+          transport: "local",
         },
       });
       dispatch({
@@ -236,7 +298,7 @@ export function TerminalProvider({
         splitRatio,
       });
     },
-    [client, paneSplitRatio, preferences],
+    [client, networkProfiles, paneSplitRatio, preferences],
   );
 
   const openEmbeddedTerminal = useCallback(
@@ -249,7 +311,38 @@ export function TerminalProvider({
   const openAdditionalPaneTab = useCallback(
     async (panelId: PanelId, uri: string) => {
       if (isRemoteUri(uri)) {
-        throw new Error("Embedded terminal supports local folders only");
+        const profile = profileForUri(networkProfiles, uri);
+        const profileId = profile?.id ?? profileIdFromRemoteUri(uri);
+        if (!profileId) {
+          throw new Error("Remote terminal requires a saved server profile");
+        }
+        const splitRatio = paneSplitRatio(panelId);
+        const sessionId = await spawnSession(
+          client,
+          uri,
+          preferences,
+          profileId,
+        );
+        dispatch({
+          type: "addSession",
+          session: {
+            id: sessionId,
+            uri,
+            label: profile
+              ? profileTerminalLabel(profile)
+              : tabLabelForUri(uri),
+            status: "running",
+            paneId: panelId,
+            transport: "ssh",
+          },
+        });
+        dispatch({
+          type: "openPaneTerminal",
+          panelId,
+          sessionId,
+          splitRatio,
+        });
+        return;
       }
       const splitRatio = paneSplitRatio(panelId);
       const sessionId = await spawnSession(client, uri, preferences);
@@ -261,6 +354,7 @@ export function TerminalProvider({
           label: tabLabelForUri(uri),
           status: "running",
           paneId: panelId,
+          transport: "local",
         },
       });
       dispatch({
@@ -270,7 +364,7 @@ export function TerminalProvider({
         splitRatio,
       });
     },
-    [client, paneSplitRatio, preferences],
+    [client, networkProfiles, paneSplitRatio, preferences],
   );
 
   const openNewTerminalTab = useCallback(
@@ -279,25 +373,88 @@ export function TerminalProvider({
         await openPaneTerminal(panelId, uri);
         return;
       }
-      if (isRemoteUri(uri)) {
-        throw new Error("Embedded terminal supports local folders only");
-      }
       onExpandActivity();
       dispatch({ type: "setSegment", segment: "terminal" });
       await ensureRailWidth();
-      const sessionId = await spawnSession(client, uri, preferences);
+      const profile = isRemoteUri(uri)
+        ? profileForUri(networkProfiles, uri)
+        : null;
+      const profileId = profile?.id ?? profileIdFromRemoteUri(uri);
+      const sessionId = await spawnSession(client, uri, preferences, profileId);
       dispatch({
         type: "addSession",
         session: {
           id: sessionId,
           uri,
-          label: tabLabelForUri(uri),
+          label: profile ? profileTerminalLabel(profile) : tabLabelForUri(uri),
           status: "running",
           paneId: "rail",
+          transport: profileId ? "ssh" : "local",
         },
       });
     },
-    [client, ensureRailWidth, onExpandActivity, openPaneTerminal, preferences],
+    [
+      client,
+      ensureRailWidth,
+      networkProfiles,
+      onExpandActivity,
+      openPaneTerminal,
+      preferences,
+    ],
+  );
+
+  const openProfileTerminalTab = useCallback(
+    async (profile: NetworkProfileDto, panelId?: PanelId) => {
+      const uri = profileTerminalUri(profile);
+      if (panelId) {
+        const splitRatio = paneSplitRatio(panelId);
+        const sessionId = await spawnSession(
+          client,
+          uri,
+          preferences,
+          profile.id,
+        );
+        dispatch({
+          type: "addSession",
+          session: {
+            id: sessionId,
+            uri,
+            label: profileTerminalLabel(profile),
+            status: "running",
+            paneId: panelId,
+            transport: "ssh",
+          },
+        });
+        dispatch({
+          type: "openPaneTerminal",
+          panelId,
+          sessionId,
+          splitRatio,
+        });
+        return;
+      }
+      onExpandActivity();
+      dispatch({ type: "setSegment", segment: "terminal" });
+      await ensureRailWidth();
+      const sessionId = await spawnSession(
+        client,
+        uri,
+        preferences,
+        profile.id,
+      );
+      dispatch({
+        type: "addSession",
+        session: {
+          id: sessionId,
+          uri,
+          label: profileTerminalLabel(profile),
+          status: "running",
+          paneId: "rail",
+          transport: "ssh",
+        },
+      });
+    },
+    [client, ensureRailWidth, onExpandActivity, paneSplitRatio, preferences],
   );
 
   const togglePaneTerminal = useCallback(
@@ -524,6 +681,7 @@ export function TerminalProvider({
       openPaneTerminal,
       openAdditionalPaneTab,
       openNewTerminalTab,
+      openProfileTerminalTab,
       togglePaneTerminal,
       markSessionExited,
       closeTerminalTab,
@@ -544,6 +702,7 @@ export function TerminalProvider({
       openPaneTerminal,
       openAdditionalPaneTab,
       openNewTerminalTab,
+      openProfileTerminalTab,
       togglePaneTerminal,
       markSessionExited,
       closeTerminalTab,

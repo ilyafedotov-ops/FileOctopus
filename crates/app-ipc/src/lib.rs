@@ -344,7 +344,10 @@ pub struct OpenTerminalResponse {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalSpawnRequest {
-    pub uri: String,
+    #[serde(default)]
+    pub uri: Option<String>,
+    #[serde(default)]
+    pub profile_id: Option<String>,
     pub cols: u16,
     pub rows: u16,
     #[serde(default)]
@@ -954,10 +957,13 @@ pub struct IpcError {
 
 impl From<config::NetworkProfile> for NetworkProfileDto {
     fn from(profile: config::NetworkProfile) -> Self {
-        let default_uri =
+        let default_uri = if profile.scheme == "sftp" {
             ResourceUri::from_remote_profile(&profile.scheme, &profile.id, &profile.default_path)
                 .map(|uri| uri.as_str().to_string())
-                .unwrap_or_default();
+                .unwrap_or_default()
+        } else {
+            String::new()
+        };
 
         Self {
             id: profile.id,

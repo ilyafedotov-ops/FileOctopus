@@ -32,19 +32,21 @@ export function buildDriveTargets(
       }),
     );
 
-  const network = networkProfiles.map((profile): DriveTarget => {
-    const status = networkStatuses.find(
-      (item) => item.profileId === profile.id,
-    );
-    return {
-      kind: "network",
-      id: profile.id,
-      label: profile.label,
-      uri: profile.defaultUri,
-      profile,
-      status,
-    };
-  });
+  const network = networkProfiles
+    .filter((profile) => profile.scheme === "sftp")
+    .map((profile): DriveTarget => {
+      const status = networkStatuses.find(
+        (item) => item.profileId === profile.id,
+      );
+      return {
+        kind: "network",
+        id: profile.id,
+        label: profile.label,
+        uri: profile.defaultUri,
+        profile,
+        status,
+      };
+    });
 
   return [...local, ...network];
 }

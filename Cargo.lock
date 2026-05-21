@@ -4161,8 +4161,11 @@ name = "terminal-core"
 version = "0.1.0"
 dependencies = [
  "dashmap",
+ "data-encoding",
  "portable-pty",
  "serde",
+ "sha2",
+ "ssh2",
  "tempfile",
  "thiserror 1.0.69",
  "tokio",

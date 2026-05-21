@@ -24,10 +24,13 @@ export function DestinationChooser({
   networkProfiles = [],
   onSelect,
 }: DestinationChooserProps) {
+  const browseableNetworkProfiles = networkProfiles.filter(
+    (profile) => profile.scheme === "sftp",
+  );
   const hasLocations = locations.length > 0;
   const hasFavorites = favorites.length > 0;
   const hasRecent = recent.length > 0;
-  const hasNetwork = networkProfiles.length > 0;
+  const hasNetwork = browseableNetworkProfiles.length > 0;
 
   return (
     <div className="fo-destination-chooser">
@@ -92,7 +95,7 @@ export function DestinationChooser({
         <div className="fo-destination-section">
           <h4 className="fo-destination-heading">Network drives</h4>
           <ul className="fo-destination-list">
-            {networkProfiles.map((profile) => (
+            {browseableNetworkProfiles.map((profile) => (
               <li key={profile.id}>
                 <button
                   type="button"

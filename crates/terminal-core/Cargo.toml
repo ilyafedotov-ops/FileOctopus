@@ -4,9 +4,12 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
+data-encoding = "2"
 dashmap = "6"
 portable-pty = "0.8"
 serde = { version = "1", features = ["derive"] }
+sha2 = "0.10"
+ssh2 = "0.9"
 thiserror = "1"
 uuid = { version = "1", features = ["v4", "serde"] }
 
