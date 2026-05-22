@@ -73,9 +73,9 @@ pub fn open_external_terminal(path: &Path) -> Result<(), ExternalTerminalError> 
         {
             return Ok(());
         }
-        return Err(ExternalTerminalError(
+        Err(ExternalTerminalError(
             "no terminal emulator found".to_string(),
-        ));
+        ))
     }
 
     #[cfg(all(unix, not(target_os = "macos")))]
@@ -97,9 +97,9 @@ pub fn open_external_terminal(path: &Path) -> Result<(), ExternalTerminalError> 
                 return Ok(());
             }
         }
-        return Err(ExternalTerminalError(
+        Err(ExternalTerminalError(
             "no terminal emulator found".to_string(),
-        ));
+        ))
     }
 
     #[cfg(not(any(target_os = "macos", target_os = "windows", unix)))]
