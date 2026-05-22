@@ -1,9 +1,9 @@
 # FileOctopus Remote Workspace Roadmap
 
 **Status:** planning artifact  
-**Created:** 2026-05-21  
+**Created:** 2026-05-21 · **Last updated:** 2026-05-22  
 **Primary direction:** Remote Workspace first  
-**Baseline branch:** `codex/remote-ssh-terminal-v1`
+**Baseline:** `main` (SSH Terminal V1 merged via #2; network-provider-hardening landed)
 
 ## Summary
 
@@ -24,6 +24,18 @@ The current branch baseline is SSH Terminal V1 in progress:
   credentials and host-key fingerprint checks.
 - Terminal input logging has been hardened so terminal write payload bytes are
   not logged.
+
+## Current Implementation Status
+
+Slice audit against `main` as of 2026-05-22:
+
+| Slice                                  | Status             | Evidence                                                                                                                                                                                                                        | Remaining                                                                                            |
+| -------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| A — SSH Terminal V1 Readiness          | **Mostly done**    | SSH backend in `terminal-core/{lib,service}.rs`; SFTP profiles ≠ SSH-only profiles in `config/src/network.rs`; pane-bound + detached terminal launch wired; terminal input bytes redacted from logs                             | Manual real-server smoke checklist remains an out-of-CI activity                                     |
+| B — Remote Operation Pipeline for SFTP | **Not done**       | `VfsProvider` trait only exposes `stat` + `list`; `SftpProvider` has no `create_directory/rename/delete/move/copy/upload/download`; `crates/fs-core/src/file_ops/{execution,planning,archive}.rs` still call `to_local_path()?` | Whole slice (biggest open work item; deferred follow-up from network-provider-hardening)             |
+| C — Remote Navigation Polish           | **Mostly done**    | `RemoveServerDialog`, forget-fingerprint UI, reconnect, `network:status` push events, sidebar status — delivered by network-provider-hardening stages 4–5                                                                       | `SftpProvider::capabilities()` claims `read_write()` while writes aren't wired — revise when B lands |
+| D — Git Intelligence V1                | **Not started**    | Zero git/repository references in `crates/`                                                                                                                                                                                     | Whole slice                                                                                          |
+| E — Archive & Built-in Tools           | **Partially done** | `op.checksum` → `client.fs.computeHash`; built-in F3 viewer + F4 editor (`feat: add built-in F3 viewer and F4 editor`); zip create/extract via `file_ops`                                                                       | Tar archive plan/extract pending dependency + traversal-safety choices                               |
 
 ## Roadmap Phases
 
