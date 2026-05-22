@@ -1,7 +1,7 @@
 # FileOctopus Architecture Improvement Implementation Plan
 
 **Date:** 2026-05-22
-**Status:** Phases 1-3 implemented; Phase 4 partially implemented; Phase 6 partially implemented
+**Status:** Phases 1-3 and 6 implemented; Phase 4 partially implemented
 **Goal:** Turn the architecture review findings into a concrete task backlog that improves correctness, contract safety, maintainability, and release readiness without changing product scope unnecessarily.
 
 ## Phase 1: Contract And Boundary Guardrails
@@ -418,7 +418,7 @@ Acceptance criteria:
 
 ### Task 6.4: Automate A Small Performance Smoke
 
-**Status:** Pending
+**Status:** Done
 
 Add a small automated performance check for large listing behavior.
 
@@ -426,6 +426,7 @@ Implementation notes:
 
 - Use synthetic entries for frontend virtualization checks.
 - Add backend large-list fixture checks where runtime cost is bounded.
+- Expose the combined smoke as `pnpm test:perf-smoke`.
 - Keep manual hardware captures for final RC sign-off.
 
 Acceptance criteria:
