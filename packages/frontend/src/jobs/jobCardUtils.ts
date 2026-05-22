@@ -40,6 +40,8 @@ export function operationVerb(kind: FileOperationKind): string {
       return "Moving to Trash";
     case "rename":
       return "Renaming";
+    case "writeTextFile":
+      return "Saving";
     default:
       return "Processing";
   }
@@ -55,6 +57,8 @@ function operationPastTense(kind: FileOperationKind): string {
       return "Moved to Trash";
     case "rename":
       return "Renamed";
+    case "writeTextFile":
+      return "Saved";
     default:
       return "Completed";
   }

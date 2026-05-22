@@ -29,6 +29,7 @@ export interface JobsContextValue {
   jobMetrics: Record<string, JobMetrics>;
   setJobs: Dispatch<SetStateAction<Record<string, JobSnapshot>>>;
   setHistory: Dispatch<SetStateAction<OperationHistoryRecordDto[]>>;
+  setJobMetrics: Dispatch<SetStateAction<Record<string, JobMetrics>>>;
   setOperationError: Dispatch<SetStateAction<string | null>>;
   setActivityCollapsed: Dispatch<SetStateAction<boolean>>;
   markActivityPinnedOpen: () => void;
@@ -49,7 +50,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
   const [history, setHistory] = useState<OperationHistoryRecordDto[]>([]);
   const [operationError, setOperationError] = useState<string | null>(null);
   const [activityCollapsed, setActivityCollapsed] = useState(true);
-  const [jobMetrics] = useState<Record<string, JobMetrics>>({});
+  const [jobMetrics, setJobMetrics] = useState<Record<string, JobMetrics>>({});
   const pinnedOpenRef = useMemo(() => ({ current: false }), []);
 
   const jobsRef = useRef(jobs);
@@ -83,6 +84,7 @@ export function JobsProvider({ children }: { children: ReactNode }) {
       jobMetrics,
       setJobs,
       setHistory,
+      setJobMetrics,
       setOperationError,
       setActivityCollapsed,
       markActivityPinnedOpen,

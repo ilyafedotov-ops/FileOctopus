@@ -15,7 +15,7 @@ use fs_core::{external_open, locations, metadata, vfs_io::VfsFilesystem};
 use tauri::{AppHandle, State};
 use vfs::{FileKind, ListOptions, ListSessionId, ResourceUri, VfsError};
 
-use crate::emit::emit_with_eval;
+use crate::emit::{emit_job, emit_with_eval};
 use crate::state::ListingRegistry;
 
 pub(crate) const LISTING_TIMEOUT: Duration = Duration::from_secs(30);
@@ -467,6 +467,7 @@ const MAX_WRITE_TEXT_BYTES_DEFAULT: u64 = 10 * 1024 * 1024; // 10 MiB
 #[tauri::command]
 pub async fn fs_write_text_file(
     request: WriteTextFileRequest,
+    app: AppHandle,
     state: State<'_, Arc<AppState>>,
 ) -> Result<WriteTextFileResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
@@ -482,11 +483,44 @@ pub async fn fs_write_text_file(
     }
 
     let byte_size = bytes.len() as u64;
-    let vfs = VfsFilesystem::with_sessions(state.sessions());
-    tauri::async_runtime::spawn_blocking(move || vfs.write_file_atomic(&uri, &bytes))
+    let sink_app = app.clone();
+    let (terminal_sender, terminal_receiver) = std::sync::mpsc::channel();
+    let sink = Arc::new(move |event: jobs::JobEvent| {
+        emit_job(&sink_app, event.clone());
+        if matches!(
+            event,
+            jobs::JobEvent::Completed(_) | jobs::JobEvent::Failed(_) | jobs::JobEvent::Cancelled(_)
+        ) {
+            let _ = terminal_sender.send(event);
+        }
+    });
+    let started_job = state
+        .operations()
+        .write_text_file_atomic(uri, bytes, sink)
+        .map_err(IpcError::from)?;
+    let terminal_event = tauri::async_runtime::spawn_blocking(move || terminal_receiver.recv())
         .await
         .map_err(|_| IpcError::internal("write_text_file task join failed"))?
-        .map_err(IpcError::from)?;
+        .map_err(|_| IpcError::internal("write_text_file task ended without a terminal event"))?;
 
-    Ok(WriteTextFileResponse { byte_size })
+    match terminal_event {
+        jobs::JobEvent::Completed(_) => {
+            let job = state
+                .operations()
+                .status(started_job.job_id.as_str())
+                .unwrap_or(started_job);
+            Ok(WriteTextFileResponse { byte_size, job })
+        }
+        jobs::JobEvent::Failed(failed) => Err(IpcError {
+            code: failed.error_code,
+            message: failed.message,
+        }),
+        jobs::JobEvent::Cancelled(_) => Err(IpcError {
+            code: "cancelled".to_string(),
+            message: "write text file was cancelled".to_string(),
+        }),
+        _ => Err(IpcError::internal(
+            "write_text_file received a non-terminal completion event",
+        )),
+    }
 }

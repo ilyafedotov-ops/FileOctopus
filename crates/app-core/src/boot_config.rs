@@ -16,6 +16,7 @@ mod tests {
 
     #[test]
     fn network_enabled_honors_explicit_env_values() {
+        let _env_guard = crate::ENV_LOCK.lock().unwrap();
         let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();
 
         std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", "1");

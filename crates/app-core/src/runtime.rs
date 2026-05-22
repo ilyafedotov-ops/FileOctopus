@@ -6,9 +6,12 @@ use fs_core::file_ops::{execute_file_operation, plan_file_operation, FileOperati
 use fs_core::vfs_io::VfsFilesystem;
 use jobs::{
     CancellationToken, JobCancelledEvent, JobCompletedEvent, JobEvent, JobFailedEvent, JobId,
-    JobSnapshot, JobStartedEvent, JobStatus,
+    JobProgressEvent, JobSnapshot, JobStartedEvent, JobStatus,
 };
-use vfs::{FileOperationError, FileOperationPlan, FileOperationRequest};
+use vfs::{
+    ConflictPolicy, FileKind, FileOperationError, FileOperationItem, FileOperationKind,
+    FileOperationPlan, FileOperationRequest, ResourceUri,
+};
 
 use crate::history::{OperationHistoryRecord, OperationHistoryRepository, HISTORY_RETENTION_LIMIT};
 
@@ -80,17 +83,102 @@ impl OperationRuntime {
         plan: FileOperationPlan,
         sink: Arc<FileOperationEventSink>,
     ) -> Result<JobSnapshot, FileOperationError> {
+        self.start_with_executor(plan, sink, execute_file_operation)
+    }
+
+    pub fn write_text_file_atomic(
+        &self,
+        uri: ResourceUri,
+        bytes: Vec<u8>,
+        sink: Arc<FileOperationEventSink>,
+    ) -> Result<JobSnapshot, FileOperationError> {
+        self.vfs.validate_uri(&uri)?;
+        let byte_size = bytes.len() as u64;
+        let plan = FileOperationPlan {
+            operation_id: uuid::Uuid::new_v4().to_string(),
+            kind: FileOperationKind::WriteTextFile,
+            sources: vec![uri.clone()],
+            destination: Some(uri.clone()),
+            new_name: None,
+            conflict_policy: ConflictPolicy::Overwrite,
+            items: vec![FileOperationItem {
+                source: Some(uri.clone()),
+                destination: Some(uri.clone()),
+                kind: FileKind::File,
+                size: Some(byte_size),
+                recursive: false,
+            }],
+            conflicts: Vec::new(),
+            warnings: Vec::new(),
+            total_items: 1,
+            total_bytes: Some(byte_size),
+        };
+
+        self.start_with_executor(
+            plan,
+            sink,
+            move |vfs, plan, job_id, cancel, progress_sink| {
+                if cancel.is_cancelled() {
+                    return Err(FileOperationError::Cancelled {
+                        job_id: Some(job_id.as_str().to_string()),
+                    });
+                }
+
+                let destination = plan.destination.as_ref().ok_or_else(|| {
+                    FileOperationError::InvalidRequest {
+                        message: "write text file plan has no destination".to_string(),
+                    }
+                })?;
+
+                vfs.write_file_atomic(destination, &bytes)?;
+
+                progress_sink(JobEvent::Progress(JobProgressEvent {
+                    job_id: job_id.clone(),
+                    operation_kind: plan.kind,
+                    current_item: Some(destination.display_path()),
+                    completed_items: 1,
+                    total_items: plan.total_items,
+                    completed_bytes: byte_size,
+                    total_bytes: plan.total_bytes,
+                    updated_at: Utc::now(),
+                }));
+
+                Ok(())
+            },
+        )
+    }
+
+    fn start_with_executor<F>(
+        &self,
+        plan: FileOperationPlan,
+        sink: Arc<FileOperationEventSink>,
+        executor: F,
+    ) -> Result<JobSnapshot, FileOperationError>
+    where
+        F: FnOnce(
+                &VfsFilesystem,
+                &FileOperationPlan,
+                &JobId,
+                &CancellationToken,
+                &FileOperationEventSink,
+            ) -> Result<(), FileOperationError>
+            + Send
+            + 'static,
+    {
         let job_id = JobId::new(uuid::Uuid::new_v4().to_string());
         let now = Utc::now();
+        let operation_kind = plan.kind;
+        let total_items = plan.total_items;
+        let total_bytes = plan.total_bytes;
         let snapshot = JobSnapshot {
             job_id: job_id.clone(),
-            operation_kind: plan.kind,
+            operation_kind,
             status: JobStatus::Queued,
             current_item: None,
             completed_items: 0,
-            total_items: plan.total_items,
+            total_items,
             completed_bytes: 0,
-            total_bytes: plan.total_bytes,
+            total_bytes,
             error_code: None,
             message: None,
             started_at: now,
@@ -112,9 +200,9 @@ impl OperationRuntime {
         telemetry::info(&format!(
             "operation job started job_id={} kind={:?} source_count={} total_items={}",
             job_id.as_str(),
-            plan.kind,
+            operation_kind,
             plan.sources.len(),
-            plan.total_items
+            total_items
         ));
 
         let vfs = self.vfs.clone();
@@ -124,9 +212,9 @@ impl OperationRuntime {
         let thread_job_id = job_id.clone();
         let started = JobEvent::Started(JobStartedEvent {
             job_id: job_id.clone(),
-            operation_kind: plan.kind,
-            total_items: plan.total_items,
-            total_bytes: plan.total_bytes,
+            operation_kind,
+            total_items,
+            total_bytes,
             started_at: now,
         });
 
@@ -143,8 +231,7 @@ impl OperationRuntime {
                 sink_for_thread(event);
             };
             let progress_sink = Arc::new(progress_sink) as Arc<FileOperationEventSink>;
-            let result =
-                execute_file_operation(&vfs, &plan, &thread_job_id, &token, &*progress_sink);
+            let result = executor(&vfs, &plan, &thread_job_id, &token, &*progress_sink);
 
             match result {
                 Ok(()) => {
@@ -152,15 +239,15 @@ impl OperationRuntime {
                     telemetry::info(&format!(
                         "operation job completed job_id={} kind={:?}",
                         thread_job_id.as_str(),
-                        plan.kind
+                        operation_kind
                     ));
                     update_snapshot_status(&jobs, &thread_job_id, JobStatus::Completed, None, None);
                     history.update_terminal(thread_job_id.as_str(), JobStatus::Completed, None);
                     progress_sink(JobEvent::Completed(JobCompletedEvent {
                         job_id: thread_job_id,
-                        operation_kind: plan.kind,
-                        completed_items: plan.total_items,
-                        completed_bytes: plan.total_bytes.unwrap_or(0),
+                        operation_kind,
+                        completed_items: total_items,
+                        completed_bytes: total_bytes.unwrap_or(0),
                         completed_at,
                     }));
                 }
@@ -169,13 +256,13 @@ impl OperationRuntime {
                     telemetry::info(&format!(
                         "operation job cancelled job_id={} kind={:?}",
                         thread_job_id.as_str(),
-                        plan.kind
+                        operation_kind
                     ));
                     update_snapshot_status(&jobs, &thread_job_id, JobStatus::Cancelled, None, None);
                     history.update_terminal(thread_job_id.as_str(), JobStatus::Cancelled, None);
                     progress_sink(JobEvent::Cancelled(JobCancelledEvent {
                         job_id: thread_job_id,
-                        operation_kind: plan.kind,
+                        operation_kind,
                         cancelled_at,
                     }));
                 }
@@ -186,7 +273,7 @@ impl OperationRuntime {
                     telemetry::error(&format!(
                         "operation job failed job_id={} kind={:?} code={code}",
                         thread_job_id.as_str(),
-                        plan.kind
+                        operation_kind
                     ));
 
                     update_snapshot_status(
@@ -199,7 +286,7 @@ impl OperationRuntime {
                     history.update_terminal(thread_job_id.as_str(), JobStatus::Failed, Some(&code));
                     progress_sink(JobEvent::Failed(JobFailedEvent {
                         job_id: thread_job_id,
-                        operation_kind: plan.kind,
+                        operation_kind,
                         error_code: code,
                         message,
                         failed_at,

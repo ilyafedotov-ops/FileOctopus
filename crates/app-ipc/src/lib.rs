@@ -312,6 +312,7 @@ pub struct WriteTextFileRequest {
 #[serde(rename_all = "camelCase")]
 pub struct WriteTextFileResponse {
     pub byte_size: u64,
+    pub job: JobSnapshot,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

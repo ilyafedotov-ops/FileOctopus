@@ -10,6 +10,9 @@ use terminal_core::TerminalService;
 use thiserror::Error;
 use vfs::VfsRegistry;
 
+#[cfg(test)]
+pub(crate) static ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 pub mod boot_config;
 pub mod history;
 pub mod paths;

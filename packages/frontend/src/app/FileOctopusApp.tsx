@@ -109,8 +109,10 @@ function FileOctopusAppInner({
     history,
     operationError,
     activityCollapsed,
+    jobMetrics,
     setJobs,
     setHistory,
+    setJobMetrics,
     setOperationError,
     setActivityCollapsed,
     markActivityPinnedOpen,
@@ -272,7 +274,7 @@ function FileOctopusAppInner({
   const left = activeTab(state.panels.left);
   const right = activeTab(state.panels.right);
 
-  const { starredUriSet, rowHeight, previewEntry, jobMetrics } = useAppInit({
+  const { starredUriSet, rowHeight, previewEntry } = useAppInit({
     client,
     state,
     dispatch,
@@ -305,6 +307,7 @@ function FileOctopusAppInner({
     setDiagnosticsOpen,
     setHelpOpen,
     setJobs,
+    setJobMetrics,
     setOperationError,
     setSearch,
     setDialog,

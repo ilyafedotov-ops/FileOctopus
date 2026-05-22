@@ -40,7 +40,23 @@ describe("FsClient.readFileRange", () => {
 describe("FsClient.writeTextFile", () => {
   it("routes to fs.write_text_file and returns byteSize", async () => {
     const transport = makeTransport();
-    const expected: WriteTextFileResponse = { byteSize: 12 };
+    const expected: WriteTextFileResponse = {
+      byteSize: 12,
+      job: {
+        jobId: "job-1",
+        operationKind: "writeTextFile",
+        status: "completed",
+        currentItem: "/tmp/file.txt",
+        completedItems: 1,
+        totalItems: 1,
+        completedBytes: 12,
+        totalBytes: 12,
+        errorCode: null,
+        message: null,
+        startedAt: "2026-05-22T00:00:00Z",
+        updatedAt: "2026-05-22T00:00:00Z",
+      },
+    };
     transport.invoke.mockResolvedValueOnce(expected);
 
     const client = new FsClient(transport);
