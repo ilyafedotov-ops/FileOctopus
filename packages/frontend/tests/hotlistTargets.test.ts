@@ -106,6 +106,7 @@ describe("buildHotlistTargets", () => {
       activeUri: "local:///Users/ilya/work",
       parentUri: "local:///Users/ilya",
       locations: [
+        location("home", "Home", "local:///Users/ilya", "Favorites"),
         location("root", "Macintosh HD", "local:///", "Devices/Volumes"),
       ],
       networkProfiles: [networkProfile],

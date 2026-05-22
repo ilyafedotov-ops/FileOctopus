@@ -11,7 +11,22 @@ import type { FileEntryDto } from "@fileoctopus/ts-api";
 
 const listStart = vi.fn(async () => ({ requestId: "r1", sessionId: "s1" }));
 const onDirectoryBatch = vi.fn(async () => () => undefined);
-const standardLocations = vi.fn(async () => ({ locations: [] }));
+const standardLocations = vi.fn(async () => ({
+  locations: [
+    {
+      id: "home",
+      name: "Home",
+      uri: "local:///Users/ilya",
+      section: "Favorites",
+    },
+    {
+      id: "documents",
+      name: "Documents",
+      uri: "local:///Users/ilya/Documents",
+      section: "User folders",
+    },
+  ],
+}));
 const startWatching = vi.fn(async () => undefined);
 const stopWatching = vi.fn(async () => undefined);
 const onWatchChanged = vi.fn(async () => () => undefined);
