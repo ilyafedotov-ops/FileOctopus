@@ -1,3 +1,14 @@
+// `VfsFilesystem` is the transitional VFS-aware I/O facade. It dispatches
+// per-scheme to local `std::fs` calls or to the SFTP session helpers in
+// `provider_sftp::ops`. The `VfsProvider` trait currently only declares
+// `stat` + `list`; writes are wired here rather than on the trait so the
+// runtime can mutate remote paths today.
+//
+// The roadmap's Phase 5 ("Protocol Expansion Readiness") moves these
+// write methods onto `VfsProvider` proper. When that lands, this file
+// shrinks to a thin orchestrator that resolves providers via
+// `VfsRegistry` and only owns cross-scheme copy/move composition.
+
 use std::fs::{self, File};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};

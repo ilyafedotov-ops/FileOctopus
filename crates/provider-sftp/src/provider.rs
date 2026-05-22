@@ -35,7 +35,7 @@ impl VfsProvider for SftpProvider {
     }
 
     fn capabilities(&self) -> ProviderCapabilities {
-        ProviderCapabilities::read_only()
+        ProviderCapabilities::read_write()
     }
 
     async fn stat(&self, uri: &ResourceUri) -> Result<vfs::FileEntry, VfsError> {
