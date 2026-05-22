@@ -3,6 +3,7 @@ import { IPC_ERROR_CODES } from "@fileoctopus/ts-api";
 import {
   activeTab,
   createInitialState,
+  homeUri,
   normalizeLocalInput,
   panelReducer,
   parentUri,
@@ -130,6 +131,44 @@ describe("panel store", () => {
     });
 
     expect(activeTab(state.panels.left).orderedEntryIds).toEqual([]);
+  });
+
+  it("applies early directory batches by request id before session registration", () => {
+    let state = createInitialState("local:///left", "local:///right");
+
+    state = panelReducer(state, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "left-request",
+    });
+    state = panelReducer(state, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "left-session",
+        requestId: "left-request",
+        uri: "local:///left",
+        entries: [entry("early.txt")],
+        batchIndex: 0,
+        isComplete: true,
+      },
+    });
+    state = panelReducer(state, {
+      type: "startSession",
+      panelId: "left",
+      sessionId: "left-session",
+      requestId: "left-request",
+    });
+
+    expect(activeTab(state.panels.left).orderedEntryIds).toEqual([
+      "local:///tmp/early.txt",
+    ]);
+    expect(activeTab(state.panels.left).loadState).toBe("loaded");
+  });
+
+  it("does not default to a developer-specific home path", () => {
+    localStorage.removeItem("fileoctopus.homeUri");
+
+    expect(homeUri()).not.toContain("/ilya");
   });
 
   it("transitions to empty and loaded terminal states", () => {

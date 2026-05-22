@@ -222,6 +222,7 @@ export function useEventHandlers({
     includeHidden: boolean,
   ) {
     const requestId = createRequestId();
+    dispatch({ type: "startRequest", panelId, requestId });
 
     try {
       const response = await client.fs.listStart({

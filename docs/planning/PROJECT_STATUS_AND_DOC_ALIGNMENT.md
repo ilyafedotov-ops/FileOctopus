@@ -119,7 +119,7 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 | Document                                                           | Status              | Notes                                                                                                   |
 | ------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------- |
 | [architecture/README.md](../architecture/README.md)                | **Current**         | Links this page                                                                                         |
-| [api-reference.md](../architecture/api-reference.md)               | **Partial**         | Full registry (37 cmds, 2026-05-17); per-command detail sections still sparse for navigation/FS helpers |
+| [api-reference.md](../architecture/api-reference.md)               | **Partial**         | Full registry (57 cmds, 2026-05-22); per-command detail sections still sparse for navigation/FS helpers |
 | [rc-engineering-spec.md](../architecture/rc-engineering-spec.md)   | **Target + status** | RC scope; §17 post-RC priorities                                                                        |
 | [mvp-engineering-spec.md](../architecture/mvp-engineering-spec.md) | **Redirect**        | Stub → rc-engineering-spec                                                                              |
 | [pane-lifecycle.md](../architecture/pane-lifecycle.md)             | **Current**         | `requestId`, `loadState`, 30s timeout                                                                   |

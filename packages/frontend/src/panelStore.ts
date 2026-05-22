@@ -77,6 +77,11 @@ export type PanelAction =
   | { type: "goBack"; panelId: PanelId }
   | { type: "goForward"; panelId: PanelId }
   | {
+      type: "startRequest";
+      panelId: PanelId;
+      requestId: string;
+    }
+  | {
       type: "startSession";
       panelId: PanelId;
       sessionId: string;
@@ -313,7 +318,9 @@ export function applyBatch(
   state: FileOctopusState,
   batch: DirectoryBatchEventDto,
 ): FileOctopusState {
-  const target = findPanelBySession(state, batch.sessionId);
+  const target =
+    findPanelBySession(state, batch.sessionId) ??
+    findPanelByRequest(state, batch.requestId);
 
   if (!target) {
     return state;
@@ -450,6 +457,25 @@ function findPanelBySession(
 ): PanelId | null {
   for (const panelId of Object.keys(state.panels) as PanelId[]) {
     if (activeTab(state.panels[panelId]).sessionId === sessionId) {
+      return panelId;
+    }
+  }
+
+  return null;
+}
+
+function findPanelByRequest(
+  state: FileOctopusState,
+  requestId: string,
+): PanelId | null {
+  const trimmed = requestId.trim();
+
+  if (!trimmed) {
+    return null;
+  }
+
+  for (const panelId of Object.keys(state.panels) as PanelId[]) {
+    if (activeTab(state.panels[panelId]).activeRequestId === trimmed) {
       return panelId;
     }
   }
@@ -620,15 +646,13 @@ export function homeUri(): string {
   if (home) return home;
 
   const platform = typeof navigator !== "undefined" ? navigator.platform : "";
-  if (platform.startsWith("Linux")) {
-    return "local:///home/ilya";
-  }
   if (platform.startsWith("Win")) {
-    return "local:///C:/Users/ilya";
+    return "local://C:/";
   }
-  return "local:///Users/ilya";
+  return "local:///";
 }
 
-function documentsUri(): string {
-  return `${homeUri()}/Documents`;
+export function documentsUri(): string {
+  const home = homeUri();
+  return home.endsWith("/") ? home : `${home}/Documents`;
 }

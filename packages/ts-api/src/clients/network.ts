@@ -11,7 +11,7 @@ import type {
   NetworkStatusEvent,
   OkResponse,
 } from "../types";
-import { NETWORK_STATUS_EVENT } from "../types";
+import { NETWORK_STATUS_EVENT } from "../events";
 import { normalizeIpcError } from "../normalizeError";
 import { requireListen } from "../requireListen";
 

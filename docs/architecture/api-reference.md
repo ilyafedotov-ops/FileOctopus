@@ -2,7 +2,7 @@
 
 This document is the authoritative description of FileOctopus's runtime API surface: the Tauri IPC commands, the events streamed back from Rust, the `@fileoctopus/ts-api` client that wraps them, and the domain types that flow across the boundary. It is the contract every change to filesystem behaviour must respect (see ADR-0002 and ADR-0003).
 
-> **Doc freshness (2026-05-19):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (46 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (10 channels). After adding IPC, update this page, `commandMap.ts`, `events.ts`, and `clients/*` in the same change.
+> **Doc freshness (2026-05-22):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (57 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (13 channels). `packages/ts-api/tests/catalogs.test.ts` now guards the command count, command map, error codes, warning codes, and event constants.
 
 - Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/remote-core/src/lib.rs`, `crates/provider-sftp/src/lib.rs`, `crates/config/src/network.rs`, `crates/platform/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
 - Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError,uri}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
@@ -46,7 +46,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 
 ### Full registry (2026-05-19)
 
-**46 commands** — verify with `grep` on `generate_handler!` in `apps/desktop-tauri/src-tauri/src/lib.rs` and row count in `packages/ts-api/src/commandMap.ts` if this table drifts.
+**57 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
 
 | Tauri command                        | TS dotted name (typical)           | Client area              |
 | ------------------------------------ | ---------------------------------- | ------------------------ |
@@ -54,6 +54,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `fs_stat`                            | `fs.stat`                          | `FsClient`               |
 | `fs_read_text_file`                  | `fs.read_text_file`                | `FsClient`               |
 | `fs_read_file_range`                 | `fs.read_file_range`               | `FsClient`               |
+| `fs_read_image_as_data_uri`          | `fs.read_image_as_data_uri`        | `FsClient`               |
 | `fs_write_text_file`                 | `fs.write_text_file`               | `FsClient`               |
 | `fs_compute_hash`                    | `fs.compute_hash`                  | `FsClient`               |
 | `fs_open_terminal`                   | `fs.open_terminal`                 | `FsClient`               |
@@ -63,6 +64,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `terminal_kill`                      | `terminal.kill`                    | `TerminalClient`         |
 | `fs_list_start`                      | `fs.list_start`                    | `FsClient`               |
 | `fs_standard_locations`              | `fs.standard_locations`            | `FsClient`               |
+| `fs_discover_volumes`                | `fs.discover_volumes`              | `FsClient`               |
 | `fs_open_default`                    | `fs.open_default`                  | `FsClient`               |
 | `fs_reveal`                          | `fs.reveal`                        | `FsClient`               |
 | `fs_properties`                      | `fs.properties`                    | `FsClient`               |
@@ -85,6 +87,8 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `navigation_list_starred`            | `navigation.listStarred`           | `NavigationClient`       |
 | `navigation_toggle_starred`          | `navigation.toggleStarred`         | `NavigationClient`       |
 | `navigation_is_starred`              | `navigation.isStarred`             | `NavigationClient`       |
+| `navigation_clear_recent`            | `navigation.clearRecent`           | `NavigationClient`       |
+| `navigation_remove_recent`           | `navigation.removeRecent`          | `NavigationClient`       |
 | `network_profiles_list`              | `network.profilesList`             | `NetworkClient`          |
 | `network_profile_add`                | `network.profileAdd`               | `NetworkClient`          |
 | `network_profile_update`             | `network.profileUpdate`            | `NetworkClient`          |
@@ -315,13 +319,11 @@ Rust pushes events via `app.emit(name, payload)`. The TS client wraps them in `t
 | `fileOperation:job:cancelled` (`JOB_CANCELLED_EVENT`)               | `JobCancelledEvent`                | File-operation and metadata job runtimes  |
 | `fs:watch:changed` (`WATCH_CHANGED_EVENT`)                          | `WatchEventDto`                    | Watch worker                              |
 | `network:status` (`NETWORK_STATUS_EVENT`)                           | `NetworkStatusEventDto`            | `ConnectionSessionManager` status changes |
-| `terminal:output` (`TERMINAL_OUTPUT_EVENT`)                         | `TerminalOutputEventDto`           | Local and SSH PTY sessions                |
-| `terminal:exit` (`TERMINAL_EXIT_EVENT`)                             | `TerminalExitEventDto`             | Local and SSH PTY sessions                |
 | `fs:folderSize:completed` (`FOLDER_SIZE_COMPLETED_EVENT`)           | `FolderSizeCompletedEventDto`      | Folder-size metadata job                  |
 | `fs:recursiveSearch:match` (`RECURSIVE_SEARCH_MATCH_EVENT`)         | `RecursiveSearchMatchEventDto`     | Recursive-search metadata job             |
 | `fs:recursiveSearch:completed` (`RECURSIVE_SEARCH_COMPLETED_EVENT`) | `RecursiveSearchCompletedEventDto` | Recursive-search metadata job             |
-| `terminal:output` (`TERMINAL_OUTPUT_EVENT`)                         | `TerminalOutputEventDto`           | Embedded PTY output chunk (base64 data)   |
-| `terminal:exit` (`TERMINAL_EXIT_EVENT`)                             | `TerminalExitEventDto`             | Embedded PTY session exit                 |
+| `terminal:output` (`TERMINAL_OUTPUT_EVENT`)                         | `TerminalOutputEventDto`           | Local and SSH PTY output chunk            |
+| `terminal:exit` (`TERMINAL_EXIT_EVENT`)                             | `TerminalExitEventDto`             | Local and SSH PTY session exit            |
 
 Names are exported as constants from both sides (`crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts`, re-exported from the package root). The Rust enum-to-name mapping lives in `app_ipc::job_event_name`; the payload serializer is `app_ipc::job_event_payload`.
 

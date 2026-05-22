@@ -19,6 +19,36 @@ fn boot_registers_local_provider() {
 }
 
 #[test]
+fn boot_does_not_register_sftp_provider_when_network_is_disabled() {
+    let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();
+    std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", "0");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = AppPaths {
+        config_dir: dir.path().join("config"),
+        data_dir: dir.path().join("data"),
+        log_dir: dir.path().join("logs"),
+        history_db: dir.path().join("history.sqlite"),
+        preferences_db: dir.path().join("preferences.sqlite"),
+        navigation_db: dir.path().join("navigation.sqlite"),
+        network_db: dir.path().join("network.sqlite"),
+    };
+    let state = AppCore::boot_with_paths(paths).unwrap();
+    let uri = ResourceUri::parse("sftp://550e8400-e29b-41d4-a716-446655440000/").unwrap();
+    let error = match state.vfs().provider_for(&uri) {
+        Ok(_) => panic!("expected sftp provider to be unavailable when network is disabled"),
+        Err(error) => error,
+    };
+
+    if let Some(value) = previous {
+        std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", value);
+    } else {
+        std::env::remove_var("FILEOCTOPUS_ENABLE_NETWORK");
+    }
+
+    assert_eq!(error.code(), "unsupported_provider");
+}
+
+#[test]
 fn operation_history_migration_is_idempotent() {
     let dir = tempfile::tempdir().unwrap();
     let repository = OperationHistoryRepository::new(dir.path().join("history.sqlite")).unwrap();

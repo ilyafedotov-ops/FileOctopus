@@ -163,6 +163,7 @@ export function useNavigation(deps: UseNavigationDeps) {
     includeHidden: boolean,
   ) {
     const requestId = createRequestId();
+    dispatch({ type: "startRequest", panelId, requestId });
 
     try {
       const response = await client.fs.listStart({

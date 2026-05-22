@@ -139,8 +139,11 @@ impl AppCore {
         let network = NetworkProfileRepository::new(paths.network_db.clone())
             .map_err(|error| AppCoreError::Network(error.to_string()))?;
 
+        let network_enabled = is_network_enabled();
         let mut connector_registry = RemoteConnectorRegistry::new();
-        connector_registry.register(Arc::new(SftpConnector::new()));
+        if network_enabled {
+            connector_registry.register(Arc::new(SftpConnector::new()));
+        }
         let connector_registry = Arc::new(tokio::sync::RwLock::new(connector_registry));
         let sessions = Arc::new(ConnectionSessionManager::new(
             network.clone(),
@@ -151,8 +154,10 @@ impl AppCore {
         let vfs = Arc::new(VfsRegistry::new());
         vfs.register(Arc::new(LocalFsProvider::new()))
             .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
-        vfs.register(Arc::new(SftpProvider::new(sessions.clone())))
-            .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
+        if network_enabled {
+            vfs.register(Arc::new(SftpProvider::new(sessions.clone())))
+                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
+        }
 
         let history = OperationHistoryRepository::new(paths.history_db.clone())
             .map_err(|error| AppCoreError::History(error.to_string()))?;

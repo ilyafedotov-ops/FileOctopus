@@ -18,9 +18,12 @@ import type {
   NetworkConnectionStatusDto,
   RecursiveSearchMatchEventDto,
   RecursiveSearchCompletedEventDto,
+  StandardLocationDto,
 } from "@fileoctopus/ts-api";
 import {
   activeTab,
+  documentsUri,
+  homeUri,
   selectVisibleEntries,
   type FileOctopusState,
   type PanelAction,
@@ -96,6 +99,7 @@ export interface UseAppInitParams {
   refreshNetworkProfiles: () => Promise<void>;
   refreshNavigation: () => Promise<void>;
   refreshDiagnostics: () => void;
+  setLocations: Dispatch<SetStateAction<StandardLocationDto[]>>;
   setAppInfo: Dispatch<SetStateAction<AppInfoResponse | null>>;
   appInfo: AppInfoResponse | null;
   updatePreference: (key: string, value: string) => Promise<void>;
@@ -164,6 +168,7 @@ export function useAppInit({
   refreshNetworkProfiles,
   refreshNavigation,
   refreshDiagnostics,
+  setLocations,
   setAppInfo,
   appInfo,
   updatePreference,
@@ -272,6 +277,21 @@ export function useAppInit({
       unlisten?.();
     };
   }, [client]);
+
+  useEffect(() => {
+    const activePanelId = state.activePanelId;
+    const activeUri = activeTab(state.panels[activePanelId]).uri;
+
+    if (!activeUri.startsWith("local://")) {
+      return;
+    }
+
+    void client.fs.startWatching({ uri: activeUri }).catch(() => undefined);
+
+    return () => {
+      void client.fs.stopWatching().catch(() => undefined);
+    };
+  }, [client, state.activePanelId, left.uri, right.uri]);
 
   // ── Active URI navigation: watch changed ────────────────────────
   useEffect(() => {
@@ -631,6 +651,8 @@ export function useAppInit({
 
     void (async () => {
       let showHidden = false;
+      let initialLeftUri = activeTab(state.panels.left).uri;
+      let initialRightUri = activeTab(state.panels.right).uri;
 
       try {
         const info = await client.getAppInfo();
@@ -642,7 +664,25 @@ export function useAppInit({
         /* app info unavailable */
       }
 
-      void refreshLocations();
+      try {
+        const response = await client.fs.standardLocations();
+        setLocations(response.locations);
+        const homeLocation = response.locations.find(
+          (location) => location.id === "home",
+        );
+        const documentsLocation = response.locations.find(
+          (location) => location.id === "documents",
+        );
+
+        if (initialLeftUri === homeUri() && homeLocation) {
+          initialLeftUri = homeLocation.uri;
+        }
+        if (initialRightUri === documentsUri() && documentsLocation) {
+          initialRightUri = documentsLocation.uri;
+        }
+      } catch {
+        void refreshLocations();
+      }
       void refreshNavigation();
 
       try {
@@ -691,10 +731,10 @@ export function useAppInit({
       }
 
       await Promise.allSettled([
-        navigatePanel("left", activeTab(state.panels.left).uri, {
+        navigatePanel("left", initialLeftUri, {
           includeHidden: showHidden,
         }),
-        navigatePanel("right", activeTab(state.panels.right).uri, {
+        navigatePanel("right", initialRightUri, {
           includeHidden: showHidden,
         }),
       ]);

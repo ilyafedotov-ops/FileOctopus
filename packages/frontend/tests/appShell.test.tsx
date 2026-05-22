@@ -564,6 +564,16 @@ describe("FileOctopusShell", () => {
     expect(container.querySelectorAll(".fo-panel").length).toBe(2);
   });
 
+  it("starts watching the active pane location", async () => {
+    render(<FileOctopusShell />);
+
+    await waitFor(() =>
+      expect(startWatching).toHaveBeenCalledWith({
+        uri: "local:///Users/ilya",
+      }),
+    );
+  });
+
   it("renders a 100k entry batch without mounting every row", async () => {
     const { container } = render(<FileOctopusShell />);
 

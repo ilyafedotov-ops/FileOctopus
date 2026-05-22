@@ -2,12 +2,16 @@ import type { FileOctopusState, PanelAction } from "../../panelStore";
 import { applyBatch, updatePanel } from "../../panelStore";
 type ListingAction = Extract<
   PanelAction,
-  { type: "startSession" } | { type: "applyBatch" } | { type: "setPaneError" }
+  | { type: "startRequest" }
+  | { type: "startSession" }
+  | { type: "applyBatch" }
+  | { type: "setPaneError" }
 >;
 
 export function isListingAction(action: PanelAction): action is ListingAction {
   return (
     action.type === "startSession" ||
+    action.type === "startRequest" ||
     action.type === "applyBatch" ||
     action.type === "setPaneError"
   );
@@ -18,14 +22,35 @@ export function reduceListing(
   action: ListingAction,
 ): FileOctopusState {
   switch (action.type) {
+    case "startRequest":
+      return updatePanel(state, action.panelId, (tab) => ({
+        ...tab,
+        sessionId: null,
+        activeRequestId: action.requestId,
+        loadState: "loading",
+        error: null,
+        errorCode: null,
+      }));
     case "startSession":
       return updatePanel(state, action.panelId, (tab) => ({
         ...tab,
         sessionId: action.sessionId,
         activeRequestId: action.requestId,
-        loadState: "loading",
-        error: null,
-        errorCode: null,
+        loadState:
+          tab.activeRequestId === action.requestId &&
+          tab.loadState !== "loading"
+            ? tab.loadState
+            : "loading",
+        error:
+          tab.activeRequestId === action.requestId &&
+          tab.loadState !== "loading"
+            ? tab.error
+            : null,
+        errorCode:
+          tab.activeRequestId === action.requestId &&
+          tab.loadState !== "loading"
+            ? tab.errorCode
+            : null,
       }));
     case "applyBatch":
       return applyBatch(state, action.batch);

@@ -29,6 +29,8 @@ import type {
 } from "@fileoctopus/ts-api";
 import {
   createInitialState,
+  documentsUri,
+  homeUri,
   panelReducer,
   type FileOctopusState,
   type PanelAction,
@@ -128,6 +130,13 @@ export function ShellProvider({ children }: { children: ReactNode }) {
     const leftUri = state.panels.left.tabs[state.panels.left.activeTabId]?.uri;
     const rightUri =
       state.panels.right.tabs[state.panels.right.activeTabId]?.uri;
+    const hasMovedPastInitialFallbacks =
+      leftUri !== homeUri() || rightUri !== documentsUri();
+
+    if (!hasMovedPastInitialFallbacks) {
+      return;
+    }
+
     if (leftUri && rightUri) {
       persistSessionPaths(leftUri, rightUri);
     }

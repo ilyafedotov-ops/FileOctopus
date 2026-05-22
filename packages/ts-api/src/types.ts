@@ -438,8 +438,6 @@ export interface NetworkStatusEvent {
   message: string | null;
 }
 
-export const NETWORK_STATUS_EVENT = "network:status";
-
 export interface NetworkProfilesListResponse {
   profiles: NetworkProfileDto[];
 }

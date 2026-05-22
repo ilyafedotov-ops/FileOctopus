@@ -37,6 +37,9 @@ describe("commands/registry", () => {
     expect(
       COMMAND_DEFINITIONS.some((command) => command.id === "nav.addServer"),
     ).toBe(true);
+    expect(
+      COMMAND_DEFINITIONS.some((command) => command.id === "nav.connectServer"),
+    ).toBe(true);
   });
 
   it("derives CommandId from the registry", () => {

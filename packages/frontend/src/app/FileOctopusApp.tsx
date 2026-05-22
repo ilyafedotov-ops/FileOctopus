@@ -291,6 +291,7 @@ function FileOctopusAppInner({
     refreshNetworkProfiles,
     refreshNavigation,
     refreshDiagnostics,
+    setLocations,
     setAppInfo,
     appInfo,
     updatePreference,
