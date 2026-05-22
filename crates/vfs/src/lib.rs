@@ -526,6 +526,10 @@ impl From<VfsError> for FileOperationError {
                 message: reason,
             },
             VfsError::UnsupportedProvider { scheme } => Self::UnsupportedProvider { scheme },
+            VfsError::UnsupportedOperation {
+                scheme,
+                operation: _,
+            } => Self::UnsupportedProvider { scheme },
             VfsError::NotFound { uri } => Self::NotFound { uri },
             VfsError::PermissionDenied { uri } => Self::PermissionDenied { uri },
             VfsError::Timeout { uri } => {
@@ -563,6 +567,24 @@ pub trait VfsProvider: Send + Sync {
         options: ListOptions,
         sink: DirectorySink,
     ) -> Result<(), VfsError>;
+
+    async fn create_directory(&self, uri: &ResourceUri) -> Result<(), VfsError> {
+        let _ = uri;
+        Err(self.unsupported_operation("create_directory"))
+    }
+
+    #[doc(hidden)]
+    fn unsupported_operation(&self, operation: &'static str) -> VfsError {
+        VfsError::UnsupportedOperation {
+            scheme: self
+                .schemes()
+                .first()
+                .copied()
+                .unwrap_or("unknown")
+                .to_string(),
+            operation,
+        }
+    }
 }
 
 pub struct VfsRegistry {
@@ -633,18 +655,49 @@ impl Default for VfsRegistry {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum VfsError {
-    InvalidUri { uri: String, reason: String },
-    UnsupportedProvider { scheme: String },
-    DuplicateProvider { scheme: String },
-    NotFound { uri: String },
-    PermissionDenied { uri: String },
-    Timeout { uri: String },
-    Cancelled { uri: String },
-    DeviceUnavailable { uri: String },
-    ConnectionRequired { uri: String },
-    AuthenticationFailed { uri: String, message: String },
-    ConnectionLost { uri: String, message: String },
-    Internal { message: String },
+    InvalidUri {
+        uri: String,
+        reason: String,
+    },
+    UnsupportedProvider {
+        scheme: String,
+    },
+    UnsupportedOperation {
+        scheme: String,
+        operation: &'static str,
+    },
+    DuplicateProvider {
+        scheme: String,
+    },
+    NotFound {
+        uri: String,
+    },
+    PermissionDenied {
+        uri: String,
+    },
+    Timeout {
+        uri: String,
+    },
+    Cancelled {
+        uri: String,
+    },
+    DeviceUnavailable {
+        uri: String,
+    },
+    ConnectionRequired {
+        uri: String,
+    },
+    AuthenticationFailed {
+        uri: String,
+        message: String,
+    },
+    ConnectionLost {
+        uri: String,
+        message: String,
+    },
+    Internal {
+        message: String,
+    },
 }
 
 impl VfsError {
@@ -652,6 +705,7 @@ impl VfsError {
         match self {
             Self::InvalidUri { .. } => "invalid_uri",
             Self::UnsupportedProvider { .. } => "unsupported_provider",
+            Self::UnsupportedOperation { .. } => "unsupported_operation",
             Self::DuplicateProvider { .. } => "duplicate_provider",
             Self::NotFound { .. } => "not_found",
             Self::PermissionDenied { .. } => "permission_denied",
@@ -747,6 +801,10 @@ impl fmt::Display for VfsError {
             Self::ConnectionLost { uri, message } => {
                 write!(formatter, "connection lost `{uri}`: {message}")
             }
+            Self::UnsupportedOperation { scheme, operation } => write!(
+                formatter,
+                "operation `{operation}` is not supported by scheme `{scheme}`"
+            ),
             Self::Internal { message } => write!(formatter, "{message}"),
         }
     }
@@ -1125,6 +1183,17 @@ mod tests {
             .await
             .map_err(|_| VfsError::internal("directory sink closed"))
         }
+    }
+
+    #[tokio::test]
+    async fn provider_create_directory_defaults_to_unsupported() {
+        let provider = TestProvider;
+        let uri = ResourceUri::parse("local:///tmp/x").unwrap();
+        let error = provider
+            .create_directory(&uri)
+            .await
+            .expect_err("default impl should return UnsupportedOperation");
+        assert_eq!(error.code(), "unsupported_operation");
     }
 
     #[tokio::test]
