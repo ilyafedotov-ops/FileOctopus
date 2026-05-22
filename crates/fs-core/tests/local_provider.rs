@@ -308,3 +308,57 @@ async fn remove_returns_not_found_for_missing_path() {
         .unwrap_err();
     assert_eq!(error.code(), "not_found");
 }
+
+#[tokio::test]
+async fn copy_file_streams_local_bytes() {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    use std::sync::Arc;
+
+    let temp = tempfile::tempdir().unwrap();
+    let source_path = temp.path().join("src.bin");
+    let bytes = vec![7_u8; 200_000];
+    fs::write(&source_path, &bytes).unwrap();
+    let source = ResourceUri::from_local_path(&source_path).unwrap();
+    let destination_path = temp.path().join("dst.bin");
+    let destination = ResourceUri::from_local_path(&destination_path).unwrap();
+
+    let observed = Arc::new(AtomicU64::new(0));
+    let observed_clone = observed.clone();
+    let total = LocalFsProvider::new()
+        .copy_file(
+            &source,
+            &destination,
+            Box::new(move |bytes_so_far| {
+                observed_clone.store(bytes_so_far, Ordering::SeqCst);
+            }),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(total, bytes.len() as u64);
+    assert_eq!(observed.load(Ordering::SeqCst), bytes.len() as u64);
+    assert_eq!(fs::read(&destination_path).unwrap(), bytes);
+}
+
+#[tokio::test]
+async fn read_file_prefix_returns_first_n_bytes() {
+    let temp = tempfile::tempdir().unwrap();
+    let target_path = temp.path().join("data.txt");
+    fs::write(&target_path, b"abcdefghij").unwrap();
+    let target = ResourceUri::from_local_path(&target_path).unwrap();
+
+    let prefix = LocalFsProvider::new()
+        .read_file_prefix(&target, 4)
+        .await
+        .unwrap();
+
+    assert_eq!(prefix, b"abcd");
+}
+
+#[tokio::test]
+async fn capabilities_declares_read_write() {
+    let caps = LocalFsProvider::new().capabilities();
+    assert!(caps.can_read);
+    assert!(caps.can_write);
+    assert!(caps.can_delete);
+}

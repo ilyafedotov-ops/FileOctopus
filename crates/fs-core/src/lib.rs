@@ -112,7 +112,7 @@ impl VfsProvider for LocalFsProvider {
     }
 
     fn capabilities(&self) -> ProviderCapabilities {
-        ProviderCapabilities::read_only()
+        ProviderCapabilities::read_write()
     }
 
     async fn stat(&self, uri: &ResourceUri) -> Result<FileEntry, VfsError> {
@@ -170,6 +170,63 @@ impl VfsProvider for LocalFsProvider {
             } else {
                 fs::remove_file(&path)
             }
+        })
+        .await
+        .map_err(|error| VfsError::internal(&error.to_string()))?
+        .map_err(|error| Self::map_io_error(&uri, error))
+    }
+
+    async fn copy_file(
+        &self,
+        source: &ResourceUri,
+        destination: &ResourceUri,
+        mut on_progress: Box<dyn FnMut(u64) + Send>,
+    ) -> Result<u64, VfsError> {
+        use std::io::{Read, Write};
+
+        const CHUNK: usize = 64 * 1024;
+        let from = source.to_local_path()?;
+        let to = destination.to_local_path()?;
+        let uri = source.clone();
+        tokio::task::spawn_blocking(move || -> Result<u64, io::Error> {
+            if let Some(parent) = to.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            let mut reader = fs::File::open(&from)?;
+            let mut writer = fs::File::create(&to)?;
+            let mut buffer = vec![0_u8; CHUNK];
+            let mut total = 0_u64;
+            loop {
+                let read = reader.read(&mut buffer)?;
+                if read == 0 {
+                    break;
+                }
+                writer.write_all(&buffer[..read])?;
+                total += read as u64;
+                on_progress(total);
+            }
+            writer.flush()?;
+            Ok(total)
+        })
+        .await
+        .map_err(|error| VfsError::internal(&error.to_string()))?
+        .map_err(|error| Self::map_io_error(&uri, error))
+    }
+
+    async fn read_file_prefix(
+        &self,
+        uri: &ResourceUri,
+        max_bytes: u64,
+    ) -> Result<Vec<u8>, VfsError> {
+        use std::io::Read;
+        let path = uri.to_local_path()?;
+        let uri = uri.clone();
+        tokio::task::spawn_blocking(move || -> Result<Vec<u8>, io::Error> {
+            let mut file = fs::File::open(&path)?;
+            let mut buffer = vec![0_u8; max_bytes as usize];
+            let read = file.read(&mut buffer)?;
+            buffer.truncate(read);
+            Ok(buffer)
         })
         .await
         .map_err(|error| VfsError::internal(&error.to_string()))?
