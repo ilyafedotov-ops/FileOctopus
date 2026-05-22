@@ -294,6 +294,7 @@ export function FilePanel({
           />
           {tab.viewMode === "columns" ? (
             <ColumnsView
+              client={client}
               rootUri={homeUri()}
               activeUri={tab.uri}
               showHidden={tab.showHidden}

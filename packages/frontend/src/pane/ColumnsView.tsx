@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
-import type { FileEntryDto } from "@fileoctopus/ts-api";
-import { createFileOctopusClient } from "@fileoctopus/ts-api";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { FileEntryDto, FileOctopusClient } from "@fileoctopus/ts-api";
 import { createRequestId } from "../paneTypes";
 import {
   isRemoteUri,
@@ -15,6 +14,7 @@ import {
 } from "../utils/parentEntry";
 
 interface ColumnsViewProps {
+  client: FileOctopusClient;
   rootUri: string;
   activeUri: string;
   showHidden: boolean;
@@ -24,8 +24,18 @@ interface ColumnsViewProps {
 }
 
 const MAX_COLUMNS = 4;
+const LISTING_TIMEOUT_MS = 30000;
+
+type InflightMeta = {
+  uri: string;
+  sessionId: string | null;
+  entries: FileEntryDto[];
+  settled: boolean;
+  timeoutId: ReturnType<typeof setTimeout>;
+};
 
 export function ColumnsView({
+  client,
   rootUri,
   activeUri,
   showHidden,
@@ -38,31 +48,156 @@ export function ColumnsView({
     [activeUri, rootUri],
   );
   const [columns, setColumns] = useState<Record<string, FileEntryDto[]>>({});
+  const inflightRef = useRef<Map<string, InflightMeta>>(new Map());
 
+  // Single global batch listener for the component lifetime.
   useEffect(() => {
-    let cancelled = false;
-    const client = createFileOctopusClient();
+    let unlisten: (() => void) | null = null;
 
-    void (async () => {
-      const next: Record<string, FileEntryDto[]> = {};
-      for (const uri of stack.slice(0, MAX_COLUMNS)) {
-        try {
-          const listed = await listDirectory(client, uri, showHidden);
-          next[uri] = prependParentDirectoryEntry(uri, listed);
-        } catch {
-          const parentOnly = prependParentDirectoryEntry(uri, []);
-          next[uri] = parentOnly;
+    void client.fs
+      .onDirectoryBatch((batch) => {
+        const inflight = inflightRef.current;
+
+        function findMeta(): [InflightMeta, string] | null {
+          for (const [reqId, m] of inflight) {
+            if (m.sessionId === batch.sessionId) {
+              return [m, reqId];
+            }
+          }
+          if (batch.requestId) {
+            const m = inflight.get(batch.requestId);
+            if (m) {
+              return [m, batch.requestId];
+            }
+          }
+          return null;
         }
-      }
-      if (!cancelled) {
-        setColumns(next);
-      }
-    })();
+
+        const found = findMeta();
+        if (!found) {
+          return;
+        }
+
+        const [meta, requestId] = found;
+        if (meta.settled) {
+          return;
+        }
+
+        if (batch.error) {
+          meta.settled = true;
+          clearTimeout(meta.timeoutId);
+          inflight.delete(requestId);
+          setColumns((prev) => ({
+            ...prev,
+            [meta.uri]: prependParentDirectoryEntry(meta.uri, []),
+          }));
+          return;
+        }
+
+        meta.entries.push(...batch.entries);
+
+        if (batch.isComplete) {
+          meta.settled = true;
+          clearTimeout(meta.timeoutId);
+          inflight.delete(requestId);
+          setColumns((prev) => ({
+            ...prev,
+            [meta.uri]: prependParentDirectoryEntry(
+              meta.uri,
+              [...meta.entries].sort((a, b) => a.name.localeCompare(b.name)),
+            ),
+          }));
+        }
+      })
+      .then((cleanup) => {
+        unlisten = cleanup;
+      });
 
     return () => {
-      cancelled = true;
+      unlisten?.();
     };
-  }, [showHidden, stack]);
+  }, [client]);
+
+  // Start and cancel column listings as the stack changes.
+  useEffect(() => {
+    const inflight = inflightRef.current;
+    const targetUris = new Set(stack.slice(0, MAX_COLUMNS));
+
+    // Settle listings for URIs that left the stack.
+    for (const [requestId, meta] of inflight) {
+      if (!targetUris.has(meta.uri)) {
+        clearTimeout(meta.timeoutId);
+        meta.settled = true;
+        inflight.delete(requestId);
+      }
+    }
+
+    // Kick off new listings.
+    for (const uri of stack.slice(0, MAX_COLUMNS)) {
+      const alreadyInflight = Array.from(inflight.values()).some(
+        (m) => m.uri === uri,
+      );
+      if (alreadyInflight) {
+        continue;
+      }
+
+      const requestId = createRequestId();
+
+      const timeoutId = setTimeout(() => {
+        const meta = inflight.get(requestId);
+        if (meta && !meta.settled) {
+          meta.settled = true;
+          inflight.delete(requestId);
+          setColumns((prev) => ({
+            ...prev,
+            [uri]: prependParentDirectoryEntry(uri, []),
+          }));
+        }
+      }, LISTING_TIMEOUT_MS);
+
+      inflight.set(requestId, {
+        uri,
+        sessionId: null,
+        entries: [],
+        settled: false,
+        timeoutId,
+      });
+
+      void client.fs
+        .listStart({
+          requestId,
+          uri,
+          includeHidden: showHidden,
+          batchSize: 500,
+        })
+        .then((response) => {
+          const meta = inflight.get(requestId);
+          if (meta && !meta.settled) {
+            meta.sessionId = response.sessionId;
+          }
+        })
+        .catch(() => {
+          const meta = inflight.get(requestId);
+          if (meta && !meta.settled) {
+            meta.settled = true;
+            clearTimeout(meta.timeoutId);
+            inflight.delete(requestId);
+            setColumns((prev) => ({
+              ...prev,
+              [uri]: prependParentDirectoryEntry(uri, []),
+            }));
+          }
+        });
+    }
+
+    return () => {
+      for (const [requestId, meta] of inflight) {
+        clearTimeout(meta.timeoutId);
+        meta.settled = true;
+        inflight.delete(requestId);
+      }
+    };
+  }, [client, showHidden, stack]);
 
   return (
     <div className="fo-columns-view" role="list">
@@ -96,46 +231,6 @@ export function ColumnsView({
       ))}
     </div>
   );
-}
-
-async function listDirectory(
-  client: ReturnType<typeof createFileOctopusClient>,
-  uri: string,
-  showHidden: boolean,
-): Promise<FileEntryDto[]> {
-  const response = await client.fs.listStart({
-    requestId: createRequestId(),
-    uri,
-    includeHidden: showHidden,
-    batchSize: 500,
-  });
-
-  return new Promise((resolve, reject) => {
-    const entries: FileEntryDto[] = [];
-    let unlisten: (() => void) | null = null;
-
-    void client.fs
-      .onDirectoryBatch((batch) => {
-        if (batch.sessionId !== response.sessionId) {
-          return;
-        }
-        if (batch.error) {
-          unlisten?.();
-          reject(new Error(batch.error.message ?? batch.error.code));
-          return;
-        }
-        entries.push(...batch.entries);
-        if (batch.isComplete) {
-          unlisten?.();
-          resolve(
-            entries.sort((left, right) => left.name.localeCompare(right.name)),
-          );
-        }
-      })
-      .then((cleanup) => {
-        unlisten = cleanup;
-      });
-  });
 }
 
 function uriStack(activeUri: string, rootUriValue: string): string[] {
