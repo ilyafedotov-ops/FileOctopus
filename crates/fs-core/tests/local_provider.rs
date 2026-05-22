@@ -215,3 +215,43 @@ async fn list_stops_when_cancelled() {
     let error = task.await.unwrap().unwrap_err();
     assert_eq!(error.code(), "cancelled");
 }
+
+#[tokio::test]
+async fn create_directory_creates_a_local_directory() {
+    let temp = tempfile::tempdir().unwrap();
+    let target_path = temp.path().join("new-folder");
+    let target = ResourceUri::from_local_path(&target_path).unwrap();
+
+    LocalFsProvider::new()
+        .create_directory(&target)
+        .await
+        .unwrap();
+
+    assert!(target_path.is_dir());
+}
+
+#[tokio::test]
+async fn create_directory_creates_nested_parents() {
+    let temp = tempfile::tempdir().unwrap();
+    let target_path = temp.path().join("a/b/c");
+    let target = ResourceUri::from_local_path(&target_path).unwrap();
+
+    LocalFsProvider::new()
+        .create_directory(&target)
+        .await
+        .unwrap();
+
+    assert!(target_path.is_dir());
+}
+
+#[tokio::test]
+async fn create_file_creates_an_empty_local_file() {
+    let temp = tempfile::tempdir().unwrap();
+    let target_path = temp.path().join("new-file.txt");
+    let target = ResourceUri::from_local_path(&target_path).unwrap();
+
+    LocalFsProvider::new().create_file(&target).await.unwrap();
+
+    assert!(target_path.is_file());
+    assert_eq!(fs::metadata(&target_path).unwrap().len(), 0);
+}
