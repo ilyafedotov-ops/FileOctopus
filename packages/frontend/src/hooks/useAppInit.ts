@@ -2,7 +2,6 @@ import {
   useEffect,
   useMemo,
   useRef,
-  useState,
   type Dispatch,
   type MutableRefObject,
   type SetStateAction,
@@ -42,6 +41,7 @@ import { migrateLegacyChromePreferences } from "../state/chromeStore";
 import { formatSize } from "../pane/fileTableUtils";
 import type { ToastMessage } from "../components/ToastStack";
 import type { OperationDialog } from "../dialogs/OperationDialogView";
+import type { JobMetrics } from "../app/providers/JobsProvider";
 import {
   jobIdValue,
   snapshotFromStarted,
@@ -123,6 +123,7 @@ export interface UseAppInitParams {
   setDiagnosticsOpen: Dispatch<SetStateAction<boolean>>;
   setHelpOpen: Dispatch<SetStateAction<boolean>>;
   setJobs: Dispatch<SetStateAction<Record<string, JobSnapshot>>>;
+  setJobMetrics: Dispatch<SetStateAction<Record<string, JobMetrics>>>;
   setOperationError: Dispatch<SetStateAction<string | null>>;
   setSearch: Dispatch<SetStateAction<SearchState | null>>;
   setDialog: Dispatch<SetStateAction<OperationDialog | null>>;
@@ -138,15 +139,6 @@ export interface UseAppInitReturn {
   previewEntry:
     | import("../panelStore").PanelTabState["entriesById"][string]
     | null;
-  jobMetrics: Record<
-    string,
-    {
-      speedLabel: string | null;
-      etaLabel: string | null;
-      lastBytes: number;
-      lastAt: number;
-    }
-  >;
 }
 
 export function useAppInit({
@@ -182,6 +174,7 @@ export function useAppInit({
   setDiagnosticsOpen,
   setHelpOpen,
   setJobs,
+  setJobMetrics,
   setOperationError,
   setSearch,
   setDialog,
@@ -191,18 +184,6 @@ export function useAppInit({
   setNetworkStatuses,
 }: UseAppInitParams): UseAppInitReturn {
   const preferencesRef = useRef(preferences);
-  const [jobMetrics, setJobMetrics] = useState<
-    Record<
-      string,
-      {
-        speedLabel: string | null;
-        etaLabel: string | null;
-        lastBytes: number;
-        lastAt: number;
-      }
-    >
-  >({});
-
   const rowHeight = rowHeightForDensity(density);
 
   const starredUriSet = useMemo(
@@ -744,5 +725,5 @@ export function useAppInit({
     })();
   }, []);
 
-  return { starredUriSet, rowHeight, previewEntry, jobMetrics };
+  return { starredUriSet, rowHeight, previewEntry };
 }

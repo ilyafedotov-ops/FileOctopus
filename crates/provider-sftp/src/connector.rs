@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use config::{AuthKind, NetworkProfile};
 use remote_core::{AuthSecrets, RemoteConnector, RemoteError, RemoteSession};
 use ssh2::{FileStat, FileType, KeyboardInteractivePrompt, Prompt, Session};
-use vfs::{FileEntry, FileKind, ProviderId, ResourceUri, VfsError};
+use vfs::{FileEntry, FileKind, ListCancellation, ProviderId, ResourceUri, VfsError};
 
 use crate::ops::capabilities_from_perm;
 
@@ -272,14 +272,42 @@ pub fn list_directory_blocking(
     remote_path: &str,
     include_hidden: bool,
 ) -> Result<Vec<FileEntry>, VfsError> {
+    let mut entries = Vec::new();
+    list_directory_incremental_blocking(
+        session,
+        parent_uri,
+        remote_path,
+        include_hidden,
+        &ListCancellation::new(),
+        |entry| {
+            entries.push(entry);
+            Ok(())
+        },
+    )?;
+
+    entries.sort_by_key(|entry| entry.name.to_lowercase());
+    Ok(entries)
+}
+
+pub fn list_directory_incremental_blocking(
+    session: &SftpSession,
+    parent_uri: &ResourceUri,
+    remote_path: &str,
+    include_hidden: bool,
+    cancel: &ListCancellation,
+    mut on_entry: impl FnMut(FileEntry) -> Result<(), VfsError>,
+) -> Result<(), VfsError> {
     let guard = session.lock_session().map_err(VfsError::from)?;
     let sftp = guard.sftp().map_err(map_ssh_error)?;
     let mut directory = sftp
         .opendir(Path::new(remote_path))
         .map_err(|error| map_stat_error(parent_uri, error))?;
-    let mut entries = Vec::new();
 
     loop {
+        if cancel.is_cancelled() {
+            return Err(VfsError::cancelled(parent_uri));
+        }
+
         let (path, metadata) = match directory.readdir() {
             Ok(entry) => entry,
             Err(error) if is_readdir_eof(&error) => break,
@@ -302,11 +330,10 @@ pub fn list_directory_blocking(
             .remote_authority()
             .ok_or_else(|| VfsError::invalid_uri(parent_uri.as_str(), "missing profile id"))?;
         let child_uri = ResourceUri::from_remote_profile("sftp", profile_id, &child_path)?;
-        entries.push(build_entry(&child_uri, &child_path, &metadata));
+        on_entry(build_entry(&child_uri, &child_path, &metadata))?;
     }
 
-    entries.sort_by_key(|entry| entry.name.to_lowercase());
-    Ok(entries)
+    Ok(())
 }
 
 fn build_entry(uri: &ResourceUri, remote_path: &str, metadata: &FileStat) -> FileEntry {

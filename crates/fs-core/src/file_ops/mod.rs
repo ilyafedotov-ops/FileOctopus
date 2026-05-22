@@ -44,9 +44,11 @@ pub fn plan_file_operation(
         }
         FileOperationKind::CreateArchive => plan_create_archive_items(&request, &mut warnings)?,
         FileOperationKind::ExtractArchive => plan_extract_archive_items(&request)?,
-        FileOperationKind::FolderSize | FileOperationKind::RecursiveSearch => {
+        FileOperationKind::WriteTextFile
+        | FileOperationKind::FolderSize
+        | FileOperationKind::RecursiveSearch => {
             return Err(FileOperationError::InvalidRequest {
-                message: "metadata jobs are started through filesystem commands".to_string(),
+                message: "operation is started through a dedicated filesystem command".to_string(),
             });
         }
     };
@@ -111,11 +113,11 @@ pub fn execute_file_operation(
         FileOperationKind::DeletePermanently => execute_delete_permanently(vfs, plan),
         FileOperationKind::CreateArchive => execute_create_archive(plan, job_id, cancel, sink),
         FileOperationKind::ExtractArchive => execute_extract_archive(plan, job_id, cancel, sink),
-        FileOperationKind::FolderSize | FileOperationKind::RecursiveSearch => {
-            Err(FileOperationError::InvalidRequest {
-                message: "metadata jobs are started through filesystem commands".to_string(),
-            })
-        }
+        FileOperationKind::WriteTextFile
+        | FileOperationKind::FolderSize
+        | FileOperationKind::RecursiveSearch => Err(FileOperationError::InvalidRequest {
+            message: "operation is started through a dedicated filesystem command".to_string(),
+        }),
     }
 }
 
@@ -227,9 +229,11 @@ fn validate_request_shape(
                 });
             }
         }
-        FileOperationKind::FolderSize | FileOperationKind::RecursiveSearch => {
+        FileOperationKind::WriteTextFile
+        | FileOperationKind::FolderSize
+        | FileOperationKind::RecursiveSearch => {
             return Err(FileOperationError::InvalidRequest {
-                message: "metadata jobs are started through filesystem commands".to_string(),
+                message: "operation is started through a dedicated filesystem command".to_string(),
             });
         }
     }

@@ -20,6 +20,7 @@ fn boot_registers_local_provider() {
 
 #[test]
 fn boot_does_not_register_sftp_provider_when_network_is_disabled() {
+    let _env_guard = crate::ENV_LOCK.lock().unwrap();
     let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();
     std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", "0");
     let dir = tempfile::tempdir().unwrap();
@@ -295,6 +296,66 @@ fn cancelled_operation_is_persisted_as_cancelled() {
 
     let history = runtime.recent_history(10);
     assert_eq!(history[0].status, "cancelled");
+}
+
+#[test]
+fn write_text_file_is_persisted_as_completed_operation() {
+    let dir = tempfile::tempdir().unwrap();
+    let runtime = OperationRuntime::new(
+        fs_core::vfs_io::VfsFilesystem::local_only(),
+        OperationHistoryRepository::new(dir.path().join("history.sqlite")).unwrap(),
+    );
+    let destination = dir.path().join("note.txt");
+    let destination_uri = ResourceUri::from_local_path(&destination).unwrap();
+    let (sender, receiver) = mpsc::channel();
+
+    runtime
+        .write_text_file_atomic(
+            destination_uri.clone(),
+            b"saved content".to_vec(),
+            Arc::new(move |event| {
+                let _ = sender.send(event);
+            }),
+        )
+        .unwrap();
+
+    let mut saw_progress = false;
+    loop {
+        let event = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+
+        match event {
+            JobEvent::Progress(progress) => {
+                saw_progress = true;
+                assert_eq!(
+                    progress.operation_kind,
+                    vfs::FileOperationKind::WriteTextFile
+                );
+                assert_eq!(progress.completed_items, 1);
+                assert_eq!(progress.completed_bytes, 13);
+            }
+            JobEvent::Completed(completed) => {
+                assert_eq!(
+                    completed.operation_kind,
+                    vfs::FileOperationKind::WriteTextFile
+                );
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    assert!(saw_progress);
+    assert_eq!(
+        std::fs::read_to_string(&destination).unwrap(),
+        "saved content"
+    );
+    let history = runtime.recent_history(10);
+    assert_eq!(history[0].operation_kind, "WriteTextFile");
+    assert_eq!(history[0].status, "completed");
+    assert_eq!(
+        history[0].representative_source_path.as_deref(),
+        Some(destination_uri.display_path().as_str())
+    );
 }
 
 #[test]

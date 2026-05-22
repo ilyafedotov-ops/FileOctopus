@@ -1,7 +1,7 @@
 # FileOctopus Architecture Improvement Implementation Plan
 
 **Date:** 2026-05-22
-**Status:** Phases 1-3 and 6 implemented; Phase 4 partially implemented
+**Status:** Phases 1-4 and 6 implemented; Phase 5 partially implemented
 **Goal:** Turn the architecture review findings into a concrete task backlog that improves correctness, contract safety, maintainability, and release readiness without changing product scope unnecessarily.
 
 ## Phase 1: Contract And Boundary Guardrails
@@ -220,7 +220,7 @@ Acceptance criteria:
 
 ### Task 4.1: Move Editor Save Into Planned Operation Semantics
 
-**Status:** Pending
+**Status:** Done
 
 Resolve the architecture exception where `fs.write_text_file` mutates files outside the plan/start operation pipeline.
 
@@ -234,6 +234,7 @@ Recommended implementation:
 - Add a planned `writeTextFile` operation kind for local text writes.
 - Keep the existing max-size validation and atomic write behavior.
 - Record operation history and return job progress/status through existing job events.
+- Implemented as a dedicated runtime operation behind `fs.write_text_file` so editor content is not stored in reusable plan DTOs.
 
 Acceptance criteria:
 
@@ -259,7 +260,7 @@ Acceptance criteria:
 
 ### Task 4.3: Improve SFTP Listing Cancellation
 
-**Status:** Pending
+**Status:** Done
 
 Make SFTP listings responsive to cancellation and timeout.
 
@@ -268,6 +269,7 @@ Implementation notes:
 - Avoid collecting the full remote directory before emitting batches.
 - Check `ListOptions.cancel` between remote reads and emitted batches.
 - Ensure dropping the async timeout does not leave a long-running blocking listing without cancellation visibility.
+- Implemented incremental SFTP batching with cancellation checks before remote reads and before blocking batch sends.
 
 Acceptance criteria:
 
@@ -351,7 +353,7 @@ Acceptance criteria:
 
 ### Task 5.3: Move Job Metrics Into JobsProvider
 
-**Status:** Pending
+**Status:** Done
 
 Remove stale `jobMetrics` ownership split.
 
@@ -359,6 +361,7 @@ Implementation notes:
 
 - Move live job speed/ETA metrics from `useAppInit` into `JobsProvider`, or remove the unused context field.
 - Keep metrics update behavior tied to progress events.
+- Implemented by moving `jobMetrics` state and setter ownership into `JobsProvider`; progress listeners still update metrics on job progress events.
 
 Acceptance criteria:
 

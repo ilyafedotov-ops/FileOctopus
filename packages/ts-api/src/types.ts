@@ -176,6 +176,7 @@ export interface WriteTextFileRequest {
 
 export interface WriteTextFileResponse {
   byteSize: number;
+  job: JobSnapshot;
 }
 
 export interface ComputeHashRequest {
@@ -641,6 +642,7 @@ export type FileOperationKind =
   | "deleteToTrash"
   | "createDirectory"
   | "createFile"
+  | "writeTextFile"
   | "deletePermanently"
   | "createArchive"
   | "extractArchive"
