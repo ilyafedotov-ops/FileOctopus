@@ -17,6 +17,7 @@ import {
   type UserPreferencesDto,
 } from "@fileoctopus/ts-api";
 import { useShell } from "./ShellProvider";
+import { useNavigationData } from "./NavigationDataProvider";
 import type { PanelId } from "../../panelStore";
 import { localPathFromUri } from "../../utils/paneUtils";
 import {
@@ -176,7 +177,8 @@ export function TerminalProvider({
   preferences: UserPreferencesDto | null;
   onExpandActivity: () => void;
 }) {
-  const { client, networkProfiles } = useShell();
+  const { client } = useShell();
+  const { networkProfiles } = useNavigationData();
   const [terminal, dispatch] = useReducer(
     terminalReducer,
     undefined,

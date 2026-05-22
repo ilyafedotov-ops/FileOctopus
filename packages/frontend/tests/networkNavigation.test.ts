@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { renderHook, act } from "@testing-library/react";
-import { useReducer, useState } from "react";
-import { useNavigation } from "../src/hooks/useNavigation";
+import { createNavigationController } from "../src/navigation/navigationController";
+import type { NavigationControllerDeps } from "../src/navigation/navigationController";
 import { createInitialState, panelReducer } from "../src/panelStore";
+import type { PanelAction } from "../src/panelStore";
 
 function createClientMock() {
   return {
@@ -30,47 +30,33 @@ function createClientMock() {
     },
     diagnostics: { appDataHealth: vi.fn(), exportBundle: vi.fn() },
     getAppInfo: vi.fn(),
-  } as unknown as Parameters<typeof useNavigation>[0]["client"];
+  } as unknown as NavigationControllerDeps["client"];
 }
 
-describe("useNavigation remote navigation", () => {
+describe("navigation controller remote navigation", () => {
   it("does not call client.network.connect before listing a remote URI", async () => {
     const client = createClientMock();
+    let state = createInitialState();
+    const dispatch = (action: PanelAction) => {
+      state = panelReducer(state, action);
+    };
 
-    function harness() {
-      const [state, dispatch] = useReducer(panelReducer, createInitialState());
-      const [, setSearch] = useState(null);
-      const [, setDialog] = useState(null);
-      return useNavigation({
-        client,
-        state,
-        dispatch,
-        setSearch,
-        setDialog,
-        setFavorites: vi.fn(),
-        setRecentToday: vi.fn(),
-        setRecentWeek: vi.fn(),
-        setStarred: vi.fn(),
-        setLocations: vi.fn(),
-        setNetworkProfiles: vi.fn(),
-        setNetworkStatuses: vi.fn(),
-        setHistory: vi.fn(),
-        setOperationError: vi.fn(),
-        setAppInfo: vi.fn(),
-        setAppHealth: vi.fn(),
-        setDiagnosticsMessage: vi.fn(),
-        setExportingDiagnostics: vi.fn(),
-        diagnosticsDestination: "",
-      });
-    }
-
-    const { result } = renderHook(harness);
-    await act(async () => {
-      await result.current.navigatePanel(
-        "left",
-        "sftp://550e8400-e29b-41d4-a716-446655440000/",
-      );
+    const controller = createNavigationController({
+      client,
+      state,
+      dispatch,
+      setSearch: vi.fn(),
+      setFavorites: vi.fn(),
+      setRecentToday: vi.fn(),
+      setRecentWeek: vi.fn(),
+      setStarred: vi.fn(),
+      setOperationError: vi.fn(),
     });
+
+    await controller.navigatePanel(
+      "left",
+      "sftp://550e8400-e29b-41d4-a716-446655440000/",
+    );
 
     expect(client.network.connect).not.toHaveBeenCalled();
     expect(client.fs.listStart).toHaveBeenCalledTimes(1);

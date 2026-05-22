@@ -23,8 +23,11 @@ import {
   AppProviders,
   useJobs,
   useModals,
+  useNavigationData,
+  usePreferences,
   useShell,
   useTerminal,
+  useWorkspace,
 } from "./providers/AppProviders";
 
 const isProductionBuild = Boolean(
@@ -40,12 +43,10 @@ function FileOctopusAppInner({
   onRequestMinimize?: () => void;
   onRequestToggleMaximize?: () => void;
 }) {
+  const { client, state, dispatch, workspaceRef, hasInitializedRef } =
+    useShell();
+  const { preferences, density, setPreferences, setDensity } = usePreferences();
   const {
-    client,
-    state,
-    dispatch,
-    preferences,
-    density,
     locations,
     favorites,
     recentToday,
@@ -56,6 +57,18 @@ function FileOctopusAppInner({
     appInfo,
     appHealth,
     autostart,
+    setLocations,
+    setFavorites,
+    setRecentToday,
+    setRecentWeek,
+    setStarred,
+    setNetworkProfiles,
+    setNetworkStatuses,
+    setAppInfo,
+    setAppHealth,
+    setAutostart,
+  } = useNavigationData();
+  const {
     toasts,
     clipboard,
     contextMenu,
@@ -67,20 +80,6 @@ function FileOctopusAppInner({
     diagnosticsDestination,
     diagnosticsMessage,
     exportingDiagnostics,
-    workspaceRef,
-    hasInitializedRef,
-    setPreferences,
-    setDensity,
-    setLocations,
-    setFavorites,
-    setRecentToday,
-    setRecentWeek,
-    setStarred,
-    setNetworkProfiles,
-    setNetworkStatuses,
-    setAppInfo,
-    setAppHealth,
-    setAutostart,
     setToasts,
     setClipboard,
     setContextMenu,
@@ -92,7 +91,7 @@ function FileOctopusAppInner({
     setDiagnosticsDestination,
     setDiagnosticsMessage,
     setExportingDiagnostics,
-  } = useShell();
+  } = useWorkspace();
 
   const {
     terminal,

@@ -1,0 +1,96 @@
+import {
+  createContext,
+  useContext,
+  useMemo,
+  useState,
+  type Dispatch,
+  type ReactNode,
+  type SetStateAction,
+} from "react";
+import type { ToastMessage } from "../../components/ToastStack";
+import type { FileClipboardState } from "../../hooks/useFileOpHandlers";
+import type { ContextMenuState } from "../../components/ContextMenu";
+import type { SearchState } from "../../pane/PaneFilterBar";
+import {
+  useLayoutFocusStore,
+  type LayoutFocusStore,
+} from "../../state/layoutStore";
+
+export interface WorkspaceContextValue extends LayoutFocusStore {
+  toasts: ToastMessage[];
+  clipboard: FileClipboardState | null;
+  contextMenu: ContextMenuState | null;
+  search: SearchState | null;
+  diagnosticsDestination: string;
+  diagnosticsMessage: string | null;
+  exportingDiagnostics: boolean;
+  setToasts: Dispatch<SetStateAction<ToastMessage[]>>;
+  setClipboard: Dispatch<SetStateAction<FileClipboardState | null>>;
+  setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>;
+  setSearch: Dispatch<SetStateAction<SearchState | null>>;
+  setDiagnosticsDestination: Dispatch<SetStateAction<string>>;
+  setDiagnosticsMessage: Dispatch<SetStateAction<string | null>>;
+  setExportingDiagnostics: Dispatch<SetStateAction<boolean>>;
+}
+
+const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
+
+export function useWorkspace(): WorkspaceContextValue {
+  const ctx = useContext(WorkspaceContext);
+  if (!ctx) {
+    throw new Error("useWorkspace must be used within WorkspaceProvider");
+  }
+  return ctx;
+}
+
+export function WorkspaceProvider({ children }: { children: ReactNode }) {
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [clipboard, setClipboard] = useState<FileClipboardState | null>(null);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [search, setSearch] = useState<SearchState | null>(null);
+  const [diagnosticsDestination, setDiagnosticsDestination] = useState(
+    "/tmp/fileoctopus-diagnostics.zip",
+  );
+  const [diagnosticsMessage, setDiagnosticsMessage] = useState<string | null>(
+    null,
+  );
+  const [exportingDiagnostics, setExportingDiagnostics] = useState(false);
+
+  const layoutFocus = useLayoutFocusStore();
+
+  const value = useMemo<WorkspaceContextValue>(
+    () => ({
+      toasts,
+      clipboard,
+      contextMenu,
+      search,
+      diagnosticsDestination,
+      diagnosticsMessage,
+      exportingDiagnostics,
+      setToasts,
+      setClipboard,
+      setContextMenu,
+      setSearch,
+      setDiagnosticsDestination,
+      setDiagnosticsMessage,
+      setExportingDiagnostics,
+      ...layoutFocus,
+    }),
+    [
+      toasts,
+      clipboard,
+      contextMenu,
+      search,
+      diagnosticsDestination,
+      diagnosticsMessage,
+      exportingDiagnostics,
+      layoutFocus,
+    ],
+  );
+
+  return (
+    <WorkspaceContext.Provider value={value}>
+      {children}
+    </WorkspaceContext.Provider>
+  );
+}

@@ -2,16 +2,25 @@ import type { ReactNode } from "react";
 import { JobsProvider, useJobs } from "./JobsProvider";
 import { ModalsProvider } from "./ModalsProvider";
 import { ShellProvider, useShell } from "./ShellProvider";
+import { PreferencesProvider, usePreferences } from "./PreferencesProvider";
+import { NavigationDataProvider } from "./NavigationDataProvider";
+import { WorkspaceProvider } from "./WorkspaceProvider";
 import { TerminalProvider } from "./TerminalProvider";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ShellProvider>
-      <JobsProvider>
-        <TerminalBridge>
-          <ModalsProvider>{children}</ModalsProvider>
-        </TerminalBridge>
-      </JobsProvider>
+      <PreferencesProvider>
+        <NavigationDataProvider>
+          <WorkspaceProvider>
+            <JobsProvider>
+              <TerminalBridge>
+                <ModalsProvider>{children}</ModalsProvider>
+              </TerminalBridge>
+            </JobsProvider>
+          </WorkspaceProvider>
+        </NavigationDataProvider>
+      </PreferencesProvider>
     </ShellProvider>
   );
 }
@@ -19,13 +28,14 @@ export function AppProviders({ children }: { children: ReactNode }) {
 function TerminalBridge({ children }: { children: ReactNode }) {
   const jobs = useJobs();
   const shell = useShell();
+  const prefs = usePreferences();
 
   return (
     <TerminalProvider
-      preferences={shell.preferences}
+      preferences={prefs.preferences}
       updatePreference={async (key, value) => {
         const next = await shell.client.preferences.set({ key, value });
-        shell.setPreferences(next.preferences);
+        prefs.setPreferences(next.preferences);
       }}
       onExpandActivity={() => {
         jobs.markActivityPinnedOpen();
@@ -42,6 +52,9 @@ function TerminalBridge({ children }: { children: ReactNode }) {
 }
 
 export { useShell } from "./ShellProvider";
+export { usePreferences } from "./PreferencesProvider";
+export { useNavigationData } from "./NavigationDataProvider";
+export { useWorkspace } from "./WorkspaceProvider";
 export { useJobs } from "./JobsProvider";
 export { useModals } from "./ModalsProvider";
 export { useTerminal } from "./TerminalProvider";

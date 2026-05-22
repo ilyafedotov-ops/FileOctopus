@@ -4,7 +4,6 @@ import type {
   AppInfoResponse,
   AutostartStatusDto,
   FavoriteEntryDto,
-  FileEntryDto,
   FolderSizeCompletedEventDto,
   NetworkConnectionStatusDto,
   NetworkProfileDto,
@@ -16,15 +15,8 @@ import type {
   StarredEntryDto,
   UserPreferencesDto,
 } from "@fileoctopus/ts-api";
+import { normalizeIpcError, type FileOctopusClient } from "@fileoctopus/ts-api";
 import {
-  isRemoteUri,
-  isSupportedNavigationUri,
-  normalizeIpcError,
-  type FileOctopusClient,
-} from "@fileoctopus/ts-api";
-import {
-  activeTab,
-  normalizeUriInput,
   type FileOctopusState,
   type PanelAction,
   type PanelId,
@@ -38,10 +30,10 @@ import {
 import type { SearchState } from "../pane/PaneFilterBar";
 import type { ToastMessage } from "../components/ToastStack";
 import type { OperationDialog } from "../dialogs/OperationDialogView";
-import { operationErrorMessage } from "../dialogs/OperationDialogView";
 import { mergeToast } from "../toastNotifications";
-import { localPathFromUri } from "../utils/paneUtils";
-import { createRequestId, loadStateFromBatchError } from "../paneTypes";
+import { createRequestId } from "../paneTypes";
+import { createNavigationController } from "../navigation/navigationController";
+
 export interface UseEventHandlersParams {
   client: FileOctopusClient;
   state: FileOctopusState;
@@ -97,18 +89,29 @@ export function useEventHandlers({
   setExportingDiagnostics,
   syncTerminalCwd,
 }: UseEventHandlersParams) {
-  // ── openExternal (used by activateEntry) ─────────────────────────
-  async function openExternal(entry: FileEntryDto) {
-    setOperationError(null);
-    try {
-      await client.fs.openPathWithDefaultApp({ uri: entry.uri });
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      setOperationError(
-        operationErrorMessage(normalized.code, normalized.message),
-      );
-    }
-  }
+  const navigation = createNavigationController({
+    client,
+    state,
+    dispatch,
+    setSearch,
+    setFavorites,
+    setRecentToday,
+    setRecentWeek,
+    setStarred,
+    setOperationError,
+    syncTerminalCwd,
+  });
+
+  const {
+    openExternal,
+    navigatePanel,
+    refreshNavigation,
+    startListing,
+    goHistory,
+    refreshPanel,
+    refreshVisiblePanels,
+    activateEntry,
+  } = navigation;
 
   function pushToast(toast: Omit<ToastMessage, "id">) {
     let toastId = createRequestId();
@@ -149,140 +152,6 @@ export function useEventHandlers({
     }
   }
 
-  async function navigatePanel(
-    panelId: PanelId,
-    input: string,
-    options: {
-      replace?: boolean;
-      includeHidden?: boolean;
-      softRefresh?: boolean;
-    } = {},
-  ) {
-    const uri = normalizeUriInput(input);
-    const tab = activeTab(state.panels[panelId]);
-
-    if (!isSupportedNavigationUri(uri)) {
-      dispatch({
-        type: "setPaneError",
-        panelId,
-        error: "Enter a local path or supported remote URI (sftp://)",
-        errorCode: "invalid_uri",
-        loadState: "error",
-      });
-      return;
-    }
-
-    dispatch({
-      type: "navigate",
-      panelId,
-      uri,
-      replace: options.replace,
-      softRefresh: options.softRefresh,
-    });
-    if (!options.softRefresh) {
-      setSearch((current) =>
-        current?.panelId === panelId ? { ...current, result: null } : current,
-      );
-    }
-
-    await startListing(panelId, uri, options.includeHidden ?? tab.showHidden);
-    if (!options.softRefresh) {
-      syncTerminalCwd?.(panelId, uri);
-      void client.navigation
-        .recordVisit({
-          uri,
-          label: isRemoteUri(uri) ? uri : localPathFromUri(uri),
-        })
-        .then(() => refreshNavigation())
-        .catch(() => undefined);
-    }
-  }
-
-  async function refreshNavigation() {
-    try {
-      const [favoriteResponse, todayResponse, weekResponse, starredResponse] =
-        await Promise.all([
-          client.navigation.listFavorites(),
-          client.navigation.listRecent({ bucket: "today" }),
-          client.navigation.listRecent({ bucket: "thisWeek" }),
-          client.navigation.listStarred(),
-        ]);
-      setFavorites(favoriteResponse.favorites);
-      setRecentToday(todayResponse.entries);
-      setRecentWeek(weekResponse.entries);
-      setStarred(starredResponse.entries);
-    } catch (error) {
-      setOperationError(normalizeIpcError(error).message);
-    }
-  }
-
-  async function startListing(
-    panelId: PanelId,
-    uri: string,
-    includeHidden: boolean,
-  ) {
-    const requestId = createRequestId();
-    dispatch({ type: "startRequest", panelId, requestId });
-
-    try {
-      const response = await client.fs.listStart({
-        uri,
-        requestId,
-        panelId,
-        batchSize: 256,
-        includeHidden,
-      });
-
-      dispatch({
-        type: "startSession",
-        panelId,
-        sessionId: response.sessionId,
-        requestId: response.requestId,
-      });
-    } catch (error) {
-      const normalized = normalizeIpcError(error);
-      dispatch({
-        type: "setPaneError",
-        panelId,
-        error: normalized.message,
-        errorCode: normalized.code,
-        loadState: loadStateFromBatchError(normalized),
-      });
-    }
-  }
-
-  async function goHistory(panelId: PanelId, direction: "back" | "forward") {
-    const tab = activeTab(state.panels[panelId]);
-    const uri =
-      direction === "back"
-        ? tab.backStack[tab.backStack.length - 1]
-        : tab.forwardStack[0];
-
-    if (!uri) {
-      return;
-    }
-
-    dispatch({ type: direction === "back" ? "goBack" : "goForward", panelId });
-    await startListing(panelId, uri, tab.showHidden);
-  }
-
-  function refreshPanel(
-    panelId: PanelId,
-    options: {
-      replace?: boolean;
-      includeHidden?: boolean;
-      softRefresh?: boolean;
-    } = {},
-  ) {
-    const tab = activeTab(state.panels[panelId]);
-
-    void navigatePanel(panelId, tab.uri, {
-      replace: options.replace ?? true,
-      includeHidden: options.includeHidden ?? tab.showHidden,
-      softRefresh: options.softRefresh ?? false,
-    });
-  }
-
   async function refreshNetworkProfiles() {
     try {
       const [profilesResponse, statusResponse] = await Promise.all([
@@ -303,24 +172,6 @@ export function useEventHandlers({
     } catch (error) {
       setOperationError(normalizeIpcError(error).message);
     }
-  }
-
-  function activateEntry(panelId: PanelId, entry: FileEntryDto | null) {
-    if (!entry) {
-      return;
-    }
-
-    if (entry.kind === "directory") {
-      void navigatePanel(panelId, entry.uri);
-      return;
-    }
-
-    void openExternal(entry);
-  }
-
-  function refreshVisiblePanels() {
-    refreshPanel("left");
-    refreshPanel("right");
   }
 
   async function refreshHistory() {
@@ -498,5 +349,6 @@ export function useEventHandlers({
     applyRecursiveSearchCompleted,
     clearHistory,
     exportDiagnostics,
+    openExternal,
   };
 }

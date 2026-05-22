@@ -1,7 +1,7 @@
 # FileOctopus Architecture Improvement Implementation Plan
 
 **Date:** 2026-05-22
-**Status:** Phases 1-4 and 6 implemented; Phase 5 partially implemented
+**Status:** All phases implemented
 **Goal:** Turn the architecture review findings into a concrete task backlog that improves correctness, contract safety, maintainability, and release readiness without changing product scope unnecessarily.
 
 ## Phase 1: Contract And Boundary Guardrails
@@ -314,7 +314,7 @@ Acceptance criteria:
 
 ### Task 5.1: Extract Navigation Controller
 
-**Status:** Pending
+**Status:** Done
 
 Consolidate duplicate navigation/listing logic between production hooks and test-only hooks.
 
@@ -323,6 +323,7 @@ Implementation notes:
 - Move `navigatePanel`, `startListing`, history navigation, refresh, and visit recording into one controller.
 - Make production and tests use the same controller.
 - Remove or rewrite `useNavigation` if it remains test-only duplication.
+- Implemented in `packages/frontend/src/navigation/navigationController.ts` as a pure factory (`createNavigationController`). `useEventHandlers` instantiates the controller and re-exports its methods. Test-only `useNavigation` hook removed; `tests/networkNavigation.test.ts` now exercises the controller directly.
 
 Acceptance criteria:
 
@@ -331,7 +332,7 @@ Acceptance criteria:
 
 ### Task 5.2: Split Shell Context Into Feature Controllers
 
-**Status:** Pending
+**Status:** Done
 
 Reduce broad prop/setter coupling across the shell.
 
@@ -345,6 +346,7 @@ Implementation notes:
   - terminal
   - preferences/layout
 - Keep public component props stable during the transition.
+- Implemented by splitting the monolithic `ShellProvider` into focused providers: `ShellProvider` (core: client/state/dispatch/refs), `PreferencesProvider` (preferences/density/derived visibility), `NavigationDataProvider` (locations/favorites/recents/starred/network/appInfo/appHealth/autostart), and `WorkspaceProvider` (toasts/clipboard/contextMenu/search/focus tokens/diagnostics). `AppProviders` composes them; `FileOctopusAppInner` consumes via `useShell`, `usePreferences`, `useNavigationData`, and `useWorkspace`. `TerminalProvider` switched to `useNavigationData()` for network profile lookups.
 
 Acceptance criteria:
 
