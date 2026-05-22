@@ -95,6 +95,26 @@ export const COMMAND_REGISTRY = [
     group: "navigation",
   },
   {
+    id: "nav.recentLocations",
+    label: "Recent Locations…",
+    group: "navigation",
+  },
+  {
+    id: "nav.clearRecentLocations",
+    label: "Clear Recent Locations…",
+    group: "navigation",
+  },
+  {
+    id: "nav.clearRecent",
+    label: "Clear Recent",
+    group: "navigation",
+  },
+  {
+    id: "nav.removeRecent",
+    label: "Remove Recent",
+    group: "navigation",
+  },
+  {
     id: "create.folder",
     label: "New Folder",
     group: "creation",
