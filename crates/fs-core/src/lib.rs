@@ -146,6 +146,36 @@ impl VfsProvider for LocalFsProvider {
         .map_err(|error| Self::map_io_error(&uri, error))
     }
 
+    async fn rename(&self, from: &ResourceUri, to: &ResourceUri) -> Result<(), VfsError> {
+        let from_path = from.to_local_path()?;
+        let to_path = to.to_local_path()?;
+        let uri = from.clone();
+        tokio::task::spawn_blocking(move || fs::rename(&from_path, &to_path))
+            .await
+            .map_err(|error| VfsError::internal(&error.to_string()))?
+            .map_err(|error| Self::map_io_error(&uri, error))
+    }
+
+    async fn remove(&self, uri: &ResourceUri, recursive: bool) -> Result<(), VfsError> {
+        let path = uri.to_local_path()?;
+        let uri = uri.clone();
+        tokio::task::spawn_blocking(move || {
+            let metadata = fs::symlink_metadata(&path)?;
+            if metadata.is_dir() {
+                if recursive {
+                    fs::remove_dir_all(&path)
+                } else {
+                    fs::remove_dir(&path)
+                }
+            } else {
+                fs::remove_file(&path)
+            }
+        })
+        .await
+        .map_err(|error| VfsError::internal(&error.to_string()))?
+        .map_err(|error| Self::map_io_error(&uri, error))
+    }
+
     async fn list(
         &self,
         uri: &ResourceUri,

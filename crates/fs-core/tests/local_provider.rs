@@ -255,3 +255,56 @@ async fn create_file_creates_an_empty_local_file() {
     assert!(target_path.is_file());
     assert_eq!(fs::metadata(&target_path).unwrap().len(), 0);
 }
+
+#[tokio::test]
+async fn rename_moves_a_file_in_place() {
+    let temp = tempfile::tempdir().unwrap();
+    let from_path = temp.path().join("a.txt");
+    fs::write(&from_path, b"hello").unwrap();
+    let from = ResourceUri::from_local_path(&from_path).unwrap();
+    let to_path = temp.path().join("b.txt");
+    let to = ResourceUri::from_local_path(&to_path).unwrap();
+
+    LocalFsProvider::new().rename(&from, &to).await.unwrap();
+
+    assert!(!from_path.exists());
+    assert_eq!(fs::read(&to_path).unwrap(), b"hello");
+}
+
+#[tokio::test]
+async fn remove_deletes_a_file() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("doomed.txt");
+    fs::write(&path, b"x").unwrap();
+    let uri = ResourceUri::from_local_path(&path).unwrap();
+
+    LocalFsProvider::new().remove(&uri, false).await.unwrap();
+
+    assert!(!path.exists());
+}
+
+#[tokio::test]
+async fn remove_recursive_deletes_a_tree() {
+    let temp = tempfile::tempdir().unwrap();
+    let root_path = temp.path().join("tree");
+    fs::create_dir_all(root_path.join("nested")).unwrap();
+    fs::write(root_path.join("nested/a.txt"), b"x").unwrap();
+    let root = ResourceUri::from_local_path(&root_path).unwrap();
+
+    LocalFsProvider::new().remove(&root, true).await.unwrap();
+
+    assert!(!root_path.exists());
+}
+
+#[tokio::test]
+async fn remove_returns_not_found_for_missing_path() {
+    let temp = tempfile::tempdir().unwrap();
+    let path = temp.path().join("missing.txt");
+    let uri = ResourceUri::from_local_path(&path).unwrap();
+
+    let error = LocalFsProvider::new()
+        .remove(&uri, false)
+        .await
+        .unwrap_err();
+    assert_eq!(error.code(), "not_found");
+}
