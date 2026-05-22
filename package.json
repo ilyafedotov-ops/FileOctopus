@@ -15,6 +15,7 @@
     "test": "pnpm -r --sort --if-present test",
     "test:backend:rc": "cargo fmt --all --check && cargo check --workspace && cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings",
     "test:frontend:rc": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "test:perf-smoke": "pnpm --filter @fileoctopus/frontend exec vitest run tests/appShell.test.tsx tests/iconsVirtualization.test.tsx -t \"100k entry|icons view virtualization\" && cargo test -p fs-core list_streams_without_collecting_all_entries_first",
     "rc:validate": "pnpm test:backend:rc && pnpm test:frontend:rc",
     "rc:qa": "bash scripts/rc-qa-automated.sh",
     "test:e2e:vite": "FO_E2E_WEB_SERVER=vite playwright test",
