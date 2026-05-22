@@ -573,6 +573,40 @@ pub trait VfsProvider: Send + Sync {
         Err(self.unsupported_operation("create_directory"))
     }
 
+    async fn create_file(&self, uri: &ResourceUri) -> Result<(), VfsError> {
+        let _ = uri;
+        Err(self.unsupported_operation("create_file"))
+    }
+
+    async fn rename(&self, from: &ResourceUri, to: &ResourceUri) -> Result<(), VfsError> {
+        let _ = (from, to);
+        Err(self.unsupported_operation("rename"))
+    }
+
+    async fn remove(&self, uri: &ResourceUri, recursive: bool) -> Result<(), VfsError> {
+        let _ = (uri, recursive);
+        Err(self.unsupported_operation("remove"))
+    }
+
+    async fn copy_file(
+        &self,
+        source: &ResourceUri,
+        destination: &ResourceUri,
+        on_progress: Box<dyn FnMut(u64) + Send>,
+    ) -> Result<u64, VfsError> {
+        let _ = (source, destination, on_progress);
+        Err(self.unsupported_operation("copy_file"))
+    }
+
+    async fn read_file_prefix(
+        &self,
+        uri: &ResourceUri,
+        max_bytes: u64,
+    ) -> Result<Vec<u8>, VfsError> {
+        let _ = (uri, max_bytes);
+        Err(self.unsupported_operation("read_file_prefix"))
+    }
+
     #[doc(hidden)]
     fn unsupported_operation(&self, operation: &'static str) -> VfsError {
         VfsError::UnsupportedOperation {
@@ -1194,6 +1228,60 @@ mod tests {
             .await
             .expect_err("default impl should return UnsupportedOperation");
         assert_eq!(error.code(), "unsupported_operation");
+    }
+
+    #[tokio::test]
+    async fn provider_create_file_defaults_to_unsupported() {
+        let provider = TestProvider;
+        let uri = ResourceUri::parse("local:///tmp/x").unwrap();
+        assert_eq!(
+            provider.create_file(&uri).await.unwrap_err().code(),
+            "unsupported_operation",
+        );
+    }
+
+    #[tokio::test]
+    async fn provider_rename_defaults_to_unsupported() {
+        let provider = TestProvider;
+        let from = ResourceUri::parse("local:///tmp/a").unwrap();
+        let to = ResourceUri::parse("local:///tmp/b").unwrap();
+        assert_eq!(
+            provider.rename(&from, &to).await.unwrap_err().code(),
+            "unsupported_operation",
+        );
+    }
+
+    #[tokio::test]
+    async fn provider_remove_defaults_to_unsupported() {
+        let provider = TestProvider;
+        let uri = ResourceUri::parse("local:///tmp/x").unwrap();
+        assert_eq!(
+            provider.remove(&uri, false).await.unwrap_err().code(),
+            "unsupported_operation",
+        );
+    }
+
+    #[tokio::test]
+    async fn provider_copy_file_defaults_to_unsupported() {
+        let provider = TestProvider;
+        let from = ResourceUri::parse("local:///tmp/a").unwrap();
+        let to = ResourceUri::parse("local:///tmp/b").unwrap();
+        let result = provider.copy_file(&from, &to, Box::new(|_| {})).await;
+        assert_eq!(result.unwrap_err().code(), "unsupported_operation");
+    }
+
+    #[tokio::test]
+    async fn provider_read_file_prefix_defaults_to_unsupported() {
+        let provider = TestProvider;
+        let uri = ResourceUri::parse("local:///tmp/x").unwrap();
+        assert_eq!(
+            provider
+                .read_file_prefix(&uri, 64)
+                .await
+                .unwrap_err()
+                .code(),
+            "unsupported_operation",
+        );
     }
 
     #[tokio::test]
