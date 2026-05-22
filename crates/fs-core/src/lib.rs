@@ -123,6 +123,29 @@ impl VfsProvider for LocalFsProvider {
             .map_err(|error| VfsError::internal(&error.to_string()))?
     }
 
+    async fn create_directory(&self, uri: &ResourceUri) -> Result<(), VfsError> {
+        let path = uri.to_local_path()?;
+        let uri = uri.clone();
+        tokio::task::spawn_blocking(move || fs::create_dir_all(&path))
+            .await
+            .map_err(|error| VfsError::internal(&error.to_string()))?
+            .map_err(|error| Self::map_io_error(&uri, error))
+    }
+
+    async fn create_file(&self, uri: &ResourceUri) -> Result<(), VfsError> {
+        let path = uri.to_local_path()?;
+        let uri = uri.clone();
+        tokio::task::spawn_blocking(move || {
+            if let Some(parent) = path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::File::create(&path).map(|_| ())
+        })
+        .await
+        .map_err(|error| VfsError::internal(&error.to_string()))?
+        .map_err(|error| Self::map_io_error(&uri, error))
+    }
+
     async fn list(
         &self,
         uri: &ResourceUri,
