@@ -40,7 +40,9 @@ export function usePaneGitStatus(
 ): PaneGitStatus {
   const [status, setStatus] = useState<PaneGitStatus>(emptyGitStatus);
   const statusForDirectory = client.git?.statusForDirectory;
-  const onWatchChanged = client.fs?.onWatchChanged;
+  const onWatchChanged = client.fs
+    ? client.fs.onWatchChanged.bind(client.fs)
+    : undefined;
   const requestSequence = useRef(0);
   const mounted = useRef(true);
 
