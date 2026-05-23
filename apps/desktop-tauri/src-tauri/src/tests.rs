@@ -7,7 +7,7 @@ use fs_core::{direct_ops, metadata};
 use vfs::{FileKind, ResourceUri};
 
 use crate::commands::app_info::app_get_info;
-use crate::commands::diagnostics::write_diagnostics_bundle;
+use crate::commands::diagnostics::{resolve_diagnostics_destination, write_diagnostics_bundle};
 
 fn temp_dir(prefix: &str) -> std::path::PathBuf {
     let dir = std::env::temp_dir().join(format!("fo-ipc-test-{}-{}", prefix, uuid::Uuid::new_v4()));
@@ -50,6 +50,86 @@ fn diagnostics_bundle_contains_expected_files() {
     assert!(files.contains(&"recent-log.txt".to_string()));
 
     let _ = std::fs::remove_dir_all(dir);
+}
+
+fn app_paths_under(root: &std::path::Path) -> app_core::AppPaths {
+    app_core::AppPaths {
+        config_dir: root.join("config"),
+        data_dir: root.to_path_buf(),
+        log_dir: root.join("logs"),
+        history_db: root.join("history.sqlite"),
+        preferences_db: root.join("preferences.sqlite"),
+        navigation_db: root.join("navigation.sqlite"),
+        network_db: root.join("network.sqlite"),
+    }
+}
+
+#[test]
+fn diagnostics_destination_accepts_path_in_allowed_root() {
+    let root = temp_dir("diag-allowed");
+    let paths = app_paths_under(&root);
+    let target = root.join("fileoctopus-diagnostics.zip");
+
+    let resolved = resolve_diagnostics_destination(&target.to_string_lossy(), &paths).unwrap();
+
+    assert_eq!(resolved, target);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn diagnostics_destination_rejects_relative_path() {
+    let paths = app_paths_under(&temp_dir("diag-relative"));
+
+    let error = resolve_diagnostics_destination("relative/diagnostics.zip", &paths).unwrap_err();
+
+    assert_eq!(error.code, error_codes::INVALID_PATH);
+}
+
+#[test]
+fn diagnostics_destination_rejects_traversal_segments() {
+    let root = temp_dir("diag-traversal");
+    let paths = app_paths_under(&root);
+    let target = format!("{}/../escape.zip", root.display());
+
+    let error = resolve_diagnostics_destination(&target, &paths).unwrap_err();
+
+    assert_eq!(error.code, error_codes::INVALID_PATH);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn diagnostics_destination_rejects_outside_allowed_roots() {
+    let paths = app_paths_under(&temp_dir("diag-outside"));
+
+    let error = resolve_diagnostics_destination("/etc/cron.d/fileoctopus.zip", &paths).unwrap_err();
+
+    assert_eq!(error.code, error_codes::INVALID_PATH);
+}
+
+#[test]
+#[cfg(unix)]
+fn diagnostics_destination_accepts_shipped_default_path() {
+    let paths = app_paths_under(&temp_dir("diag-default"));
+
+    let resolved =
+        resolve_diagnostics_destination("/tmp/fileoctopus-diagnostics.zip", &paths).unwrap();
+
+    assert_eq!(
+        resolved,
+        std::path::PathBuf::from("/tmp/fileoctopus-diagnostics.zip")
+    );
+}
+
+#[test]
+fn diagnostics_destination_rejects_non_zip_extension() {
+    let root = temp_dir("diag-extension");
+    let paths = app_paths_under(&root);
+    let target = root.join("authorized_keys");
+
+    let error = resolve_diagnostics_destination(&target.to_string_lossy(), &paths).unwrap_err();
+
+    assert_eq!(error.code, error_codes::INVALID_PATH);
+    let _ = std::fs::remove_dir_all(root);
 }
 
 #[test]
