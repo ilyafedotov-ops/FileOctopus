@@ -13,7 +13,7 @@ The RC is a high-performance local dual-pane file manager with safe job-based fi
 | Core navigation & file ops | **Delivered** | Dual pane, pane tabs, streamed listing, virtualization, plan/start jobs, operation history; `fs-core` / `app-core` / Tauri `commands/*` / ts-api `clients/*` | Advanced session restore / tab persistence                                      |
 | Zip archives               | **Delivered** | `CreateArchive` / `ExtractArchive` in `fs-core/file_ops`, zip-slip tests, toolbar + context menu                                                             | Tar and other formats                                                           |
 | Jobs & persistence         | **Partial**   | In-memory jobs, progress events, cancel; SQLite `operation_history`                                                                                          | Full `job` / `job_item_result` schema (§9.2)                                    |
-| Git                        | **Deferred**  | —                                                                                                                                                            | `git-intel`, branch/badges (MVP-GIT-\*)                                         |
+| Git                        | **Partial**   | Backend `git-intel` crate for local repository discovery and porcelain status mapping                                                                        | IPC/client/UI branch display and file badges (MVP-GIT-\*)                       |
 | Terminal                   | **Partial**   | `fs_open_terminal` (external emulator in active folder)                                                                                                      | Embedded xterm panel, `terminal-core`                                           |
 | UI                         | **Partial**   | Command palette (registry-driven), context menus, activity rail, preview, theme prefs, `MenuBar` on dispatch                                                 | Keyboard/toolbar on registry; native menu; Menu spec parity                     |
 | Platform & release         | **Partial**   | Windows/macOS/Linux CI builds                                                                                                                                | Formal RC sign-off (§16, [mvp-rc-checklist.md](../release/mvp-rc-checklist.md)) |
@@ -226,14 +226,14 @@ Protocol: [`docs/testing/large-directory-performance.md`](../testing/large-direc
 
 ## 5. Engineering Milestones
 
-| Milestone                      | RC status                                                                    |
-| ------------------------------ | ---------------------------------------------------------------------------- |
-| M0 — Repo & build foundation   | **Done**                                                                     |
-| M1 — Local navigation slice    | **Done**                                                                     |
-| M2 — Durable job engine        | **Mostly done** (in-memory jobs + operation history)                         |
-| M3 — Conflict & safety         | **Mostly done**                                                              |
-| M4 — Git, archive, terminal v1 | **Partial** (zip archives in `fs-core`; Git + embedded terminal not started) |
-| M5 — RC hardening              | **In progress**                                                              |
+| Milestone                      | RC status                                                                                              |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| M0 — Repo & build foundation   | **Done**                                                                                               |
+| M1 — Local navigation slice    | **Done**                                                                                               |
+| M2 — Durable job engine        | **Mostly done** (in-memory jobs + operation history)                                                   |
+| M3 — Conflict & safety         | **Mostly done**                                                                                        |
+| M4 — Git, archive, terminal v1 | **Partial** (zip archives in `fs-core`; backend `git-intel` foundation; embedded terminal not started) |
+| M5 — RC hardening              | **In progress**                                                                                        |
 
 ## 5.1 Milestone 0: Repository and Build Foundation
 
@@ -322,14 +322,14 @@ Protocol: [`docs/testing/large-directory-performance.md`](../testing/large-direc
 
 ## 5.5 Milestone 4: Git, Archive, Terminal v1
 
-**RC status: Partial.** Zip create/extract shipped inside `fs-core/file_ops` (not separate `archive-core`). External terminal via `fs_open_terminal`. Git and embedded terminal deferred to post-RC.
+**RC status: Partial.** Zip create/extract shipped inside `fs-core/file_ops` (not separate `archive-core`). External terminal via `fs_open_terminal`. Backend `git-intel` exists for local discovery/status; IPC/UI Git decorations and embedded terminal remain deferred.
 
 ### Deliverables (original plan)
 
-- `git-intel` crate — **post-RC**
+- `git-intel` crate — **backend foundation started**
 - `archive-core` crate — **superseded at RC** by `fs-core/file_ops/archive.rs`
 - `terminal-core` crate — **post-RC** (embedded panel)
-- Git branch and status badges — **post-RC**
+- Git branch and status badges — **post-RC UI/IPC**
 - Zip archive create/extract as planned file operations — **done**
 - Embedded terminal panel — **post-RC**
 
@@ -337,7 +337,7 @@ Protocol: [`docs/testing/large-directory-performance.md`](../testing/large-direc
 
 - Zip archive creates and extracts safely with path-traversal guards.
 - User can open external terminal in active panel path.
-- Git branch/badges and embedded terminal are not RC blockers.
+- Git branch/badges UI and embedded terminal are not RC blockers.
 
 ---
 
@@ -405,7 +405,7 @@ fileoctopus/
   pnpm-workspace.yaml
 ```
 
-**Post-RC crates (not in workspace):** `git-intel`, `archive-core`, `terminal-core`, `indexer`, `content-id`.
+**Post-RC crates (not in workspace):** `archive-core`, `terminal-core`, `indexer`, `content-id`. Backend `git-intel` is now in the workspace; its IPC/UI integration remains post-RC.
 
 ---
 
@@ -413,7 +413,7 @@ fileoctopus/
 
 Module-level detail: [`docs/architecture/modules/`](modules/). Runtime IPC: [api-reference.md](api-reference.md).
 
-Sections §7.2–§7.7 describe **as-built (RC)** composition. §7.8–§7.11 and long sample APIs for `git-intel`, `archive-core`, `terminal-core`, and `indexer` are **non-normative post-RC targets**—those crates are not in the workspace at RC.
+Sections §7.2–§7.7 describe **as-built (RC)** composition. §7.8 reflects the started backend `git-intel` foundation; §7.9–§7.11 and long sample APIs for `archive-core`, `terminal-core`, and `indexer` are **non-normative post-RC targets**.
 
 ## 7.1 Crate dependency direction (RC)
 
@@ -801,9 +801,9 @@ When platform behavior grows, this crate can absorb service traits for trash/rec
 
 ---
 
-## 7.8 `git-intel` Crate (post-RC target — not in workspace)
+## 7.8 `git-intel` Crate (backend foundation started)
 
-> Non-normative target API. Not shipped at RC.
+> Backend crate foundation exists. Git IPC, frontend branch display, and file status badges are not shipped at RC.
 
 ### Purpose
 

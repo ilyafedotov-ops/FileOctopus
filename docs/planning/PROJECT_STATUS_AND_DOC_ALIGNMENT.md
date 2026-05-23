@@ -17,14 +17,14 @@
 
 ## Engineering milestones (RC spec §5)
 
-| Milestone                      | Status          | Evidence                                                                                                                                                               |
-| ------------------------------ | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| M0 — Repo & build foundation   | **Done**        | Tauri v2, pnpm workspace, CI, `cargo test` / Vitest                                                                                                                    |
-| M1 — Local navigation slice    | **Done**        | `fs.list_start` streaming, dual pane, virtualization, 100k perf protocol                                                                                               |
-| M2 — Durable job engine        | **Mostly done** | Plan/start copy/move/rename/mkdir/trash, progress events, SQLite operation history                                                                                     |
-| M3 — Conflict & safety         | **Mostly done** | Planning, conflict policies, trash path; UI conflict dialog for planned ops                                                                                            |
-| M4 — Git, archive, terminal v1 | **Mostly done** | Zip create/extract in `fs-core/file_ops`; external terminal; embedded local + SSH PTY merged on `main` (#2); SFTP network profiles with read/write VFS; no `git-intel` |
-| M5 — RC hardening              | **In progress** | Diagnostics export, preferences, cross-platform QA docs, [mvp-rc-checklist](../release/mvp-rc-checklist.md)                                                            |
+| Milestone                      | Status          | Evidence                                                                                                                                                                               |
+| ------------------------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| M0 — Repo & build foundation   | **Done**        | Tauri v2, pnpm workspace, CI, `cargo test` / Vitest                                                                                                                                    |
+| M1 — Local navigation slice    | **Done**        | `fs.list_start` streaming, dual pane, virtualization, 100k perf protocol                                                                                                               |
+| M2 — Durable job engine        | **Mostly done** | Plan/start copy/move/rename/mkdir/trash, progress events, SQLite operation history                                                                                                     |
+| M3 — Conflict & safety         | **Mostly done** | Planning, conflict policies, trash path; UI conflict dialog for planned ops                                                                                                            |
+| M4 — Git, archive, terminal v1 | **Mostly done** | Zip create/extract in `fs-core/file_ops`; external terminal; embedded local + SSH PTY merged on `main` (#2); SFTP network profiles with read/write VFS; backend `git-intel` foundation |
+| M5 — RC hardening              | **In progress** | Diagnostics export, preferences, cross-platform QA docs, [mvp-rc-checklist](../release/mvp-rc-checklist.md)                                                                            |
 
 ## MVP acceptance criteria (summary)
 
@@ -32,7 +32,7 @@
 | ------------------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Core FS navigation & ops | MVP-FS-001–008  | **Met** (local dual-pane, large dirs, copy/move/rename/mkdir/trash, conflicts via plan)                                                      |
 | Jobs                     | MVP-JOB-001–004 | **Mostly met** — queue UI, cancel, failures, history after restart; full job SQLite schema in spec not fully mirrored                        |
-| Git                      | MVP-GIT-001–002 | **Not met**                                                                                                                                  |
+| Git                      | MVP-GIT-001–002 | **Partial** — backend `git-intel` crate only; no IPC/UI branch display or badges yet                                                         |
 | Archives                 | MVP-ARC-001–002 | **Partial** — zip create/extract via `createArchive`/`extractArchive`; tar not implemented; zip-slip tests pass                              |
 | Terminal                 | MVP-TERM-001    | **Partial** — external terminal plus embedded local + SSH PTY on `main`; manual remote smoke still pending                                   |
 | UI keyboard              | MVP-UI-001      | **Partial** — palette, menu, toolbar, context menu, and global keys on `dispatchCommand`; Help shortcuts from registry via `shortcutHelp.ts` |
@@ -78,7 +78,7 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 | Tar / non-zip archive formats                         | RC spec §3.2                | Zip only at RC (`fs-core/file_ops/archive.rs`)                                                                        |
 | Checksum toolbar action                               | UI §4                       | **Met** — `op.checksum` wired through `useMetadataHandlers.handleChecksum` to `client.fs.computeHash` (sha256)        |
 | **Embedded terminal panel**                           | MVP §Embedded Terminal      | **Met** — local + SSH PTY on `main` (#2); pane terminal split, tabs, maximize/close; manual remote smoke pending      |
-| **Git branch + status badges**                        | MVP-GIT-\*                  | No `git-intel`                                                                                                        |
+| **Git branch + status badges**                        | MVP-GIT-\*                  | Backend `git-intel` discovery/status exists; IPC/UI not wired                                                         |
 | **Title bar sync/health indicator**                   | UI §1                       | Optional; not built                                                                                                   |
 | **Sidebar: Videos shortcut, network locations**       | UI §2 / Sprint 4            | SFTP network profiles implemented; Videos not in sidebar model                                                        |
 | **First-run overlay**                                 | Sprint 5 stretch            | Not built                                                                                                             |
@@ -107,9 +107,9 @@ The [API reference](../architecture/api-reference.md) is authoritative. Notable 
 
 ## Crate layout vs RC spec §6–7
 
-**Present:** `vfs`, `fs-core`, `jobs`, `app-core`, `app-ipc`, `terminal-core`, `telemetry`, `config`, `platform` (minimal), `test-support`, `apps/cli` (placeholder).
+**Present:** `vfs`, `fs-core`, `jobs`, `app-core`, `app-ipc`, `git-intel`, `terminal-core`, `telemetry`, `config`, `platform` (minimal), `test-support`, `apps/cli` (placeholder).
 
-**Absent (MVP planned):** `git-intel`, `archive-core`, `indexer`, `content-id`.
+**Absent (MVP planned):** `archive-core`, `indexer`, `content-id`.
 
 ## Full documentation inventory
 
