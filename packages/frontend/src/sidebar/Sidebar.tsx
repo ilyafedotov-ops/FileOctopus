@@ -71,6 +71,7 @@ export function Sidebar({
   networkStatuses,
   favorites,
   recentToday,
+  recentWeek,
   starred,
   activeUri,
   onNavigate,
@@ -312,7 +313,7 @@ export function Sidebar({
         </SidebarSection>
       ) : null}
 
-      <SidebarSection title="Recent">
+      <SidebarSection title="Today">
         {recentToday.length === 0 ? (
           <SidebarEmptyHint>No recent folders</SidebarEmptyHint>
         ) : (
@@ -328,6 +329,21 @@ export function Sidebar({
           ))
         )}
       </SidebarSection>
+
+      {recentWeek.length > 0 ? (
+        <SidebarSection title="This Week">
+          {recentWeek.map((item) => (
+            <SidebarItem
+              key={item.uri}
+              icon={Icons.recent()}
+              label={item.label}
+              active={item.uri === activeUri}
+              onClick={() => onNavigate(item.uri)}
+              subdued
+            />
+          ))}
+        </SidebarSection>
+      ) : null}
 
       {starred.length > 0 ? (
         <SidebarSection title="Starred">

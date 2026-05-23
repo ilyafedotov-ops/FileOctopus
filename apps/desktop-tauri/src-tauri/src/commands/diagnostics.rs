@@ -1,14 +1,15 @@
 use std::fs::File;
 use std::io::{Read, Write};
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 
-use app_core::{AppState, OperationHistoryRecord};
+use app_core::{AppPaths, AppState, OperationHistoryRecord};
 use app_ipc::{
-    AppDataHealthResponse, ExportDiagnosticsBundleRequest, ExportDiagnosticsBundleResponse,
-    IpcError,
+    error_codes, AppDataHealthResponse, ExportDiagnosticsBundleRequest,
+    ExportDiagnosticsBundleResponse, IpcError,
 };
 use tauri::State;
+use vfs::ResourceUri;
 use zip::write::FileOptions;
 
 use crate::commands::app_info::app_get_info;
@@ -36,13 +37,88 @@ pub async fn export_diagnostics_bundle(
     request: ExportDiagnosticsBundleRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<ExportDiagnosticsBundleResponse, IpcError> {
-    let destination = PathBuf::from(request.destination);
+    let destination = resolve_diagnostics_destination(&request.destination, state.paths())?;
     let files = write_diagnostics_bundle(&destination, &state)?;
 
     Ok(ExportDiagnosticsBundleResponse {
         path: destination.to_string_lossy().to_string(),
         files,
     })
+}
+
+/// Validate and contain an IPC-supplied diagnostics destination before it is
+/// turned into a filesystem write. Enforces the `local://` boundary contract
+/// (ADR-0003): the path must be an absolute local path, free of `..` segments,
+/// named as a `.zip` bundle, and contained within a known-safe export root.
+pub(crate) fn resolve_diagnostics_destination(
+    raw: &str,
+    paths: &AppPaths,
+) -> Result<PathBuf, IpcError> {
+    let uri = ResourceUri::from_local_path(Path::new(raw)).map_err(|_| {
+        IpcError::new(
+            error_codes::INVALID_PATH,
+            "Diagnostics destination must be an absolute local path.",
+        )
+    })?;
+    let destination = uri.to_local_path().map_err(|_| {
+        IpcError::new(
+            error_codes::INVALID_PATH,
+            "Diagnostics destination must be a local path.",
+        )
+    })?;
+
+    if destination
+        .components()
+        .any(|component| matches!(component, Component::ParentDir))
+    {
+        return Err(IpcError::new(
+            error_codes::INVALID_PATH,
+            "Diagnostics destination must not contain '..' segments.",
+        ));
+    }
+
+    let is_zip = destination
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"));
+    if !is_zip {
+        return Err(IpcError::new(
+            error_codes::INVALID_PATH,
+            "Diagnostics destination must be a .zip file.",
+        ));
+    }
+
+    if !is_within_allowed_root(&destination, paths) {
+        return Err(IpcError::new(
+            error_codes::INVALID_PATH,
+            "Diagnostics destination is outside the allowed export locations.",
+        ));
+    }
+
+    Ok(destination)
+}
+
+fn is_within_allowed_root(destination: &Path, paths: &AppPaths) -> bool {
+    allowed_export_roots(paths)
+        .iter()
+        .any(|root| destination.starts_with(root))
+}
+
+fn allowed_export_roots(paths: &AppPaths) -> Vec<PathBuf> {
+    let mut roots = vec![
+        std::env::temp_dir(),
+        paths.data_dir.clone(),
+        paths.config_dir.clone(),
+    ];
+    // The shipped default export path is the literal `/tmp/...`, but on some
+    // Unix targets (e.g. macOS) `temp_dir()` resolves elsewhere, so allow `/tmp`
+    // explicitly to keep the default working.
+    if cfg!(unix) {
+        roots.push(PathBuf::from("/tmp"));
+    }
+    if let Some(home) = home_dir() {
+        roots.push(home);
+    }
+    roots
 }
 
 pub(crate) fn write_diagnostics_bundle(

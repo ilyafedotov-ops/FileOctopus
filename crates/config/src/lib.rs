@@ -1,7 +1,7 @@
 mod navigation;
 mod network;
 
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use rusqlite::{params, Connection};
@@ -712,6 +712,24 @@ fn parse_diagnostics_export_path(value: &str) -> Result<String, PreferencesError
             "value is too long".to_string(),
         ));
     }
+
+    let path = Path::new(trimmed);
+    if !path.is_absolute() {
+        return Err(invalid_value(
+            "diagnosticsExportPath",
+            "path must be absolute".to_string(),
+        ));
+    }
+    if path
+        .components()
+        .any(|component| matches!(component, Component::ParentDir))
+    {
+        return Err(invalid_value(
+            "diagnosticsExportPath",
+            "path must not contain '..' segments".to_string(),
+        ));
+    }
+
     Ok(trimmed.to_string())
 }
 
@@ -1110,6 +1128,23 @@ mod tests {
             .set("diagnosticsExportPath", too_long.as_str())
             .unwrap_err();
         assert!(matches!(error, PreferencesError::InvalidValue { .. }));
+    }
+
+    #[test]
+    fn rejects_unsafe_diagnostics_export_path() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("preferences.sqlite");
+        let repository = PreferencesRepository::new(path).unwrap();
+
+        let relative = repository
+            .set("diagnosticsExportPath", "relative/diagnostics.zip")
+            .unwrap_err();
+        assert!(matches!(relative, PreferencesError::InvalidValue { .. }));
+
+        let traversal = repository
+            .set("diagnosticsExportPath", "/tmp/../etc/diagnostics.zip")
+            .unwrap_err();
+        assert!(matches!(traversal, PreferencesError::InvalidValue { .. }));
     }
 
     #[test]
