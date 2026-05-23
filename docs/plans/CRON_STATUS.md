@@ -1,7 +1,7 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-23 18:45 UTC
-> Commit: ca59613
+> Last run: 2026-05-23 19:15 UTC
+> Commit: 6fa3dac
 
 ## Health Gate
 
@@ -10,7 +10,7 @@
 | TypeScript (`pnpm typecheck`) | ✅ 0 errors                                                |
 | Rust (`cargo check`)          | ✅ clean (all workspace crates)                            |
 | Rust tests (`cargo test`)     | ✅ pass (workspace + integration, 257 tests)               |
-| Frontend tests (`pnpm test`)  | ✅ 502 pass (78 files)                                     |
+| Frontend tests (`pnpm test`)  | ✅ 503 pass (78 files)                                     |
 | E2E tests (Playwright)        | ⏭️ skipped (dev server not running during health-check.sh) |
 | Clippy (`-D warnings`)        | ✅ clean                                                   |
 | Format (`cargo fmt --check`)  | ✅ clean                                                   |
@@ -21,48 +21,68 @@
 
 ## Phase 1: Spec Alignment
 
-Audited `PROJECT_STATUS_AND_DOC_ALIGNMENT.md`, `UI_FEATURE_INVENTORY.md` §13, and `rc-engineering-spec.md` §4.1 acceptance criteria.
-
-### RC acceptance criteria status
-
-No change from previous run. All automatable acceptance criteria remain Met or explicitly deferred.
+Audited `PROJECT_STATUS_AND_DOC_ALIGNMENT.md`, `UI_FEATURE_INVENTORY.md` §13, and `CRON_TASKS.md`. Repopulated Active RC Queue with pending items (`RC-MENU-FULL`, `RC-PAUSE`, `RC-DIAG-LOC`, `RC-TAR`).
 
 ## Phase 2: Task Selection
 
-**Active RC Queue status:** Only `RC-4` remains (`pending`), human-only.
+**Selected:** `RC-DIAG-LOC` — Diagnostics export location preference (default export path setting). Priority P3, automatable, self-contained IPC + UI change.
 
-No new automatable RC-scope tasks discovered. Proceeded to health-gate maintenance.
+## Phase 3: TDD Implementation
 
-## Work Completed This Cycle
+**Micro-spec:**
 
-- **Fixed TypeScript typecheck error** — `usePaneGitStatus.ts(44,7)` `'client.fs.onWatchChanged' is possibly 'undefined'`. Resolved by using `client.fs?.onWatchChanged` optional chaining before `.bind()`.
-  - Commit: `dafebdd`
-- **Updated visual regression baselines** — 11 Playwright snapshot PNGs in `e2e/visual-regression.e2e.ts-snapshots/` were stale after UI evolution (toolbar height, sidebar height, file table dimensions, context menu sizing, dialog layouts).
-  - Commit: `ca59613`
+1. Add `diagnostics_export_path: String` to `UserPreferences` (Rust) with default `/tmp/fileoctopus-diagnostics.zip`
+2. Add `diagnosticsExportPath: string` to `UserPreferencesDto` (TS) + preview transport
+3. Wire `WorkspaceProvider` to initialize `diagnosticsDestination` from loaded preferences
+4. Add diagnostics export path input to `SettingsDialog` General tab
+5. Update tests and fallback preferences
 
-## TDD Evidence
+### TDD Evidence
 
-- **RED:** `pnpm typecheck` failed with `TS18048` in `usePaneGitStatus.ts`
-- **GREEN:** Single-character fix (`client.fs` → `client.fs?.onWatchChanged`) — typecheck passes
-- **Refactor:** N/A — minimal fix, no behavior change
+- **RED:** Wrote test `fires onChange for diagnostics export path` in `settingsDialog.test.tsx` — failed with "Unable to find a label with the text of: Diagnostics export path"
+- **GREEN:** Added input field to `SettingsDialog` General tab — test passes
+- **Refactor:** Added Rust struct field, DTO mapping, preview transport mock, `WorkspaceProvider` useEffect sync, and `.gitignore` for `*.tsbuildinfo`
 
-## Deferred / Next
+**Files changed (11):**
 
-| ID   | Task                                                             | Blocker                |
-| ---- | ---------------------------------------------------------------- | ---------------------- |
-| RC-4 | Manual sprint QA matrices + 100k UI recording                    | Human-only (target HW) |
-| M5   | Performance sign-off (MVP-PERF-001–005)                          | Human-only             |
-| M5   | Cross-platform test pass (Windows, macOS, Linux packaged builds) | Human-only / CI matrix |
+- `crates/config/src/lib.rs` — struct, default, `as_rows`, `apply_value`, `parse_diagnostics_export_path`
+- `crates/app-ipc/src/lib.rs` — `UserPreferencesDto` + `From` mapping
+- `crates/app-ipc/tests/autostart_dto.rs` — updated JSON test fixture
+- `packages/ts-api/src/types.ts` — `diagnosticsExportPath: string`
+- `packages/ts-api/src/transports/preview.ts` — mock preference
+- `packages/frontend/src/components/SettingsDialog.tsx` — input field in General tab
+- `packages/frontend/src/components/DialogOverlayGroup.tsx` — fallback preferences
+- `packages/frontend/src/app/providers/WorkspaceProvider.tsx` — init + sync from preferences
+- `packages/frontend/tests/settingsDialog.test.tsx` — new test + `makePreferences` helper
+- `.gitignore` — `*.tsbuildinfo`
+
+## Phase 4: Integration Verification
+
+- `cargo test --lib` — ✅ 138 passed
+- `cargo test --tests` — ✅ 257 passed (integration + lib)
+- `pnpm test` (frontend) — ✅ 503 passed (78 files)
+- `pnpm typecheck` — ✅ 0 errors
+- `cargo check` — ✅ clean
+
+## Phase 5: Spec Compliance & Docs
+
+- `CRON_TASKS.md` — `RC-DIAG-LOC` marked `done`, commit `6fa3dac`
+- `CRON_STATUS.md` — this entry
+
+## Active RC Queue (remaining)
+
+| ID           | Pri | Status  | Owner | Commit | Started | Last Verified | Spec Ref             | Task                                                                                  | Blockers | Last Verified |
+| ------------ | --- | ------- | ----- | ------ | ------- | ------------- | -------------------- | ------------------------------------------------------------------------------------- | -------- | ------------- |
+| RC-MENU-FULL | P2  | pending | -     | -      | -       | -             | Menu & Modal Spec §4 | Application menu bar full wiring: native OS menu (Tauri menu.rs), sort submenu parity | None     | 2026-05-23    |
+| RC-PAUSE     | P2  | pending | -     | -      | -       | -             | UI §6; RC spec §3.2  | Pause on jobs: backend job.pause IPC + UI pause/resume button in activity panel       | None     | 2026-05-23    |
+| RC-TAR       | P3  | pending | -     | -      | -       | -             | RC spec §3.2         | Tar / non-zip archive formats: createArchive/extractArchive for tar.gz/tar.bz2        | None     | 2026-05-23    |
 
 ## Recommendation
 
-The automated cron agent has reached the end of its RC-feature queue. All automatable acceptance criteria are implemented and passing tests. Remaining RC work is human-only validation (performance recordings, manual QA matrices, cross-platform smoke). Consider:
-
-1. Pausing the cron feature-development loop until post-RC priorities are defined.
-2. Or reprioritizing `Deferred / Post-RC` items (e.g., tar archive support, job pause/resume, column reorder) into the Active RC Queue if the release timeline extends.
+Three automatable RC-scope tasks remain in the queue. Next priority should be `RC-MENU-FULL` (native OS menu) or `RC-PAUSE` (job pause/resume). `RC-TAR` is lower priority.
 
 ---
 
-## Historical: 2026-05-23 14:45 UTC
+## Historical: 2026-05-23 18:45 UTC
 
 See previous revision in git history for details.
