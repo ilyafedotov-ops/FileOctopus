@@ -106,4 +106,83 @@ describe("Git pane status", () => {
     await waitFor(() => expect(result.current.repo).toBeNull());
     expect(statusForDirectory).toHaveBeenCalledTimes(1);
   });
+
+  it("reuses cached git status for the same local directory", async () => {
+    const uri = "local:///repo-cache";
+    const status: GitStatusForDirectoryResponse = {
+      repo: {
+        rootUri: uri,
+        branch: "main",
+        headShort: "abcdef1",
+        isDirty: false,
+      },
+      entries: {},
+    };
+    const statusForDirectory = vi.fn(async () => status);
+    const client = {
+      git: { statusForDirectory },
+    };
+
+    const first = renderHook(() => usePaneGitStatus(client, uri));
+    await waitFor(() => expect(first.result.current.repo?.branch).toBe("main"));
+    first.unmount();
+
+    const second = renderHook(() => usePaneGitStatus(client, uri));
+    await waitFor(() =>
+      expect(second.result.current.repo?.branch).toBe("main"),
+    );
+
+    expect(statusForDirectory).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshes cached git status when a watched directory changes", async () => {
+    const uri = "local:///repo-watch";
+    const cleanStatus: GitStatusForDirectoryResponse = {
+      repo: {
+        rootUri: uri,
+        branch: "main",
+        headShort: "abcdef1",
+        isDirty: false,
+      },
+      entries: {},
+    };
+    const dirtyStatus: GitStatusForDirectoryResponse = {
+      repo: {
+        rootUri: uri,
+        branch: "main",
+        headShort: "abcdef1",
+        isDirty: true,
+      },
+      entries: {
+        [`${uri}/changed.ts`]: "modified",
+      },
+    };
+    const statusForDirectory = vi
+      .fn()
+      .mockResolvedValueOnce(cleanStatus)
+      .mockResolvedValueOnce(dirtyStatus);
+    let watchHandler: ((event: { uri: string }) => void) | null = null;
+    const client = {
+      git: { statusForDirectory },
+      fs: {
+        onWatchChanged: vi.fn(
+          async (handler: (event: { uri: string }) => void) => {
+            watchHandler = handler;
+            return () => {
+              watchHandler = null;
+            };
+          },
+        ),
+      },
+    };
+
+    const { result } = renderHook(() => usePaneGitStatus(client, uri));
+
+    await waitFor(() => expect(result.current.repo?.isDirty).toBe(false));
+    watchHandler?.({ uri });
+
+    await waitFor(() => expect(result.current.repo?.isDirty).toBe(true));
+    expect(result.current.entries[`${uri}/changed.ts`]).toBe("modified");
+    expect(statusForDirectory).toHaveBeenCalledTimes(2);
+  });
 });

@@ -28,15 +28,15 @@
 
 ## MVP acceptance criteria (summary)
 
-| Area                     | IDs             | Status                                                                                                                                       |
-| ------------------------ | --------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Core FS navigation & ops | MVP-FS-001–008  | **Met** (local dual-pane, large dirs, copy/move/rename/mkdir/trash, conflicts via plan)                                                      |
-| Jobs                     | MVP-JOB-001–004 | **Mostly met** — queue UI, cancel, failures, history after restart; full job SQLite schema in spec not fully mirrored                        |
-| Git                      | MVP-GIT-001–002 | **Mostly met** — local backend `git-intel`, `git.*` IPC/TS client, active-pane branch display, and row status badges; remote Git deferred    |
-| Archives                 | MVP-ARC-001–002 | **Partial** — zip create/extract via `createArchive`/`extractArchive`; tar not implemented; zip-slip tests pass                              |
-| Terminal                 | MVP-TERM-001    | **Partial** — external terminal plus embedded local + SSH PTY on `main`; manual remote smoke still pending                                   |
-| UI keyboard              | MVP-UI-001      | **Partial** — palette, menu, toolbar, context menu, and global keys on `dispatchCommand`; Help shortcuts from registry via `shortcutHelp.ts` |
-| Security                 | MVP-SEC-001     | **Met** — ADR-0002, typed IPC only                                                                                                           |
+| Area                     | IDs             | Status                                                                                                                                                       |
+| ------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Core FS navigation & ops | MVP-FS-001–008  | **Met** (local dual-pane, large dirs, copy/move/rename/mkdir/trash, conflicts via plan)                                                                      |
+| Jobs                     | MVP-JOB-001–004 | **Mostly met** — queue UI, cancel, failures, history after restart; full job SQLite schema in spec not fully mirrored                                        |
+| Git                      | MVP-GIT-001–002 | **Mostly met** — local backend `git-intel`, `git.*` IPC/TS client, active-pane branch display, cached/watch-refreshed row status badges; remote Git deferred |
+| Archives                 | MVP-ARC-001–002 | **Partial** — zip create/extract via `createArchive`/`extractArchive`; tar not implemented; zip-slip tests pass                                              |
+| Terminal                 | MVP-TERM-001    | **Partial** — external terminal plus embedded local + SSH PTY on `main`; manual remote smoke still pending                                                   |
+| UI keyboard              | MVP-UI-001      | **Partial** — palette, menu, toolbar, context menu, and global keys on `dispatchCommand`; Help shortcuts from registry via `shortcutHelp.ts`                 |
+| Security                 | MVP-SEC-001     | **Met** — ADR-0002, typed IPC only                                                                                                                           |
 
 Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not formally signed off**.
 

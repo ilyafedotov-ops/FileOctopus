@@ -8,15 +8,15 @@ The RC is a high-performance local dual-pane file manager with safe job-based fi
 
 ### RC delivery matrix (2026-05-18)
 
-| Area                       | RC status      | Shipped                                                                                                                                                          | Not in RC                                                                       |
-| -------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Core navigation & file ops | **Delivered**  | Dual pane, pane tabs, streamed listing, virtualization, plan/start jobs, operation history; `fs-core` / `app-core` / Tauri `commands/*` / ts-api `clients/*`     | Advanced session restore / tab persistence                                      |
-| Zip archives               | **Delivered**  | `CreateArchive` / `ExtractArchive` in `fs-core/file_ops`, zip-slip tests, toolbar + context menu                                                                 | Tar and other formats                                                           |
-| Jobs & persistence         | **Partial**    | In-memory jobs, progress events, cancel; SQLite `operation_history`                                                                                              | Full `job` / `job_item_result` schema (§9.2)                                    |
-| Git                        | **Mostly met** | Backend `git-intel` crate plus `git.discover` / `git.statusForDirectory` IPC and TS client for local discovery/status; active-pane branch display and row badges | Remote Git and cache/watch refresh hardening                                    |
-| Terminal                   | **Partial**    | `fs_open_terminal` external emulator plus embedded local/SSH PTY panel via `terminal-core`                                                                       | Manual remote smoke and polish                                                  |
-| UI                         | **Partial**    | Command palette (registry-driven), context menus, activity rail, preview, theme prefs, `MenuBar` on dispatch                                                     | Keyboard/toolbar on registry; native menu; Menu spec parity                     |
-| Platform & release         | **Partial**    | Windows/macOS/Linux CI builds                                                                                                                                    | Formal RC sign-off (§16, [mvp-rc-checklist.md](../release/mvp-rc-checklist.md)) |
+| Area                       | RC status      | Shipped                                                                                                                                                                                 | Not in RC                                                                       |
+| -------------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Core navigation & file ops | **Delivered**  | Dual pane, pane tabs, streamed listing, virtualization, plan/start jobs, operation history; `fs-core` / `app-core` / Tauri `commands/*` / ts-api `clients/*`                            | Advanced session restore / tab persistence                                      |
+| Zip archives               | **Delivered**  | `CreateArchive` / `ExtractArchive` in `fs-core/file_ops`, zip-slip tests, toolbar + context menu                                                                                        | Tar and other formats                                                           |
+| Jobs & persistence         | **Partial**    | In-memory jobs, progress events, cancel; SQLite `operation_history`                                                                                                                     | Full `job` / `job_item_result` schema (§9.2)                                    |
+| Git                        | **Mostly met** | Backend `git-intel` crate plus `git.discover` / `git.statusForDirectory` IPC and TS client for local discovery/status; active-pane branch display, cached row badges, and watch refresh | Remote Git                                                                      |
+| Terminal                   | **Partial**    | `fs_open_terminal` external emulator plus embedded local/SSH PTY panel via `terminal-core`                                                                                              | Manual remote smoke and polish                                                  |
+| UI                         | **Partial**    | Command palette (registry-driven), context menus, activity rail, preview, theme prefs, `MenuBar` on dispatch                                                                            | Keyboard/toolbar on registry; native menu; Menu spec parity                     |
+| Platform & release         | **Partial**    | Windows/macOS/Linux CI builds                                                                                                                                                           | Formal RC sign-off (§16, [mvp-rc-checklist.md](../release/mvp-rc-checklist.md)) |
 
 **Authoritative references:**
 
@@ -30,7 +30,7 @@ The RC is a high-performance local dual-pane file manager with safe job-based fi
 
 ## 2.1 RC Goal
 
-Deliver a fast, reliable, cross-platform dual-pane file manager suitable for daily local file work in the RC validation window: safe file operations with job progress and history, virtualized large-directory rendering, keyboard-first navigation, zip archive create/extract, external-terminal integration, and local Git awareness. Remote Git remains **post-RC** (§3.2).
+Deliver a fast, reliable, cross-platform dual-pane file manager suitable for daily local file work in the RC validation window: safe file operations with job progress and history, virtualized large-directory rendering, keyboard-first navigation, zip archive create/extract, external-terminal integration, and cached local Git awareness. Remote Git remains **post-RC** (§3.2).
 
 ## 2.2 User Persona
 
@@ -142,7 +142,7 @@ FileOctopus RC should prove three things:
 
 Items from the original MVP §3.1 that are **not** required for RC sign-off but may follow in 1.0:
 
-- Remote Git status and Git cache/watch refresh hardening.
+- Remote Git status.
 - Embedded terminal manual smoke and polish.
 - Tar and non-zip archive formats (RC ships zip create/extract only).
 - Native OS menu integration and remaining [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) parity work (the in-app `MenuBar` shell is present).
@@ -323,7 +323,7 @@ Protocol: [`docs/testing/large-directory-performance.md`](../testing/large-direc
 
 ## 5.5 Milestone 4: Git, Archive, Terminal v1
 
-**RC status: Mostly done.** Zip create/extract shipped inside `fs-core/file_ops` (not separate `archive-core`). External terminal via `fs_open_terminal`. Embedded local + SSH PTY and local Git branch/status UI are implemented; remote Git and terminal manual smoke remain hardening work.
+**RC status: Mostly done.** Zip create/extract shipped inside `fs-core/file_ops` (not separate `archive-core`). External terminal via `fs_open_terminal`. Embedded local + SSH PTY and cached/watch-refreshed local Git branch/status UI are implemented; remote Git and terminal manual smoke remain hardening work.
 
 ### Deliverables (original plan)
 
@@ -1793,7 +1793,7 @@ RC engineering gate: §4 criteria **Met** or **Deferred** with owner sign-off; z
 Ordered backlog after RC (see also [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md)):
 
 1. Complete menu bar wiring per [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md).
-2. Git cache/watch refresh hardening and remote Git exploration.
+2. Remote Git exploration.
 3. Embedded terminal manual-smoke polish.
 4. Tar and additional archive formats; optional `archive-core` extraction.
 5. Durable `job` / `job_item_result` SQLite schema and recovery.
