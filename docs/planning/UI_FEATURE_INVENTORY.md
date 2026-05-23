@@ -407,7 +407,7 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 ### Still not implemented (specified)
 
 - **Embedded terminal panel** — external spawn only (`fs_open_terminal`)
-- **Git branch + file badges** — MVP-GIT-001/002 (requires `git-intel` crate)
+- **Git branch + file badges** — ✅ implemented (`git-intel` crate, `usePaneGitStatus.ts`, FileRow badges M/A/D/R/?/I/U/!, PaneHeader branch name + dirty mark)
 - **Remember last panes / last-path restore** — no boot restore
 - **First-run overlay** — stretch, not built
 - **Videos sidebar entry, network locations, "This Week" recent group** — partial (API has `thisWeek` bucket; UI grouping may vary)
