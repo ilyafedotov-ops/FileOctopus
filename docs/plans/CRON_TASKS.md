@@ -29,7 +29,7 @@
 | RC-PAUSE     | P2  | deferred | -     | -       | -           | -                | UI §6; RC spec §3.2         | Pause on jobs: backend job.pause IPC + UI pause/resume button in activity panel (deferred: requires executor-level pause token refactor across jobs/app-core/fs-core crates — too large for single cycle) | None     | 2026-05-23    |
 | RC-RECENT    | P2  | done     | cron  | 7cadc95 | 2026-05-23  | 2026-05-23       | UI §2; UI_FEATURE_INVENTORY | Sidebar Recent section: split into "Today" and "This Week" groups (API already provides both buckets; UI only renders Today)                                                                              | None     | 2026-05-23    |
 | RC-DIAG-LOC  | P3  | done     | cron  | 6fa3dac | 2026-05-23  | 2026-05-23       | UI Design Spec              | Diagnostics export location preference (default export path setting)                                                                                                                                      | None     | 2026-05-23    |
-| RC-TAR       | P3  | done     | cron  | 9f8a2c1 | 2026-05-23  | 2026-05-23       | RC spec §3.2                | Tar / non-zip archive formats: createArchive/extractArchive for tar.gz/tar.bz2                                                                                                                            | None     | 2026-05-23    |
+| RC-TAR       | P3  | done     | cron  | 35d463a | 2026-05-23  | 2026-05-23       | RC spec §3.2                | Tar / non-zip archive formats: createArchive/extractArchive for tar.gz/tar.bz2                                                                                                                            | None     | 2026-05-23    |
 
 ---
 
