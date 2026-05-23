@@ -127,6 +127,7 @@ dependencies = [
  "chrono",
  "config",
  "fs-core",
+ "git-intel",
  "jobs",
  "platform",
  "provider-sftp",
@@ -147,6 +148,7 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "config",
+ "git-intel",
  "jobs",
  "serde",
  "serde_json",

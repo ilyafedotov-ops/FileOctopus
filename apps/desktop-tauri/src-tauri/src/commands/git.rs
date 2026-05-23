@@ -1,0 +1,37 @@
+use std::sync::Arc;
+
+use app_core::AppState;
+use app_ipc::{
+    GitDiscoverRequest, GitDiscoverResponse, GitStatusForDirectoryRequest,
+    GitStatusForDirectoryResponse, IpcError,
+};
+use tauri::State;
+use vfs::ResourceUri;
+
+#[tauri::command]
+pub async fn git_discover(
+    state: State<'_, Arc<AppState>>,
+    request: GitDiscoverRequest,
+) -> Result<GitDiscoverResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let repo = state.git().discover(&uri).await.map_err(IpcError::from)?;
+
+    Ok(GitDiscoverResponse {
+        repo: repo.map(Into::into),
+    })
+}
+
+#[tauri::command]
+pub async fn git_status_for_directory(
+    state: State<'_, Arc<AppState>>,
+    request: GitStatusForDirectoryRequest,
+) -> Result<GitStatusForDirectoryResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let status = state
+        .git()
+        .status_for_directory(&uri)
+        .await
+        .map_err(IpcError::from)?;
+
+    Ok(status.into())
+}

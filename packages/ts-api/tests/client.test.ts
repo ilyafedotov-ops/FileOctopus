@@ -540,6 +540,50 @@ describe("FileOctopusClient", () => {
     });
   });
 
+  it("routes git discovery and status through the git client", async () => {
+    const calls: Array<{ command: string; args?: Record<string, unknown> }> =
+      [];
+    const transport: IpcTransport = {
+      async invoke<TResponse>(command: string, args?: Record<string, unknown>) {
+        calls.push({ command, args });
+
+        if (command === "git.discover") {
+          return {
+            repo: {
+              rootUri: "local:///repo",
+              branch: "main",
+              headShort: "abcdef1",
+              isDirty: true,
+            },
+          } as TResponse;
+        }
+
+        return {
+          repo: null,
+          entries: {
+            "local:///repo/changed.txt": "modified",
+          },
+        } as TResponse;
+      },
+    };
+
+    const client = new FileOctopusClient(transport);
+    const discovery = await client.git.discover({ uri: "local:///repo" });
+    const status = await client.git.statusForDirectory({
+      uri: "local:///repo",
+    });
+
+    expect(discovery.repo?.branch).toBe("main");
+    expect(status.entries["local:///repo/changed.txt"]).toBe("modified");
+    expect(calls.map((call) => call.command)).toEqual([
+      "git.discover",
+      "git.statusForDirectory",
+    ]);
+    expect(calls[1]?.args).toEqual({
+      request: { uri: "local:///repo" },
+    });
+  });
+
   it("exports typed error and warning catalogs", () => {
     expect(isKnownIpcErrorCode(IPC_ERROR_CODES.TIMEOUT)).toBe(true);
     expect(isKnownIpcErrorCode(IPC_ERROR_CODES.CONNECTION_REQUIRED)).toBe(true);

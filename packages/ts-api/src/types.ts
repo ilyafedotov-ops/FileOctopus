@@ -42,6 +42,7 @@ export const IPC_ERROR_CODES = {
   AUTHENTICATION_FAILED: "authentication_failed",
   CONNECTION_LOST: "connection_lost",
   FOLDER_NOT_FOUND: "folder_not_found",
+  GIT_COMMAND_FAILED: "git_command_failed",
   UNKNOWN: "unknown",
   TAURI_UNAVAILABLE: "tauri_unavailable",
   UNSUPPORTED_TRANSPORT: "unsupported_transport",
@@ -196,6 +197,41 @@ export interface OpenTerminalRequest {
 
 export interface OpenTerminalResponse {
   success: boolean;
+}
+
+export interface GitDiscoverRequest {
+  uri: string;
+}
+
+export interface GitRepoInfoDto {
+  rootUri: string;
+  branch?: string | null;
+  headShort?: string | null;
+  isDirty: boolean;
+}
+
+export interface GitDiscoverResponse {
+  repo?: GitRepoInfoDto | null;
+}
+
+export type GitFileStatusDto =
+  | "clean"
+  | "modified"
+  | "added"
+  | "deleted"
+  | "renamed"
+  | "untracked"
+  | "ignored"
+  | "conflicted"
+  | "unknown";
+
+export interface GitStatusForDirectoryRequest {
+  uri: string;
+}
+
+export interface GitStatusForDirectoryResponse {
+  repo?: GitRepoInfoDto | null;
+  entries: Record<string, GitFileStatusDto>;
 }
 
 export interface TerminalSpawnRequest {

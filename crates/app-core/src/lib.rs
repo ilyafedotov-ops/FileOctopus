@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use config::{NavigationRepository, NetworkProfileRepository, PreferencesRepository};
 use fs_core::{vfs_io::VfsFilesystem, LocalFsProvider};
+use git_intel::GitService;
 use platform::SecretStore;
 use provider_sftp::{SftpConnector, SftpProvider};
 use remote_core::{ConnectionSessionManager, RemoteConnectorRegistry};
@@ -47,6 +48,7 @@ pub struct AppState {
     paths: AppPaths,
     startup_recovery_count: usize,
     terminals: Arc<TerminalService>,
+    git: Arc<GitService>,
 }
 
 impl AppState {
@@ -112,6 +114,10 @@ impl AppState {
     pub fn terminals(&self) -> Arc<TerminalService> {
         self.terminals.clone()
     }
+
+    pub fn git(&self) -> Arc<GitService> {
+        self.git.clone()
+    }
 }
 
 pub struct AppCore;
@@ -175,6 +181,7 @@ impl AppCore {
             .map_err(|error| AppCoreError::History(error.to_string()))?;
 
         let terminals = Arc::new(TerminalService::new());
+        let git = Arc::new(GitService::new());
 
         telemetry::info("FileOctopus app core booted");
 
@@ -189,6 +196,7 @@ impl AppCore {
             paths,
             startup_recovery_count,
             terminals,
+            git,
         }))
     }
 }

@@ -13,7 +13,7 @@ The RC is a high-performance local dual-pane file manager with safe job-based fi
 | Core navigation & file ops | **Delivered** | Dual pane, pane tabs, streamed listing, virtualization, plan/start jobs, operation history; `fs-core` / `app-core` / Tauri `commands/*` / ts-api `clients/*` | Advanced session restore / tab persistence                                      |
 | Zip archives               | **Delivered** | `CreateArchive` / `ExtractArchive` in `fs-core/file_ops`, zip-slip tests, toolbar + context menu                                                             | Tar and other formats                                                           |
 | Jobs & persistence         | **Partial**   | In-memory jobs, progress events, cancel; SQLite `operation_history`                                                                                          | Full `job` / `job_item_result` schema (§9.2)                                    |
-| Git                        | **Partial**   | Backend `git-intel` crate for local repository discovery and porcelain status mapping                                                                        | IPC/client/UI branch display and file badges (MVP-GIT-\*)                       |
+| Git                        | **Partial**   | Backend `git-intel` crate plus `git.discover` / `git.statusForDirectory` IPC and TS client for local discovery/status                                        | UI branch display and file badges (MVP-GIT-\*)                                  |
 | Terminal                   | **Partial**   | `fs_open_terminal` (external emulator in active folder)                                                                                                      | Embedded xterm panel, `terminal-core`                                           |
 | UI                         | **Partial**   | Command palette (registry-driven), context menus, activity rail, preview, theme prefs, `MenuBar` on dispatch                                                 | Keyboard/toolbar on registry; native menu; Menu spec parity                     |
 | Platform & release         | **Partial**   | Windows/macOS/Linux CI builds                                                                                                                                | Formal RC sign-off (§16, [mvp-rc-checklist.md](../release/mvp-rc-checklist.md)) |
@@ -141,7 +141,7 @@ FileOctopus RC should prove three things:
 
 Items from the original MVP §3.1 that are **not** required for RC sign-off but may follow in 1.0:
 
-- Git repository detection, branch display, and file status badges (`git-intel`, MVP-GIT-\*).
+- Git branch display and file status badges in the UI; backend `git-intel` and `git.*` IPC exist.
 - Embedded terminal panel (xterm.js + PTY); RC uses external emulator only.
 - Tar and non-zip archive formats (RC ships zip create/extract only).
 - Native OS menu integration and remaining [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) parity work (the in-app `MenuBar` shell is present).
@@ -177,27 +177,27 @@ Items from the original MVP §3.1 that are **not** required for RC sign-off but 
 
 ## 4.1 Functional acceptance criteria
 
-| ID           | RC status      | Requirement             | Acceptance criteria                                                      |
-| ------------ | -------------- | ----------------------- | ------------------------------------------------------------------------ |
-| MVP-FS-001   | **Met**        | Directory navigation    | User can navigate local filesystem in both panels.                       |
-| MVP-FS-002   | **Met**        | Large directory listing | Folder with 100,000 files opens without UI freeze (see `docs/testing/`). |
-| MVP-FS-003   | **Met**        | Copy operation          | User can copy files/folders between panels with progress.                |
-| MVP-FS-004   | **Met**        | Move operation          | User can move files/folders between panels with progress.                |
-| MVP-FS-005   | **Met**        | Rename                  | User can rename selected item.                                           |
-| MVP-FS-006   | **Met**        | New folder              | User can create a folder in active panel.                                |
-| MVP-FS-007   | **Met**        | Trash/delete            | User can send items to OS trash where supported.                         |
-| MVP-FS-008   | **Met**        | Conflict handling       | User is prompted when destination conflict occurs.                       |
-| MVP-JOB-001  | **Met**        | Job queue               | Long operations appear in job queue / activity panel.                    |
-| MVP-JOB-002  | **Met**        | Cancellation            | Running copy/move/archive jobs can be cancelled.                         |
-| MVP-JOB-003  | **Met**        | Failure visibility      | Failed jobs expose error detail.                                         |
-| MVP-JOB-004  | **Mostly met** | Restart persistence     | Operation history inspectable after restart; live jobs in-memory only.   |
-| MVP-GIT-001  | **Deferred**   | Git branch              | Active panel shows repository branch when inside Git repo.               |
-| MVP-GIT-002  | **Deferred**   | Git badges              | File list shows basic Git status badges asynchronously.                  |
-| MVP-ARC-001  | **Partial**    | Archive extraction      | Zip create/extract to destination; tar not implemented.                  |
-| MVP-ARC-002  | **Met**        | Archive safety          | Malicious archive path traversal is blocked (zip-slip tests).            |
-| MVP-TERM-001 | **Partial**    | Terminal open           | External terminal in active panel path; embedded panel deferred.         |
-| MVP-UI-001   | **Partial**    | Keyboard flow           | Shortcuts + command palette; menu bar shell partial.                     |
-| MVP-SEC-001  | **Met**        | No direct FS frontend   | Frontend has no unrestricted generic filesystem access (ADR-0002).       |
+| ID           | RC status      | Requirement             | Acceptance criteria                                                        |
+| ------------ | -------------- | ----------------------- | -------------------------------------------------------------------------- |
+| MVP-FS-001   | **Met**        | Directory navigation    | User can navigate local filesystem in both panels.                         |
+| MVP-FS-002   | **Met**        | Large directory listing | Folder with 100,000 files opens without UI freeze (see `docs/testing/`).   |
+| MVP-FS-003   | **Met**        | Copy operation          | User can copy files/folders between panels with progress.                  |
+| MVP-FS-004   | **Met**        | Move operation          | User can move files/folders between panels with progress.                  |
+| MVP-FS-005   | **Met**        | Rename                  | User can rename selected item.                                             |
+| MVP-FS-006   | **Met**        | New folder              | User can create a folder in active panel.                                  |
+| MVP-FS-007   | **Met**        | Trash/delete            | User can send items to OS trash where supported.                           |
+| MVP-FS-008   | **Met**        | Conflict handling       | User is prompted when destination conflict occurs.                         |
+| MVP-JOB-001  | **Met**        | Job queue               | Long operations appear in job queue / activity panel.                      |
+| MVP-JOB-002  | **Met**        | Cancellation            | Running copy/move/archive jobs can be cancelled.                           |
+| MVP-JOB-003  | **Met**        | Failure visibility      | Failed jobs expose error detail.                                           |
+| MVP-JOB-004  | **Mostly met** | Restart persistence     | Operation history inspectable after restart; live jobs in-memory only.     |
+| MVP-GIT-001  | **Partial**    | Git branch              | Backend/API can discover branch; active-panel UI display remains deferred. |
+| MVP-GIT-002  | **Partial**    | Git badges              | Backend/API can map statuses; file-list UI badges remain deferred.         |
+| MVP-ARC-001  | **Partial**    | Archive extraction      | Zip create/extract to destination; tar not implemented.                    |
+| MVP-ARC-002  | **Met**        | Archive safety          | Malicious archive path traversal is blocked (zip-slip tests).              |
+| MVP-TERM-001 | **Partial**    | Terminal open           | External terminal in active panel path; embedded panel deferred.           |
+| MVP-UI-001   | **Partial**    | Keyboard flow           | Shortcuts + command palette; menu bar shell partial.                       |
+| MVP-SEC-001  | **Met**        | No direct FS frontend   | Frontend has no unrestricted generic filesystem access (ADR-0002).         |
 
 ## 4.2 Performance acceptance criteria
 
@@ -322,14 +322,14 @@ Protocol: [`docs/testing/large-directory-performance.md`](../testing/large-direc
 
 ## 5.5 Milestone 4: Git, Archive, Terminal v1
 
-**RC status: Partial.** Zip create/extract shipped inside `fs-core/file_ops` (not separate `archive-core`). External terminal via `fs_open_terminal`. Backend `git-intel` exists for local discovery/status; IPC/UI Git decorations and embedded terminal remain deferred.
+**RC status: Partial.** Zip create/extract shipped inside `fs-core/file_ops` (not separate `archive-core`). External terminal via `fs_open_terminal`. Backend `git-intel` and Git IPC/TS client exist for local discovery/status; UI Git decorations and embedded terminal remain deferred.
 
 ### Deliverables (original plan)
 
 - `git-intel` crate — **backend foundation started**
 - `archive-core` crate — **superseded at RC** by `fs-core/file_ops/archive.rs`
 - `terminal-core` crate — **post-RC** (embedded panel)
-- Git branch and status badges — **post-RC UI/IPC**
+- Git branch and status badges — **post-RC UI**
 - Zip archive create/extract as planned file operations — **done**
 - Embedded terminal panel — **post-RC**
 
@@ -405,7 +405,7 @@ fileoctopus/
   pnpm-workspace.yaml
 ```
 
-**Post-RC crates (not in workspace):** `archive-core`, `terminal-core`, `indexer`, `content-id`. Backend `git-intel` is now in the workspace; its IPC/UI integration remains post-RC.
+**Post-RC crates (not in workspace):** `archive-core`, `terminal-core`, `indexer`, `content-id`. Backend `git-intel` is now in the workspace; its UI integration remains post-RC.
 
 ---
 
@@ -539,7 +539,7 @@ operationHistory.listRecent, operationHistory.clear
 preferences.get, preferences.set, navigation.*, diagnostics.*, …
 ```
 
-**Post-RC (not registered):** `git.*`, `archive.plan_extract` / `archive.start_extract` as separate domains, embedded `terminal.write` / `terminal.resize` / output events. Archives use `fileOperation.*` with `createArchive` / `extractArchive` kinds.
+**Post-RC (not registered):** `archive.plan_extract` / `archive.start_extract` as separate domains. Archives use `fileOperation.*` with `createArchive` / `extractArchive` kinds.
 
 ---
 
@@ -803,7 +803,7 @@ When platform behavior grows, this crate can absorb service traits for trash/rec
 
 ## 7.8 `git-intel` Crate (backend foundation started)
 
-> Backend crate foundation exists. Git IPC, frontend branch display, and file status badges are not shipped at RC.
+> Backend crate foundation and `git.*` IPC exist. Frontend branch display and file status badges are not shipped at RC.
 
 ### Purpose
 
@@ -1257,9 +1257,9 @@ Job lifecycle channels are `fileOperation:job:started`, `fileOperation:job:progr
 
 ---
 
-## 8.4 Git IPC (post-RC — not implemented)
+## 8.4 Git IPC (backend implemented, UI deferred)
 
-> Deferred. No `git.*` commands at RC.
+`git.discover` and `git.statusForDirectory` are registered for local repository discovery/status. Frontend branch display and file badges remain deferred.
 
 ### `git.status_for_directory` (target)
 
@@ -1777,7 +1777,7 @@ RC engineering gate: §4 criteria **Met** or **Deferred** with owner sign-off; z
 Ordered backlog after RC (see also [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md)):
 
 1. Complete menu bar wiring per [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md).
-2. `git-intel` — branch display and file badges (MVP-GIT-\*).
+2. Git UI — branch display and file badges (MVP-GIT-\*).
 3. Embedded terminal (`terminal-core` + xterm panel).
 4. Tar and additional archive formats; optional `archive-core` extraction.
 5. Durable `job` / `job_item_result` SQLite schema and recovery.

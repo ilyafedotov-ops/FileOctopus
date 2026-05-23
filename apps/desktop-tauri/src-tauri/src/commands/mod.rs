@@ -4,6 +4,7 @@ pub mod diagnostics;
 pub mod file_operations;
 pub mod folder_size;
 pub mod fs;
+pub mod git;
 pub mod navigation;
 pub mod network;
 pub mod preferences;

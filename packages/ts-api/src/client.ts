@@ -3,6 +3,7 @@ import { AutostartClient } from "./clients/autostart";
 import { DiagnosticsClient } from "./clients/diagnostics";
 import { FileOperationsClient } from "./clients/fileOperations";
 import { FsClient } from "./clients/fs";
+import { GitClient } from "./clients/git";
 import { JobsClient } from "./clients/jobs";
 import { NetworkClient } from "./clients/network";
 import { OperationHistoryClient } from "./clients/history";
@@ -17,6 +18,7 @@ export { normalizeIpcError } from "./normalizeError";
 
 export class FileOctopusClient {
   readonly fs: FsClient;
+  readonly git: GitClient;
   readonly fileOperations: FileOperationsClient;
   readonly jobs: JobsClient;
   readonly operationHistory: OperationHistoryClient;
@@ -29,6 +31,7 @@ export class FileOctopusClient {
 
   constructor(private readonly transport: IpcTransport) {
     this.fs = new FsClient(transport);
+    this.git = new GitClient(transport);
     this.fileOperations = new FileOperationsClient(transport);
     this.jobs = new JobsClient(transport);
     this.operationHistory = new OperationHistoryClient(transport);
@@ -71,6 +74,7 @@ export { AutostartClient } from "./clients/autostart";
 export { NavigationClient } from "./clients/navigation";
 export { NetworkClient } from "./clients/network";
 export { FsClient } from "./clients/fs";
+export { GitClient } from "./clients/git";
 export { TerminalClient } from "./clients/terminal";
 export * from "./uri";
 export { createTauriTransport, isTauriRuntime } from "./transports/tauri";

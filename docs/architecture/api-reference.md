@@ -2,7 +2,7 @@
 
 This document is the authoritative description of FileOctopus's runtime API surface: the Tauri IPC commands, the events streamed back from Rust, the `@fileoctopus/ts-api` client that wraps them, and the domain types that flow across the boundary. It is the contract every change to filesystem behaviour must respect (see ADR-0002 and ADR-0003).
 
-> **Doc freshness (2026-05-22):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (57 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (13 channels). `packages/ts-api/tests/catalogs.test.ts` now guards the command count, command map, error codes, warning codes, and event constants.
+> **Doc freshness (2026-05-23):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (59 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (13 channels). `packages/ts-api/tests/catalogs.test.ts` now guards the command count, command map, error codes, warning codes, and event constants.
 
 - Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/remote-core/src/lib.rs`, `crates/provider-sftp/src/lib.rs`, `crates/config/src/network.rs`, `crates/platform/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
 - Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError,uri}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
@@ -42,11 +42,11 @@ Each IPC payload is a `serde(rename_all = "camelCase")` DTO defined in `crates/a
 
 ## Tauri command catalog
 
-The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!` with `commands::*` paths). Handler bodies live in `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,folder_size,recursive_search,watch,preferences,autostart,navigation,network,file_operations,diagnostics}.rs`. Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/commandMap.ts` and the per-domain methods in `packages/ts-api/src/clients/*.ts`.
+The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!` with `commands::*` paths). Handler bodies live in `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,git,folder_size,recursive_search,watch,preferences,autostart,navigation,network,file_operations,diagnostics}.rs`. Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/commandMap.ts` and the per-domain methods in `packages/ts-api/src/clients/*.ts`.
 
-### Full registry (2026-05-19)
+### Full registry (2026-05-23)
 
-**57 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
+**59 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
 
 | Tauri command                        | TS dotted name (typical)           | Client area              |
 | ------------------------------------ | ---------------------------------- | ------------------------ |
@@ -68,6 +68,8 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `fs_open_default`                    | `fs.open_default`                  | `FsClient`               |
 | `fs_reveal`                          | `fs.reveal`                        | `FsClient`               |
 | `fs_properties`                      | `fs.properties`                    | `FsClient`               |
+| `git_discover`                       | `git.discover`                     | `GitClient`              |
+| `git_status_for_directory`           | `git.statusForDirectory`           | `GitClient`              |
 | `fs_folder_size`                     | `fs.folder_size`                   | `FsClient`               |
 | `fs_folder_size_start`               | `fs.folder_size_start`             | `FsClient`               |
 | `fs_recursive_search`                | `fs.recursive_search`              | `FsClient`               |
@@ -192,6 +194,17 @@ The `FsClient` exposes several one-shot filesystem helpers. These still cross th
 | `fs_properties` / `fs.properties`                 | `{ uri, includeFolderSummary? }`                  | `{ properties }`                            | Returns metadata plus optional recursive summary for directories.                                                                   |
 
 `PathPropertiesDto` includes `uri`, `name`, `kind`, file `size`, optional `totalSize`/`itemCount`/`fileCount`/`directoryCount`, timestamps, hidden/symlink flags, `symlinkTarget`, `readonly`, and non-fatal `warnings`.
+
+### Git commands
+
+Git commands are local-only metadata helpers backed by `crates/git-intel`. They accept `ResourceUri` strings and return empty repository state when the URI is outside a Git repository.
+
+| Command                                               | Request   | Response            | Notes                                                               |
+| ----------------------------------------------------- | --------- | ------------------- | ------------------------------------------------------------------- |
+| `git_discover` / `git.discover`                       | `{ uri }` | `{ repo }`          | Returns repository root, branch, short HEAD, and dirty state.       |
+| `git_status_for_directory` / `git.statusForDirectory` | `{ uri }` | `{ repo, entries }` | Returns repository info plus visible-directory status keyed by URI. |
+
+`GitFileStatusDto` values are `clean`, `modified`, `added`, `deleted`, `renamed`, `untracked`, `ignored`, `conflicted`, and `unknown`. Remote Git status remains deferred.
 
 ### Metadata jobs: folder size and recursive search
 
@@ -801,6 +814,7 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/dial
 | `authentication_failed`   | `VfsError`, `RemoteError`, `terminal-core`    | SFTP or SSH terminal login/key auth rejected.                   |
 | `connection_lost`         | `VfsError`, `RemoteError`                     | Active session dropped mid-operation.                           |
 | `folder_not_found`        | Tauri shell                                   | Watch start requires an existing directory.                     |
+| `git_command_failed`      | `git-intel`, Tauri shell                      | Local `git` command failed for a repository query.              |
 | `invalid_request`         | `FileOperationError`                          | Operation request shape is wrong (missing sources, etc.).       |
 | `invalid_name`            | `FileOperationError`                          | Proposed name is empty, contains separators, or is reserved.    |
 | `invalid_path`            | `FileOperationError`                          | URI parsed but is not usable for this operation.                |

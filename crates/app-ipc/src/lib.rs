@@ -1,4 +1,7 @@
+use std::collections::HashMap;
+
 use chrono::{DateTime, Utc};
+use git_intel::{GitDirectoryStatus, GitError, GitFileStatus, GitRepoInfo};
 use jobs::{JobEvent, JobSnapshot};
 use serde::{Deserialize, Serialize};
 use vfs::{
@@ -340,6 +343,40 @@ pub struct OpenTerminalRequest {
 #[serde(rename_all = "camelCase")]
 pub struct OpenTerminalResponse {
     pub success: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitDiscoverRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRepoInfoDto {
+    pub root_uri: String,
+    pub branch: Option<String>,
+    pub head_short: Option<String>,
+    pub is_dirty: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitDiscoverResponse {
+    pub repo: Option<GitRepoInfoDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitStatusForDirectoryRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitStatusForDirectoryResponse {
+    pub repo: Option<GitRepoInfoDto>,
+    pub entries: HashMap<String, GitFileStatus>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -902,6 +939,7 @@ pub mod error_codes {
     pub const AUTHENTICATION_FAILED: &str = "authentication_failed";
     pub const CONNECTION_LOST: &str = "connection_lost";
     pub const FOLDER_NOT_FOUND: &str = "folder_not_found";
+    pub const GIT_COMMAND_FAILED: &str = "git_command_failed";
     pub const UNKNOWN: &str = "unknown";
     pub const TAURI_UNAVAILABLE: &str = "tauri_unavailable";
     pub const UNSUPPORTED_TRANSPORT: &str = "unsupported_transport";
@@ -943,6 +981,7 @@ pub mod error_codes {
         AUTHENTICATION_FAILED,
         CONNECTION_LOST,
         FOLDER_NOT_FOUND,
+        GIT_COMMAND_FAILED,
         UNKNOWN,
         TAURI_UNAVAILABLE,
         UNSUPPORTED_TRANSPORT,
@@ -1010,6 +1049,30 @@ impl From<FileEntry> for FileEntryDto {
             can_rename: entry.capabilities.can_rename,
             permissions: entry.permissions,
             owner: entry.owner,
+        }
+    }
+}
+
+impl From<GitRepoInfo> for GitRepoInfoDto {
+    fn from(repo: GitRepoInfo) -> Self {
+        Self {
+            root_uri: repo.root_uri.as_str().to_string(),
+            branch: repo.branch,
+            head_short: repo.head_short,
+            is_dirty: repo.is_dirty,
+        }
+    }
+}
+
+impl From<GitDirectoryStatus> for GitStatusForDirectoryResponse {
+    fn from(status: GitDirectoryStatus) -> Self {
+        Self {
+            repo: status.repo.map(Into::into),
+            entries: status
+                .entries
+                .into_iter()
+                .map(|(uri, status)| (uri.as_str().to_string(), status))
+                .collect(),
         }
     }
 }
@@ -1272,6 +1335,15 @@ impl From<FileOperationError> for IpcError {
     }
 }
 
+impl From<GitError> for IpcError {
+    fn from(error: GitError) -> Self {
+        Self {
+            code: error.code().to_string(),
+            message: error.to_string(),
+        }
+    }
+}
+
 impl From<app_core_history::Record> for OperationHistoryRecordDto {
     fn from(record: app_core_history::Record) -> Self {
         Self {
@@ -1393,12 +1465,17 @@ impl IpcError {
     pub fn folder_not_found(message: impl Into<String>) -> Self {
         Self::new(error_codes::FOLDER_NOT_FOUND, message)
     }
+
+    pub fn git_command_failed(message: impl Into<String>) -> Self {
+        Self::new(error_codes::GIT_COMMAND_FAILED, message)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashSet;
+    use git_intel::{GitDirectoryStatus, GitFileStatus, GitRepoInfo};
+    use std::collections::{HashMap, HashSet};
     use vfs::{EntryCapabilities, ListSessionId, ProviderId, ResourceUri};
 
     #[test]
@@ -1469,6 +1546,33 @@ mod tests {
     }
 
     #[test]
+    fn serializes_git_status_response_with_resource_uri_keys() {
+        let root_uri = ResourceUri::parse("local:///tmp/repo").unwrap();
+        let changed_uri = ResourceUri::parse("local:///tmp/repo/changed.txt").unwrap();
+        let status = GitDirectoryStatus {
+            repo: Some(GitRepoInfo {
+                root_uri: root_uri.clone(),
+                branch: Some("main".to_string()),
+                head_short: Some("abcdef1".to_string()),
+                is_dirty: true,
+            }),
+            entries: HashMap::from([(changed_uri, GitFileStatus::Modified)]),
+        };
+
+        let response = GitStatusForDirectoryResponse::from(status);
+        let encoded = serde_json::to_value(&response).unwrap();
+
+        assert_eq!(encoded["repo"]["rootUri"], "local:///tmp/repo");
+        assert_eq!(encoded["repo"]["branch"], "main");
+        assert_eq!(encoded["repo"]["headShort"], "abcdef1");
+        assert_eq!(encoded["repo"]["isDirty"], true);
+        assert_eq!(
+            encoded["entries"]["local:///tmp/repo/changed.txt"],
+            "modified"
+        );
+    }
+
+    #[test]
     fn maps_vfs_error_to_ipc_error() {
         let error = IpcError::from(VfsError::invalid_uri("bad", "missing scheme"));
 
@@ -1514,6 +1618,10 @@ mod tests {
             IpcError::folder_not_found("x").code,
             error_codes::FOLDER_NOT_FOUND
         );
+        assert_eq!(
+            IpcError::git_command_failed("x").code,
+            error_codes::GIT_COMMAND_FAILED
+        );
     }
 
     #[test]
@@ -1538,6 +1646,7 @@ mod tests {
             IpcError::from(FileOperationError::UnsupportedTrash {
                 message: "no trash".to_string(),
             }),
+            IpcError::from(GitError::CommandFailed("git failed".to_string())),
         ];
 
         for error in errors {

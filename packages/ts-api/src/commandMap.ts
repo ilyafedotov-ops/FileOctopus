@@ -13,6 +13,8 @@ export const commandMap: Record<string, string> = {
   "fs.open_default": "fs_open_default",
   "fs.reveal": "fs_reveal",
   "fs.properties": "fs_properties",
+  "git.discover": "git_discover",
+  "git.statusForDirectory": "git_status_for_directory",
   "fs.folder_size": "fs_folder_size",
   "fs.folder_size_start": "fs_folder_size_start",
   "fs.recursive_search": "fs_recursive_search",

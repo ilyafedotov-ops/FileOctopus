@@ -7,6 +7,7 @@ edition.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
 config = { path = "../config" }
 fs-core = { path = "../fs-core" }
+git-intel = { path = "../git-intel" }
 jobs = { path = "../jobs" }
 platform = { path = "../platform" }
 provider-sftp = { path = "../provider-sftp" }
