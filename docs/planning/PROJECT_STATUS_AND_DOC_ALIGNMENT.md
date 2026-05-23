@@ -70,25 +70,25 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 
 ### Specified but not implemented (or stub only)
 
-| Item                                                  | Spec source                 | Notes                                                                                                                 |
-| ----------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Application menu bar (full wiring)                    | Menu & Modal Spec §4        | Core File/Edit/View/Go/Tools items on dispatch; sort/theme/density/favorites-add still local; no native OS menu       |
-| Operations / Shortcuts / Advanced settings tabs       | UI Design Spec §Preferences | Merged into existing tabs or separate dialogs                                                                         |
-| Remember last used panes (setting + restore)          | UI Design Spec              | **Partial** — pane paths/tabs restore on startup (P2-4); dedicated preference toggle not exposed                      |
-| Diagnostics export location preference                | UI Design Spec              | Export path chosen at export time                                                                                     |
-| Tar / non-zip archive formats                         | RC spec §3.2                | Zip only at RC (`fs-core/file_ops/archive.rs`)                                                                        |
-| Checksum toolbar action                               | UI §4                       | **Met** — `op.checksum` wired through `useMetadataHandlers.handleChecksum` to `client.fs.computeHash` (sha256)        |
-| **Embedded terminal panel**                           | MVP §Embedded Terminal      | **Met** — local + SSH PTY on `main` (#2); pane terminal split, tabs, maximize/close; manual remote smoke pending      |
-| **Title bar sync/health indicator**                   | UI §1                       | Optional; not built                                                                                                   |
-| **Sidebar: Videos shortcut, network locations**       | UI §2 / Sprint 4            | SFTP network profiles implemented; Videos not in sidebar model                                                        |
-| **First-run overlay**                                 | Sprint 5 stretch            | Not built                                                                                                             |
-| **VfsProvider write methods**                         | RC spec §3.2                | **Met** — create_directory, create_file, rename, remove, copy_file, read_file_prefix across vfs/fs-core/provider-sftp |
-| **Image preview in PreviewPanel**                     | UI §Preview                 | Text only; image/media/pdf not implemented (TBD)                                                                      |
-| Last-path restore on startup                          | Sprint 5 FO-0243            | **Met** — last pane paths and active tab ids persist via layout store (P2-4)                                          |
-| Tabs per panel (multiple tabs)                        | MVP §3.1                    | **Met** — `TabBar` + open/close/switch; session restore on startup (P2-4)                                             |
-| Selection Properties (multi-select)                   | Menu spec §14.12; UI §18.2  | **Met** — `SelectionPropertiesDialog` wired from Properties when multiple items selected (P2-9)                       |
-| Full conflict dialog (Compare metadata, Apply to all) | UI Design Spec              | Plan/start conflict policy in copy/move dialog; not full spec matrix                                                  |
-| Pause on jobs                                         | UI §6                       | Cancel only                                                                                                           |
+| Item                                                  | Spec source                 | Notes                                                                                                                             |
+| ----------------------------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| Application menu bar (full wiring)                    | Menu & Modal Spec §4        | Core File/Edit/View/Go/Tools items on dispatch; sort/theme/density/favorites-add already via `dispatchCommand`; no native OS menu |
+| Operations / Shortcuts / Advanced settings tabs       | UI Design Spec §Preferences | Merged into existing tabs or separate dialogs                                                                                     |
+| Remember last used panes (setting + restore)          | UI Design Spec              | **Partial** — pane paths/tabs restore on startup (P2-4); dedicated preference toggle not exposed                                  |
+| Diagnostics export location preference                | UI Design Spec              | Export path chosen at export time                                                                                                 |
+| Tar / non-zip archive formats                         | RC spec §3.2                | Zip only at RC (`fs-core/file_ops/archive.rs`)                                                                                    |
+| Checksum toolbar action                               | UI §4                       | **Met** — `op.checksum` wired through `useMetadataHandlers.handleChecksum` to `client.fs.computeHash` (sha256)                    |
+| **Embedded terminal panel**                           | MVP §Embedded Terminal      | **Met** — local + SSH PTY on `main` (#2); pane terminal split, tabs, maximize/close; manual remote smoke pending                  |
+| **Title bar sync/health indicator**                   | UI §1                       | Optional; not built                                                                                                               |
+| **Sidebar: Videos shortcut, network locations**       | UI §2 / Sprint 4            | SFTP network profiles implemented; Videos not in sidebar model                                                                    |
+| **First-run overlay**                                 | Sprint 5 stretch            | Not built                                                                                                                         |
+| **VfsProvider write methods**                         | RC spec §3.2                | **Met** — create_directory, create_file, rename, remove, copy_file, read_file_prefix across vfs/fs-core/provider-sftp             |
+| **Image preview in PreviewPanel**                     | UI §Preview                 | **Met** — `fs_read_image` IPC + `ViewerImageMode` + `PreviewPanel` image support; PDF/media/EXIF expansion deferred               |
+| Last-path restore on startup                          | Sprint 5 FO-0243            | **Met** — last pane paths and active tab ids persist via layout store (P2-4)                                                      |
+| Tabs per panel (multiple tabs)                        | MVP §3.1                    | **Met** — `TabBar` + open/close/switch; session restore on startup (P2-4)                                                         |
+| Selection Properties (multi-select)                   | Menu spec §14.12; UI §18.2  | **Met** — `SelectionPropertiesDialog` wired from Properties when multiple items selected (P2-9)                                   |
+| Full conflict dialog (Compare metadata, Apply to all) | UI Design Spec              | **Met** — per-item actions, metadata comparison, apply-to-all checkbox (RC-CONF; 11 tests passing)                                |
+| Pause on jobs                                         | UI §6                       | Cancel only                                                                                                                       |
 
 ### Intentionally deferred (RC spec §3.3)
 

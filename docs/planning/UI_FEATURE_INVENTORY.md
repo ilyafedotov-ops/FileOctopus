@@ -406,14 +406,18 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 
 ### Still not implemented (specified)
 
-- **Embedded terminal panel** — external spawn only (`fs_open_terminal`)
-- **Git branch + file badges** — ✅ implemented (`git-intel` crate, `usePaneGitStatus.ts`, FileRow badges M/A/D/R/?/I/U/!, PaneHeader branch name + dirty mark)
-- **Remember last panes / last-path restore** — no boot restore
 - **First-run overlay** — stretch, not built
 - **Videos sidebar entry, network locations, "This Week" recent group** — partial (API has `thisWeek` bucket; UI grouping may vary)
 - **Title bar sync/health indicator** — optional, not built
-- **VfsProvider write methods** — create_directory, create_file, rename, remove, copy_file, read_file_prefix (done 2026-05-22)
-- **Image preview in PreviewPanel** — text only; no image/media/pdf (TBD)
+- **PDF/media/EXIF preview expansion** — broader product expansion than current RC image-preview scope
+
+### Fixed doc drift (previously listed as not implemented, now done)
+
+- **Embedded terminal panel** — ✅ implemented (`terminal-core` crate, local + SSH PTY, bottom split, tabs, maximize/close)
+- **Git branch + file badges** — ✅ implemented (`git-intel` crate, `usePaneGitStatus.ts`, FileRow badges M/A/D/R/?/I/U/!, PaneHeader branch name + dirty mark)
+- **Remember last panes / last-path restore** — ✅ implemented (`layoutStore` persists pane paths and active tab IDs on startup; P2-4 `d08d97d`)
+- **VfsProvider write methods** — ✅ implemented (create_directory, create_file, rename, remove, copy_file, read_file_prefix across `vfs`/`fs-core`/`provider-sftp`; 2026-05-22)
+- **Image preview in PreviewPanel** — ✅ implemented (`fs_read_image` IPC handler, `ViewerImageMode`, `PreviewPanel` image support; RC-IMG `d74e917`)
 
 ### Previously listed as not implemented, now done (2026-05-17)
 
