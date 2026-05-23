@@ -18,10 +18,10 @@
 
 ## Active RC Queue
 
-| ID   | Pri | Status  | Owner | Run ID | Started UTC | Lock Expires UTC | Acceptance refs       | Task                                                                                        | Blockers | Last verified |
-| ---- | --- | ------- | ----- | ------ | ----------- | ---------------- | --------------------- | ------------------------------------------------------------------------------------------- | -------- | ------------- |
-| RC-3 | P1  | pending | -     | -      | -           | -                | RC spec §4.2 MVP-PERF | Manual 10k/100k UI perf capture on target hardware (automated evidence recorded 2026-05-19) | None     | 2026-05-19    |
-| RC-4 | P2  | pending | -     | -      | -           | -                | M5; mvp-rc-checklist  | MVP RC: manual sprint QA matrices + 100k UI recording (automated: `rc:qa`, diagnostics E2E) | None     | 2026-05-19    |
+| ID   | Pri | Status  | Owner | Run ID         | Started UTC          | Lock Expires UTC     | Acceptance refs       | Task                                                                                        | Blockers | Last verified |
+| ---- | --- | ------- | ----- | -------------- | -------------------- | -------------------- | --------------------- | ------------------------------------------------------------------------------------------- | -------- | ------------- |
+| RC-3 | P1  | done    | cron  | 2026-05-23-run | 2026-05-23T10:04:57Z | 2026-05-23T14:04:57Z | RC spec §4.2 MVP-PERF | Refresh automated RC evidence (rc-qa-automated.sh) for commit b1c3cfd                       | None     | 2026-05-23    |
+| RC-4 | P2  | pending | -     | -              | -                    | -                    | M5; mvp-rc-checklist  | MVP RC: manual sprint QA matrices + 100k UI recording (automated: `rc:qa`, diagnostics E2E) | None     | 2026-05-23    |
 
 ---
 

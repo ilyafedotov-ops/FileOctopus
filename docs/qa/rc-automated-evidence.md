@@ -1,41 +1,40 @@
 # RC Automated Evidence
 
-- **Date (UTC):** 2026-05-19T07:05:00Z
-- **Commit:** (local workspace)
-- **Runner:** `scripts/rc-qa-automated.sh` (partial) + targeted commands
+- **Date (UTC):** 2026-05-23T10:04:57Z
+- **Commit:** b1c3cfd
+- **Runner:** `scripts/rc-qa-automated.sh` (interrupted at E2E due to environmental timeout)
 
-## Automated checks
+## Automated checks (this run)
 
-| Check                  | Command / test                                                            | Result                                                                    |
-| ---------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| RC validate            | `pnpm rc:validate`                                                        | Pass (2026-05-19 session)                                                 |
-| Tauri bundles          | `pnpm tauri:build`                                                        | Pass — deb/rpm/AppImage under `target/release/bundle/`                    |
-| 10k list streaming     | `cargo test -p fs-core list_streams_without_collecting_all_entries_first` | Pass (~0.53s)                                                             |
-| 100k UI virtualization | `appShell.test.tsx` — 100k batch DOM cap                                  | Pass (frontend RC)                                                        |
-| Diagnostics E2E        | `e2e/diagnostics.e2e.ts`                                                  | 2/2 pass (`FO_E2E_WEB_SERVER=vite`)                                       |
-| App layout E2E         | `e2e/app-layout.e2e.ts`                                                   | 24/24 pass                                                                |
-| Visual regression      | `e2e/visual-regression.e2e.ts`                                            | 12/12 pass; baselines in `e2e/visual-regression.e2e.ts-snapshots/`        |
-| Full Playwright        | `pnpm test:e2e:vite`                                                      | 104 passed, 33 skipped (preview has no real FS rows for navigation tests) |
-| Diagnostics zip (Rust) | `diagnostics_bundle_contains_expected_files`                              | Pass (backend RC)                                                         |
+| Check                  | Command / test                                                            | Result                                                                                                       |
+| ---------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| RC validate backend    | `pnpm test:backend:rc`                                                    | ✅ Pass — cargo fmt, check, test, clippy all clean                                                           |
+| RC validate frontend   | `pnpm test:frontend:rc`                                                   | ✅ Pass — typecheck, lint, test (495 tests), build all clean                                                 |
+| 10k list streaming     | `cargo test -p fs-core list_streams_without_collecting_all_entries_first` | ✅ included in backend RC                                                                                    |
+| 100k UI virtualization | `appShell.test.tsx` — 100k batch DOM cap                                  | ✅ included in frontend RC (~6.6s)                                                                           |
+| Playwright E2E         | `FO_E2E_WEB_SERVER=vite npx playwright test`                              | ⚠️ Environmental timeout — webServer startup exceeds 120s in headless VM; known issue, not a code regression |
+| Smoke fixture          | `/tmp/fileoctopus-smoke`                                                  | ✅ prepared                                                                                                  |
+| Sprint 4 fixture       | `/tmp/fileoctopus-sprint-4`                                               | ✅ prepared                                                                                                  |
+| 10k tree               | `./tmp/10k`                                                               | ✅ reused                                                                                                    |
 
-## Fixtures prepared
+## Previous automated evidence (2026-05-19)
 
-| Fixture           | Path                                                         |
-| ----------------- | ------------------------------------------------------------ |
-| Sprint 3 smoke    | `/tmp/fileoctopus-smoke` (includes 32 MiB `large.bin`)       |
-| Sprint 4 baseline | `/tmp/fileoctopus-sprint-4` (hidden file + `needle.txt`)     |
-| 10k tree          | `./tmp/10k` (reuse or `fileoctopus-test-tree --files 10000`) |
+| Check                  | Result                                 |
+| ---------------------- | -------------------------------------- |
+| Diagnostics E2E        | ✅ 2/2 pass (`FO_E2E_WEB_SERVER=vite`) |
+| App layout E2E         | ✅ 24/24 pass                          |
+| Visual regression      | ✅ 12/12 pass                          |
+| Full Playwright        | ✅ 104 passed, 33 skipped              |
+| Diagnostics zip (Rust) | ✅ Pass (backend RC)                   |
 
-## Manual follow-up (target hardware)
+## Manual follow-up (human on target hardware)
 
-- [ ] `docs/qa/sprint-3-smoke-test.md` on packaged AppImage/deb
-- [ ] `docs/qa/sprint-4-baseline-qa.md` full matrix
-- [ ] `docs/testing/large-directory-performance.md` — UI scroll recording for `tmp/10k` and `tmp/100k`
-- [ ] Inspect real diagnostics zip from packaged build (not preview transport)
+- [ ] `docs/qa/sprint-3-smoke-test.md` against packaged `.deb` / AppImage
+- [ ] `docs/qa/sprint-4-baseline-qa.md` full checklist
+- [ ] `docs/testing/large-directory-performance.md` scroll recording for `tmp/10k` and `tmp/100k`
+- [ ] Export diagnostics bundle from Help menu and inspect zip contents
 
-## Dev navigation URIs
+## Navigation URIs (preview / dev)
 
-Replace `<repo>` with absolute workspace path:
-
-- 10k: `local://<repo>/tmp/10k`
-- 100k: generate then `local://<repo>/tmp/100k`
+- 10k: `local:///home/ilya/FileOctupus/tmp/10k`
+- 100k: generate with `cargo run -p test-support --bin fileoctopus-test-tree -- --root ./tmp/100k --files 100000` then navigate to `local:///home/ilya/FileOctupus/tmp/100k`

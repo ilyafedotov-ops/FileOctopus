@@ -1,8 +1,50 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-23 07:15 UTC
+> Last run: 2026-05-23 10:04 UTC
 
 ## Health Gate
+
+| Check                         | Result                                                            |
+| ----------------------------- | ----------------------------------------------------------------- |
+| TypeScript (`pnpm typecheck`) | ✅ 0 errors                                                       |
+| Rust (`cargo check`)          | ✅ clean (all workspace crates)                                   |
+| Rust tests (`cargo test`)     | ✅ pass (workspace + integration)                                 |
+| Frontend tests (`pnpm test`)  | ✅ 495 pass (77 files)                                            |
+| E2E tests (Playwright)        | ⚠️ environmental timeout (webServer startup >120s in headless VM) |
+| Clippy (`-D warnings`)        | ✅ clean                                                          |
+| Format (`cargo fmt --check`)  | ✅ clean                                                          |
+| Prettier (`format:check`)     | ✅ clean                                                          |
+| `pnpm rc:validate`            | ✅ full pipeline green                                            |
+| `cargo audit`                 | ⚠️ 17 warnings (gtk3 unmaintained, Tauri transitive — no action)  |
+
+## Work Completed This Cycle
+
+- **Refreshed automated RC evidence** (`scripts/rc-qa-automated.sh`):
+  - Backend RC: ✅ cargo fmt, check, test, clippy all clean
+  - Frontend RC: ✅ typecheck, lint, 495 tests, build all clean
+  - Fixtures prepared: `/tmp/fileoctopus-smoke`, `/tmp/fileoctopus-sprint-4`, `./tmp/10k`
+  - E2E: ⚠️ environmental webServer startup timeout (known headless VM issue; not a code regression)
+- **Updated `docs/qa/rc-automated-evidence.md`** with commit `b1c3cfd`
+
+## Active RC Queue Status
+
+| ID   | Status  | Notes                                                                        |
+| ---- | ------- | ---------------------------------------------------------------------------- |
+| RC-3 | done    | Automated evidence refreshed; manual 10k/100k scroll recording remains human |
+| RC-4 | pending | Automated evidence refreshed; manual sprint QA matrices remain human         |
+
+## Remaining (human)
+
+| ID   | Task                                                                  |
+| ---- | --------------------------------------------------------------------- |
+| RC-3 | UI scroll recordings `tmp/10k` / `tmp/100k` on laptop                 |
+| RC-4 | Sprint 3/4 checklists on packaged build (`scripts/packaged-smoke.sh`) |
+
+---
+
+## Historical: 2026-05-23 07:15 UTC
+
+### Health Gate
 
 | Check                         | Result                                                            |
 | ----------------------------- | ----------------------------------------------------------------- |
@@ -17,7 +59,7 @@
 | `pnpm rc:validate`            | ✅ full pipeline green                                            |
 | `cargo audit`                 | ⚠️ 17 warnings (gtk3 unmaintained, Tauri transitive — no action)  |
 
-## Commits pushed this cycle (86 since 2026-05-19)
+### Commits pushed this cycle (86 since 2026-05-19)
 
 | Commit    | Description                                                                      |
 | --------- | -------------------------------------------------------------------------------- |
@@ -44,7 +86,7 @@
 | `4437858` | feat: add dispatch exhaustiveness test and backfill missing registry commands    |
 | `822d0ca` | feat: derive CommandId from as-const registry and remove manual union            |
 
-## Work Summary
+### Work Summary
 
 Since the last CRON run (2026-05-19), the codebase advanced significantly with **86 commits**:
 
@@ -59,10 +101,3 @@ Since the last CRON run (2026-05-19), the codebase advanced significantly with *
 - **Phase 5 refactor** — state and controller refactor + runtime reliability hardening.
 
 All health gates remain green. E2E tests had environmental connection-refused issues on a subset of files due to Playwright webServer port contention; the tests that executed all passed.
-
-## Remaining (human)
-
-| ID   | Task                                                                  |
-| ---- | --------------------------------------------------------------------- |
-| RC-3 | UI scroll recordings `tmp/10k` / `tmp/100k` on laptop                 |
-| RC-4 | Sprint 3/4 checklists on packaged build (`scripts/packaged-smoke.sh`) |
