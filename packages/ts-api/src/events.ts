@@ -11,3 +11,4 @@ export const RECURSIVE_SEARCH_MATCH_EVENT = "fs:recursiveSearch:match";
 export const RECURSIVE_SEARCH_COMPLETED_EVENT = "fs:recursiveSearch:completed";
 export const TERMINAL_OUTPUT_EVENT = "terminal:output";
 export const TERMINAL_EXIT_EVENT = "terminal:exit";
+export const NATIVE_MENU_COMMAND_EVENT = "nativeMenu:command";

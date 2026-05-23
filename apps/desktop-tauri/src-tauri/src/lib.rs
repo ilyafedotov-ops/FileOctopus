@@ -2,6 +2,7 @@ use app_core::AppCore;
 
 mod commands;
 mod emit;
+mod menu;
 mod state;
 
 use state::{ListingRegistry, MetadataJobState, WatchState};
@@ -20,8 +21,12 @@ pub fn run() {
         .manage(WatchState::default())
         .manage(MetadataJobState::default())
         .manage(ListingRegistry::default())
+        .on_menu_event(|app, event| {
+            menu::handle_native_menu_event(app, event.id().as_ref());
+        })
         .setup(|app| {
             telemetry::info("FileOctopus Tauri shell started");
+            app.set_menu(menu::build_native_menu(app.handle())?)?;
 
             let app_handle = app.handle().clone();
             let state = app_handle

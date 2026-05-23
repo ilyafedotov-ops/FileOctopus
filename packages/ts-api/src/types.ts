@@ -118,6 +118,12 @@ export interface ExportDiagnosticsBundleResponse {
   files: string[];
 }
 
+export interface NativeMenuCommandEventDto {
+  commandId: string;
+  sortField?: string | null;
+  preferenceValue?: string | null;
+}
+
 export interface ClearOperationHistoryResponse {
   deletedCount: number;
 }

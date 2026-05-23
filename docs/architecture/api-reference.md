@@ -2,7 +2,7 @@
 
 This document is the authoritative description of FileOctopus's runtime API surface: the Tauri IPC commands, the events streamed back from Rust, the `@fileoctopus/ts-api` client that wraps them, and the domain types that flow across the boundary. It is the contract every change to filesystem behaviour must respect (see ADR-0002 and ADR-0003).
 
-> **Doc freshness (2026-05-23):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (59 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (13 channels). `packages/ts-api/tests/catalogs.test.ts` now guards the command count, command map, error codes, warning codes, and event constants.
+> **Doc freshness (2026-05-23):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (59 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (14 channels). `packages/ts-api/tests/catalogs.test.ts` now guards the command count, command map, error codes, warning codes, and event constants.
 
 - Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/remote-core/src/lib.rs`, `crates/provider-sftp/src/lib.rs`, `crates/config/src/network.rs`, `crates/platform/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
 - Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError,uri}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
@@ -339,6 +339,7 @@ Rust pushes events via `app.emit(name, payload)`. The TS client wraps them in `t
 | `fs:recursiveSearch:completed` (`RECURSIVE_SEARCH_COMPLETED_EVENT`) | `RecursiveSearchCompletedEventDto` | Recursive-search metadata job             |
 | `terminal:output` (`TERMINAL_OUTPUT_EVENT`)                         | `TerminalOutputEventDto`           | Local and SSH PTY output chunk            |
 | `terminal:exit` (`TERMINAL_EXIT_EVENT`)                             | `TerminalExitEventDto`             | Local and SSH PTY session exit            |
+| `nativeMenu:command` (`NATIVE_MENU_COMMAND_EVENT`)                  | `NativeMenuCommandEventDto`        | Native Tauri application menu selection   |
 
 Names are exported as constants from both sides (`crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts`, re-exported from the package root). The Rust enum-to-name mapping lives in `app_ipc::job_event_name`; the payload serializer is `app_ipc::job_event_payload`.
 
@@ -895,7 +896,7 @@ The frontend never imports these directly, but internal callers and tests do.
 
 ### `app-ipc`
 
-Every public type here is a DTO with a `From`/`TryFrom` between the domain type and its wire form where a domain type exists, and a matching TypeScript interface. The event-name constants (`DIRECTORY_BATCH_EVENT`, `JOB_*_EVENT`, `WATCH_CHANGED_EVENT`, `FOLDER_SIZE_COMPLETED_EVENT`, `RECURSIVE_SEARCH_*_EVENT`) and the helpers `job_event_name(&JobEvent) -> &'static str`, `job_event_payload(JobEvent) -> serde_json::Value` are the Rust source of truth for event channel names; the Tauri command and the TS client both depend on them.
+Every public type here is a DTO with a `From`/`TryFrom` between the domain type and its wire form where a domain type exists, and a matching TypeScript interface. The event-name constants (`DIRECTORY_BATCH_EVENT`, `JOB_*_EVENT`, `WATCH_CHANGED_EVENT`, `FOLDER_SIZE_COMPLETED_EVENT`, `RECURSIVE_SEARCH_*_EVENT`, `TERMINAL_*_EVENT`, `NATIVE_MENU_COMMAND_EVENT`) and the helpers `job_event_name(&JobEvent) -> &'static str`, `job_event_payload(JobEvent) -> serde_json::Value` are the Rust source of truth for event channel names; the Tauri command and the TS client both depend on them.
 
 ## Maintenance
 

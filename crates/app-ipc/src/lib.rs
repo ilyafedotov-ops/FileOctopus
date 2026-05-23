@@ -23,6 +23,7 @@ pub const RECURSIVE_SEARCH_MATCH_EVENT: &str = "fs:recursiveSearch:match";
 pub const RECURSIVE_SEARCH_COMPLETED_EVENT: &str = "fs:recursiveSearch:completed";
 pub const TERMINAL_OUTPUT_EVENT: &str = "terminal:output";
 pub const TERMINAL_EXIT_EVENT: &str = "terminal:exit";
+pub const NATIVE_MENU_COMMAND_EVENT: &str = "nativeMenu:command";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -236,6 +237,14 @@ pub struct ExportDiagnosticsBundleRequest {
 pub struct ExportDiagnosticsBundleResponse {
     pub path: String,
     pub files: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NativeMenuCommandEventDto {
+    pub command_id: String,
+    pub sort_field: Option<String>,
+    pub preference_value: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

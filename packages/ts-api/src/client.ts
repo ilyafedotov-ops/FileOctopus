@@ -1,4 +1,9 @@
-import type { AppInfoResponse, IpcTransport } from "./types";
+import type {
+  AppInfoResponse,
+  IpcTransport,
+  NativeMenuCommandEventDto,
+  UnlistenFn,
+} from "./types";
 import { AutostartClient } from "./clients/autostart";
 import { DiagnosticsClient } from "./clients/diagnostics";
 import { FileOperationsClient } from "./clients/fileOperations";
@@ -12,6 +17,8 @@ import { PreferencesClient } from "./clients/preferences";
 import { TerminalClient } from "./clients/terminal";
 import { createPreviewTransport } from "./transports/preview";
 import { createTauriTransport, isTauriRuntime } from "./transports/tauri";
+import { requireListen } from "./requireListen";
+import { NATIVE_MENU_COMMAND_EVENT } from "./events";
 
 export * from "./events";
 export { normalizeIpcError } from "./normalizeError";
@@ -45,6 +52,12 @@ export class FileOctopusClient {
 
   getAppInfo(): Promise<AppInfoResponse> {
     return this.transport.invoke<AppInfoResponse>("app.get_info");
+  }
+
+  onNativeMenuCommand(
+    handler: (event: NativeMenuCommandEventDto) => void,
+  ): Promise<UnlistenFn> {
+    return requireListen(this.transport, NATIVE_MENU_COMMAND_EVENT, handler);
   }
 }
 

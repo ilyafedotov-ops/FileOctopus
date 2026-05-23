@@ -5,6 +5,7 @@ import {
   FileOctopusClient,
   IPC_ERROR_CODES,
   FILE_OPERATION_WARNING_CODES,
+  NATIVE_MENU_COMMAND_EVENT,
   RECURSIVE_SEARCH_COMPLETED_EVENT,
   RECURSIVE_SEARCH_MATCH_EVENT,
   isKnownFileOperationWarningCode,
@@ -309,6 +310,32 @@ describe("FileOctopusClient", () => {
 
     expect(subscribedEvent).toBe(DIRECTORY_BATCH_EVENT);
     expect(events).toEqual(["session-1"]);
+  });
+
+  it("subscribes to native menu command events", async () => {
+    let subscribedEvent = "";
+    const transport: IpcTransport = {
+      async invoke<TResponse>() {
+        return {} as TResponse;
+      },
+      async listen(event, handler) {
+        subscribedEvent = event;
+        handler({
+          commandId: "view.sort",
+          sortField: "owner",
+        });
+        return () => undefined;
+      },
+    };
+    const client = new FileOctopusClient(transport);
+    const events: string[] = [];
+
+    await client.onNativeMenuCommand((event) => {
+      events.push(`${event.commandId}:${event.sortField}`);
+    });
+
+    expect(subscribedEvent).toBe(NATIVE_MENU_COMMAND_EVENT);
+    expect(events).toEqual(["view.sort:owner"]);
   });
 
   it("routes file operation and job commands through typed clients", async () => {
