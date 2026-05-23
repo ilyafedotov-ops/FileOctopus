@@ -4,7 +4,7 @@ FileOctopus is a Tauri v2 desktop file manager with a Rust-owned filesystem boun
 
 ## Current status
 
-**Release Candidate (v0.1.0).** Milestones M0–M3 of the [RC engineering spec](docs/architecture/rc-engineering-spec.md) are largely complete on `main`. M4 is partial (zip archives in `fs-core`; Git and embedded terminal deferred).
+**Release Candidate (v0.1.0).** Milestones M0–M3 of the [RC engineering spec](docs/architecture/rc-engineering-spec.md) are largely complete on `main`. M4 is mostly complete: zip archives, local Git decorations, SFTP remote workspaces, and local/SSH embedded terminal are implemented, with hardening work still tracked in planning docs.
 
 For a full doc ↔ code matrix, see **[docs/planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md](docs/planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md)**.
 
@@ -19,14 +19,15 @@ For a full doc ↔ code matrix, see **[docs/planning/PROJECT_STATUS_AND_DOC_ALIG
 - **Preferences**: theme, density, accent, font/icon scale, layout toggles, autostart (where supported)
 - **Polish**: command palette (Ctrl/Cmd+P), text preview (Space), filesystem watcher refresh, diagnostics export, shortcuts dialog
 - **Platform helpers**: open with default app, reveal in file manager, external terminal in folder (`fs_open_terminal`), folder size job, file hash (`fs_compute_hash`)
+- **Git decorations**: active local repository branch display and compact file status badges
+- **Remote workspace basics**: SFTP profiles and embedded local/SSH terminal tabs
 
 ### Not in RC yet
 
 - Full application menu bar wiring (shell exists — see [Menu spec](docs/plans/FileOctopus_Menu_and_Modal_Specification.md))
-- Git status badges and branch display
+- Remote Git status and Git cache/watch refresh hardening
 - Tar and non-zip archive formats
-- Embedded terminal panel (external emulator via `fs_open_terminal` works)
-- Multi-tab per pane, cloud/remote providers, plugins, AI search
+- Cloud providers beyond SFTP, plugins, AI search
 
 ## Prerequisites
 

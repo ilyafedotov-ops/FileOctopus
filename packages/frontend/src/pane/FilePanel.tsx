@@ -44,6 +44,7 @@ import {
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { paneDirectoryCanWrite } from "../navigation/fileMutationState";
 import type { ContextMenuState } from "../components/ContextMenu";
+import { usePaneGitStatus } from "./usePaneGitStatus";
 
 export type CopyMoveKind = "copy" | "move";
 
@@ -148,6 +149,7 @@ export function FilePanel({
   const displayedEntries = selectDisplayedEntries(tab);
   const itemCount = countVisibleEntries(tab);
   const selectedCount = countOperationalSelection(tab);
+  const gitStatus = usePaneGitStatus(client, tab.uri);
 
   const selectedEntry =
     displayedEntries.find((entry) => entry.uri === tab.selectedId) ?? null;
@@ -212,6 +214,8 @@ export function FilePanel({
         onBreadcrumbContextMenu={onBreadcrumbContextMenu}
         onOpenTerminal={onOpenTerminal}
         terminalDisabled={terminalDisabled}
+        gitBranch={gitStatus.repo?.branch ?? gitStatus.repo?.headShort ?? null}
+        gitDirty={gitStatus.repo?.isDirty ?? false}
       />
       <div className="fo-panel-filter-row">
         <FilterInput
@@ -311,6 +315,7 @@ export function FilePanel({
               selectedId={tab.selectedId}
               selectedIds={tab.selectedIds}
               focusedId={tab.focusedId}
+              gitStatuses={gitStatus.entries}
               sortField={tab.sort.field}
               sortDirection={tab.sort.direction}
               viewMode={tab.viewMode}

@@ -34,7 +34,7 @@ Slice audit against `main` as of 2026-05-22:
 | A — SSH Terminal V1 Readiness          | **Mostly done**    | SSH backend in `terminal-core/{lib,service}.rs`; SFTP profiles ≠ SSH-only profiles in `config/src/network.rs`; pane-bound + detached terminal launch wired; terminal input bytes redacted from logs                                                                                                                                        | Manual real-server smoke checklist remains an out-of-CI activity                                                                               |
 | B — Remote Operation Pipeline for SFTP | **Done**           | Single-URI write methods (`create_directory`, `create_file`, `rename`, `remove`, `copy_file` same-provider, `read_file_prefix`) implemented on the `VfsProvider` trait. `LocalFsProvider` and `SftpProvider` provide concrete impls; `VfsFilesystem` reduced to cross-scheme orchestration. `ProviderCapabilities` reflects trait reality. | Trash/archive/editor-save still local-only by design; documented in Phase 4 (power-user workflows) and Phase 5 (protocol expansion readiness). |
 | C — Remote Navigation Polish           | **Mostly done**    | `RemoveServerDialog`, forget-fingerprint UI, reconnect, `network:status` push events, sidebar status — delivered by network-provider-hardening stages 4–5                                                                                                                                                                                  | Capability metadata is honest (`SftpProvider::capabilities()` reports `read_write()`); rework when Phase 5 moves write methods onto the trait  |
-| D — Git Intelligence V1                | **In progress**    | `crates/git-intel` provides local repository discovery and porcelain status mapping with temporary-repository Rust tests; `git.discover` and `git.statusForDirectory` are mirrored through IPC and `@fileoctopus/ts-api`                                                                                                                   | UI branch display, file badges, async cache/refresh integration; remote Git remains deferred                                                   |
+| D — Git Intelligence V1                | **Mostly done**    | `crates/git-intel` provides local repository discovery and porcelain status mapping with temporary-repository Rust tests; `git.discover` and `git.statusForDirectory` are mirrored through IPC and `@fileoctopus/ts-api`; active local panes show branch and row status badges                                                             | Async cache/watch refresh hardening; remote Git remains deferred                                                                               |
 | E — Archive & Built-in Tools           | **Partially done** | `op.checksum` → `client.fs.computeHash`; built-in F3 viewer + F4 editor (`feat: add built-in F3 viewer and F4 editor`); zip create/extract via `file_ops`                                                                                                                                                                                  | Tar archive plan/extract pending dependency + traversal-safety choices                                                                         |
 
 ## Roadmap Phases
@@ -240,13 +240,13 @@ Intent: add local Git context without blocking file navigation.
 
 Implementation plan:
 
-- Add async Git repository discovery for local pane paths.
-- Show branch name in the active pane or path-adjacent status area.
-- Add file status badges for modified, added, deleted, untracked, ignored, and
-  clean states.
-- Cache Git status per repository and refresh asynchronously after navigation or
-  filesystem watch updates.
-- Defer remote Git status until remote file operation behavior is stable.
+- [x] Add async Git repository discovery for local pane paths.
+- [x] Show branch name in the active pane or path-adjacent status area.
+- [x] Add file status badges for modified, added, deleted, untracked, ignored, and
+      clean states.
+- [ ] Cache Git status per repository and refresh asynchronously after navigation or
+      filesystem watch updates.
+- [ ] Defer remote Git status until remote file operation behavior is stable.
 
 Public API and interface impacts:
 

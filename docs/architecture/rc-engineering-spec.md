@@ -4,19 +4,19 @@
 
 This document describes the **Release Candidate (RC)** engineering scope for FileOctopus v0.1.0: what ships in RC, known gaps versus the original MVP vision, as-built crate boundaries, IPC contracts, persistence, testing expectations, and acceptance criteria. It is the RC counterpart to the historical MVP build plan—not a greenfield implementation guide.
 
-The RC is a high-performance local dual-pane file manager with safe job-based file operations. Post-RC capabilities (Git decorations, embedded terminal, tar archives, full job SQLite schema) are tracked explicitly in §3.2 and §17. Broader product vision items (cloud, plugins, AI) remain in §3.3.
+The RC is a high-performance local dual-pane file manager with safe job-based file operations. Post-RC capabilities (remote Git, tar archives, full job SQLite schema) are tracked explicitly in §3.2 and §17. Broader product vision items (cloud, plugins, AI) remain in §3.3.
 
 ### RC delivery matrix (2026-05-18)
 
-| Area                       | RC status     | Shipped                                                                                                                                                      | Not in RC                                                                       |
-| -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| Core navigation & file ops | **Delivered** | Dual pane, pane tabs, streamed listing, virtualization, plan/start jobs, operation history; `fs-core` / `app-core` / Tauri `commands/*` / ts-api `clients/*` | Advanced session restore / tab persistence                                      |
-| Zip archives               | **Delivered** | `CreateArchive` / `ExtractArchive` in `fs-core/file_ops`, zip-slip tests, toolbar + context menu                                                             | Tar and other formats                                                           |
-| Jobs & persistence         | **Partial**   | In-memory jobs, progress events, cancel; SQLite `operation_history`                                                                                          | Full `job` / `job_item_result` schema (§9.2)                                    |
-| Git                        | **Partial**   | Backend `git-intel` crate plus `git.discover` / `git.statusForDirectory` IPC and TS client for local discovery/status                                        | UI branch display and file badges (MVP-GIT-\*)                                  |
-| Terminal                   | **Partial**   | `fs_open_terminal` (external emulator in active folder)                                                                                                      | Embedded xterm panel, `terminal-core`                                           |
-| UI                         | **Partial**   | Command palette (registry-driven), context menus, activity rail, preview, theme prefs, `MenuBar` on dispatch                                                 | Keyboard/toolbar on registry; native menu; Menu spec parity                     |
-| Platform & release         | **Partial**   | Windows/macOS/Linux CI builds                                                                                                                                | Formal RC sign-off (§16, [mvp-rc-checklist.md](../release/mvp-rc-checklist.md)) |
+| Area                       | RC status      | Shipped                                                                                                                                                          | Not in RC                                                                       |
+| -------------------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Core navigation & file ops | **Delivered**  | Dual pane, pane tabs, streamed listing, virtualization, plan/start jobs, operation history; `fs-core` / `app-core` / Tauri `commands/*` / ts-api `clients/*`     | Advanced session restore / tab persistence                                      |
+| Zip archives               | **Delivered**  | `CreateArchive` / `ExtractArchive` in `fs-core/file_ops`, zip-slip tests, toolbar + context menu                                                                 | Tar and other formats                                                           |
+| Jobs & persistence         | **Partial**    | In-memory jobs, progress events, cancel; SQLite `operation_history`                                                                                              | Full `job` / `job_item_result` schema (§9.2)                                    |
+| Git                        | **Mostly met** | Backend `git-intel` crate plus `git.discover` / `git.statusForDirectory` IPC and TS client for local discovery/status; active-pane branch display and row badges | Remote Git and cache/watch refresh hardening                                    |
+| Terminal                   | **Partial**    | `fs_open_terminal` external emulator plus embedded local/SSH PTY panel via `terminal-core`                                                                       | Manual remote smoke and polish                                                  |
+| UI                         | **Partial**    | Command palette (registry-driven), context menus, activity rail, preview, theme prefs, `MenuBar` on dispatch                                                     | Keyboard/toolbar on registry; native menu; Menu spec parity                     |
+| Platform & release         | **Partial**    | Windows/macOS/Linux CI builds                                                                                                                                    | Formal RC sign-off (§16, [mvp-rc-checklist.md](../release/mvp-rc-checklist.md)) |
 
 **Authoritative references:**
 
@@ -30,7 +30,7 @@ The RC is a high-performance local dual-pane file manager with safe job-based fi
 
 ## 2.1 RC Goal
 
-Deliver a fast, reliable, cross-platform dual-pane file manager suitable for daily local file work in the RC validation window: safe file operations with job progress and history, virtualized large-directory rendering, keyboard-first navigation, zip archive create/extract, and external-terminal integration. Git awareness and the embedded terminal are **post-RC** (§3.2).
+Deliver a fast, reliable, cross-platform dual-pane file manager suitable for daily local file work in the RC validation window: safe file operations with job progress and history, virtualized large-directory rendering, keyboard-first navigation, zip archive create/extract, external-terminal integration, and local Git awareness. Remote Git remains **post-RC** (§3.2).
 
 ## 2.2 User Persona
 
@@ -48,7 +48,7 @@ FileOctopus RC should prove three things:
 
 1. It is faster and more responsive than default OS file managers in large folders.
 2. It is safer and more controllable than ad-hoc shell operations for bulk file tasks.
-3. Its architecture (typed IPC, planned jobs, streaming listings) is extensible enough for post-RC workflow features (Git, embedded terminal, remote providers) without rework.
+3. Its architecture (typed IPC, planned jobs, streaming listings) is extensible enough for post-RC workflow features (remote Git, additional providers, plugins) without rework.
 
 ---
 
@@ -117,7 +117,8 @@ FileOctopus RC should prove three things:
 ### Terminal (RC)
 
 - Open default external terminal in active panel directory (`fs_open_terminal`).
-- Not in RC: embedded terminal panel or `terminal-core` PTY IPC.
+- Embedded local and SSH terminal panel via `terminal-core`.
+- Remaining hardening: manual remote smoke and polish.
 
 ### UI/UX
 
@@ -141,8 +142,8 @@ FileOctopus RC should prove three things:
 
 Items from the original MVP §3.1 that are **not** required for RC sign-off but may follow in 1.0:
 
-- Git branch display and file status badges in the UI; backend `git-intel` and `git.*` IPC exist.
-- Embedded terminal panel (xterm.js + PTY); RC uses external emulator only.
+- Remote Git status and Git cache/watch refresh hardening.
+- Embedded terminal manual smoke and polish.
 - Tar and non-zip archive formats (RC ships zip create/extract only).
 - Native OS menu integration and remaining [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) parity work (the in-app `MenuBar` shell is present).
 - Advanced session restore and tab persistence polish.
@@ -177,27 +178,27 @@ Items from the original MVP §3.1 that are **not** required for RC sign-off but 
 
 ## 4.1 Functional acceptance criteria
 
-| ID           | RC status      | Requirement             | Acceptance criteria                                                        |
-| ------------ | -------------- | ----------------------- | -------------------------------------------------------------------------- |
-| MVP-FS-001   | **Met**        | Directory navigation    | User can navigate local filesystem in both panels.                         |
-| MVP-FS-002   | **Met**        | Large directory listing | Folder with 100,000 files opens without UI freeze (see `docs/testing/`).   |
-| MVP-FS-003   | **Met**        | Copy operation          | User can copy files/folders between panels with progress.                  |
-| MVP-FS-004   | **Met**        | Move operation          | User can move files/folders between panels with progress.                  |
-| MVP-FS-005   | **Met**        | Rename                  | User can rename selected item.                                             |
-| MVP-FS-006   | **Met**        | New folder              | User can create a folder in active panel.                                  |
-| MVP-FS-007   | **Met**        | Trash/delete            | User can send items to OS trash where supported.                           |
-| MVP-FS-008   | **Met**        | Conflict handling       | User is prompted when destination conflict occurs.                         |
-| MVP-JOB-001  | **Met**        | Job queue               | Long operations appear in job queue / activity panel.                      |
-| MVP-JOB-002  | **Met**        | Cancellation            | Running copy/move/archive jobs can be cancelled.                           |
-| MVP-JOB-003  | **Met**        | Failure visibility      | Failed jobs expose error detail.                                           |
-| MVP-JOB-004  | **Mostly met** | Restart persistence     | Operation history inspectable after restart; live jobs in-memory only.     |
-| MVP-GIT-001  | **Partial**    | Git branch              | Backend/API can discover branch; active-panel UI display remains deferred. |
-| MVP-GIT-002  | **Partial**    | Git badges              | Backend/API can map statuses; file-list UI badges remain deferred.         |
-| MVP-ARC-001  | **Partial**    | Archive extraction      | Zip create/extract to destination; tar not implemented.                    |
-| MVP-ARC-002  | **Met**        | Archive safety          | Malicious archive path traversal is blocked (zip-slip tests).              |
-| MVP-TERM-001 | **Partial**    | Terminal open           | External terminal in active panel path; embedded panel deferred.           |
-| MVP-UI-001   | **Partial**    | Keyboard flow           | Shortcuts + command palette; menu bar shell partial.                       |
-| MVP-SEC-001  | **Met**        | No direct FS frontend   | Frontend has no unrestricted generic filesystem access (ADR-0002).         |
+| ID           | RC status      | Requirement             | Acceptance criteria                                                           |
+| ------------ | -------------- | ----------------------- | ----------------------------------------------------------------------------- |
+| MVP-FS-001   | **Met**        | Directory navigation    | User can navigate local filesystem in both panels.                            |
+| MVP-FS-002   | **Met**        | Large directory listing | Folder with 100,000 files opens without UI freeze (see `docs/testing/`).      |
+| MVP-FS-003   | **Met**        | Copy operation          | User can copy files/folders between panels with progress.                     |
+| MVP-FS-004   | **Met**        | Move operation          | User can move files/folders between panels with progress.                     |
+| MVP-FS-005   | **Met**        | Rename                  | User can rename selected item.                                                |
+| MVP-FS-006   | **Met**        | New folder              | User can create a folder in active panel.                                     |
+| MVP-FS-007   | **Met**        | Trash/delete            | User can send items to OS trash where supported.                              |
+| MVP-FS-008   | **Met**        | Conflict handling       | User is prompted when destination conflict occurs.                            |
+| MVP-JOB-001  | **Met**        | Job queue               | Long operations appear in job queue / activity panel.                         |
+| MVP-JOB-002  | **Met**        | Cancellation            | Running copy/move/archive jobs can be cancelled.                              |
+| MVP-JOB-003  | **Met**        | Failure visibility      | Failed jobs expose error detail.                                              |
+| MVP-JOB-004  | **Mostly met** | Restart persistence     | Operation history inspectable after restart; live jobs in-memory only.        |
+| MVP-GIT-001  | **Met**        | Git branch              | Active local repository panes display the current branch or detached HEAD.    |
+| MVP-GIT-002  | **Met**        | Git badges              | File rows show compact local Git status badges from `git.statusForDirectory`. |
+| MVP-ARC-001  | **Partial**    | Archive extraction      | Zip create/extract to destination; tar not implemented.                       |
+| MVP-ARC-002  | **Met**        | Archive safety          | Malicious archive path traversal is blocked (zip-slip tests).                 |
+| MVP-TERM-001 | **Partial**    | Terminal open           | External terminal plus embedded local/SSH terminal; manual smoke pending.     |
+| MVP-UI-001   | **Partial**    | Keyboard flow           | Shortcuts + command palette; menu bar shell partial.                          |
+| MVP-SEC-001  | **Met**        | No direct FS frontend   | Frontend has no unrestricted generic filesystem access (ADR-0002).            |
 
 ## 4.2 Performance acceptance criteria
 
@@ -226,14 +227,14 @@ Protocol: [`docs/testing/large-directory-performance.md`](../testing/large-direc
 
 ## 5. Engineering Milestones
 
-| Milestone                      | RC status                                                                                              |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------ |
-| M0 — Repo & build foundation   | **Done**                                                                                               |
-| M1 — Local navigation slice    | **Done**                                                                                               |
-| M2 — Durable job engine        | **Mostly done** (in-memory jobs + operation history)                                                   |
-| M3 — Conflict & safety         | **Mostly done**                                                                                        |
-| M4 — Git, archive, terminal v1 | **Partial** (zip archives in `fs-core`; backend `git-intel` foundation; embedded terminal not started) |
-| M5 — RC hardening              | **In progress**                                                                                        |
+| Milestone                      | RC status                                                                                       |
+| ------------------------------ | ----------------------------------------------------------------------------------------------- |
+| M0 — Repo & build foundation   | **Done**                                                                                        |
+| M1 — Local navigation slice    | **Done**                                                                                        |
+| M2 — Durable job engine        | **Mostly done** (in-memory jobs + operation history)                                            |
+| M3 — Conflict & safety         | **Mostly done**                                                                                 |
+| M4 — Git, archive, terminal v1 | **Mostly done** (zip archives in `fs-core`; local Git decorations; embedded local/SSH terminal) |
+| M5 — RC hardening              | **In progress**                                                                                 |
 
 ## 5.1 Milestone 0: Repository and Build Foundation
 
@@ -322,22 +323,23 @@ Protocol: [`docs/testing/large-directory-performance.md`](../testing/large-direc
 
 ## 5.5 Milestone 4: Git, Archive, Terminal v1
 
-**RC status: Partial.** Zip create/extract shipped inside `fs-core/file_ops` (not separate `archive-core`). External terminal via `fs_open_terminal`. Backend `git-intel` and Git IPC/TS client exist for local discovery/status; UI Git decorations and embedded terminal remain deferred.
+**RC status: Mostly done.** Zip create/extract shipped inside `fs-core/file_ops` (not separate `archive-core`). External terminal via `fs_open_terminal`. Embedded local + SSH PTY and local Git branch/status UI are implemented; remote Git and terminal manual smoke remain hardening work.
 
 ### Deliverables (original plan)
 
 - `git-intel` crate — **backend foundation started**
 - `archive-core` crate — **superseded at RC** by `fs-core/file_ops/archive.rs`
-- `terminal-core` crate — **post-RC** (embedded panel)
-- Git branch and status badges — **post-RC UI**
+- `terminal-core` crate — **done** (local + SSH embedded panel)
+- Git branch and status badges — **done for local repositories**
 - Zip archive create/extract as planned file operations — **done**
-- Embedded terminal panel — **post-RC**
+- Embedded terminal panel — **done; manual remote smoke pending**
 
 ### Done criteria (RC)
 
 - Zip archive creates and extracts safely with path-traversal guards.
 - User can open external terminal in active panel path.
-- Git branch/badges UI and embedded terminal are not RC blockers.
+- Local Git branch/badges render without blocking pane listing.
+- Embedded terminal supports local and SSH PTY sessions.
 
 ---
 
@@ -405,7 +407,7 @@ fileoctopus/
   pnpm-workspace.yaml
 ```
 
-**Post-RC crates (not in workspace):** `archive-core`, `terminal-core`, `indexer`, `content-id`. Backend `git-intel` is now in the workspace; its UI integration remains post-RC.
+**Post-RC crates (not in workspace):** `archive-core`, `indexer`, `content-id`. Backend `git-intel` and `terminal-core` are now in the workspace.
 
 ---
 
@@ -413,7 +415,7 @@ fileoctopus/
 
 Module-level detail: [`docs/architecture/modules/`](modules/). Runtime IPC: [api-reference.md](api-reference.md).
 
-Sections §7.2–§7.7 describe **as-built (RC)** composition. §7.8 reflects the started backend `git-intel` foundation; §7.9–§7.11 and long sample APIs for `archive-core`, `terminal-core`, and `indexer` are **non-normative post-RC targets**.
+Sections §7.2–§7.8 describe **as-built (RC)** composition. §7.9 and §7.11 and long sample APIs for `archive-core` and `indexer` are **non-normative post-RC targets**. §7.10 tracks the implemented `terminal-core` boundary.
 
 ## 7.1 Crate dependency direction (RC)
 
@@ -801,9 +803,9 @@ When platform behavior grows, this crate can absorb service traits for trash/rec
 
 ---
 
-## 7.8 `git-intel` Crate (backend foundation started)
+## 7.8 `git-intel` Crate (local Git foundation)
 
-> Backend crate foundation and `git.*` IPC exist. Frontend branch display and file status badges are not shipped at RC.
+> Backend crate foundation, `git.*` IPC, active-pane branch display, and file status badges exist for local repositories.
 
 ### Purpose
 
@@ -915,9 +917,9 @@ Rules:
 
 ---
 
-## 7.10 `terminal-core` Crate (post-RC target — not in workspace)
+## 7.10 `terminal-core` Crate
 
-> RC uses `fs_open_terminal` for external emulators only.
+> Embedded local and SSH PTY sessions exist alongside `fs_open_terminal` external emulator support.
 
 ### Purpose
 
@@ -1050,7 +1052,7 @@ pub struct UserPreferences {
 
 Preferences use `pragma user_version` with `SCHEMA_VERSION = 7` at RC. Navigation repository schema is maintained separately in `crates/config/src/navigation.rs`.
 
-Post-RC settings such as embedded terminal, Git, privacy, and provider configuration should be added here only when those features exist.
+Additional settings such as privacy controls and expanded provider configuration should be added here only when those features exist.
 
 ---
 
@@ -1257,9 +1259,9 @@ Job lifecycle channels are `fileOperation:job:started`, `fileOperation:job:progr
 
 ---
 
-## 8.4 Git IPC (backend implemented, UI deferred)
+## 8.4 Git IPC and UI
 
-`git.discover` and `git.statusForDirectory` are registered for local repository discovery/status. Frontend branch display and file badges remain deferred.
+`git.discover` and `git.statusForDirectory` are registered for local repository discovery/status. The frontend uses `git.statusForDirectory` for local panes to render an active-pane branch pill and file-row status badges. Remote Git remains deferred.
 
 ### `git.status_for_directory` (target)
 
@@ -1314,22 +1316,24 @@ export interface ArchiveStartExtractResponse {
 
 ---
 
-## 8.6 Terminal IPC (post-RC embedded — not implemented)
+## 8.6 Terminal IPC
 
-> RC: `fs.open_terminal` only (external emulator). PTY IPC below is post-RC.
+`terminal.spawn`, `terminal.write`, `terminal.resize`, and `terminal.kill` are registered for embedded local and SSH PTY sessions. `fs.open_terminal` remains available for platform external emulators.
 
-### `terminal.spawn` (target)
+### `terminal.spawn`
 
 ```ts
 export interface TerminalSpawnRequest {
-  cwd: string;
+  uri?: string;
+  profileId?: string;
   shell?: string;
+  args?: string[];
   cols: number;
   rows: number;
 }
 
 export interface TerminalSpawnResponse {
-  terminalId: string;
+  sessionId: string;
 }
 ```
 
@@ -1337,8 +1341,8 @@ export interface TerminalSpawnResponse {
 
 ```ts
 export interface TerminalWriteRequest {
-  terminalId: string;
-  dataBase64: string;
+  sessionId: string;
+  data: string;
 }
 ```
 
@@ -1346,19 +1350,31 @@ export interface TerminalWriteRequest {
 
 ```ts
 export interface TerminalResizeRequest {
-  terminalId: string;
+  sessionId: string;
   cols: number;
   rows: number;
 }
 ```
 
-### Terminal Output Event
+### `terminal.kill`
+
+```ts
+export interface TerminalKillRequest {
+  sessionId: string;
+}
+```
+
+### Terminal events
 
 ```ts
 export interface TerminalOutputEvent {
-  type: "terminal.output";
-  terminalId: string;
-  dataBase64: string;
+  sessionId: string;
+  data: string;
+}
+
+export interface TerminalExitEvent {
+  sessionId: string;
+  exitCode?: number | null;
 }
 ```
 
@@ -1658,7 +1674,7 @@ Required tests:
 12. Diagnostics dialog exports a bundle.
 13. Archive actions call `createArchive` / `extractArchive`.
 
-Post-RC frontend tests should cover embedded terminal mount/unmount when `terminal-core` and the xterm panel exist.
+Frontend tests should cover embedded terminal mount/unmount and remote-session lifecycle behavior.
 
 ## 13.4 Performance Tests
 
@@ -1777,8 +1793,8 @@ RC engineering gate: §4 criteria **Met** or **Deferred** with owner sign-off; z
 Ordered backlog after RC (see also [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md)):
 
 1. Complete menu bar wiring per [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md).
-2. Git UI — branch display and file badges (MVP-GIT-\*).
-3. Embedded terminal (`terminal-core` + xterm panel).
+2. Git cache/watch refresh hardening and remote Git exploration.
+3. Embedded terminal manual-smoke polish.
 4. Tar and additional archive formats; optional `archive-core` extraction.
 5. Durable `job` / `job_item_result` SQLite schema and recovery.
 6. Formal MVP-PERF-\* sign-off per `docs/testing/`.
@@ -1795,4 +1811,4 @@ FileOctopus v0.1.0 RC is done when:
 2. RC packages build on target platforms and the [mvp-rc-checklist.md](../release/mvp-rc-checklist.md) is signed off.
 3. The architecture remains safe (typed IPC, planned mutations, path normalization) and extensible for post-RC workflow features.
 
-RC is **not** gated on Git decorations, the embedded terminal, tar archives, or the full job SQLite schema in §9.2—those are explicit post-RC goals in §3.2 and §17.
+RC is **not** gated on remote Git, terminal manual-smoke polish, tar archives, or the full job SQLite schema in §9.2—those are explicit post-RC goals in §3.2 and §17.

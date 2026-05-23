@@ -11,6 +11,8 @@ interface PaneHeaderProps {
   onBreadcrumbContextMenu?: (path: string, event: MouseEvent) => void;
   onOpenTerminal?: () => void;
   terminalDisabled?: boolean;
+  gitBranch?: string | null;
+  gitDirty?: boolean;
 }
 
 export function PaneHeader({
@@ -21,6 +23,8 @@ export function PaneHeader({
   onBreadcrumbContextMenu,
   onOpenTerminal,
   terminalDisabled = false,
+  gitBranch,
+  gitDirty = false,
 }: PaneHeaderProps) {
   const terminalMeta = toolbarCommandMeta("op.openTerminal");
 
@@ -34,6 +38,20 @@ export function PaneHeader({
           onSubmit={onNavigate}
           onBreadcrumbContextMenu={onBreadcrumbContextMenu}
         />
+        {gitBranch ? (
+          <span
+            className={
+              gitDirty ? "fo-git-branch fo-git-branch-dirty" : "fo-git-branch"
+            }
+            aria-label={`Git branch ${gitBranch}${gitDirty ? " with changes" : ""}`}
+            title={`Git branch ${gitBranch}${gitDirty ? " with changes" : ""}`}
+          >
+            <span className="fo-git-branch-mark" aria-hidden="true">
+              git
+            </span>
+            <span className="fo-git-branch-name">{gitBranch}</span>
+          </span>
+        ) : null}
       </div>
       {onOpenTerminal ? (
         <div

@@ -1,4 +1,4 @@
-import type { FileEntryDto } from "@fileoctopus/ts-api";
+import type { FileEntryDto, GitFileStatusDto } from "@fileoctopus/ts-api";
 import { cx, fileEntryIcon } from "@fileoctopus/ui";
 import {
   useEffect,
@@ -26,6 +26,7 @@ export interface FileRowProps {
   renaming?: boolean;
   panelId?: string;
   selectedUris?: string[];
+  gitStatus?: GitFileStatusDto;
   onSubmitRename?: (newName: string) => void;
   onCancelRename?: () => void;
   onSelect: (entryId: string | null) => void;
@@ -51,6 +52,7 @@ export function FileRow({
   renaming = false,
   panelId,
   selectedUris,
+  gitStatus,
   onSubmitRename,
   onCancelRename,
   onSelect,
@@ -177,6 +179,15 @@ export function FileRow({
             {entry.name}
           </span>
         )}
+        {gitStatus && gitStatus !== "clean" ? (
+          <span
+            className={`fo-row-git-badge fo-row-git-badge-${gitStatus}`}
+            aria-label={`Git status: ${gitStatus}`}
+            title={`Git status: ${gitStatus}`}
+          >
+            {gitStatusLabel(gitStatus)}
+          </span>
+        ) : null}
       </span>
       {showMetadata ? (
         viewMode === "details" ? (
@@ -223,4 +234,27 @@ export function FileRow({
       ) : null}
     </div>
   );
+}
+
+function gitStatusLabel(status: GitFileStatusDto): string {
+  switch (status) {
+    case "modified":
+      return "M";
+    case "added":
+      return "A";
+    case "deleted":
+      return "D";
+    case "renamed":
+      return "R";
+    case "untracked":
+      return "?";
+    case "ignored":
+      return "I";
+    case "conflicted":
+      return "U";
+    case "unknown":
+      return "!";
+    case "clean":
+      return "";
+  }
 }

@@ -1,4 +1,4 @@
-import type { FileEntryDto } from "@fileoctopus/ts-api";
+import type { FileEntryDto, GitFileStatusDto } from "@fileoctopus/ts-api";
 import { cx } from "@fileoctopus/ui";
 import {
   useCallback,
@@ -33,6 +33,7 @@ export interface FileTableProps {
   selectedId: string | null;
   selectedIds: string[];
   focusedId: string | null;
+  gitStatuses?: Record<string, GitFileStatusDto>;
   sortField: SortField;
   sortDirection: string;
   viewMode: ViewMode;
@@ -67,6 +68,7 @@ export function FileTable({
   selectedId,
   selectedIds,
   focusedId,
+  gitStatuses,
   sortField,
   sortDirection,
   viewMode,
@@ -387,6 +389,7 @@ export function FileTable({
                 selected={entry.uri === selectedId}
                 multiSelected={selectedIds.indexOf(entry.uri) !== -1}
                 focused={entry.uri === focusedId}
+                gitStatus={gitStatuses?.[entry.uri]}
                 panelId={panelId}
                 selectedUris={selectedIds}
                 onSelect={onSelect}
