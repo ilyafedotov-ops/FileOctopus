@@ -1459,6 +1459,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "git-intel"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "tempfile",
+ "thiserror 1.0.69",
+ "tokio",
+ "vfs",
+]
+
+[[package]]
 name = "glib"
 version = "0.18.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"

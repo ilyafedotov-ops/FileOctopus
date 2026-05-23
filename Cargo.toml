@@ -7,6 +7,7 @@ members = [
   "crates/app-ipc",
   "crates/config",
   "crates/fs-core",
+  "crates/git-intel",
   "crates/jobs",
   "crates/platform",
   "crates/provider-sftp",
