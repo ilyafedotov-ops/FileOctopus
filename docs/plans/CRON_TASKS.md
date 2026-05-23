@@ -1,7 +1,7 @@
 # FileOctopus — Cron Task Queue
 
 > Execution-facing queue for autonomous agents.
-> Last verified against repo state: 2026-05-19
+> Last verified against repo state: 2026-05-23
 
 ---
 
@@ -44,33 +44,47 @@
 
 ## Recently Completed
 
-| ID    | Result                                                                                         | Commit     |
-| ----- | ---------------------------------------------------------------------------------------------- | ---------- |
-| RC-6  | MenuBar sort/theme/density/favorites/filter/search routed via `runCommand` → `dispatchCommand` | 2026-05-19 |
-| RC-4d | `app-layout.e2e.ts` updated for shell toolbar layout; 24/24 pass                               | 2026-05-19 |
-| RC-4c | Visual regression baselines + preview `sidebarVisible`; `pnpm test:e2e:vite` 104 pass          | 2026-05-19 |
-| RC-4b | Diagnostics E2E + `scripts/rc-qa-automated.sh` + `docs/qa/rc-automated-evidence.md`            | 2026-05-19 |
-| RC-4a | Automated RC: `pnpm rc:validate` + `pnpm tauri:build` (deb/rpm/AppImage bundles)               | 2026-05-19 |
-| RC-5  | IPC integration: `ipc_basic`, `ipc_terminal`, `ipc_reveal` + error-path coverage               | 2026-05-19 |
-| RC-7  | Conflict dialog destination metadata compare via `fs.stat` + `destinationByUri`                | 2026-05-19 |
-| RC-2  | E2E multi-select Selection Properties smoke (`e2e/dialog.e2e.ts`)                              | 2026-05-19 |
-| P2-9  | Selection Properties dialog wired for multi-select; folder-size aggregate via folder-size jobs | 2026-05-19 |
-| P2-8  | Recent Locations management UI (dialog + clear/remove flows)                                   | preex      |
-| P2-7  | VolumePickerDialog with discoverVolumes IPC + Go menu                                          | 81568c8    |
-| P2-11 | Offline/unmounted pane state                                                                   | 84867c3    |
-| P2-10 | Accessible row names for file entries                                                          | 993f879    |
-| P2-6  | User-selectable visible columns with persistence                                               | e902fb0    |
-| P2-5  | Confirm before app close when jobs running                                                     | 3490ee1    |
-| P2-4  | Restore last pane paths and tab state on startup                                               | d08d97d    |
-| P2-2  | Focus-trap on modals + restore focus on close                                                  | 4d80006    |
-| P2-1  | Real popover tooltip (replaced title-attribute stub)                                           | 12a7a73    |
-| P1-5  | Breadcrumb overflow menu                                                                       | a8cc7fd    |
-| P1-4  | Image preview in PreviewPanel                                                                  | TBD        |
-| P1-3  | Rich Copy To / Move To destination chooser                                                     | TBD        |
-| P1-2  | Resizable details columns with localStorage persistence                                        | 3a066d6    |
-| P1-1  | TabBar UI with open/close/switch tab actions                                                   | 8f7e762    |
-| P2-3  | Keyboard-navigable context menus                                                               | c59a5e2    |
-| P0-5  | Swap Panes command                                                                             | fb55230    |
-| P0-4  | Toolbar and status-bar menu toggles                                                            | dffbf11    |
-| P0-3  | Drag-and-drop file operations                                                                  | c869970    |
-| P0-1  | Filter input rendered and wired                                                                | 25c77c5    |
+| ID     | Result                                                                                                  | Commit     |
+| ------ | ------------------------------------------------------------------------------------------------------- | ---------- |
+| NET-1  | Network provider hardening Stage 1: connection lifecycle correctness (lazy connect, no reconnect storm) | 2026-05-19 |
+| NET-2  | Network provider hardening Stage 2: SHA-256 fingerprint TOFU, port/hostname validation                  | 2026-05-19 |
+| NET-3  | Network provider hardening Stage 4: push status events to frontend, sidebar badges                      | 2026-05-19 |
+| NET-4  | SFTP network profiles with remote VFS and UI                                                            | 2026-05-19 |
+| TERM-1 | Embedded terminal pane: local + SSH PTY, bottom split, tabs, maximize/close controls                    | 2026-05-19 |
+| TERM-2 | Terminal shell prefs, keyboard input routing, per-pane controls (Option B/C)                            | 2026-05-19 |
+| VIEW-1 | Built-in F3 viewer + F4 editor with shared syntax highlighting                                          | 2026-05-20 |
+| VFS-1  | VfsProvider write methods: create_directory, create_file, rename, remove, copy_file, read_file_prefix   | 2026-05-22 |
+| VFS-2  | LocalFsProvider + provider-sftp write implementations with read_write capabilities                      | 2026-05-22 |
+| CMD-1  | Command registry: derive CommandId from as-const, dispatch exhaustiveness test                          | 2026-05-22 |
+| PERF-1 | Performance smoke command (`pnpm perf:smoke`)                                                           | 2026-05-22 |
+| COL-1  | Virtualize icons view with grid-aware windowing and ResizeObserver                                      | 2026-05-22 |
+| COL-2  | Route ColumnsView through shared client with request correlation + timeout                              | 2026-05-22 |
+| PHASE5 | Phase 5 state and controller refactor + runtime reliability hardening                                   | 2026-05-22 |
+| RC-6   | MenuBar sort/theme/density/favorites/filter/search routed via `runCommand` → `dispatchCommand`          | 2026-05-19 |
+| RC-4d  | `app-layout.e2e.ts` updated for shell toolbar layout; 24/24 pass                                        | 2026-05-19 |
+| RC-4c  | Visual regression baselines + preview `sidebarVisible`; `pnpm test:e2e:vite` 104 pass                   | 2026-05-19 |
+| RC-4b  | Diagnostics E2E + `scripts/rc-qa-automated.sh` + `docs/qa/rc-automated-evidence.md`                     | 2026-05-19 |
+| RC-4a  | Automated RC: `pnpm rc:validate` + `pnpm tauri:build` (deb/rpm/AppImage bundles)                        | 2026-05-19 |
+| RC-5   | IPC integration: `ipc_basic`, `ipc_terminal`, `ipc_reveal` + error-path coverage                        | 2026-05-19 |
+| RC-7   | Conflict dialog destination metadata compare via `fs.stat` + `destinationByUri`                         | 2026-05-19 |
+| RC-2   | E2E multi-select Selection Properties smoke (`e2e/dialog.e2e.ts`)                                       | 2026-05-19 |
+| P2-9   | Selection Properties dialog wired for multi-select; folder-size aggregate via folder-size jobs          | 2026-05-19 |
+| P2-8   | Recent Locations management UI (dialog + clear/remove flows)                                            | preex      |
+| P2-7   | VolumePickerDialog with discoverVolumes IPC + Go menu                                                   | 81568c8    |
+| P2-11  | Offline/unmounted pane state                                                                            | 84867c3    |
+| P2-10  | Accessible row names for file entries                                                                   | 993f879    |
+| P2-6   | User-selectable visible columns with persistence                                                        | e902fb0    |
+| P2-5   | Confirm before app close when jobs running                                                              | 3490ee1    |
+| P2-4   | Restore last pane paths and tab state on startup                                                        | d08d97d    |
+| P2-2   | Focus-trap on modals + restore focus on close                                                           | 4d80006    |
+| P2-1   | Real popover tooltip (replaced title-attribute stub)                                                    | 12a7a73    |
+| P1-5   | Breadcrumb overflow menu                                                                                | a8cc7fd    |
+| P1-4   | Image preview in PreviewPanel                                                                           | TBD        |
+| P1-3   | Rich Copy To / Move To destination chooser                                                              | TBD        |
+| P1-2   | Resizable details columns with localStorage persistence                                                 | 3a066d6    |
+| P1-1   | TabBar UI with open/close/switch tab actions                                                            | 8f7e762    |
+| P2-3   | Keyboard-navigable context menus                                                                        | c59a5e2    |
+| P0-5   | Swap Panes command                                                                                      | fb55230    |
+| P0-4   | Toolbar and status-bar menu toggles                                                                     | dffbf11    |
+| P0-3   | Drag-and-drop file operations                                                                           | c869970    |
+| P0-1   | Filter input rendered and wired                                                                         | 25c77c5    |

@@ -834,7 +834,14 @@ The frontend never imports these directly, but internal callers and tests do.
   fn capabilities(&self) -> ProviderCapabilities;
   async fn stat(&self, uri: &ResourceUri) -> Result<FileEntry, VfsError>;
   async fn list(&self, uri: &ResourceUri, options: ListOptions, sink: DirectorySink) -> Result<(), VfsError>;
+  async fn create_directory(&self, uri: &ResourceUri) -> Result<(), VfsError>;
+  async fn create_file(&self, uri: &ResourceUri) -> Result<(), VfsError>;
+  async fn rename(&self, from: &ResourceUri, to: &ResourceUri) -> Result<(), VfsError>;
+  async fn remove(&self, uri: &ResourceUri, recursive: bool) -> Result<(), VfsError>;
+  async fn copy_file(&self, source: &ResourceUri, destination: &ResourceUri, on_progress: Box<dyn FnMut(u64) + Send>) -> Result<u64, VfsError>;
+  async fn read_file_prefix(&self, uri: &ResourceUri, max_bytes: u64) -> Result<Vec<u8>, VfsError>;
   ```
+  Unrelated providers inherit `UnsupportedOperation` defaults from the trait.
 - `VfsRegistry::new()`, `register(Arc<dyn VfsProvider>)`, `provider_for(&ResourceUri)`, `stat`, `list`. A scheme can be registered at most once.
 
 ### `fs-core`

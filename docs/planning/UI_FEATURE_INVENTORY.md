@@ -382,20 +382,27 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 
 ---
 
-## 13. Implementation snapshot (2026-05-16)
+## 13. Implementation snapshot (2026-05-23)
 
 ### Delivered after Sprint 5 (codebase)
 
 - **Command palette** — implemented (`CommandPalette.tsx`, Ctrl/Cmd+P)
 - **File preview panel** — implemented (`PreviewPanel.tsx`, Space for text files)
-- **Column view** — implemented (macOS-style column browser)
+- **Column view** — implemented (macOS-style column browser) + virtualized grid-aware windowing + shared client routing
 - **Drag-and-drop** — internal URI drag between panes
 - **Split ratio persistence** — `splitRatio` preference
 - **Details columns** — Name, Size, Modified, Created, Type, Extension, Permissions, Owner; Hash on selection
 - **Filesystem watcher** — `fs_watch_start` / `fs_watch_stop` wired to refresh
 - **Overflow toolbar** — Reveal, Calculate Size, Open Terminal (external emulator), Compress/Extract/Checksum menus present
 - **Settings** — General (autostart), Appearance (theme, density, accent, font/icon scale), Files & Folders, Layout, Operations (confirm delete/overwrite, conflict policy, trash behavior), Diagnostics, Shortcuts
-- **Shortcuts** — Ctrl/Cmd+I (properties), Ctrl/Cmd+H alias for hidden files
+- **Shortcuts** — Ctrl/Cmd+I (properties), Ctrl/Cmd+H and Ctrl/Cmd+. for hidden files
+- **Application menu bar shell** (`MenuBar` in title bar)
+- **Zip compress/extract** via toolbar and context menu (`useArchiveHandlers`)
+- **Embedded terminal panel** — local + SSH PTY, pane bottom split, tabs, maximize/close, shell prefs (`terminal-core`)
+- **Built-in F3 viewer + F4 editor** — shared syntax highlighting
+- **SFTP network profiles** — remote VFS, sidebar badges, status events, host-key fingerprint TOFU
+- **Performance smoke** — `pnpm perf:smoke` command
+- **Command registry refactor** — derive `CommandId` from as-const registry, dispatch exhaustiveness test
 
 ### Still not implemented (specified)
 
@@ -405,6 +412,8 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 - **First-run overlay** — stretch, not built
 - **Videos sidebar entry, network locations, "This Week" recent group** — partial (API has `thisWeek` bucket; UI grouping may vary)
 - **Title bar sync/health indicator** — optional, not built
+- **VfsProvider write methods** — create_directory, create_file, rename, remove, copy_file, read_file_prefix (done 2026-05-22)
+- **Image preview in PreviewPanel** — text only; no image/media/pdf (TBD)
 
 ### Previously listed as not implemented, now done (2026-05-17)
 
