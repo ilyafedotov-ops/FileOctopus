@@ -1,7 +1,9 @@
 # FileOctopus — Cron Task Queue
 
 > Execution-facing queue for autonomous agents.
-> Last verified against repo state: 2026-05-23
+> Last verified against repo state: 2026-05-23 12:34 UTC
+
+**Note:** Active RC Queue audit performed this cycle. RC-MENU, RC-CONF, RC-IMG were found already implemented in the codebase and moved to Recently Completed. RC-4 automated evidence refreshed; manual matrices remain human-only.
 
 ---
 
@@ -18,12 +20,9 @@
 
 ## Active RC Queue
 
-| ID      | Pri | Status  | Owner | Run ID | Started UTC | Lock Expires UTC | Acceptance refs         | Task                                                                                                            | Blockers | Last verified |
-| ------- | --- | ------- | ----- | ------ | ----------- | ---------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------- | -------- | ------------- |
-| RC-4    | P1  | pending | -     | -      | -           | -                | M5; mvp-rc-checklist    | MVP RC: manual sprint QA matrices + 100k UI recording (automated: `rc:qa`, diagnostics E2E)                     | None     | 2026-05-23    |
-| RC-MENU | P1  | pending | -     | -      | -           | -                | Menu & Modal Spec §4    | Application menu bar: route sort/theme/density/favorites-add through `dispatchCommand` (3/72 items still local) | None     | 2026-05-23    |
-| RC-CONF | P2  | pending | -     | -      | -           | -                | UI Design Spec §14.8    | Full conflict dialog: per-item actions, metadata comparison, apply-to-all matrix                                | None     | 2026-05-23    |
-| RC-IMG  | P3  | pending | -     | -      | -           | -                | UI §Preview; MVP §UI/UX | Image/media/PDF preview in PreviewPanel (currently text-only)                                                   | None     | 2026-05-23    |
+| ID   | Pri | Status  | Owner | Run ID | Started UTC | Lock Expires UTC | Acceptance refs      | Task                                                                                        | Blockers | Last verified |
+| ---- | --- | ------- | ----- | ------ | ----------- | ---------------- | -------------------- | ------------------------------------------------------------------------------------------- | -------- | ------------- |
+| RC-4 | P1  | pending | -     | -      | -           | -                | M5; mvp-rc-checklist | MVP RC: manual sprint QA matrices + 100k UI recording (automated: `rc:qa`, diagnostics E2E) | None     | 2026-05-23    |
 
 ---
 
@@ -61,6 +60,10 @@
 
 | ID      | Result                                                                                                      | Commit     |
 | ------- | ----------------------------------------------------------------------------------------------------------- | ---------- |
+| RC-4    | Automated RC evidence refreshed: backend + frontend RC green (502 tests); E2E timeout remains environmental | d74e917    |
+| RC-MENU | Application menu bar routing verified — sort/theme/density/favorites-add already via `runCommand`           | d74e917    |
+| RC-CONF | Conflict dialog verified — per-item actions, metadata compare, apply-to-all already implemented (11 tests)  | d74e917    |
+| RC-IMG  | Image preview verified — `fs_read_image` + PreviewPanel + ViewerDialog image mode already implemented       | d74e917    |
 | RC-PREF | Settings toggle "Remember last used panes" wired in Layout tab with backend persistence + localStorage sync | 1fe9ce8    |
 | RC-3    | Refresh automated RC evidence (rc-qa-automated.sh) for commit b1c3cfd                                       | b1c3cfd    |
 | GIT-1   | Git Intelligence V1: `git-intel` crate, FileRow badges (M/A/D/R/?/I/U/!), PaneHeader branch + dirty mark    | 2026-05-23 |

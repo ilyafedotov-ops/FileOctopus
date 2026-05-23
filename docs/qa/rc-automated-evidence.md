@@ -1,15 +1,15 @@
 # RC Automated Evidence
 
-- **Date (UTC):** 2026-05-23T10:04:57Z
-- **Commit:** b1c3cfd
-- **Runner:** `scripts/rc-qa-automated.sh` (interrupted at E2E due to environmental timeout)
+- **Date (UTC):** 2026-05-23T10:34:59Z
+- **Commit:** d74e917
+- **Runner:** `scripts/rc-qa-automated.sh`
 
 ## Automated checks (this run)
 
 | Check                  | Command / test                                                            | Result                                                                                                       |
 | ---------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| RC validate backend    | `pnpm test:backend:rc`                                                    | ✅ Pass — cargo fmt, check, test, clippy all clean                                                           |
-| RC validate frontend   | `pnpm test:frontend:rc`                                                   | ✅ Pass — typecheck, lint, test (495 tests), build all clean                                                 |
+| RC validate backend    | `pnpm test:backend:rc`                                                    | ✅ Pass — cargo fmt, check, test, clippy all clean (193 tests)                                               |
+| RC validate frontend   | `pnpm test:frontend:rc`                                                   | ✅ Pass — typecheck, lint, test (502 tests), build all clean                                                 |
 | 10k list streaming     | `cargo test -p fs-core list_streams_without_collecting_all_entries_first` | ✅ included in backend RC                                                                                    |
 | 100k UI virtualization | `appShell.test.tsx` — 100k batch DOM cap                                  | ✅ included in frontend RC (~6.6s)                                                                           |
 | Playwright E2E         | `FO_E2E_WEB_SERVER=vite npx playwright test`                              | ⚠️ Environmental timeout — webServer startup exceeds 120s in headless VM; known issue, not a code regression |
@@ -37,4 +37,4 @@
 ## Navigation URIs (preview / dev)
 
 - 10k: `local:///home/ilya/FileOctupus/tmp/10k`
-- 100k: generate with `cargo run -p test-support --bin fileoctopus-test-tree -- --root ./tmp/100k --files 100000` then navigate to `local:///home/ilya/FileOctupus/tmp/100k`
+- 100k: generate with `fileoctopus-test-tree --files 100000` then navigate to `local:///home/ilya/FileOctupus/tmp/100k`
