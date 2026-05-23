@@ -50,7 +50,8 @@ export function preferenceValue(
     key === "showAdvancedCopyOptions" ||
     key === "paneTerminalDefaultOpen" ||
     key === "terminalCdOnNavigate" ||
-    key === "confirmClosePaneWithTerminal"
+    key === "confirmClosePaneWithTerminal" ||
+    key === "rememberLastUsedPanes"
   ) {
     return value === "true";
   }

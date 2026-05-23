@@ -54,6 +54,7 @@ export function createPreviewTransport(): IpcTransport {
     confirmClosePaneWithTerminal: true,
     terminalShell: "",
     terminalArgs: "",
+    rememberLastUsedPanes: true,
   };
   const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
   const folderSizeHandlers = new Set<

@@ -3,6 +3,8 @@ import {
   persistSessionPaths,
   restoreSessionPaths,
   clearSessionPaths,
+  getRememberSessionPaths,
+  setRememberSessionPaths,
 } from "../src/pane/sessionPaths";
 
 describe("sessionPaths", () => {
@@ -57,5 +59,16 @@ describe("sessionPaths", () => {
     };
     expect(() => persistSessionPaths("local:///a", "local:///b")).not.toThrow();
     localStorage.setItem = original;
+  });
+
+  it("getRememberSessionPaths defaults to true", () => {
+    expect(getRememberSessionPaths()).toBe(true);
+  });
+
+  it("setRememberSessionPaths persists to localStorage", () => {
+    setRememberSessionPaths(false);
+    expect(getRememberSessionPaths()).toBe(false);
+    setRememberSessionPaths(true);
+    expect(getRememberSessionPaths()).toBe(true);
   });
 });

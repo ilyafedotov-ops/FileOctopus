@@ -1,4 +1,5 @@
 const STORAGE_KEY = "fileoctopus.sessionPaths";
+const REMEMBER_KEY = "fileoctopus.rememberSessionPaths";
 
 interface SessionPaths {
   left: string | null;
@@ -30,6 +31,24 @@ export function restoreSessionPaths(): SessionPaths {
 export function clearSessionPaths(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // silently ignore
+  }
+}
+
+export function getRememberSessionPaths(): boolean {
+  try {
+    const raw = localStorage.getItem(REMEMBER_KEY);
+    if (raw === null) return true;
+    return raw === "true";
+  } catch {
+    return true;
+  }
+}
+
+export function setRememberSessionPaths(value: boolean): void {
+  try {
+    localStorage.setItem(REMEMBER_KEY, String(value));
   } catch {
     // silently ignore
   }

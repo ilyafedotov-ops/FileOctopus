@@ -29,6 +29,7 @@ fn preferences_dto_includes_new_fields() {
         "paneTerminalHeightLeft":0.4,"paneTerminalHeightRight":0.45,
         "paneTerminalDefaultOpen":true,"terminalCdOnNavigate":true,
         "confirmClosePaneWithTerminal":false,
+        "rememberLastUsedPanes":true,
         "terminalShell":"/bin/zsh","terminalArgs":"-l"
     }"#;
     let dto: UserPreferencesDto = serde_json::from_str(json).unwrap();

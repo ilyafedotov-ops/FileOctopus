@@ -320,6 +320,7 @@ export interface UserPreferencesDto {
   confirmClosePaneWithTerminal: boolean;
   terminalShell: string;
   terminalArgs: string;
+  rememberLastUsedPanes: boolean;
 }
 
 export interface AutostartStatusDto {

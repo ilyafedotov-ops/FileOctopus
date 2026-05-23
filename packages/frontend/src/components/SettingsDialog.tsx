@@ -492,6 +492,19 @@ export function SettingsDialog({
                     <option value="single">Single pane</option>
                   </select>
                 </label>
+                <label className="fo-settings-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={preferences.rememberLastUsedPanes !== false}
+                    onChange={(event) =>
+                      onChange(
+                        "rememberLastUsedPanes",
+                        event.target.checked ? "true" : "false",
+                      )
+                    }
+                  />
+                  <span>Remember last used pane paths across sessions</span>
+                </label>
                 <label className="fo-settings-field">
                   <span>Job drawer behavior</span>
                   <select

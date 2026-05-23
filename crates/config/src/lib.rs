@@ -16,7 +16,7 @@ pub use network::{
     UpdateNetworkProfile,
 };
 
-pub const SCHEMA_VERSION: u32 = 11;
+pub const SCHEMA_VERSION: u32 = 12;
 
 #[derive(Debug, Error)]
 pub enum PreferencesError {
@@ -61,6 +61,7 @@ pub struct UserPreferences {
     pub confirm_close_pane_with_terminal: bool,
     pub terminal_shell: String,
     pub terminal_args: String,
+    pub remember_last_used_panes: bool,
 }
 
 impl Default for UserPreferences {
@@ -96,6 +97,7 @@ impl Default for UserPreferences {
             confirm_close_pane_with_terminal: true,
             terminal_shell: String::new(),
             terminal_args: String::new(),
+            remember_last_used_panes: true,
         }
     }
 }
@@ -213,6 +215,11 @@ impl PreferencesRepository {
 
         if user_version < 11 {
             self.backfill_v11_keys(&connection)?;
+            connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
+        if user_version < 12 {
+            self.backfill_v12_keys(&connection)?;
             connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         }
 
@@ -425,6 +432,25 @@ impl PreferencesRepository {
         Ok(())
     }
 
+    fn backfill_v12_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [(
+            "rememberLastUsedPanes",
+            defaults.remember_last_used_panes.to_string(),
+        )];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
+        }
+
+        Ok(())
+    }
+
     fn seed_defaults(&self, connection: &Connection) -> Result<(), PreferencesError> {
         let defaults = UserPreferences::default();
         let now = chrono_lite_now();
@@ -544,6 +570,10 @@ impl UserPreferences {
             ),
             ("terminalShell", self.terminal_shell.clone()),
             ("terminalArgs", self.terminal_args.clone()),
+            (
+                "rememberLastUsedPanes",
+                self.remember_last_used_panes.to_string(),
+            ),
         ]
     }
 }
@@ -652,6 +682,9 @@ fn apply_value(
         }
         "terminalArgs" => {
             preferences.terminal_args = parse_terminal_args(value)?;
+        }
+        "rememberLastUsedPanes" => {
+            preferences.remember_last_used_panes = parse_bool(value, key)?;
         }
         _ => {}
     }
