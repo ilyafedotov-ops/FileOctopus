@@ -14,6 +14,7 @@ import { CommandPalette, type CommandEntry } from "./CommandPalette";
 import { PreviewPanel } from "./PreviewPanel";
 import { ViewerDialog } from "./viewer/ViewerDialog";
 import { EditorDialog } from "./editor/EditorDialog";
+import { setRememberSessionPaths } from "../pane/sessionPaths";
 import {
   OperationDialogView,
   type OperationDialog,
@@ -70,6 +71,7 @@ const FALLBACK_PREFERENCES: UserPreferencesDto = {
   confirmClosePaneWithTerminal: true,
   terminalShell: "",
   terminalArgs: "",
+  rememberLastUsedPanes: true,
 };
 
 export interface DialogOverlayGroupProps {
@@ -311,6 +313,9 @@ export function DialogOverlayGroup({
         autostart={autostart}
         onClose={() => setSettingsOpen(false)}
         onChange={(key, value) => {
+          if (key === "rememberLastUsedPanes") {
+            setRememberSessionPaths(value === "true");
+          }
           const change = settingsPreferenceChange ?? updatePreference;
           void change(key, value);
         }}

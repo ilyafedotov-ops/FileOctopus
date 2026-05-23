@@ -70,6 +70,7 @@ pub struct UserPreferencesDto {
     pub confirm_close_pane_with_terminal: bool,
     pub terminal_shell: String,
     pub terminal_args: String,
+    pub remember_last_used_panes: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1125,6 +1126,7 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             confirm_close_pane_with_terminal: value.confirm_close_pane_with_terminal,
             terminal_shell: value.terminal_shell,
             terminal_args: value.terminal_args,
+            remember_last_used_panes: value.remember_last_used_panes,
         }
     }
 }

@@ -24,6 +24,7 @@ import {
 import {
   persistSessionPaths,
   restoreSessionPaths,
+  getRememberSessionPaths,
 } from "../../pane/sessionPaths";
 
 export interface ShellContextValue {
@@ -47,7 +48,9 @@ export function useShell(): ShellContextValue {
 export function ShellProvider({ children }: { children: ReactNode }) {
   const client = useMemo(() => createFileOctopusClient(), []);
   const [state, dispatch] = useReducer(panelReducer, undefined, () => {
-    const saved = restoreSessionPaths();
+    const saved = getRememberSessionPaths()
+      ? restoreSessionPaths()
+      : { left: null, right: null };
     return createInitialState(
       saved.left ?? undefined,
       saved.right ?? undefined,
@@ -67,7 +70,7 @@ export function ShellProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (leftUri && rightUri) {
+    if (leftUri && rightUri && getRememberSessionPaths()) {
       persistSessionPaths(leftUri, rightUri);
     }
   }, [
