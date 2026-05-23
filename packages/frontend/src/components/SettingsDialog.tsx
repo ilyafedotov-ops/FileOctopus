@@ -181,6 +181,17 @@ export function SettingsDialog({
                     Autostart is not supported on this platform.
                   </p>
                 )}
+                <label className="fo-settings-field">
+                  <span>Diagnostics export path</span>
+                  <input
+                    type="text"
+                    value={preferences.diagnosticsExportPath}
+                    onChange={(event) =>
+                      onChange("diagnosticsExportPath", event.target.value)
+                    }
+                    aria-label="Diagnostics export path"
+                  />
+                </label>
               </section>
             )}
             {activeSection === "appearance" && (

@@ -71,6 +71,7 @@ pub struct UserPreferencesDto {
     pub terminal_shell: String,
     pub terminal_args: String,
     pub remember_last_used_panes: bool,
+    pub diagnostics_export_path: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1127,6 +1128,7 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             terminal_shell: value.terminal_shell,
             terminal_args: value.terminal_args,
             remember_last_used_panes: value.remember_last_used_panes,
+            diagnostics_export_path: value.diagnostics_export_path,
         }
     }
 }

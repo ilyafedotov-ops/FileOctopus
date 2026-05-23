@@ -72,6 +72,7 @@ const FALLBACK_PREFERENCES: UserPreferencesDto = {
   terminalShell: "",
   terminalArgs: "",
   rememberLastUsedPanes: true,
+  diagnosticsExportPath: "/tmp/fileoctopus-diagnostics.zip",
 };
 
 export interface DialogOverlayGroupProps {

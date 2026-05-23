@@ -30,6 +30,7 @@ fn preferences_dto_includes_new_fields() {
         "paneTerminalDefaultOpen":true,"terminalCdOnNavigate":true,
         "confirmClosePaneWithTerminal":false,
         "rememberLastUsedPanes":true,
+        "diagnosticsExportPath":"/tmp/fileoctopus-diagnostics.zip",
         "terminalShell":"/bin/zsh","terminalArgs":"-l"
     }"#;
     let dto: UserPreferencesDto = serde_json::from_str(json).unwrap();

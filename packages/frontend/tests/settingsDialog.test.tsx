@@ -46,6 +46,8 @@ function makePreferences(
     confirmClosePaneWithTerminal: true,
     terminalShell: "",
     terminalArgs: "",
+    rememberLastUsedPanes: true,
+    diagnosticsExportPath: "/tmp/fileoctopus-diagnostics.zip",
     ...overrides,
   };
 }
@@ -238,6 +240,28 @@ describe("SettingsDialog", () => {
     fireEvent.click(navButton("General"));
     fireEvent.click(screen.getByLabelText("Start automatically at login"));
     expect(onSetAutostart).toHaveBeenCalledWith(true);
+  });
+
+  it("fires onChange for diagnostics export path", () => {
+    const onChange = vi.fn();
+    render(
+      <SettingsDialog
+        open
+        preferences={makePreferences()}
+        autostart={null}
+        onClose={() => {}}
+        onChange={onChange}
+        onSetAutostart={async () => {}}
+      />,
+    );
+    fireEvent.click(navButton("General"));
+    fireEvent.change(screen.getByLabelText("Diagnostics export path"), {
+      target: { value: "/home/user/diagnostics.zip" },
+    });
+    expect(onChange).toHaveBeenCalledWith(
+      "diagnosticsExportPath",
+      "/home/user/diagnostics.zip",
+    );
   });
 
   describe("Shortcuts tab", () => {

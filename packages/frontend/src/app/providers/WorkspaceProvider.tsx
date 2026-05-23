@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  useEffect,
   useMemo,
   useState,
   type Dispatch,
@@ -15,6 +16,7 @@ import {
   useLayoutFocusStore,
   type LayoutFocusStore,
 } from "../../state/layoutStore";
+import { usePreferences } from "./PreferencesProvider";
 
 export interface WorkspaceContextValue extends LayoutFocusStore {
   toasts: ToastMessage[];
@@ -44,17 +46,24 @@ export function useWorkspace(): WorkspaceContextValue {
 }
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
+  const { preferences } = usePreferences();
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [clipboard, setClipboard] = useState<FileClipboardState | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [search, setSearch] = useState<SearchState | null>(null);
   const [diagnosticsDestination, setDiagnosticsDestination] = useState(
-    "/tmp/fileoctopus-diagnostics.zip",
+    preferences?.diagnosticsExportPath ?? "/tmp/fileoctopus-diagnostics.zip",
   );
   const [diagnosticsMessage, setDiagnosticsMessage] = useState<string | null>(
     null,
   );
   const [exportingDiagnostics, setExportingDiagnostics] = useState(false);
+
+  useEffect(() => {
+    if (preferences?.diagnosticsExportPath) {
+      setDiagnosticsDestination(preferences.diagnosticsExportPath);
+    }
+  }, [preferences?.diagnosticsExportPath]);
 
   const layoutFocus = useLayoutFocusStore();
 

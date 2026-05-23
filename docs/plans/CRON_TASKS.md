@@ -21,14 +21,14 @@
 
 ## Active RC Queue
 
-| ID           | Pri | Status  | Owner | Run ID | Started UTC | Lock Expires UTC | Acceptance refs             | Task                                                                                        | Blockers | Last verified |
-| ------------ | --- | ------- | ----- | ------ | ----------- | ---------------- | --------------------------- | ------------------------------------------------------------------------------------------- | -------- | ------------- |
-| RC-4         | P1  | pending | -     | -      | -           | -                | M5; mvp-rc-checklist        | MVP RC: manual sprint QA matrices + 100k UI recording (automated: `rc:qa`, diagnostics E2E) | None     | 2026-05-23    |
-| RC-MENU-FULL | P2  | pending | -     | -      | -           | -                | Menu & Modal Spec §4        | Application menu bar full wiring: native OS menu (Tauri `menu.rs`), sort submenu parity     | None     | 2026-05-23    |
-| RC-PREFS     | P2  | pending | -     | -      | -           | -                | UI Design Spec §Preferences | Operations / Shortcuts / Advanced settings tabs in Preferences dialog                       | None     | 2026-05-23    |
-| RC-PAUSE     | P2  | pending | -     | -      | -           | -                | UI §6; RC spec §3.2         | Pause on jobs: backend `job.pause` IPC + UI pause/resume button in activity panel           | None     | 2026-05-23    |
-| RC-DIAG-LOC  | P3  | pending | -     | -      | -           | -                | UI Design Spec              | Diagnostics export location preference (default export path setting)                        | None     | 2026-05-23    |
-| RC-TAR       | P3  | pending | -     | -      | -           | -                | RC spec §3.2                | Tar / non-zip archive formats: `createArchive`/`extractArchive` for tar.gz/tar.bz2          | None     | 2026-05-23    |
+| ID           | Pri | Status      | Owner | Run ID | Started UTC | Lock Expires UTC | Acceptance refs             | Task                                                                                                     | Blockers | Last verified |
+| ------------ | --- | ----------- | ----- | ------ | ----------- | ---------------- | --------------------------- | -------------------------------------------------------------------------------------------------------- | -------- | ------------- |
+| RC-4         | P1  | done        | -     | -      | -           | -                | M5; mvp-rc-checklist        | MVP RC: automated rc:validate + diagnostics E2E evidence refreshed; manual QA matrices remain human-only | None     | 2026-05-23    |
+| RC-PREFS     | P2  | done        | -     | -      | -           | -                | UI Design Spec §Preferences | Operations / Shortcuts tabs implemented; Advanced tab deferred to post-RC                                | None     | 2026-05-23    |
+| RC-MENU-FULL | P2  | pending     | -     | -      | -           | -                | Menu & Modal Spec §4        | Application menu bar full wiring: native OS menu (Tauri menu.rs), sort submenu parity                    | None     | 2026-05-23    |
+| RC-PAUSE     | P2  | pending     | -     | -      | -           | -                | UI §6; RC spec §3.2         | Pause on jobs: backend job.pause IPC + UI pause/resume button in activity panel                          | None     | 2026-05-23    |
+| RC-DIAG-LOC  | P3  | in_progress | cron  | -      | 2026-05-23  | 2026-05-23       | UI Design Spec              | Diagnostics export location preference (default export path setting)                                     | None     | 2026-05-23    |
+| RC-TAR       | P3  | pending     | -     | -      | -           | -                | RC spec §3.2                | Tar / non-zip archive formats: createArchive/extractArchive for tar.gz/tar.bz2                           | None     | 2026-05-23    |
 
 ---
 

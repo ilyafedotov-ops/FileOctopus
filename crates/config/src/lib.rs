@@ -62,6 +62,7 @@ pub struct UserPreferences {
     pub terminal_shell: String,
     pub terminal_args: String,
     pub remember_last_used_panes: bool,
+    pub diagnostics_export_path: String,
 }
 
 impl Default for UserPreferences {
@@ -98,6 +99,7 @@ impl Default for UserPreferences {
             terminal_shell: String::new(),
             terminal_args: String::new(),
             remember_last_used_panes: true,
+            diagnostics_export_path: "/tmp/fileoctopus-diagnostics.zip".to_string(),
         }
     }
 }
@@ -574,6 +576,10 @@ impl UserPreferences {
                 "rememberLastUsedPanes",
                 self.remember_last_used_panes.to_string(),
             ),
+            (
+                "diagnosticsExportPath",
+                self.diagnostics_export_path.clone(),
+            ),
         ]
     }
 }
@@ -686,10 +692,27 @@ fn apply_value(
         "rememberLastUsedPanes" => {
             preferences.remember_last_used_panes = parse_bool(value, key)?;
         }
+        "diagnosticsExportPath" => {
+            preferences.diagnostics_export_path = parse_diagnostics_export_path(value)?;
+        }
         _ => {}
     }
 
     Ok(())
+}
+
+fn parse_diagnostics_export_path(value: &str) -> Result<String, PreferencesError> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Ok("/tmp/fileoctopus-diagnostics.zip".to_string());
+    }
+    if trimmed.len() > 2048 {
+        return Err(invalid_value(
+            "diagnosticsExportPath",
+            "value is too long".to_string(),
+        ));
+    }
+    Ok(trimmed.to_string())
 }
 
 fn parse_terminal_shell(value: &str) -> Result<String, PreferencesError> {

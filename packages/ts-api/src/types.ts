@@ -321,6 +321,7 @@ export interface UserPreferencesDto {
   terminalShell: string;
   terminalArgs: string;
   rememberLastUsedPanes: boolean;
+  diagnosticsExportPath: string;
 }
 
 export interface AutostartStatusDto {

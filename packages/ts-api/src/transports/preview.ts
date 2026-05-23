@@ -55,6 +55,7 @@ export function createPreviewTransport(): IpcTransport {
     terminalShell: "",
     terminalArgs: "",
     rememberLastUsedPanes: true,
+    diagnosticsExportPath: "/tmp/fileoctopus-diagnostics.zip",
   };
   const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
   const folderSizeHandlers = new Set<
