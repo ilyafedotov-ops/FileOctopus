@@ -406,40 +406,62 @@ export function MenuBar(props: MenuBarProps) {
     },
     sep("sep-sort"),
     {
-      id: "sort-name",
-      label: "Sort by Name",
-      onSelect: wrapArg(props.onSortBy, "name"),
-    },
-    {
-      id: "sort-type",
-      label: "Sort by Type",
-      onSelect: wrapArg(props.onSortBy, "type"),
-    },
-    {
-      id: "sort-size",
-      label: "Sort by Size",
-      onSelect: wrapArg(props.onSortBy, "size"),
-    },
-    {
-      id: "sort-date-modified",
-      label: "Sort by Date Modified",
-      onSelect: wrapArg(props.onSortBy, "modified"),
-    },
-    {
-      id: "sort-date-created",
-      label: "Sort by Date Created",
-      onSelect: wrapArg(props.onSortBy, "created"),
-    },
-    {
-      id: "sort-asc",
-      label: "Ascending",
-      separatorBefore: true,
-      onSelect: wrapArg(props.onSortDirection, "ascending"),
-    },
-    {
-      id: "sort-desc",
-      label: "Descending",
-      onSelect: wrapArg(props.onSortDirection, "descending"),
+      id: "sort-by",
+      label: "Sort By",
+      onSelect: () => {},
+      children: [
+        {
+          id: "sort-name",
+          label: "Name",
+          onSelect: wrapArg(props.onSortBy, "name"),
+        },
+        {
+          id: "sort-type",
+          label: "Type",
+          onSelect: wrapArg(props.onSortBy, "type"),
+        },
+        {
+          id: "sort-size",
+          label: "Size",
+          onSelect: wrapArg(props.onSortBy, "size"),
+        },
+        {
+          id: "sort-date-modified",
+          label: "Date Modified",
+          onSelect: wrapArg(props.onSortBy, "modified"),
+        },
+        {
+          id: "sort-date-created",
+          label: "Date Created",
+          onSelect: wrapArg(props.onSortBy, "created"),
+        },
+        {
+          id: "sort-extension",
+          label: "Extension",
+          onSelect: wrapArg(props.onSortBy, "extension"),
+        },
+        {
+          id: "sort-permissions",
+          label: "Permissions",
+          onSelect: wrapArg(props.onSortBy, "permissions"),
+        },
+        {
+          id: "sort-owner",
+          label: "Owner",
+          onSelect: wrapArg(props.onSortBy, "owner"),
+        },
+        {
+          id: "sort-asc",
+          label: "Ascending",
+          separatorBefore: true,
+          onSelect: wrapArg(props.onSortDirection, "ascending"),
+        },
+        {
+          id: "sort-desc",
+          label: "Descending",
+          onSelect: wrapArg(props.onSortDirection, "descending"),
+        },
+      ],
     },
     sep("sep-appearance"),
     {

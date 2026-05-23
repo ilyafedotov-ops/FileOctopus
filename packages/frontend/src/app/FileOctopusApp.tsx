@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useRef } from "react";
-import { activeTab } from "../panelStore";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { activeTab, type SortField } from "../panelStore";
 import { applySplitRatio, applyThemePreference } from "../applyPreferences";
 import { useWorkspaceLayout } from "../hooks/useWorkspaceLayout";
 import { useMenuBarProps } from "../hooks/useMenuBarProps";
@@ -561,6 +561,42 @@ function FileOctopusAppInner({
       }
     },
   });
+
+  useEffect(() => {
+    let unlisten: (() => void) | null = null;
+    let disposed = false;
+    const onNativeMenuCommand = client.onNativeMenuCommand?.bind(client);
+
+    if (!onNativeMenuCommand) {
+      return undefined;
+    }
+
+    onNativeMenuCommand((event) => {
+      const context =
+        event.sortField || event.preferenceValue
+          ? {
+              sortField: event.sortField
+                ? (event.sortField as SortField)
+                : undefined,
+              preferenceValue: event.preferenceValue ?? undefined,
+            }
+          : undefined;
+      handleCommandSelect(event.commandId, undefined, context);
+    })
+      .then((value) => {
+        if (disposed) {
+          value();
+          return;
+        }
+        unlisten = value;
+      })
+      .catch(() => undefined);
+
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [client, handleCommandSelect]);
 
   const handleShellKeyDown = useMemo(
     () =>

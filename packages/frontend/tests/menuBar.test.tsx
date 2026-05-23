@@ -149,6 +149,28 @@ describe("MenuBar", () => {
     expect(screen.getByRole("menuitem", { name: /Compact View/ })).toBeTruthy();
   });
 
+  it("exposes the full sort submenu from the View menu", () => {
+    render(<MenuBar {...createMenuBarProps()} />);
+
+    openTopMenu("View");
+    fireEvent.mouseEnter(screen.getByRole("menuitem", { name: /Sort By/ }));
+
+    for (const label of [
+      "Name",
+      "Type",
+      "Size",
+      "Date Modified",
+      "Date Created",
+      "Extension",
+      "Permissions",
+      "Owner",
+      "Ascending",
+      "Descending",
+    ]) {
+      expect(screen.getByRole("menuitem", { name: label })).toBeTruthy();
+    }
+  });
+
   it("invokes onCompress when Pack is selected", () => {
     const onCompress = vi.fn();
     render(
