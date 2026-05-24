@@ -62,6 +62,7 @@ const FALLBACK_PREFERENCES: UserPreferencesDto = {
   toolbarVisible: true,
   toolbarEntries: "",
   paneMode: "dual",
+  paneDirection: "horizontal",
   jobDrawerBehavior: "manual",
   showAdvancedCopyOptions: false,
   paneTerminalHeightLeft: 0.35,
