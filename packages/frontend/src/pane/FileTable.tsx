@@ -47,6 +47,7 @@ export interface FileTableProps {
   onCreateFolder?: () => void;
   onCreateFile?: () => void;
   onColumnResize?: (columnId: ColumnId, newWidth: number) => void;
+  onColumnReorder?: (fromIndex: number, toIndex: number) => void;
   onSelect: (entryId: string | null) => void;
   onEntrySelect: (entryId: string, mode: "single" | "toggle" | "range") => void;
   onMove: (delta: number) => void;
@@ -82,6 +83,7 @@ export function FileTable({
   onCreateFolder,
   onCreateFile,
   onColumnResize,
+  onColumnReorder,
   onSelect,
   onEntrySelect,
   onMove,
@@ -93,6 +95,8 @@ export function FileTable({
 }: FileTableProps) {
   const [scrollTop, setScrollTop] = useState(0);
   const [resizingColumn, setResizingColumn] = useState<ColumnId | null>(null);
+  const [draggedColId, setDraggedColId] = useState<ColumnId | null>(null);
+  const [dragOverColId, setDragOverColId] = useState<ColumnId | null>(null);
   const [colVisMenu, setColVisMenu] = useState<{
     x: number;
     y: number;
@@ -282,8 +286,8 @@ export function FileTable({
           }}
         >
           {(() => {
-            const orderedVisible = COLUMN_ORDER.filter(
-              (id) => visibleColumns.indexOf(id) !== -1,
+            const orderedVisible = visibleColumns.filter(
+              (id) => COLUMN_ORDER.indexOf(id) !== -1,
             );
             return orderedVisible.map((colId, i) => {
               const header = columnHeaderDef(colId);
@@ -296,6 +300,29 @@ export function FileTable({
                     active={sortField === header.sortField}
                     direction={sortDirection}
                     onSort={onSort}
+                    draggable={colId !== "name"}
+                    dragOver={dragOverColId === colId}
+                    onDragStart={() => setDraggedColId(colId)}
+                    onDragOver={() => setDragOverColId(colId)}
+                    onDragEnd={() => {
+                      setDraggedColId(null);
+                      setDragOverColId(null);
+                    }}
+                    onDrop={() => {
+                      if (
+                        draggedColId &&
+                        draggedColId !== colId &&
+                        onColumnReorder
+                      ) {
+                        const fromIndex = orderedVisible.indexOf(draggedColId);
+                        const toIndex = orderedVisible.indexOf(colId);
+                        if (fromIndex !== -1 && toIndex !== -1) {
+                          onColumnReorder(fromIndex, toIndex);
+                        }
+                      }
+                      setDraggedColId(null);
+                      setDragOverColId(null);
+                    }}
                   >
                     {header.label}
                   </ColumnHeader>,
@@ -458,6 +485,12 @@ interface ColumnHeaderProps {
   direction: string;
   children: ReactNode;
   onSort: (field: SortField) => void;
+  draggable?: boolean;
+  dragOver?: boolean;
+  onDragStart?: () => void;
+  onDragOver?: () => void;
+  onDragEnd?: () => void;
+  onDrop?: () => void;
 }
 
 function ColumnHeader({
@@ -466,6 +499,12 @@ function ColumnHeader({
   direction,
   children,
   onSort,
+  draggable = false,
+  dragOver = false,
+  onDragStart,
+  onDragOver,
+  onDragEnd,
+  onDrop,
 }: ColumnHeaderProps) {
   const ariaSort: "none" | "ascending" | "descending" =
     active && direction === "asc"
@@ -477,13 +516,30 @@ function ColumnHeader({
   return (
     <button
       type="button"
+      role="columnheader"
       className={cx(
         "fo-column-button",
         active && "fo-column-button-active",
         active && `fo-column-button-${direction}`,
+        dragOver && "fo-column-button-drag-over",
       )}
       aria-sort={ariaSort}
+      draggable={draggable}
       onClick={() => onSort(field)}
+      onDragStart={(e) => {
+        if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+        onDragStart?.();
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+        onDragOver?.();
+      }}
+      onDragEnd={() => onDragEnd?.()}
+      onDrop={(e) => {
+        e.preventDefault();
+        onDrop?.();
+      }}
     >
       <span className="fo-column-label">{children}</span>
       {active ? (

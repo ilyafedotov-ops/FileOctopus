@@ -159,6 +159,21 @@ export function FilePanel({
   const [visibleColumns, setVisibleColumns] =
     useState<VisibleColumns>(storedVisibleColumns);
 
+  const handleColumnReorder = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      setVisibleColumns((prev) => {
+        const next = [...prev];
+        const [moved] = next.splice(fromIndex, 1);
+        if (moved) {
+          next.splice(toIndex, 0, moved);
+        }
+        persistVisibleColumns(next);
+        return next as VisibleColumns;
+      });
+    },
+    [],
+  );
+
   const handleToggleColumn = useCallback((columnId: ColumnId) => {
     if (columnId === "name") return;
     setVisibleColumns((prev) => {
@@ -326,6 +341,7 @@ export function FilePanel({
               visibleColumns={visibleColumns}
               onToggleColumn={handleToggleColumn}
               onColumnResize={handleColumnResize}
+              onColumnReorder={handleColumnReorder}
               onCancelInlineRename={() => setInlineRenameUri(null)}
               onSubmitInlineRename={(entryUri, newName) => {
                 const entry = tab.entriesById[entryUri];

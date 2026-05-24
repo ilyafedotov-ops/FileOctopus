@@ -38,7 +38,7 @@
 | POST-4       | P2  | done     | codex | sidebar  | 2026-05-24  | 2026-05-24       | UI Design Spec §2            | Network sidebar polish: Network section is authoritative; SFTP profiles are no longer duplicated under Devices/Volumes                                                                                    | None     | 2026-05-24    |
 | POST-1       | P2  | done     | codex | firstrun | 2026-05-24  | 2026-05-24       | Sprint 5 stretch             | First-run welcome overlay: small dismissible onboarding flow for initial FileOctopus launch, persisted so it appears once                                                                                 | None     | 2026-05-24    |
 | POST-2       | P3  | done     | codex | titlebar | 2026-05-24  | 2026-05-24       | UI Design Spec §1            | Title bar sync/health indicator: show dirty/repo/sync health status in the window title bar using existing Git/network status signals                                                                     | None     | 2026-05-24    |
-| P3-1         | P3  | pending  | -     | -        | -           | -                | UI Design Spec               | Column reorder: drag column headers to change order, persisted in localStorage                                                                                                                            | None     | 2026-05-24    |
+| P3-1         | P3  | done     | cron  | p3-1col  | 2026-05-24  | 2026-05-24 08:00 | UI Design Spec               | Column reorder: drag column headers to change order, persisted in localStorage                                                                                                                            | None     | 2026-05-24    |
 
 ---
 

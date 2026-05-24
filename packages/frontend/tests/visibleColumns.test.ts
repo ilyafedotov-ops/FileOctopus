@@ -135,12 +135,19 @@ describe("buildVisibleGridTemplate", () => {
     expect(result).toBe("minmax(220px, 1fr)");
   });
 
-  it("respects column order when subset is visible", () => {
+  it("respects the visible array order (not COLUMN_ORDER)", () => {
     const visible: VisibleColumns = ["name", "modified", "size"];
     const result = buildVisibleGridTemplate(DEFAULT_COLUMN_WIDTHS, visible);
-    // Should follow COLUMN_ORDER: name, extension, size, modified, kind
-    // Only name, size, modified are visible → name first, then size, then modified
-    expect(result).toBe("minmax(220px, 1fr) 78px 126px");
+    // Should follow the visible array order: name, modified, size
+    expect(result).toBe("minmax(220px, 1fr) 126px 78px");
+  });
+
+  it("follows COLUMN_ORDER when visible array is in default order", () => {
+    const result = buildVisibleGridTemplate(
+      DEFAULT_COLUMN_WIDTHS,
+      DEFAULT_VISIBLE_COLUMNS,
+    );
+    expect(result).toBe("minmax(220px, 1fr) 52px 78px 126px 110px");
   });
 });
 

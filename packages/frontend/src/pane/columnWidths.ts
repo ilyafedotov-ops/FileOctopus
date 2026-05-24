@@ -65,7 +65,8 @@ export function buildVisibleGridTemplate(
   widths: ColumnWidths,
   visible: VisibleColumns,
 ): string {
-  const ordered = COLUMN_ORDER.filter((id) => visible.indexOf(id) !== -1);
+  // Use the visible array order directly (supports user-defined column reorder)
+  const ordered = visible.filter((id) => COLUMN_ORDER.indexOf(id) !== -1);
   return ordered
     .map((id) => {
       const w = widths[id];
@@ -78,7 +79,8 @@ export function buildVisibleHeaderGridTemplate(
   widths: ColumnWidths,
   visible: VisibleColumns,
 ): string {
-  const ordered = COLUMN_ORDER.filter((id) => visible.indexOf(id) !== -1);
+  // Use the visible array order directly (supports user-defined column reorder)
+  const ordered = visible.filter((id) => COLUMN_ORDER.indexOf(id) !== -1);
   const parts: string[] = [];
   for (let i = 0; i < ordered.length; i++) {
     const id = ordered[i];

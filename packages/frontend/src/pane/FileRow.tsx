@@ -192,32 +192,44 @@ export function FileRow({
       {showMetadata ? (
         viewMode === "details" ? (
           <>
-            {(!visibleColumns ||
-              visibleColumns.indexOf("extension") !== -1) && (
-              <span>{extensionLabel}</span>
-            )}
-            {(!visibleColumns || visibleColumns.indexOf("size") !== -1) && (
-              <span>
-                {entry.kind === "directory"
-                  ? isParentEntry
-                    ? "—"
-                    : "DIR"
-                  : formatSize(entry.size)}
-              </span>
-            )}
-            {(!visibleColumns || visibleColumns.indexOf("modified") !== -1) && (
-              <span title={entry.modifiedAt ?? undefined}>
-                {formatDate(entry.modifiedAt)}
-              </span>
-            )}
-            {(!visibleColumns || visibleColumns.indexOf("kind") !== -1) && (
-              <span>
-                {isParentEntry
-                  ? "parent"
-                  : entry.kind === "directory"
-                    ? "folder"
-                    : typeLabel}
-              </span>
+            {(visibleColumns ?? ["extension", "size", "modified", "kind"]).map(
+              (colId) => {
+                switch (colId) {
+                  case "extension":
+                    return <span key="extension">{extensionLabel}</span>;
+                  case "size":
+                    return (
+                      <span key="size">
+                        {entry.kind === "directory"
+                          ? isParentEntry
+                            ? "—"
+                            : "DIR"
+                          : formatSize(entry.size)}
+                      </span>
+                    );
+                  case "modified":
+                    return (
+                      <span
+                        key="modified"
+                        title={entry.modifiedAt ?? undefined}
+                      >
+                        {formatDate(entry.modifiedAt)}
+                      </span>
+                    );
+                  case "kind":
+                    return (
+                      <span key="kind">
+                        {isParentEntry
+                          ? "parent"
+                          : entry.kind === "directory"
+                            ? "folder"
+                            : typeLabel}
+                      </span>
+                    );
+                  default:
+                    return null;
+                }
+              },
             )}
           </>
         ) : (
