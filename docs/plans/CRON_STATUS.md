@@ -1,29 +1,33 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-24 13:10 UTC
-> Commit: 26805da (fix)
+> Last run: 2026-05-24 15:10 UTC
+> Commit: 047aaf7 (docs)
 
 ## Health Gate
 
-| Check                         | Result                                                     |
-| ----------------------------- | ---------------------------------------------------------- |
-| TypeScript (`pnpm typecheck`) | ✅ 0 errors                                                |
-| Rust (`cargo check`)          | ✅ clean (all workspace crates)                            |
-| Rust tests (`cargo test`)     | ✅ pass (workspace + integration, 294 tests)               |
-| Frontend tests (`pnpm test`)  | ✅ 532 pass (85 files)                                     |
-| E2E tests (Playwright)        | ⏭️ skipped (dev server not running during health-check.sh) |
-| Clippy (`-D warnings`)        | ✅ clean                                                   |
-| Format (`cargo fmt --check`)  | ✅ clean                                                   |
-| Prettier (`format:check`)     | ✅ clean                                                   |
-| `pnpm rc:validate`            | ✅ full pipeline green                                     |
+|| Check | Result |
+|| ----------------------------- | ---------------------------------------------------------- |
+|| TypeScript (`pnpm typecheck`) | ✅ 0 errors |
+|| Rust (`cargo check`) | ✅ clean (all workspace crates) |
+|| Rust tests (`cargo test`) | ✅ pass (workspace + integration, ~244 tests) |
+|| Frontend tests (`pnpm test`) | ✅ 544 pass (87 files) |
+|| E2E tests (Playwright) | ⏭️ skipped (dev server not running during health-check.sh) |
+|| Clippy (`-D warnings`) | ✅ clean |
+|| Format (`cargo fmt --check`) | ✅ clean |
+|| Prettier (`format:check`) | ✅ clean |
+|| `pnpm lint` | ✅ clean |
 
 **Gate status:** GREEN — 0 failures.
 
 ## Phase 1: Spec Alignment / Audit
 
-Re-audited `CRON_TASKS.md` Active RC Queue against git history. Found `P3-4` (`Dual pane vertical split`) was implemented in commits `c98ddb8`–`a8c8228`–`f4cf328`–`996ad5e`–`26805da` but still marked `in_progress`. Updated queue status to `done`.
+Re-audited `CRON_TASKS.md` Active RC Queue. All rows are `done` or `deferred`. Zero `pending` rows.
 
-**Active RC Queue after correction:** 0 `pending` rows remain. Only `RC-PAUSE` (deferred) and `P3-6` (deferred) remain in Active RC Queue.
+Per empty-queue policy: no code changes. Audit-only cycle.
+
+**Active RC Queue:** 0 `pending`, 2 `deferred` (RC-PAUSE, P3-6), 16 `done`.
+
+**Test count delta since last run:** Frontend 544 (+12 from 532), 87 files (+2 from 85). Rust ~244 tests (stable).
 
 ## Phase 2: Task Selection
 
