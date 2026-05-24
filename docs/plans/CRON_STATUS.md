@@ -1,6 +1,96 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-24 07:37 UTC
+> Last run: 2026-05-24 07:40 UTC
+> Commit: c6fac7a (feat), 22a8e62 (docs)
+
+## Health Gate
+
+| Check                         | Result                                                     |
+| ----------------------------- | ---------------------------------------------------------- |
+| TypeScript (`pnpm typecheck`) | ✅ 0 errors                                                |
+| Rust (`cargo check`)          | ✅ clean (all workspace crates)                            |
+| Rust tests (`cargo test`)     | ✅ pass (workspace + integration, 294 tests)               |
+| Frontend tests (`pnpm test`)  | ✅ 518 pass (82 files)                                     |
+| E2E tests (Playwright)        | ⏭️ skipped (dev server not running during health-check.sh) |
+| Clippy (`-D warnings`)        | ✅ clean                                                   |
+| Format (`cargo fmt --check`)  | ✅ clean                                                   |
+| Prettier (`format:check`)     | ✅ clean                                                   |
+| `pnpm rc:validate`            | ✅ full pipeline green                                     |
+
+**Gate status:** GREEN — 0 failures.
+
+## Phase 1: Spec Alignment
+
+Re-audited `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` §13 and `UI_FEATURE_INVENTORY.md` §13. Active RC Queue was empty. Backfilled queue with three automatable tasks: `P2-15` (checksum verification UI), `POST-2` (title bar indicator), `P3-1` (column reorder).
+
+## Phase 2: Task Selection
+
+**Selected:** `P2-15` — Checksum verification UI: wire `fs_compute_hash` into Properties dialog. Backend IPC exists; UI-only task.
+
+## Phase 3: TDD Implementation
+
+**Micro-spec:**
+
+1. Add `fs?: FsClient` prop to `PropertiesDialog`
+2. Compute SHA-256 on-demand via `fs.computeHash` when dialog opens for a file
+3. Render a "Checksum" section in `PropertiesDialog` with:
+   - Computed hash in monospace
+   - Input for expected hash
+   - Auto-comparison showing "Match ✓" or "Mismatch ✗"
+4. Pass `fs` through `OperationDialogView`
+5. Write tests covering file vs directory, loading, success, match, mismatch, error
+
+### TDD Evidence
+
+- **RED:** `propertiesDialog.test.tsx` (6 tests) — asserted checksum section rendering, on-demand compute, match/mismatch/error states; all failed because `PropertiesDialog` had no checksum section or `fs` prop
+- **GREEN:** Added `fs` prop, `useState`/`useEffect` hash computation, checksum section with expected-hash input and verification badges; all 518 tests pass with 0 regressions
+- **REFACTOR:** No refactoring needed — change is self-contained and follows existing dialog patterns
+
+**Files changed (3):**
+
+- `packages/frontend/src/components/dialogs/PropertiesDialog.tsx` — added `fs` prop, hash computation, checksum section with verification input
+- `packages/frontend/src/dialogs/OperationDialogView.tsx` — pass `fs` to `PropertiesDialog`
+- `packages/frontend/tests/propertiesDialog.test.tsx` — 6 tests for checksum UI states
+
+## Phase 4: Integration Verification
+
+- `cargo test --workspace` — ✅ 294 passed
+- `pnpm test` (frontend) — ✅ 518 passed (82 files)
+- `pnpm typecheck` — ✅ 0 errors
+- `cargo check` — ✅ clean
+- `cargo clippy --workspace --all-targets -- -D warnings` — ✅ clean
+- `cargo fmt --all --check` — ✅ clean
+- `pnpm format:check` — ✅ clean
+- `pnpm lint` — ✅ clean
+
+## Phase 5: Spec Compliance & Docs
+
+- `CRON_TASKS.md` — `P2-15` marked `done`; added to Recently Completed; updated Deferred note
+- `CRON_STATUS.md` — this entry
+
+## Active RC Queue (remaining)
+
+| ID       | Pri | Status   | Owner | Commit | Started | Last Verified | Spec Ref            | Task                                                                            | Blockers | Last Verified |
+| -------- | --- | -------- | ----- | ------ | ------- | ------------- | ------------------- | ------------------------------------------------------------------------------- | -------- | ------------- |
+| RC-PAUSE | P2  | deferred | -     | -      | -       | -             | UI §6; RC spec §3.2 | Pause on jobs: backend job.pause IPC + UI pause/resume button in activity panel | None     | 2026-05-23    |
+| POST-2   | P3  | pending  | -     | -      | -       | -             | UI Design Spec §1   | Title bar sync/health indicator: show dirty/repo status in window title bar     | None     | 2026-05-24    |
+| P3-1     | P3  | pending  | -     | -      | -       | -             | UI Design Spec      | Column reorder: drag column headers to change order, persisted in localStorage  | None     | 2026-05-24    |
+
+**Note:** Active RC Queue now has 2 `pending` tasks (POST-2, P3-1). Both are P3 polish items. `RC-PAUSE` remains `deferred`. No P1/P2 pending tasks remain.
+
+## Recommendation
+
+Queue is nearly empty at P1/P2 level. Options for next cycle:
+
+1. Implement `POST-2` (title bar sync/health indicator) — P3, UI-only, small surface
+2. Implement `P3-1` (column reorder) — P3, requires drag-and-drop + localStorage persistence
+3. Re-audit `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` + `UI_FEATURE_INVENTORY.md` for fresh P1/P2 gaps
+4. Resume `RC-PAUSE` if a human reprioritizes it and breaks it into smaller sub-tasks
+
+---
+
+## Historical: 2026-05-24 07:37 UTC
+
 > Commit: af8a7b5
 
 ## Health Gate

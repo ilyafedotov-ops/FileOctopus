@@ -28,10 +28,10 @@
 | RC-MENU-FULL | P2  | done     | codex | 207eb90 | 2026-05-23  | 2026-05-23       | Menu & Modal Spec §4        | Application menu bar full wiring: native OS menu (Tauri menu.rs), sort submenu parity                                                                                                                     | None     | 2026-05-23    |
 | RC-PAUSE     | P2  | deferred | -     | -       | -           | -                | UI §6; RC spec §3.2         | Pause on jobs: backend job.pause IPC + UI pause/resume button in activity panel (deferred: requires executor-level pause token refactor across jobs/app-core/fs-core crates — too large for single cycle) | None     | 2026-05-23    |
 | RC-VIDEOS    | P3  | done     | cron  | -       | 2026-05-24  | 2026-05-24       | UI_FEATURE_INVENTORY §3     | Sidebar Videos icon: backend returns `videos` standard location; frontend missing icon mapping                                                                                                            | None     | 2026-05-24    |
-| RC-RECENT    | P2  | done     | cron  | 7cadc95 | 2026-05-23  | 2026-05-23       | UI §2; UI_FEATURE_INVENTORY | Sidebar Recent section: split into "Today" and "This Week" groups (API already provides both buckets; UI only renders Today)                                                                              | None     | 2026-05-23    |
-| RC-DIAG-LOC  | P3  | done     | cron  | 6fa3dac | 2026-05-23  | 2026-05-23       | UI Design Spec              | Diagnostics export location preference (default export path setting)                                                                                                                                      | None     | 2026-05-23    |
-| RC-TAR       | P3  | done     | cron  | 35d463a | 2026-05-23  | 2026-05-23       | RC spec §3.2                | Tar / non-zip archive formats: createArchive/extractArchive for tar.gz/tar.bz2                                                                                                                            | None     | 2026-05-23    |
-| P2-15        | P2  | pending  | -     | -       | -           | -                | UI_FEATURE_INVENTORY §3     | Checksum verification UI: wire `fs_compute_hash` into context menu / Properties dialog (backend IPC exists)                                                                                               | None     | 2026-05-24    |
+| RC-RECENT    | P2  | done     | cron  | 7cadc95 | 2026-05-23  | 2026-05-23       | UI §2; UI_FEATURE_INVENTORY | Sidebar Recent section: split into "Today" and "This Week" groups (API already provides both buckets; UI only renders Today)                                                                              | None     | 2026-05-24    |
+| RC-DIAG-LOC  | P3  | done     | cron  | 6fa3dac | 2026-05-23  | 2026-05-23       | UI Design Spec              | Diagnostics export location preference (default export path setting)                                                                                                                                      | None     | 2026-05-24    |
+| RC-TAR       | P3  | done     | cron  | 35d463a | 2026-05-23  | 2026-05-23       | RC spec §3.2                | Tar / non-zip archive formats: createArchive/extractArchive for tar.gz/tar.bz2                                                                                                                            | None     | 2026-05-24    |
+| P2-15        | P2  | done     | cron  | c6fac7a | 2026-05-24  | 2026-05-24       | UI_FEATURE_INVENTORY §3     | Checksum verification UI: wire `fs_compute_hash` into Properties dialog with on-demand SHA-256 computation, expected hash input, and Match/Mismatch indicator                                             | None     | 2026-05-24    |
 | POST-2       | P3  | pending  | -     | -       | -           | -                | UI Design Spec §1           | Title bar sync/health indicator: show dirty/repo status in window title bar                                                                                                                               | None     | 2026-05-24    |
 | P3-1         | P3  | pending  | -     | -       | -           | -                | UI Design Spec              | Column reorder: drag column headers to change order, persisted in localStorage                                                                                                                            | None     | 2026-05-24    |
 
@@ -49,7 +49,7 @@
 | P2-12    | Symlink policy changes expand the file-operation contract and warning model                  |
 | P2-13    | PDF/media/EXIF preview is broader product expansion than the current RC image-preview gap    |
 | P2-14    | Saved searches/smart folders add new persistence and virtual result views                    |
-| P2-15    | Checksum verification UI is lower priority than current RC hardening; backend command exists |
+| P2-15    | Done — implemented in Properties dialog (`c6fac7a`)                                          |
 | P2-16    | Archive browsing requires a new archive provider and capability model                        |
 | P3-1     | Column reorder — polish/future                                                               |
 | P3-2     | Eject/unmount — polish/future                                                                |
@@ -104,6 +104,7 @@
 | P2-8    | Recent Locations management UI (dialog + clear/remove flows)                                                | preex      |
 | P2-7    | VolumePickerDialog with discoverVolumes IPC + Go menu                                                       | 81568c8    |
 | P2-11   | Offline/unmounted pane state                                                                                | 84867c3    |
+| P2-15   | Checksum verification UI in Properties dialog: on-demand SHA-256 + expected hash input + Match/Mismatch     | c6fac7a    |
 | P2-10   | Accessible row names for file entries                                                                       | 993f879    |
 | P2-6    | User-selectable visible columns with persistence                                                            | e902fb0    |
 | P2-5    | Confirm before app close when jobs running                                                                  | 3490ee1    |
