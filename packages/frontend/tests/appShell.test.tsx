@@ -509,6 +509,7 @@ vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
 });
 
 import { FileOctopusShell } from "../src";
+import { FIRST_RUN_DISMISSED_KEY } from "../src/onboarding/firstRun";
 
 describe("FileOctopusShell", () => {
   afterEach(() => {
@@ -517,6 +518,7 @@ describe("FileOctopusShell", () => {
 
   beforeEach(() => {
     localStorage.clear();
+    localStorage.setItem(FIRST_RUN_DISMISSED_KEY, "true");
     batchHandler = null;
     jobStartedHandler = null;
     jobProgressHandler = null;

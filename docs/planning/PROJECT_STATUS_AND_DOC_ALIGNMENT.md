@@ -70,6 +70,7 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 - **Diagnostics export location preference** — Settings exposes `diagnosticsExportPath`, persisted through preferences and used by the diagnostics dialog
 - **Checksum verification UI** — Properties supports on-demand SHA-256 plus expected-hash match/mismatch state
 - **Network sidebar deduplication** — saved SFTP/SSH profiles are surfaced in the dedicated Network section instead of being duplicated under Devices/Volumes
+- **First-run overlay** — dismissible initial welcome flow persisted in localStorage with entry points into Settings, Shortcuts, and Network
 
 ### Specified but not implemented (or stub only)
 
@@ -77,7 +78,6 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 | ----------------------------------- | --------------------------- | --------------------------------------------------------------------------------- |
 | Advanced settings tab               | UI Design Spec §Preferences | Operations and Shortcuts sections exist; a separate Advanced tab remains deferred |
 | **Title bar sync/health indicator** | UI §1                       | Optional; not built                                                               |
-| **First-run overlay**               | Sprint 5 stretch            | Not built                                                                         |
 | PDF/media/EXIF preview expansion    | UI §Preview                 | Image preview is implemented; broader preview modes remain deferred               |
 | Pause on jobs                       | UI §6                       | Cancel only                                                                       |
 

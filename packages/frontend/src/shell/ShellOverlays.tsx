@@ -1,13 +1,32 @@
+import { useState } from "react";
+import { FirstRunOverlay } from "../components/FirstRunOverlay";
 import { DialogOverlayGroup } from "../components/DialogOverlayGroup";
 import { ContextMenuOverlay } from "../components/ContextMenuOverlay";
 import { ToastStack } from "../components/ToastStack";
+import {
+  markFirstRunOverlayDismissed,
+  shouldShowFirstRunOverlay,
+} from "../onboarding/firstRun";
 import { useShellLayout } from "./ShellLayoutContext";
 
 export function ShellOverlays() {
   const ctx = useShellLayout();
+  const [firstRunOpen, setFirstRunOpen] = useState(shouldShowFirstRunOverlay);
+
+  const dismissFirstRun = () => {
+    markFirstRunOverlayDismissed();
+    setFirstRunOpen(false);
+  };
 
   return (
     <>
+      <FirstRunOverlay
+        open={firstRunOpen}
+        onDismiss={dismissFirstRun}
+        onOpenSettings={() => ctx.setSettingsOpen(true)}
+        onOpenShortcuts={() => ctx.setShortcutsOpen(true)}
+        onOpenNetwork={() => ctx.setNetworkLocationsOpen(true)}
+      />
       <ToastStack
         toasts={ctx.toasts}
         onDismiss={(id) =>

@@ -99,6 +99,46 @@
   overflow-wrap: anywhere;
 }
 
+.fo-first-run-dialog {
+  width: min(34rem, calc(100vw - 2rem));
+}
+
+.fo-first-run-body {
+  display: grid;
+  gap: 10px;
+}
+
+.fo-first-run-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.fo-first-run-grid button {
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-height: 82px;
+  padding: 10px;
+  text-align: left;
+}
+
+.fo-first-run-grid strong {
+  font-size: 13px;
+}
+
+.fo-first-run-grid span {
+  color: var(--fo-muted-text);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+@media (max-width: 640px) {
+  .fo-first-run-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .fo-dialog-danger {
   border-color: var(--fo-danger-border);
   background: var(--fo-danger-bg);
