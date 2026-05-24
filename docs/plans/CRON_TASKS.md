@@ -3,7 +3,7 @@
 > Execution-facing queue for autonomous agents.
 > Last verified against repo state: 2026-05-24 07:37 UTC
 >
-> **Note:** Active RC Queue audit performed 2026-05-24 07:37 UTC. RC-VIDEOS implemented. No pending P1/P2/P3 automatable tasks remain in Active RC Queue. Only RC-PAUSE remains deferred. Phase 5 polish/QA and post-RC expansion items remain for human reprioritization.
+> **Note:** Always maintain at least 3 `pending` tasks in Active RC Queue. If fewer than 3, read `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` §13 + `UI_FEATURE_INVENTORY.md` §13 and backfill immediately.
 
 ---
 
@@ -31,6 +31,9 @@
 | RC-RECENT    | P2  | done     | cron  | 7cadc95 | 2026-05-23  | 2026-05-23       | UI §2; UI_FEATURE_INVENTORY | Sidebar Recent section: split into "Today" and "This Week" groups (API already provides both buckets; UI only renders Today)                                                                              | None     | 2026-05-23    |
 | RC-DIAG-LOC  | P3  | done     | cron  | 6fa3dac | 2026-05-23  | 2026-05-23       | UI Design Spec              | Diagnostics export location preference (default export path setting)                                                                                                                                      | None     | 2026-05-23    |
 | RC-TAR       | P3  | done     | cron  | 35d463a | 2026-05-23  | 2026-05-23       | RC spec §3.2                | Tar / non-zip archive formats: createArchive/extractArchive for tar.gz/tar.bz2                                                                                                                            | None     | 2026-05-23    |
+| P2-15        | P2  | pending  | -     | -       | -           | -                | UI_FEATURE_INVENTORY §3     | Checksum verification UI: wire `fs_compute_hash` into context menu / Properties dialog (backend IPC exists)                                                                                               | None     | 2026-05-24    |
+| POST-2       | P3  | pending  | -     | -       | -           | -                | UI Design Spec §1           | Title bar sync/health indicator: show dirty/repo status in window title bar                                                                                                                               | None     | 2026-05-24    |
+| P3-1         | P3  | pending  | -     | -       | -           | -                | UI Design Spec              | Column reorder: drag column headers to change order, persisted in localStorage                                                                                                                            | None     | 2026-05-24    |
 
 ---
 
