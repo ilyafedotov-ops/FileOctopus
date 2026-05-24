@@ -1,4 +1,5 @@
 import { StatusBarSection } from "../components/StatusBarSection";
+import { StorageGauge } from "../components/StorageGauge";
 import { activeTab } from "../panelStore";
 import { localPathFromUri } from "../utils/paneUtils";
 import {
@@ -33,6 +34,8 @@ export function ShellStatusBar() {
     <div className="fo-shell-status-stack">
       <div className="fo-bottom-path-rail">
         <span title={pathLabel}>{pathLabel}</span>
+        <span className="fo-status-spacer" />
+        <StorageGauge uri={tab.uri} client={ctx.client} />
       </div>
       <div className="fo-commander-bar" aria-label="Function key actions">
         {COMMANDER_FUNCTION_ITEMS.map((item) => (

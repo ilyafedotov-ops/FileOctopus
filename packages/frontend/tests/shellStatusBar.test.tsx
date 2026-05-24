@@ -23,6 +23,11 @@ function renderStatusBar(overrides: Partial<ShellLayoutContextValue> = {}) {
     markActivityPinnedOpen: vi.fn(),
     setActivityCollapsed: vi.fn(),
     updatePreference: vi.fn(async () => undefined),
+    client: {
+      fs: {
+        discoverVolumes: vi.fn(async () => ({ volumes: [] })),
+      },
+    },
     ...overrides,
   } as unknown as ShellLayoutContextValue;
 

@@ -659,6 +659,39 @@
   display: none;
 }
 
+/* Storage gauge */
+.fo-storage-gauge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.fo-storage-gauge-bar {
+  display: inline-block;
+  width: 40px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 20%);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.fo-storage-gauge-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--fo-accent, #4a9eff);
+}
+
+.fo-storage-gauge-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  opacity: 0.9;
+}
+
 :root[data-toolbar-hidden] .fo-operation-toolbar {
   display: none;
 }
