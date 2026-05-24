@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ContextMenu } from "../src/components/ContextMenu";
 import { DiagnosticsDialog } from "../src/components/DiagnosticsDialog";
+import { FirstRunOverlay } from "../src/components/FirstRunOverlay";
 import { SettingsDialog } from "../src/components/SettingsDialog";
 import { ShortcutsDialog } from "../src/components/ShortcutsDialog";
 import { useDialogEscape } from "../src/hooks/useDialogEscape";
@@ -11,6 +12,7 @@ const noop = () => undefined;
 
 describe("accessibility basics", () => {
   afterEach(() => {
+    cleanup();
     document.documentElement.removeAttribute("data-theme");
   });
 
@@ -119,6 +121,26 @@ describe("accessibility basics", () => {
 
     expect(screen.getAllByRole("menu").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByRole("menuitem").length).toBeGreaterThan(5);
+  });
+
+  it("exposes first-run dialog semantics and named actions", () => {
+    render(
+      <FirstRunOverlay
+        open
+        onDismiss={noop}
+        onOpenSettings={noop}
+        onOpenShortcuts={noop}
+        onOpenNetwork={noop}
+      />,
+    );
+
+    expect(
+      screen.getByRole("dialog", { name: "Welcome to FileOctopus" }),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Shortcuts" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Network" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Start" })).toBeTruthy();
   });
 
   it("supports useDialogEscape hook", () => {

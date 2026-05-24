@@ -17,6 +17,14 @@
 | Sprint 4 fixture       | `/tmp/fileoctopus-sprint-4`                                               | ✅ prepared                                                                                                  |
 | 10k tree               | `./tmp/10k`                                                               | ✅ reused                                                                                                    |
 
+## Phase 5 automated QA slice (2026-05-24)
+
+| Check                         | Command / test                                                            | Result                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Failure-state visual coverage | `visualSnapshots.test.tsx`                                                | ✅ added permission-denied pane and operation-error status-bar snapshots       |
+| Accessibility smoke coverage  | `accessibility.test.tsx`                                                  | ✅ dialog/context-menu semantics plus first-run overlay named actions          |
+| Frontend test run             | `pnpm --filter @fileoctopus/frontend test -- visualSnapshots.test.tsx -u` | ✅ 83 files / 523 tests passed; xterm canvas warning remains known jsdom noise |
+
 ## Previous automated evidence (2026-05-19)
 
 | Check                  | Result                                 |

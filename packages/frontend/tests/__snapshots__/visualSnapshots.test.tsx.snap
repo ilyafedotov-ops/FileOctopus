@@ -1,5 +1,56 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`visual regression snapshots > matches the permission denied failure state 1`] = `
+<section
+  class="fo-pane-state fo-pane-state-error"
+>
+  <strong>
+    Permission denied
+  </strong>
+  <span
+    class="fo-pane-state-path"
+  >
+    /Users/ilya/Documents/Secret
+  </span>
+  <span
+    class="fo-pane-state-message"
+  >
+    Operation not permitted
+  </span>
+  <span
+    class="fo-pane-state-message"
+  >
+    Check macOS privacy settings or choose another location.
+  </span>
+  <details
+    class="fo-pane-state-details"
+  >
+    <summary>
+      Show details
+    </summary>
+    <pre>
+      Operation not permitted
+    </pre>
+  </details>
+  <div
+    class="fo-pane-state-actions"
+  >
+    <button
+      class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"
+      type="button"
+    >
+      Retry
+    </button>
+    <button
+      class="fo-ui-btn fo-ui-btn--ghost fo-ui-btn--sm"
+      type="button"
+    >
+      Refresh
+    </button>
+  </div>
+</section>
+`;
+
 exports[`visual regression snapshots > matches the shell chrome structure in dark theme 1`] = `
 <div
   class="fo-shell-frame"
@@ -406,4 +457,13 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
     </button>
   </footer>
 </div>
+`;
+
+exports[`visual regression snapshots > matches the status bar operation error state 1`] = `
+<button
+  class="fo-status-segment fo-status-button fo-status-error"
+  type="button"
+>
+  View error
+</button>
 `;

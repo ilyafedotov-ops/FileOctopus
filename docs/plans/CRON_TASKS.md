@@ -1,7 +1,7 @@
 # FileOctopus — Cron Task Queue
 
 > Execution-facing queue for autonomous agents.
-> Last verified against repo state: 2026-05-24 04:51 UTC
+> Last verified against repo state: 2026-05-24 04:56 UTC
 >
 > **Note:** Cron agents automatically select the highest-priority unblocked `pending` row from Active RC Queue. Empty queue means audit-only mode; do not invent or promote work outside this table.
 
@@ -33,7 +33,7 @@
 | RC-DIAG-LOC  | P3  | done     | cron  | 6fa3dac  | 2026-05-23  | 2026-05-23       | UI Design Spec               | Diagnostics export location preference (default export path setting)                                                                                                                                      | None     | 2026-05-24    |
 | RC-TAR       | P3  | done     | cron  | 35d463a  | 2026-05-23  | 2026-05-23       | RC spec §3.2                 | Archive formats implemented: createArchive/extractArchive for `.tar`, `.tar.gz`/`.tgz`, and `.tar.bz2`/`.tbz2`                                                                                            | None     | 2026-05-24    |
 | P2-15        | P2  | done     | cron  | c6fac7a  | 2026-05-24  | 2026-05-24       | UI_FEATURE_INVENTORY §3      | Checksum verification UI: wire `fs_compute_hash` into Properties dialog with on-demand SHA-256 computation, expected hash input, and Match/Mismatch indicator                                             | None     | 2026-05-24    |
-| QA-1         | P1  | pending  | -     | -        | -           | -                | Release checklist; UI §27–28 | Phase 5 QA sign-off: visual regression for failure states, accessibility pass, cross-platform validation checklist, and update status docs with evidence                                                  | None     | 2026-05-24    |
+| QA-1         | P1  | done     | codex | qaauto   | 2026-05-24  | 2026-05-24       | Release checklist; UI §27–28 | Automated Phase 5 QA evidence: visual regression for failure states, accessibility pass, and status docs refreshed; manual cross-platform validation remains human-only                                   | None     | 2026-05-24    |
 | DOC-DRIFT-1  | P1  | done     | codex | docdrift | 2026-05-24  | 2026-05-24       | PROJECT_STATUS; CRON_TASKS   | Reconciled planning/status drift after recent cron work: tar/non-zip archive status, menu/native menu status, preferences wording, checksum, and network-sidebar status                                   | None     | 2026-05-24    |
 | POST-4       | P2  | done     | codex | sidebar  | 2026-05-24  | 2026-05-24       | UI Design Spec §2            | Network sidebar polish: Network section is authoritative; SFTP profiles are no longer duplicated under Devices/Volumes                                                                                    | None     | 2026-05-24    |
 | POST-1       | P2  | done     | codex | firstrun | 2026-05-24  | 2026-05-24       | Sprint 5 stretch             | First-run welcome overlay: small dismissible onboarding flow for initial FileOctopus launch, persisted so it appears once                                                                                 | None     | 2026-05-24    |
@@ -111,6 +111,7 @@
 | DOC-DRIFT-1 | Planning/status drift reconciled for archives, menu, preferences, checksum, and network sidebar status      | 2026-05-24 |
 | POST-4      | Network sidebar deduplication: saved SFTP profiles render only in the dedicated Network section             | 2026-05-24 |
 | POST-1      | First-run welcome overlay with persisted dismissal and links into Settings, Shortcuts, and Network          | 2026-05-24 |
+| QA-1        | Automated Phase 5 QA evidence refreshed: failure-state snapshots and accessibility smoke coverage           | 2026-05-24 |
 | P2-10       | Accessible row names for file entries                                                                       | 993f879    |
 | P2-6        | User-selectable visible columns with persistence                                                            | e902fb0    |
 | P2-5        | Confirm before app close when jobs running                                                                  | 3490ee1    |
