@@ -10,6 +10,8 @@ import type {
   FolderSizeResponse,
   IpcError,
   IpcTransport,
+  ListDirectoriesRequest,
+  ListDirectoriesResponse,
   ListStartRequest,
   ListStartResponse,
   OkResponse,
@@ -140,6 +142,19 @@ export class FsClient {
       return await this.transport.invoke<ListStartResponse>("fs.list_start", {
         request,
       });
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async listDirectories(
+    request: ListDirectoriesRequest,
+  ): Promise<ListDirectoriesResponse> {
+    try {
+      return await this.transport.invoke<ListDirectoriesResponse>(
+        "fs.list_directories",
+        { request },
+      );
     } catch (error) {
       throw normalizeIpcError(error);
     }

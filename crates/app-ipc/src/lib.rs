@@ -797,6 +797,25 @@ pub struct DirectoryBatchEventDto {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ListDirectoriesRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DirectoryEntryDto {
+    pub name: String,
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListDirectoriesResponse {
+    pub directories: Vec<DirectoryEntryDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct FileOperationRequestDto {
     pub kind: FileOperationKind,
     pub sources: Vec<String>,

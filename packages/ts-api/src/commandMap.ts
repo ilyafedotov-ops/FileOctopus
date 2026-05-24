@@ -8,6 +8,7 @@ export const commandMap: Record<string, string> = {
   "fs.compute_hash": "fs_compute_hash",
   "fs.open_terminal": "fs_open_terminal",
   "fs.list_start": "fs_list_start",
+  "fs.list_directories": "fs_list_directories",
   "fs.standard_locations": "fs_standard_locations",
   "fs.discover_volumes": "fs_discover_volumes",
   "fs.open_default": "fs_open_default",

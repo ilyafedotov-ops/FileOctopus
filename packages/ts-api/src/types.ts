@@ -680,6 +680,19 @@ export interface DirectoryBatchEventDto {
   error?: IpcError | null;
 }
 
+export interface ListDirectoriesRequest {
+  uri: string;
+}
+
+export interface DirectoryEntryDto {
+  name: string;
+  uri: string;
+}
+
+export interface ListDirectoriesResponse {
+  directories: DirectoryEntryDto[];
+}
+
 export type FileOperationKind =
   | "copy"
   | "move"

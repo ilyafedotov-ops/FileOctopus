@@ -473,17 +473,18 @@ export function OperationDialogView({
                     <div className="fo-operation-error">{dialog.error}</div>
                   ) : null}
                 </div>
-                {dialog.advancedOptions &&
-                ((locations && locations.length > 0) ||
-                  (favorites && favorites.length > 0) ||
-                  (recentDestinations && recentDestinations.length > 0) ||
-                  (networkProfiles && networkProfiles.length > 0)) ? (
+                {fs ||
+                (locations && locations.length > 0) ||
+                (favorites && favorites.length > 0) ||
+                (recentDestinations && recentDestinations.length > 0) ||
+                (networkProfiles && networkProfiles.length > 0) ? (
                   <div className="fo-destination-sidebar">
                     <DestinationChooser
                       locations={locations ?? []}
                       favorites={favorites ?? []}
                       recent={recentDestinations ?? []}
                       networkProfiles={networkProfiles ?? []}
+                      fs={fs}
                       onSelect={(uri) =>
                         onUpdate({
                           ...dialog,

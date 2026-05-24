@@ -4,12 +4,13 @@ use std::time::Duration;
 use app_core::AppState;
 use app_ipc::{
     error_codes, ComputeHashRequest, ComputeHashResponse, DirectoryBatchEventDto,
-    DiscoverVolumesResponse, IpcError, ListStartRequest, ListStartResponse, OkResponse,
-    OpenTerminalRequest, OpenTerminalResponse, PathPropertiesDto, PathPropertiesRequest,
-    PathPropertiesResponse, PathRequest, ReadFileRangeRequest, ReadFileRangeResponse,
-    ReadImageAsDataUriRequest, ReadImageAsDataUriResponse, ReadTextFileRequest,
-    ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse, StatRequest,
-    StatResponse, WriteTextFileRequest, WriteTextFileResponse, DIRECTORY_BATCH_EVENT,
+    DirectoryEntryDto, DiscoverVolumesResponse, IpcError, ListDirectoriesRequest,
+    ListDirectoriesResponse, ListStartRequest, ListStartResponse, OkResponse, OpenTerminalRequest,
+    OpenTerminalResponse, PathPropertiesDto, PathPropertiesRequest, PathPropertiesResponse,
+    PathRequest, ReadFileRangeRequest, ReadFileRangeResponse, ReadImageAsDataUriRequest,
+    ReadImageAsDataUriResponse, ReadTextFileRequest, ReadTextFileResponse, StandardLocationDto,
+    StandardLocationsResponse, StatRequest, StatResponse, WriteTextFileRequest,
+    WriteTextFileResponse, DIRECTORY_BATCH_EVENT,
 };
 use fs_core::{external_open, locations, metadata, vfs_io::VfsFilesystem};
 use tauri::{AppHandle, State};
@@ -523,4 +524,42 @@ pub async fn fs_write_text_file(
             "write_text_file received a non-terminal completion event",
         )),
     }
+}
+
+#[tauri::command]
+pub async fn fs_list_directories(
+    request: ListDirectoriesRequest,
+    _state: State<'_, Arc<AppState>>,
+) -> Result<ListDirectoriesResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let path = uri.to_local_path().map_err(IpcError::from)?;
+
+    if !path.is_dir() {
+        return Err(IpcError::is_directory(format!(
+            "not a directory: {}",
+            path.display()
+        )));
+    }
+
+    let mut dirs: Vec<DirectoryEntryDto> = Vec::new();
+    let entries = std::fs::read_dir(&path).map_err(|e| IpcError::io(e.to_string()))?;
+
+    for entry in entries {
+        let entry = entry.map_err(|e| IpcError::io(e.to_string()))?;
+        let file_type = entry.file_type().map_err(|e| IpcError::io(e.to_string()))?;
+        if !file_type.is_dir() {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().to_string();
+        let child_path = entry.path();
+        let child_uri = format!("local://{}", child_path.display());
+        dirs.push(DirectoryEntryDto {
+            name,
+            uri: child_uri,
+        });
+    }
+
+    dirs.sort_by_key(|a| a.name.to_lowercase());
+
+    Ok(ListDirectoriesResponse { directories: dirs })
 }

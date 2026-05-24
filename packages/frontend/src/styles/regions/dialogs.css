@@ -812,15 +812,6 @@ dialog.fo-dialog[open] {
   align-items: start;
 }
 
-.fo-copy-dialog-form:not(.fo-copy-dialog-form--advanced)
-  .fo-destination-layout {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.fo-copy-dialog-form--advanced {
-  gap: 0.75rem;
-}
-
 .fo-destination-main {
   display: grid;
   gap: 0.5rem;
@@ -828,8 +819,8 @@ dialog.fo-dialog[open] {
 }
 
 .fo-destination-sidebar {
-  width: 188px;
-  max-height: 240px;
+  width: 220px;
+  max-height: 300px;
   overflow-y: auto;
   border-width: 2px;
   border-style: solid;
@@ -882,6 +873,100 @@ dialog.fo-dialog[open] {
   color: var(--fo-classic-muted);
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.fo-destination-tree-container {
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.fo-folder-tree ul,
+.fo-folder-tree-root {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fo-folder-tree-children {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.fo-folder-tree-node {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 20px;
+}
+
+.fo-folder-tree-toggle {
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: transparent;
+  color: var(--fo-classic-text);
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.fo-folder-tree-toggle:hover {
+  background: var(--fo-classic-face);
+}
+
+.fo-folder-tree-label {
+  border: none;
+  background: transparent;
+  color: var(--fo-classic-text);
+  font-size: 11px;
+  cursor: pointer;
+  text-align: left;
+  padding: 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  height: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.fo-folder-tree-label:hover {
+  background: var(--fo-classic-face);
+}
+
+.fo-folder-tree-empty {
+  font-size: 10px;
+  color: var(--fo-classic-muted);
+  font-style: italic;
+  padding: 2px 0;
+  list-style: none;
+}
+
+.fo-destination-heading {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--fo-classic-muted);
+  text-transform: uppercase;
+  letter-spacing: 0;
+  margin: 0 0 2px 0;
+  padding: 2px 4px;
+}
+
+.fo-destination-section {
+  margin-bottom: 6px;
+}
+
+.fo-destination-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .fo-copy-selection .fo-dialog-item-list {
