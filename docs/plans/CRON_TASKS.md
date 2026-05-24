@@ -3,7 +3,7 @@
 > Execution-facing queue for autonomous agents.
 > Last verified against repo state: 2026-05-24 05:03 UTC
 >
-> **Note:** Cron agents automatically select the highest-priority unblocked `pending` row from Active RC Queue. Empty queue means audit-only mode; do not invent or promote work outside this table.
+> **Note:** If Active RC Queue has fewer than 3 `pending` tasks, the agent MUST read `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` §13 + `UI_FEATURE_INVENTORY.md` §13 and backfill immediately. Never stop with "queue empty" while deferred items exist.
 
 ---
 
@@ -11,7 +11,7 @@
 
 - Only pick work from **Active RC Queue**.
 - If one or more rows are `pending`, automatically select the highest-priority unblocked row; do not ask for confirmation.
-- If Active RC Queue has no `pending` items, run health/spec audit only and do not edit product code.
+- If Active RC Queue has no `pending` items, read `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` §13 + `UI_FEATURE_INVENTORY.md` §13, backfill the queue with 3+ P1–P3 tasks, THEN select work. Only run audit-only if ALL spec docs confirm zero gaps.
 - Do not select or promote **Deferred / Post-RC** items unless a human explicitly reprioritizes them by moving them into Active RC Queue with `Status: pending`.
 - If a queue row conflicts with the codebase or higher-trust docs, update this file first and refresh `last_verified`.
 - Keep at most one `in_progress` row at a time.
@@ -39,6 +39,9 @@
 | POST-1       | P2  | done     | codex | firstrun | 2026-05-24  | 2026-05-24       | Sprint 5 stretch             | First-run welcome overlay: small dismissible onboarding flow for initial FileOctopus launch, persisted so it appears once                                                                                 | None     | 2026-05-24    |
 | POST-2       | P3  | done     | codex | titlebar | 2026-05-24  | 2026-05-24       | UI Design Spec §1            | Title bar sync/health indicator: show dirty/repo/sync health status in the window title bar using existing Git/network status signals                                                                     | None     | 2026-05-24    |
 | P3-1         | P3  | done     | cron  | p3-1col  | 2026-05-24  | 2026-05-24 08:00 | UI Design Spec               | Column reorder: drag column headers to change order, persisted in localStorage                                                                                                                            | None     | 2026-05-24    |
+| P3-6         | P3  | pending  | -     | -        | -           | -                | UI Design Spec               | Rubber-band select: click-and-drag box selection in file pane                                                                                                                                             | None     | 2026-05-24    |
+| P3-4         | P3  | pending  | -     | -        | -           | -                | UI Design Spec               | Dual pane vertical split: toggle between horizontal and vertical pane layout                                                                                                                              | None     | 2026-05-24    |
+| P3-5         | P3  | pending  | -     | -        | -           | -                | UI Design Spec               | Storage gauge: show disk usage bar in status bar or sidebar                                                                                                                                               | None     | 2026-05-24    |
 
 ---
 
