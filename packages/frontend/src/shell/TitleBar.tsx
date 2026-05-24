@@ -1,5 +1,6 @@
 import { Button } from "@fileoctopus/ui";
 import { MenuBar, type MenuBarProps } from "./MenuBar";
+import type { TitleBarStatusItem } from "./titleBarStatus";
 
 export interface WindowControlHandlers {
   onClose?: () => void;
@@ -10,6 +11,7 @@ export interface WindowControlHandlers {
 interface TitleBarProps {
   onSettings: () => void;
   menuBarProps?: MenuBarProps;
+  statusItems?: TitleBarStatusItem[];
   titlePath?: string;
   windowControls?: WindowControlHandlers;
 }
@@ -17,6 +19,7 @@ interface TitleBarProps {
 export function TitleBar({
   onSettings,
   menuBarProps,
+  statusItems = [],
   titlePath = "FileOctopus",
   windowControls,
 }: TitleBarProps) {
@@ -72,6 +75,23 @@ export function TitleBar({
       <h1 title={titlePath} data-tauri-drag-region="">
         {titlePath}
       </h1>
+      {statusItems.length > 0 ? (
+        <div
+          className="fo-title-status"
+          aria-label="Workspace status"
+          data-tauri-drag-region="false"
+        >
+          {statusItems.map((item) => (
+            <span
+              key={item.key}
+              className={`fo-title-status-pill fo-title-status-pill-${item.tone}`}
+              title={item.title}
+            >
+              {item.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
       <div className="fo-topbar-actions" data-tauri-drag-region="false">
         <Button type="button" variant="ghost" size="sm" onClick={onSettings}>
           Settings

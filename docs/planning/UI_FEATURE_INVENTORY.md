@@ -17,7 +17,7 @@ Each item is marked **specified** (explicitly defined in docs with detail) or **
 - **Command palette button** — specified (UI Design Spec §1, "Optional global command palette button")
 - **Help → Diagnostics** — specified (Sprint 5 FO-0206: "Add `Help -> Diagnostics` or equivalent diagnostics access point")
 - **Help → Shortcuts** — specified (Sprint 5 FO-0225: "Add menu/help entry")
-- **Sync/health indicator** — suggested (UI Design Spec §1, "Optional sync/health indicator")
+- **Sync/health indicator** — suggested; implemented for Git, remote connection, and operation error state (UI Design Spec §1, "Optional sync/health indicator")
 
 ### Context Menus — File/Folder (Right-click on item)
 
@@ -403,12 +403,12 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 - **SFTP network profiles** — remote VFS, sidebar badges, status events, host-key fingerprint TOFU
 - **Network sidebar deduplication** — saved SFTP/SSH profiles render in the dedicated Network section only
 - **First-run overlay** — dismissible initial welcome flow persisted in localStorage with entry points into Settings, Shortcuts, and Network
+- **Title bar sync/health indicator** — active Git repo state, remote connection state, and operation error health pills
 - **Performance smoke** — `pnpm perf:smoke` command
 - **Command registry refactor** — derive `CommandId` from as-const registry, dispatch exhaustiveness test
 
 ### Still not implemented (specified)
 
-- **Title bar sync/health indicator** — optional, not built
 - **PDF/media/EXIF preview expansion** — broader product expansion than current RC image-preview scope
 
 ### Fixed doc drift (previously listed as not implemented, now done)
@@ -459,4 +459,4 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 | Activity panel features              | 12        | 0         |
 | Pane states                          | 7         | 0         |
 | Toast notification types             | 3         | 0         |
-| Additional UI features               | 20+       | 2         |
+| Additional UI features               | 20+       | 1         |

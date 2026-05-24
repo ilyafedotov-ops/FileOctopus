@@ -1,6 +1,8 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { usePaneGitStatus } from "../pane/usePaneGitStatus";
 import { TitleBar } from "./TitleBar";
+import { buildTitleBarStatus } from "./titleBarStatus";
 import { useShellLayout } from "./ShellLayoutContext";
 import { activeTab } from "../panelStore";
 import { localPathFromUri } from "../utils/paneUtils";
@@ -83,12 +85,23 @@ export function AppShell({
 }) {
   const {
     handleShellKeyDown,
+    client,
     menuBarProps,
+    networkStatuses,
+    operationError,
     setSettingsOpen,
     state,
     windowControls,
   } = useShellLayout();
+  const activeUri = activeTab(state.panels[state.activePanelId]).uri;
   const titlePath = localPathFromUri(activeTab(state.panels.left).uri);
+  const gitStatus = usePaneGitStatus(client, activeUri);
+  const statusItems = buildTitleBarStatus({
+    activeUri,
+    gitRepo: gitStatus.repo,
+    networkStatuses,
+    operationError,
+  });
 
   return (
     <ErrorBoundary>
@@ -97,6 +110,7 @@ export function AppShell({
           <TitleBar
             onSettings={() => setSettingsOpen(true)}
             menuBarProps={menuBarProps}
+            statusItems={statusItems}
             titlePath={titlePath}
             windowControls={windowControls}
           />
