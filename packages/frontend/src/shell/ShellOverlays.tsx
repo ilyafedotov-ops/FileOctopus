@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FirstRunOverlay } from "../components/FirstRunOverlay";
 import { DialogOverlayGroup } from "../components/DialogOverlayGroup";
 import { ContextMenuOverlay } from "../components/ContextMenuOverlay";
@@ -8,6 +8,8 @@ import {
   shouldShowFirstRunOverlay,
 } from "../onboarding/firstRun";
 import { useShellLayout } from "./ShellLayoutContext";
+import { activeTab, selectVisibleEntries } from "../panelStore";
+import { isImagePreviewable } from "../components/PreviewPanel";
 
 export function ShellOverlays() {
   const ctx = useShellLayout();
@@ -17,6 +19,12 @@ export function ShellOverlays() {
     markFirstRunOverlayDismissed();
     setFirstRunOpen(false);
   };
+
+  const viewerSiblings = useMemo(() => {
+    if (!ctx.viewerEntry) return [];
+    const tab = activeTab(ctx.state.panels[ctx.state.activePanelId]);
+    return selectVisibleEntries(tab).filter(isImagePreviewable);
+  }, [ctx.state, ctx.viewerEntry]);
 
   return (
     <>
@@ -42,6 +50,8 @@ export function ShellOverlays() {
         viewerOpen={ctx.viewerOpen}
         viewerEntry={ctx.viewerEntry}
         setViewerOpen={ctx.setViewerOpen}
+        viewerSiblings={viewerSiblings}
+        onViewerNavigate={ctx.setViewerEntry}
         editorOpen={ctx.editorOpen}
         editorEntry={ctx.editorEntry}
         setEditorOpen={ctx.setEditorOpen}

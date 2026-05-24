@@ -85,6 +85,8 @@ export interface DialogOverlayGroupProps {
   viewerOpen: boolean;
   viewerEntry: FileEntryDto | null;
   setViewerOpen: (open: boolean) => void;
+  viewerSiblings?: FileEntryDto[];
+  onViewerNavigate?: (entry: FileEntryDto) => void;
   editorOpen: boolean;
   editorEntry: FileEntryDto | null;
   setEditorOpen: (open: boolean) => void;
@@ -216,6 +218,8 @@ export function DialogOverlayGroup({
   viewerOpen,
   viewerEntry,
   setViewerOpen,
+  viewerSiblings,
+  onViewerNavigate,
   editorOpen,
   editorEntry,
   setEditorOpen,
@@ -346,6 +350,8 @@ export function DialogOverlayGroup({
         entry={viewerEntry}
         fs={fs}
         onClose={() => setViewerOpen(false)}
+        siblings={viewerSiblings}
+        onNavigate={onViewerNavigate}
       />
       <EditorDialog
         open={editorOpen}
