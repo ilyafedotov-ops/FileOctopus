@@ -402,12 +402,12 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 - **Built-in F3 viewer + F4 editor** — shared syntax highlighting
 - **SFTP network profiles** — remote VFS, sidebar badges, status events, host-key fingerprint TOFU
 - **Network sidebar deduplication** — saved SFTP/SSH profiles render in the dedicated Network section only
+- **First-run overlay** — dismissible initial welcome flow persisted in localStorage with entry points into Settings, Shortcuts, and Network
 - **Performance smoke** — `pnpm perf:smoke` command
 - **Command registry refactor** — derive `CommandId` from as-const registry, dispatch exhaustiveness test
 
 ### Still not implemented (specified)
 
-- **First-run overlay** — stretch, not built
 - **Title bar sync/health indicator** — optional, not built
 - **PDF/media/EXIF preview expansion** — broader product expansion than current RC image-preview scope
 
@@ -459,4 +459,4 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 | Activity panel features              | 12        | 0         |
 | Pane states                          | 7         | 0         |
 | Toast notification types             | 3         | 0         |
-| Additional UI features               | 20+       | 3         |
+| Additional UI features               | 20+       | 2         |
