@@ -1,5 +1,94 @@
 # CRON Status — FileOctopus CI/CD Agent
 
+> Last run: 2026-05-24 08:00 UTC
+> Commit: 7b3f751 (feat)
+
+## Health Gate
+
+| Check                         | Result                                                     |
+| ----------------------------- | ---------------------------------------------------------- |
+| TypeScript (`pnpm typecheck`) | ✅ 0 errors                                                |
+| Rust (`cargo check`)          | ✅ clean (all workspace crates)                            |
+| Rust tests (`cargo test`)     | ✅ pass (workspace + integration, 294 tests)               |
+| Frontend tests (`pnpm test`)  | ✅ 532 pass (85 files)                                     |
+| E2E tests (Playwright)        | ⏭️ skipped (dev server not running during health-check.sh) |
+| Clippy (`-D warnings`)        | ✅ clean                                                   |
+| Format (`cargo fmt --check`)  | ✅ clean                                                   |
+| Prettier (`format:check`)     | ✅ clean                                                   |
+| `pnpm rc:validate`            | ✅ full pipeline green                                     |
+
+**Gate status:** GREEN — 0 failures.
+
+## Phase 1: Spec Alignment
+
+Re-audited `CRON_TASKS.md` Active RC Queue. Found `P3-1` (column reorder) as the last remaining `pending` row.
+
+## Phase 2: Task Selection
+
+**Selected:** `P3-1` — Column reorder: drag column headers to change order, persisted in localStorage.
+
+## Phase 3: TDD Implementation
+
+**Micro-spec:**
+
+1. Change `columnWidths.ts` grid-template builders to derive order from `visibleColumns` array rather than `COLUMN_ORDER`
+2. Add `onColumnReorder` prop to `FileTable`, `draggedColId`/`dragOverColId` state, drag handlers on `ColumnHeader`
+3. Guard `dataTransfer` for jsdom compatibility
+4. Map `FileRow` metadata cells over `visibleColumns` instead of hardcoded order
+5. Wire `handleColumnReorder` in `FilePanel` with `persistVisibleColumns`
+6. Write tests covering header order, drag-to-reorder callback, hidden-column skipping
+
+### TDD Evidence
+
+- **RED:** `columnReorder.test.tsx` (5 tests) — asserted header order, drag callback, and hidden-column skipping; all failed because `FileTable` had no reorder support
+- **GREEN:** Added drag-and-drop to `ColumnHeader`, `onColumnReorder` prop chain, `visibleColumns`-driven row rendering; all 532 tests pass with 0 regressions
+- **REFACTOR:** No refactoring needed — change is self-contained and follows existing column-width/visibility patterns
+
+**Files changed (7):**
+
+- `packages/frontend/src/pane/columnWidths.ts` — grid-template builders respect `visibleColumns` array order
+- `packages/frontend/src/pane/FileTable.tsx` — `onColumnReorder` prop, drag state, `ColumnHeader` drag handlers, `role="columnheader"`
+- `packages/frontend/src/pane/FileRow.tsx` — metadata cells rendered in `visibleColumns` order via `.map()`
+- `packages/frontend/src/pane/FilePanel.tsx` — `handleColumnReorder` callback + `onColumnReorder` prop wired to `FileTable`
+- `packages/frontend/tests/columnReorder.test.tsx` — 5 tests for reorder behavior
+- `packages/frontend/tests/visibleColumns.test.ts` — expectations updated for new order semantics
+- `docs/plans/CRON_TASKS.md` — mark P3-1 done
+
+## Phase 4: Integration Verification
+
+- `pnpm test` (frontend) — ✅ 532 passed (85 files)
+- `pnpm typecheck` — ✅ 0 errors
+- `cargo check` — ✅ clean
+- `cargo clippy --workspace --all-targets -- -D warnings` — ✅ clean
+- `cargo fmt --all --check` — ✅ clean
+- `pnpm format:check` — ✅ clean
+- `pnpm lint` — ✅ clean
+
+## Phase 5: Spec Compliance & Docs
+
+- `CRON_TASKS.md` — `P3-1` marked `done`
+- `CRON_STATUS.md` — this entry
+
+## Active RC Queue (remaining)
+
+| ID       | Pri | Status   | Owner | Commit | Started | Last Verified | Spec Ref            | Task                                                                            | Blockers | Last Verified |
+| -------- | --- | -------- | ----- | ------ | ------- | ------------- | ------------------- | ------------------------------------------------------------------------------- | -------- | ------------- |
+| RC-PAUSE | P2  | deferred | -     | -      | -       | -             | UI §6; RC spec §3.2 | Pause on jobs: backend job.pause IPC + UI pause/resume button in activity panel | None     | 2026-05-23    |
+
+**Note:** No `pending` items remain in Active RC Queue. Only `RC-PAUSE` remains as `deferred`.
+
+## Recommendation
+
+Queue is empty at P1/P2/P3 level with `RC-PAUSE` deferred. Next cycle should either:
+
+1. Run audit-only (health gate + spec drift check) and return `[SILENT]` if nothing changed
+2. Resume `RC-PAUSE` if a human reprioritizes it and breaks it into smaller sub-tasks
+3. Wait for human reprioritization of any Deferred / Post-RC item
+
+---
+
+## Historical: 2026-05-24 07:40 UTC
+
 > Last run: 2026-05-24 07:40 UTC
 > Commit: c6fac7a (feat), 22a8e62 (docs)
 
