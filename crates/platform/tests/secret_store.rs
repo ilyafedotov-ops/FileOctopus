@@ -1,4 +1,4 @@
-use platform::SecretStore;
+use platform::{SecretStore, SecretStoreError};
 use uuid::Uuid;
 
 #[test]
@@ -7,7 +7,12 @@ fn secret_store_roundtrip() {
     let key = format!("test/{}", Uuid::new_v4());
     let value = format!("secret-{}", Uuid::new_v4());
 
-    store.set(&key, &value).expect("set secret");
+    let set_result = store.set(&key, &value);
+    if matches!(set_result, Err(SecretStoreError::Unavailable(_))) {
+        eprintln!("skipping secret_store_roundtrip: OS keychain unavailable");
+        return;
+    }
+    set_result.expect("set secret");
     let loaded = store.get(&key).expect("get secret");
     assert_eq!(loaded, value);
 
