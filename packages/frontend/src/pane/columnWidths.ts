@@ -124,6 +124,41 @@ export function isValidVisibleColumns(value: unknown): boolean {
   return true;
 }
 
+export function normalizeVisibleColumns(
+  visible: VisibleColumns,
+): VisibleColumns {
+  if (visible.indexOf("name") === 0) {
+    return visible;
+  }
+  const filtered = visible.filter((id) => id !== "name");
+  return ["name", ...filtered];
+}
+
+export function reorderVisibleColumns(
+  visible: VisibleColumns,
+  fromIndex: number,
+  toIndex: number,
+): VisibleColumns {
+  const next = [...visible];
+  if (
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= next.length ||
+    toIndex >= next.length ||
+    next[fromIndex] === "name"
+  ) {
+    return normalizeVisibleColumns(visible);
+  }
+
+  const clampedToIndex = Math.max(1, toIndex);
+  const [moved] = next.splice(fromIndex, 1);
+  if (!moved || moved === "name") {
+    return normalizeVisibleColumns(visible);
+  }
+  next.splice(clampedToIndex, 0, moved);
+  return normalizeVisibleColumns(next);
+}
+
 export function storedVisibleColumns(): VisibleColumns {
   const raw = readStorage(VISIBLE_STORAGE_KEY);
   if (!raw) return [...DEFAULT_VISIBLE_COLUMNS];
@@ -132,12 +167,7 @@ export function storedVisibleColumns(): VisibleColumns {
     const parsed = JSON.parse(raw);
     if (!isValidVisibleColumns(parsed)) return [...DEFAULT_VISIBLE_COLUMNS];
     const cols = parsed as VisibleColumns;
-    // Ensure name is always first
-    if (cols.indexOf("name") !== 0) {
-      const filtered = cols.filter((c) => c !== "name");
-      return ["name", ...filtered];
-    }
-    return cols;
+    return normalizeVisibleColumns(cols);
   } catch {
     return [...DEFAULT_VISIBLE_COLUMNS];
   }

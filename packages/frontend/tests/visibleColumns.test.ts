@@ -7,6 +7,8 @@ import {
   buildVisibleGridTemplate,
   buildVisibleHeaderGridTemplate,
   isValidVisibleColumns,
+  normalizeVisibleColumns,
+  reorderVisibleColumns,
   COLUMN_ORDER,
   type VisibleColumns,
   type ColumnWidths,
@@ -111,6 +113,38 @@ describe("isValidVisibleColumns", () => {
 
   it("accepts subset with name", () => {
     expect(isValidVisibleColumns(["name", "size"])).toBe(true);
+  });
+});
+
+describe("reorderVisibleColumns", () => {
+  it("keeps name first when a column is dropped on the name header slot", () => {
+    const visible: VisibleColumns = [
+      "name",
+      "extension",
+      "size",
+      "modified",
+      "kind",
+    ];
+    expect(reorderVisibleColumns(visible, 3, 0)).toEqual([
+      "name",
+      "modified",
+      "extension",
+      "size",
+      "kind",
+    ]);
+  });
+
+  it("ignores attempts to move the name column", () => {
+    const visible: VisibleColumns = ["name", "size", "modified"];
+    expect(reorderVisibleColumns(visible, 0, 2)).toEqual(visible);
+  });
+
+  it("normalizes columns if name is not first after reorder", () => {
+    expect(normalizeVisibleColumns(["size", "name", "modified"])).toEqual([
+      "name",
+      "size",
+      "modified",
+    ]);
   });
 });
 

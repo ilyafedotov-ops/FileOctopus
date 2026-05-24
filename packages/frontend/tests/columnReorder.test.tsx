@@ -113,6 +113,44 @@ describe("FileTable column reorder", () => {
 
     expect(onColumnReorder).toHaveBeenCalledWith(1, 2);
   });
+
+  it("drops on the name column target the first reorderable slot", () => {
+    const onColumnReorder = vi.fn();
+    render(
+      <FileTable
+        {...makeFileTableProps({
+          visibleColumns: ["name", "extension", "size", "modified", "kind"],
+          onColumnReorder,
+        })}
+      />,
+    );
+
+    const buttons = screen.getAllByRole("columnheader");
+    fireEvent.dragStart(buttons[3]); // modified
+    fireEvent.dragOver(buttons[0]); // name
+    fireEvent.drop(buttons[0]);
+
+    expect(onColumnReorder).toHaveBeenCalledWith(3, 1);
+  });
+
+  it("does not reorder when dropping extension onto name while already second", () => {
+    const onColumnReorder = vi.fn();
+    render(
+      <FileTable
+        {...makeFileTableProps({
+          visibleColumns: ["name", "extension", "size", "modified", "kind"],
+          onColumnReorder,
+        })}
+      />,
+    );
+
+    const buttons = screen.getAllByRole("columnheader");
+    fireEvent.dragStart(buttons[1]); // extension
+    fireEvent.dragOver(buttons[0]); // name
+    fireEvent.drop(buttons[0]);
+
+    expect(onColumnReorder).not.toHaveBeenCalled();
+  });
 });
 
 describe("FileRow column order", () => {

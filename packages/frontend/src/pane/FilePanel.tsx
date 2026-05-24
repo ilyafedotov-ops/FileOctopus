@@ -37,6 +37,7 @@ import {
   persistColumnWidths,
   storedVisibleColumns,
   persistVisibleColumns,
+  reorderVisibleColumns,
   type ColumnWidths,
   type ColumnId,
   type VisibleColumns,
@@ -162,13 +163,9 @@ export function FilePanel({
   const handleColumnReorder = useCallback(
     (fromIndex: number, toIndex: number) => {
       setVisibleColumns((prev) => {
-        const next = [...prev];
-        const [moved] = next.splice(fromIndex, 1);
-        if (moved) {
-          next.splice(toIndex, 0, moved);
-        }
+        const next = reorderVisibleColumns(prev, fromIndex, toIndex);
         persistVisibleColumns(next);
-        return next as VisibleColumns;
+        return next;
       });
     },
     [],

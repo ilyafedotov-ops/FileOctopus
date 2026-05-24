@@ -312,12 +312,16 @@ export function FileTable({
                       if (
                         draggedColId &&
                         draggedColId !== colId &&
+                        draggedColId !== "name" &&
                         onColumnReorder
                       ) {
                         const fromIndex = orderedVisible.indexOf(draggedColId);
                         const toIndex = orderedVisible.indexOf(colId);
                         if (fromIndex !== -1 && toIndex !== -1) {
-                          onColumnReorder(fromIndex, toIndex);
+                          const targetIndex = Math.max(1, toIndex);
+                          if (fromIndex !== targetIndex) {
+                            onColumnReorder(fromIndex, targetIndex);
+                          }
                         }
                       }
                       setDraggedColId(null);
