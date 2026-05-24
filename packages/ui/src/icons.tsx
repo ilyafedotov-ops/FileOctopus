@@ -36,6 +36,7 @@ import {
   Star,
   Terminal,
   Trash2,
+  Video,
   X,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -72,6 +73,7 @@ export const Icons = {
   downloads: () => renderIcon(Download, "fo-ui-icon"),
   pictures: () => renderIcon(Image, "fo-ui-icon"),
   music: () => renderIcon(Music, "fo-ui-icon"),
+  video: () => renderIcon(Video, "fo-ui-icon"),
   volume: () => renderIcon(HardDrive, "fo-ui-icon"),
   server: () => renderIcon(Server, "fo-ui-icon"),
   recent: () => renderIcon(Clock, "fo-ui-icon"),
