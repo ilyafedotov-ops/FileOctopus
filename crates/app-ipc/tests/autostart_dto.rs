@@ -24,7 +24,7 @@ fn preferences_dto_includes_new_fields() {
         "accentColor":"violet","fontScale":"large","iconScale":"small",
         "confirmOverwrite":false,"sidebarVisible":true,
         "statusBarVisible":true,"toolbarVisible":false,
-        "paneMode":"single","jobDrawerBehavior":"openOnError",
+        "paneMode":"single","paneDirection":"horizontal","jobDrawerBehavior":"openOnError",
         "showAdvancedCopyOptions":true,
         "paneTerminalHeightLeft":0.4,"paneTerminalHeightRight":0.45,
         "paneTerminalDefaultOpen":true,"terminalCdOnNavigate":true,
@@ -42,6 +42,7 @@ fn preferences_dto_includes_new_fields() {
     assert!(dto.status_bar_visible);
     assert!(!dto.toolbar_visible);
     assert_eq!(dto.pane_mode, "single");
+    assert_eq!(dto.pane_direction, "horizontal");
     assert_eq!(dto.job_drawer_behavior, "openOnError");
     assert!(dto.show_advanced_copy_options);
     assert!((dto.pane_terminal_height_left - 0.4).abs() < f64::EPSILON);
