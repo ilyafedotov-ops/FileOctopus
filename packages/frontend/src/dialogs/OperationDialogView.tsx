@@ -442,6 +442,16 @@ export function OperationDialogView({
                     <strong>{selectedItemText(dialog.entries.length)}</strong>
                     <OperationItemList entries={dialog.entries.slice(0, 5)} />
                   </div>
+                  {dialog.entries.some((e) => e.isSymlink) ? (
+                    <div className="fo-dialog-callout fo-symlink-warning">
+                      <span>
+                        Includes{" "}
+                        {dialog.entries.filter((e) => e.isSymlink).length}{" "}
+                        symlink(s) — the link target will be copied, not the
+                        link itself
+                      </span>
+                    </div>
+                  ) : null}
                   {dialog.advancedOptions &&
                   dialog.planningEnabled &&
                   dialog.plan ? (

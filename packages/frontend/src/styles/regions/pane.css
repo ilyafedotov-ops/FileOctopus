@@ -959,6 +959,24 @@
   border-color: var(--fo-on-accent);
 }
 
+.fo-row-symlink-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 2px;
+  color: var(--fo-muted-text);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.fo-row-selected .fo-row-symlink-badge {
+  color: var(--fo-on-accent);
+}
+
 .fo-column-button-active {
   color: var(--fo-accent);
 }

@@ -71,8 +71,9 @@ export function FileRow({
     }
   }, [renaming, entry.name]);
 
-  const typeLabel =
-    entry.kind === "directory"
+  const typeLabel = entry.isSymlink
+    ? "Symlink"
+    : entry.kind === "directory"
       ? "Folder"
       : entry.extension
         ? entry.extension.toUpperCase()
@@ -84,7 +85,7 @@ export function FileRow({
 
   const ariaLabel = [
     entry.name,
-    typeLabel,
+    entry.isSymlink ? "symlink" : typeLabel,
     entry.kind === "directory" ? "" : formatSize(entry.size),
     entry.modifiedAt ? formatDate(entry.modifiedAt) : "",
   ]
@@ -188,6 +189,15 @@ export function FileRow({
             {gitStatusLabel(gitStatus)}
           </span>
         ) : null}
+        {entry.isSymlink ? (
+          <span
+            className="fo-row-symlink-badge"
+            aria-label="Symlink"
+            title={`Symlink${entry.symlinkTarget ? ` → ${entry.symlinkTarget}` : ""}`}
+          >
+            ↗
+          </span>
+        ) : null}
       </span>
       {showMetadata ? (
         viewMode === "details" ? (
@@ -221,9 +231,11 @@ export function FileRow({
                       <span key="kind">
                         {isParentEntry
                           ? "parent"
-                          : entry.kind === "directory"
-                            ? "folder"
-                            : typeLabel}
+                          : entry.isSymlink
+                            ? "symlink"
+                            : entry.kind === "directory"
+                              ? "folder"
+                              : typeLabel}
                       </span>
                     );
                   default:
