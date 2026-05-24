@@ -317,6 +317,7 @@ export interface UserPreferencesDto {
   toolbarVisible: boolean;
   toolbarEntries: string;
   paneMode: string;
+  paneDirection: string;
   jobDrawerBehavior: string;
   showAdvancedCopyOptions: boolean;
   paneTerminalHeightLeft: number;

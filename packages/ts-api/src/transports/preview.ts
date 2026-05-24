@@ -45,6 +45,7 @@ export function createPreviewTransport(): IpcTransport {
     toolbarVisible: true,
     toolbarEntries: "",
     paneMode: "dual",
+    paneDirection: "horizontal",
     jobDrawerBehavior: "manual",
     showAdvancedCopyOptions: false,
     paneTerminalHeightLeft: 0.35,

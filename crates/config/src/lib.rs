@@ -16,7 +16,7 @@ pub use network::{
     UpdateNetworkProfile,
 };
 
-pub const SCHEMA_VERSION: u32 = 12;
+pub const SCHEMA_VERSION: u32 = 13;
 
 #[derive(Debug, Error)]
 pub enum PreferencesError {
@@ -52,6 +52,7 @@ pub struct UserPreferences {
     pub toolbar_visible: bool,
     pub toolbar_entries: String,
     pub pane_mode: String,
+    pub pane_direction: String,
     pub job_drawer_behavior: String,
     pub show_advanced_copy_options: bool,
     pub pane_terminal_height_left: f64,
@@ -89,6 +90,7 @@ impl Default for UserPreferences {
             toolbar_visible: true,
             toolbar_entries: String::new(),
             pane_mode: "dual".to_string(),
+            pane_direction: "horizontal".to_string(),
             job_drawer_behavior: "manual".to_string(),
             show_advanced_copy_options: false,
             pane_terminal_height_left: 0.35,
@@ -223,6 +225,27 @@ impl PreferencesRepository {
         if user_version < 12 {
             self.backfill_v12_keys(&connection)?;
             connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
+        if user_version < 13 {
+            self.backfill_v13_keys(&connection)?;
+            connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
+        Ok(())
+    }
+
+    fn backfill_v13_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [("paneDirection", defaults.pane_direction.clone())];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
         }
 
         Ok(())
@@ -545,6 +568,7 @@ impl UserPreferences {
             ("toolbarVisible", self.toolbar_visible.to_string()),
             ("toolbarEntries", self.toolbar_entries.clone()),
             ("paneMode", self.pane_mode.clone()),
+            ("paneDirection", self.pane_direction.clone()),
             ("jobDrawerBehavior", self.job_drawer_behavior.clone()),
             (
                 "showAdvancedCopyOptions",
@@ -661,6 +685,9 @@ fn apply_value(
         }
         "paneMode" => {
             preferences.pane_mode = parse_pane_mode(value)?;
+        }
+        "paneDirection" => {
+            preferences.pane_direction = parse_pane_direction(value)?;
         }
         "jobDrawerBehavior" => {
             preferences.job_drawer_behavior = parse_job_drawer_behavior(value)?;
@@ -822,6 +849,16 @@ fn parse_pane_mode(value: &str) -> Result<String, PreferencesError> {
         "dual" | "single" => Ok(value.to_string()),
         other => Err(invalid_value(
             "paneMode",
+            format!("unsupported value `{other}`"),
+        )),
+    }
+}
+
+fn parse_pane_direction(value: &str) -> Result<String, PreferencesError> {
+    match value {
+        "horizontal" | "vertical" => Ok(value.to_string()),
+        other => Err(invalid_value(
+            "paneDirection",
             format!("unsupported value `{other}`"),
         )),
     }

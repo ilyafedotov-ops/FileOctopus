@@ -62,6 +62,7 @@ pub struct UserPreferencesDto {
     #[serde(default)]
     pub toolbar_entries: String,
     pub pane_mode: String,
+    pub pane_direction: String,
     pub job_drawer_behavior: String,
     pub show_advanced_copy_options: bool,
     pub pane_terminal_height_left: f64,
@@ -1127,6 +1128,7 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             toolbar_visible: value.toolbar_visible,
             toolbar_entries: value.toolbar_entries,
             pane_mode: value.pane_mode,
+            pane_direction: value.pane_direction,
             job_drawer_behavior: value.job_drawer_behavior,
             show_advanced_copy_options: value.show_advanced_copy_options,
             pane_terminal_height_left: value.pane_terminal_height_left,

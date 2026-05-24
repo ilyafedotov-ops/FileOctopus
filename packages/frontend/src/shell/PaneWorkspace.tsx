@@ -101,6 +101,11 @@ export function PaneWorkspace() {
             ? "fo-dual-pane fo-dual-pane-single"
             : "fo-dual-pane"
         }
+        data-pane-direction={
+          ctx.preferences?.paneDirection === "vertical"
+            ? "vertical"
+            : "horizontal"
+        }
         aria-label="File panels"
       >
         <FilePanel {...ctx.makeFilePanelProps("left")} />
