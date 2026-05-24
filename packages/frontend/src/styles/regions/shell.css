@@ -162,6 +162,44 @@
   white-space: nowrap;
 }
 
+.fo-title-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  margin-left: 8px;
+}
+
+.fo-title-status-pill {
+  flex: 0 1 auto;
+  max-width: 11rem;
+  min-height: 20px;
+  padding: 3px 6px;
+  overflow: hidden;
+  border: 1px solid #505050;
+  border-radius: 2px;
+  color: #cccccc;
+  font-size: 11px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-title-status-pill-ok {
+  border-color: #2f7d4f;
+  color: #d6f5df;
+}
+
+.fo-title-status-pill-warning {
+  border-color: #8a6d1d;
+  color: #ffe8a3;
+}
+
+.fo-title-status-pill-danger {
+  border-color: #9a3d3d;
+  color: #ffd6d6;
+}
+
 .fo-brand-badge {
   display: inline-block;
   margin-top: 2px;

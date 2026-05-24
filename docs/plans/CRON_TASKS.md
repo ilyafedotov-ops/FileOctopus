@@ -1,7 +1,7 @@
 # FileOctopus — Cron Task Queue
 
 > Execution-facing queue for autonomous agents.
-> Last verified against repo state: 2026-05-24 04:56 UTC
+> Last verified against repo state: 2026-05-24 05:03 UTC
 >
 > **Note:** Cron agents automatically select the highest-priority unblocked `pending` row from Active RC Queue. Empty queue means audit-only mode; do not invent or promote work outside this table.
 
@@ -37,7 +37,7 @@
 | DOC-DRIFT-1  | P1  | done     | codex | docdrift | 2026-05-24  | 2026-05-24       | PROJECT_STATUS; CRON_TASKS   | Reconciled planning/status drift after recent cron work: tar/non-zip archive status, menu/native menu status, preferences wording, checksum, and network-sidebar status                                   | None     | 2026-05-24    |
 | POST-4       | P2  | done     | codex | sidebar  | 2026-05-24  | 2026-05-24       | UI Design Spec §2            | Network sidebar polish: Network section is authoritative; SFTP profiles are no longer duplicated under Devices/Volumes                                                                                    | None     | 2026-05-24    |
 | POST-1       | P2  | done     | codex | firstrun | 2026-05-24  | 2026-05-24       | Sprint 5 stretch             | First-run welcome overlay: small dismissible onboarding flow for initial FileOctopus launch, persisted so it appears once                                                                                 | None     | 2026-05-24    |
-| POST-2       | P3  | pending  | -     | -        | -           | -                | UI Design Spec §1            | Title bar sync/health indicator: show dirty/repo/sync health status in the window title bar using existing Git/network status signals                                                                     | None     | 2026-05-24    |
+| POST-2       | P3  | done     | codex | titlebar | 2026-05-24  | 2026-05-24       | UI Design Spec §1            | Title bar sync/health indicator: show dirty/repo/sync health status in the window title bar using existing Git/network status signals                                                                     | None     | 2026-05-24    |
 | P3-1         | P3  | pending  | -     | -        | -           | -                | UI Design Spec               | Column reorder: drag column headers to change order, persisted in localStorage                                                                                                                            | None     | 2026-05-24    |
 
 ---
@@ -61,7 +61,7 @@
 | P3-5     | Storage gauge — polish/future                                                              |
 | P3-6     | Rubber-band select — polish/future                                                         |
 | POST-1   | Done — first-run welcome overlay is implemented and persisted after dismissal              |
-| POST-2   | Promoted to Active RC Queue for post-RC polish                                             |
+| POST-2   | Done — title bar shows Git, remote connection, and operation health status pills           |
 | POST-3   | Done — Videos standard-location icon mapping is implemented                                |
 | POST-4   | Done — Network sidebar deduplicates saved SFTP profiles from Devices/Volumes               |
 | POST-5   | Done — sidebar renders Today and This Week recent groups                                   |
@@ -112,6 +112,7 @@
 | POST-4      | Network sidebar deduplication: saved SFTP profiles render only in the dedicated Network section             | 2026-05-24 |
 | POST-1      | First-run welcome overlay with persisted dismissal and links into Settings, Shortcuts, and Network          | 2026-05-24 |
 | QA-1        | Automated Phase 5 QA evidence refreshed: failure-state snapshots and accessibility smoke coverage           | 2026-05-24 |
+| POST-2      | Title bar status indicator for active Git repo state, remote connection state, and operation errors         | 2026-05-24 |
 | P2-10       | Accessible row names for file entries                                                                       | 993f879    |
 | P2-6        | User-selectable visible columns with persistence                                                            | e902fb0    |
 | P2-5        | Confirm before app close when jobs running                                                                  | 3490ee1    |
