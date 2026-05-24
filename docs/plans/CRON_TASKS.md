@@ -3,7 +3,7 @@
 > Execution-facing queue for autonomous agents.
 > Last verified against repo state: 2026-05-23 14:45 UTC
 >
-> **Note:** Active RC Queue audit performed 2026-05-23. RC-MENU, RC-CONF, RC-IMG were found already implemented and moved to Recently Completed. RC-4 automated evidence refreshed. New automatable tasks added from PROJECT_STATUS_AND_DOC_ALIGNMENT.md gaps.
+> **Note:** Active RC Queue audit performed 2026-05-24. RC-MENU, RC-CONF, RC-IMG were found already implemented and moved to Recently Completed. RC-4 automated evidence refreshed. New automatable tasks added from PROJECT_STATUS_AND_DOC_ALIGNMENT.md gaps. Full re-audit 2026-05-24 confirms no newly eligible P1/P2 automatable tasks remain.
 
 ---
 
