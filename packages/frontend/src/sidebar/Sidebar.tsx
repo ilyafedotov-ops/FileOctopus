@@ -804,6 +804,8 @@ function locationIcon(id: string): ReactNode {
       return Icons.pictures();
     case "music":
       return Icons.music();
+    case "videos":
+      return Icons.video();
     default:
       return Icons.volume();
   }
