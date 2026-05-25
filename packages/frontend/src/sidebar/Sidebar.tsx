@@ -5,6 +5,7 @@ import type {
   RecentEntryDto,
   StandardLocationDto,
   StarredEntryDto,
+  VolumeDto,
 } from "@fileoctopus/ts-api";
 import { Button, cx, Icons } from "@fileoctopus/ui";
 import {
@@ -41,6 +42,12 @@ interface SidebarNetworkContextMenuState {
   profile: NetworkProfileDto;
 }
 
+interface SidebarVolumeContextMenuState {
+  x: number;
+  y: number;
+  volume: VolumeDto;
+}
+
 interface SidebarProps {
   locations: StandardLocationDto[];
   networkProfiles: NetworkProfileDto[];
@@ -63,6 +70,8 @@ interface SidebarProps {
   onOpenProfileTerminal: (profile: NetworkProfileDto) => void;
   busyProfileIds: Set<string>;
   networkEnabled?: boolean;
+  volumes?: VolumeDto[];
+  onEjectVolume?: (mountPoint: string) => void;
 }
 
 export function Sidebar({
@@ -87,11 +96,15 @@ export function Sidebar({
   onOpenProfileTerminal,
   busyProfileIds,
   networkEnabled = false,
+  volumes = [],
+  onEjectVolume,
 }: SidebarProps) {
   const [contextMenu, setContextMenu] =
     useState<SidebarContextMenuState | null>(null);
   const [networkContextMenu, setNetworkContextMenu] =
     useState<SidebarNetworkContextMenuState | null>(null);
+  const [volumeContextMenu, setVolumeContextMenu] =
+    useState<SidebarVolumeContextMenuState | null>(null);
   const [renamingFavoriteId, setRenamingFavoriteId] = useState<number | null>(
     null,
   );
@@ -206,15 +219,33 @@ export function Sidebar({
               {!hasLocal ? (
                 <SidebarEmptyHint>{emptySectionHint(section)}</SidebarEmptyHint>
               ) : (
-                localItems.map((item) => (
-                  <SidebarItem
-                    key={item.uri}
-                    icon={locationIcon(item.id)}
-                    label={item.name}
-                    active={item.uri === activeUri}
-                    onClick={() => onNavigate(item.uri)}
-                  />
-                ))
+                localItems.map((item) => {
+                  const vol = volumes.find((v) => v.mountUri === item.uri);
+                  const isRemovable = vol?.isRemovable === true;
+                  return (
+                    <SidebarItem
+                      key={item.uri}
+                      icon={isRemovable ? Icons.usb() : locationIcon(item.id)}
+                      label={item.name}
+                      active={item.uri === activeUri}
+                      onClick={() => onNavigate(item.uri)}
+                      onContextMenu={
+                        isRemovable && onEjectVolume
+                          ? (event) => {
+                              event.preventDefault();
+                              if (vol) {
+                                setVolumeContextMenu({
+                                  x: event.clientX,
+                                  y: event.clientY,
+                                  volume: vol,
+                                });
+                              }
+                            }
+                          : undefined
+                      }
+                    />
+                  );
+                })
               )}
             </SidebarSection>
           );
@@ -386,6 +417,23 @@ export function Sidebar({
           onReveal={() => {
             onRevealFavorite(contextMenu.favorite.uri);
             setContextMenu(null);
+          }}
+        />
+      ) : null}
+
+      {volumeContextMenu && onEjectVolume ? (
+        <SidebarVolumeContextMenu
+          volume={volumeContextMenu.volume}
+          x={volumeContextMenu.x}
+          y={volumeContextMenu.y}
+          onClose={() => setVolumeContextMenu(null)}
+          onEject={() => {
+            const mountUri = volumeContextMenu.volume.mountUri;
+            const mountPoint = mountUri.startsWith("local://")
+              ? mountUri.slice("local://".length)
+              : mountUri;
+            onEjectVolume(mountPoint);
+            setVolumeContextMenu(null);
           }}
         />
       ) : null}
@@ -790,4 +838,104 @@ function locationIcon(id: string): ReactNode {
     default:
       return Icons.volume();
   }
+}
+
+function SidebarVolumeContextMenu({
+  volume,
+  x,
+  y,
+  onClose,
+  onEject,
+}: {
+  volume: VolumeDto;
+  x: number;
+  y: number;
+  onClose: () => void;
+  onEject: () => void;
+}) {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{
+    left: number;
+    top: number;
+    maxHeight?: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!menuRef.current) {
+      setPos(null);
+      return;
+    }
+    const el = menuRef.current;
+    const pad = 8;
+    const rect = el.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = x;
+    let top = y;
+    let maxHeight: number | undefined;
+
+    if (left + rect.width > vw - pad) {
+      left = Math.max(pad, vw - rect.width - pad);
+    }
+
+    const availableBelow = vh - top - pad;
+    if (rect.height > availableBelow) {
+      const availableAbove = top - pad;
+      if (availableAbove > availableBelow) {
+        top = Math.max(pad, vh - rect.height - pad);
+        maxHeight = vh - top - pad;
+      } else {
+        maxHeight = availableBelow;
+      }
+    }
+
+    setPos({ left, top, maxHeight });
+  }, [x, y]);
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    },
+    [onClose],
+  );
+
+  const run = (action: () => void) => {
+    action();
+    onClose();
+  };
+
+  return (
+    <div
+      className="fo-sidebar-menu-backdrop"
+      onClick={onClose}
+      onKeyDown={handleKeyDown}
+      role="presentation"
+    >
+      <div
+        ref={menuRef}
+        className="fo-context-menu"
+        role="menu"
+        style={
+          pos
+            ? { left: pos.left, top: pos.top, maxHeight: pos.maxHeight }
+            : { left: x, top: y }
+        }
+      >
+        <div className="fo-context-menu-group">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="fo-context-menu-item"
+            role="menuitem"
+            onClick={() => run(onEject)}
+          >
+            Eject {volume.name}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
 }

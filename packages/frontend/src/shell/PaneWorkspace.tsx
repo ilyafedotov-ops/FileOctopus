@@ -1,12 +1,28 @@
+import type { VolumeDto } from "@fileoctopus/ts-api";
 import { Sidebar } from "../sidebar/Sidebar";
 import { FilePanel } from "../pane/FilePanel";
 import { ActivityRailPanel } from "../jobs/ActivityRailPanel";
 import { SidebarResizer, SplitResizer } from "./LayoutResizers";
 import { useShellLayout } from "./ShellLayoutContext";
+import { useEffect, useState } from "react";
 
 export function PaneWorkspace() {
   const ctx = useShellLayout();
   const paneMode = ctx.preferences?.paneMode === "single" ? "single" : "dual";
+  const [volumes, setVolumes] = useState<VolumeDto[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    ctx.client.fs
+      .discoverVolumes()
+      .then((resp) => {
+        if (!cancelled) setVolumes(resp.volumes);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [ctx.client.fs]);
 
   return (
     <section
@@ -83,6 +99,19 @@ export function PaneWorkspace() {
             onOpenProfileTerminal={(profile) =>
               void ctx.openProfileTerminalTab(profile)
             }
+            volumes={volumes}
+            onEjectVolume={(mountPoint) => {
+              ctx.client.fs
+                .ejectVolume({ mountPoint })
+                .then((resp) => {
+                  if (resp.success) {
+                    void ctx.client.fs.discoverVolumes().then((r) => {
+                      setVolumes(r.volumes);
+                    });
+                  }
+                })
+                .catch(() => {});
+            }}
           />
           <SidebarResizer
             onSidebarResize={(width) => {

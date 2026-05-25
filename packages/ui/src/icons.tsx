@@ -36,6 +36,7 @@ import {
   Star,
   Terminal,
   Trash2,
+  Usb,
   Video,
   X,
 } from "lucide-react";
@@ -92,6 +93,7 @@ export const Icons = {
   calculator: () => renderIcon(Calculator, "fo-ui-icon"),
   hash: () => renderIcon(Hash, "fo-ui-icon"),
   terminal: () => renderIcon(Terminal, "fo-ui-icon"),
+  usb: () => renderIcon(Usb, "fo-ui-icon"),
   x: () => renderIcon(X, "fo-ui-icon"),
 };
 
