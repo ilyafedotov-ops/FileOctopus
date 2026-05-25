@@ -4,6 +4,8 @@ import type {
   ComputeHashResponse,
   DirectoryBatchEventDto,
   DiscoverVolumesResponse,
+  EjectVolumeRequest,
+  EjectVolumeResponse,
   FolderSizeCompletedEventDto,
   FolderSizeJobResponse,
   FolderSizeRequest,
@@ -174,6 +176,17 @@ export class FsClient {
     try {
       return await this.transport.invoke<DiscoverVolumesResponse>(
         "fs.discover_volumes",
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async ejectVolume(request: EjectVolumeRequest): Promise<EjectVolumeResponse> {
+    try {
+      return await this.transport.invoke<EjectVolumeResponse>(
+        "fs.eject_volume",
+        { request },
       );
     } catch (error) {
       throw normalizeIpcError(error);

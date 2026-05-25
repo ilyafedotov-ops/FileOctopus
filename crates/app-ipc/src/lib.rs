@@ -505,6 +505,18 @@ pub struct DiscoverVolumesResponse {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct EjectVolumeRequest {
+    pub mount_point: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct EjectVolumeResponse {
+    pub success: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NetworkProfileDto {
     pub id: String,
     pub label: String,
