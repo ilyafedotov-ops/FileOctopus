@@ -491,10 +491,10 @@ pub async fn fs_eject_volume(
             return Ok(EjectVolumeResponse { success: true });
         }
 
-        return Err(IpcError::new(
+        Err(IpcError::new(
             error_codes::PERMISSION_DENIED,
             format!("umount failed: {}", stderr.trim()),
-        ));
+        ))
     }
 
     #[cfg(not(target_os = "linux"))]
