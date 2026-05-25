@@ -76,6 +76,29 @@ const IMAGE_EXTENSIONS = new Set([
   ".ico",
 ]);
 
+/** Extensions for audio/video media preview */
+const MEDIA_EXTENSIONS = new Set([
+  ".mp3",
+  ".ogg",
+  ".wav",
+  ".flac",
+  ".aac",
+  ".m4a",
+  ".wma",
+  ".opus",
+  ".oga",
+  ".mp4",
+  ".webm",
+  ".mkv",
+  ".avi",
+  ".mov",
+  ".m4v",
+  ".wmv",
+  ".mpg",
+  ".mpeg",
+  ".3gp",
+]);
+
 const MAX_PREVIEW_BYTES = 512 * 1024; // 512 KB
 
 function getExtension(name: string): string {
@@ -111,8 +134,18 @@ export function isImagePreviewable(entry: FileEntryDto | null): boolean {
   return IMAGE_EXTENSIONS.has(ext);
 }
 
+export function isMediaPreviewable(entry: FileEntryDto | null): boolean {
+  if (!entry || entry.kind === "directory") return false;
+  const ext = getExtension(entry.name);
+  return MEDIA_EXTENSIONS.has(ext);
+}
+
 export function isPreviewable(entry: FileEntryDto | null): boolean {
-  return isTextPreviewable(entry) || isImagePreviewable(entry);
+  return (
+    isTextPreviewable(entry) ||
+    isImagePreviewable(entry) ||
+    isMediaPreviewable(entry)
+  );
 }
 
 interface PreviewPanelProps {
@@ -121,9 +154,28 @@ interface PreviewPanelProps {
   onClose: () => void;
 }
 
+const AUDIO_EXTENSIONS_SET = new Set([
+  ".mp3",
+  ".ogg",
+  ".wav",
+  ".flac",
+  ".aac",
+  ".m4a",
+  ".wma",
+  ".opus",
+  ".oga",
+]);
+
+function isAudioEntry(entry: FileEntryDto): boolean {
+  const dot = entry.name.lastIndexOf(".");
+  const ext = dot >= 0 ? entry.name.slice(dot).toLowerCase() : "";
+  return AUDIO_EXTENSIONS_SET.has(ext);
+}
+
 export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
   const [textContent, setTextContent] = useState<string | null>(null);
   const [imageDataUri, setImageDataUri] = useState<string | null>(null);
+  const [mediaDataUri, setMediaDataUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [truncated, setTruncated] = useState(false);
@@ -137,6 +189,10 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
       if (isImagePreviewable(entry)) {
         const resp = await fs.readImageAsDataUri({ uri: entry.uri });
         setImageDataUri(resp.dataUri);
+        setByteSize(resp.byteSize);
+      } else if (isMediaPreviewable(entry)) {
+        const resp = await fs.readImageAsDataUri({ uri: entry.uri });
+        setMediaDataUri(resp.dataUri);
         setByteSize(resp.byteSize);
       } else {
         const resp = await fs.readTextFile({
@@ -165,6 +221,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
   useEffect(() => {
     setTextContent(null);
     setImageDataUri(null);
+    setMediaDataUri(null);
     setError(null);
     setTruncated(false);
     setByteSize(0);
@@ -190,6 +247,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
   if (!isPreviewable(entry)) return null;
 
   const isImage = isImagePreviewable(entry);
+  const isMedia = isMediaPreviewable(entry);
 
   const formatBytes = (b: number): string => {
     if (b < 1024) return `${b} B`;
@@ -203,7 +261,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
         <span className="fo-preview-title">{entry.name}</span>
         <span className="fo-preview-meta">
           {loading ? "Loading..." : error ? "Error" : formatBytes(byteSize)}
-          {!isImage && truncated && " (truncated)"}
+          {!isImage && !isMedia && truncated && " (truncated)"}
         </span>
         <button
           className="fo-preview-close"
@@ -223,7 +281,26 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
             alt={entry.name}
           />
         )}
-        {!isImage && textContent !== null && !loading && (
+        {isMedia && mediaDataUri && !loading && (
+          <div className="fo-preview-media">
+            {isAudioEntry(entry) ? (
+              <audio
+                className="fo-preview-audio"
+                src={mediaDataUri}
+                controls
+                autoPlay
+              />
+            ) : (
+              <video
+                className="fo-preview-video"
+                src={mediaDataUri}
+                controls
+                autoPlay
+              />
+            )}
+          </div>
+        )}
+        {!isImage && !isMedia && textContent !== null && !loading && (
           <pre className="fo-preview-code">{textContent}</pre>
         )}
       </div>

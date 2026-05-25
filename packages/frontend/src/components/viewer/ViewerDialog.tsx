@@ -4,6 +4,7 @@ import { detectViewerMode, type ViewerMode } from "./detectViewerMode";
 import { ViewerTextMode } from "./ViewerTextMode";
 import { ViewerHexMode } from "./ViewerHexMode";
 import { ViewerImageMode } from "./ViewerImageMode";
+import { ViewerMediaMode } from "./ViewerMediaMode";
 
 interface ViewerDialogProps {
   open: boolean;
@@ -89,6 +90,14 @@ export function ViewerDialog({
             >
               Image
             </button>
+            <button
+              role="tab"
+              aria-selected={mode === "media"}
+              onClick={() => setMode("media")}
+              className="fo-viewer-mode-tab"
+            >
+              Media
+            </button>
           </div>
           {siblings && siblings.length > 1 && (
             <div className="fo-viewer-gallery-nav">
@@ -147,5 +156,7 @@ function ViewerBody({
 }) {
   if (mode === "text") return <ViewerTextMode entry={entry} fs={fs} />;
   if (mode === "hex") return <ViewerHexMode entry={entry} fs={fs} />;
-  return <ViewerImageMode entry={entry} fs={fs} />;
+  if (mode === "image") return <ViewerImageMode entry={entry} fs={fs} />;
+  if (mode === "media") return <ViewerMediaMode entry={entry} fs={fs} />;
+  return null;
 }

@@ -1815,6 +1815,45 @@ dialog.fo-dialog[open] {
   object-fit: contain;
 }
 
+.fo-viewer-media-wrap {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  gap: 12px;
+}
+
+.fo-viewer-media-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--fo-text);
+}
+
+.fo-viewer-audio,
+.fo-viewer-video {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.fo-viewer-video {
+  border-radius: 4px;
+}
+
+.fo-preview-media {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+}
+
+.fo-preview-audio,
+.fo-preview-video {
+  max-width: 100%;
+  max-height: 200px;
+}
+
 .fo-viewer-footer {
   padding: 6px 12px;
   font-size: 12px;
