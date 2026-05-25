@@ -1,43 +1,44 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-25 21:35 UTC
-> Commits: ec61bbb (P2-12)
+> Last run: 2026-05-26 10:15 UTC
+> Commits: df3e782 (P2-13)
 
 ## Health Gate
 
-| Check                         | Result                          |
-| ----------------------------- | ------------------------------- |
-| TypeScript (`pnpm typecheck`) | ✅ 0 errors                     |
-| Rust (`cargo check`)          | ✅ clean (all workspace crates) |
-| Cargo clippy (`-D warnings`)  | ✅ clean                        |
-| Cargo fmt                     | ✅ clean                        |
-| Frontend tests (`pnpm test`)  | ✅ 572 pass (92 files)          |
-| Prettier (`format:check`)     | ✅ clean                        |
-| `pnpm lint`                   | ✅ clean                        |
+|| Check | Result |
+|| ----------------------------- | ------------------------------- |
+|| TypeScript (`pnpm typecheck`) | ✅ 0 errors |
+|| Rust (`cargo check`) | ✅ clean (all workspace crates) |
+|| Cargo clippy (`-D warnings`) | ✅ clean |
+|| Cargo fmt | ✅ clean |
+|| Frontend tests (`pnpm test`) | ✅ 590 pass (93 files) |
+|| Prettier (`format:check`) | ✅ clean |
+|| `pnpm lint` | ✅ clean |
 
 **Gate status:** GREEN — 0 failures.
 
-## Task 1: P2-12 — Symlink indicator in file list + copy/move warning
+## Task 1: P2-13 — Audio/video media preview
 
-**Commit:** `ec61bbb` — 5 files, +170/-6
+**Commit:** `df3e782` — 8 files, +497/-5
 
-- FileRow: ↗ badge for symlink entries with target tooltip (`Symlink → target`)
-- FileRow: 'symlink' in aria-label for accessibility + kind column display
-- OperationDialogView: warning callout when copy/move includes symlinks
-- CSS: `.fo-row-symlink-badge` badge style + `.fo-symlink-warning` callout style
-- Tests: 6 new (badge render, badge without target, no badge for files/dirs, aria-label, kind column)
+- ViewerMediaMode: native HTML5 `<audio>`/`<video>` with controls and autoplay
+- detectViewerMode: extended with `isMediaPreviewable()` and `isAudioEntry()` helpers
+- ViewerMode type: added `"media"` alongside text/hex/image
+- ViewerDialog: new Media tab + body routing
+- PreviewPanel: `isMediaPreviewable()` + inline audio/video rendering via `readImageAsDataUri`
+- CSS: `fo-viewer-media-wrap`, `fo-preview-media`, `fo-viewer-audio/video` styles
+- 18 new tests (590 total): 6 detectViewerMode media, 6 ViewerMediaMode, 3 isMediaPreviewable, 3 PreviewPanel media
+- Audio: mp3, ogg, wav, flac, aac, m4a, wma, opus, oga
+- Video: mp4, webm, mkv, avi, mov, m4v, wmv, mpg, mpeg, 3gp
 
 ## Remaining Active RC Queue
 
-| ID       | Pri | Status  | Description                    |
-| -------- | --- | ------- | ------------------------------ |
-| P2-13    | P2  | pending | PDF/media/EXIF preview         |
-| P2-14    | P2  | pending | Saved searches / smart folders |
-| P2-16    | P2  | pending | Archive browsing               |
-| P3-2     | P3  | pending | Eject/unmount                  |
-| P3-3     | P3  | pending | Job pause/resume               |
-| RC-PAUSE | P2  | pending | Pause on jobs                  |
-| TAG-1    | P2  | pending | Tag/label system               |
-| RMT-1    | P2  | pending | Remote providers expansion     |
-
-**Next highest priority:** P2-13 (PDF/media/EXIF preview)
+|| ID | Pri | Status | Description |
+|| -------- | --- | ------- | ------------------------------ |
+|| P2-14 | P2 | pending | Saved searches / smart folders |
+|| P2-16 | P2 | pending | Archive browsing |
+|| P3-2 | P3 | pending | Eject/unmount |
+|| P3-3 | P3 | pending | Job pause/resume |
+|| RC-PAUSE | P2 | pending | Pause on jobs |
+|| TAG-1 | P2 | pending | Tag/label system |
+|| RMT-1 | P2 | pending | Remote providers expansion |
