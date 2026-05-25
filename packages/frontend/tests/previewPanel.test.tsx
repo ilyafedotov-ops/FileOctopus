@@ -10,6 +10,7 @@ import {
   PreviewPanel,
   isTextPreviewable,
   isImagePreviewable,
+  isMediaPreviewable,
   isPreviewable,
 } from "../src/components/PreviewPanel";
 import type {
@@ -363,5 +364,133 @@ describe("PreviewPanel image preview", () => {
       />,
     );
     expect(container.querySelector(".fo-preview-panel")).toBeNull();
+  });
+});
+
+// ─── isMediaPreviewable ───
+
+describe("isMediaPreviewable", () => {
+  it("returns false for null", () => {
+    expect(isMediaPreviewable(null)).toBe(false);
+  });
+
+  it("returns false for directories", () => {
+    expect(
+      isMediaPreviewable(makeEntry({ kind: "directory", name: "folder" })),
+    ).toBe(false);
+  });
+
+  it("returns true for audio extensions", () => {
+    const exts = [".mp3", ".ogg", ".wav", ".flac", ".aac", ".m4a"];
+    for (const ext of exts) {
+      expect(isMediaPreviewable(makeEntry({ name: `audio${ext}` }))).toBe(true);
+    }
+  });
+
+  it("returns true for video extensions", () => {
+    const exts = [".mp4", ".webm", ".mkv", ".avi", ".mov"];
+    for (const ext of exts) {
+      expect(isMediaPreviewable(makeEntry({ name: `video${ext}` }))).toBe(true);
+    }
+  });
+
+  it("returns false for non-media extensions", () => {
+    expect(isMediaPreviewable(makeEntry({ name: "file.txt" }))).toBe(false);
+    expect(isMediaPreviewable(makeEntry({ name: "photo.png" }))).toBe(false);
+    expect(isMediaPreviewable(makeEntry({ name: "archive.zip" }))).toBe(false);
+  });
+});
+
+// ─── isPreviewable with media ───
+
+describe("isPreviewable includes media", () => {
+  it("returns true for audio files", () => {
+    expect(isPreviewable(makeEntry({ name: "song.mp3" }))).toBe(true);
+    expect(isPreviewable(makeEntry({ name: "podcast.ogg" }))).toBe(true);
+  });
+
+  it("returns true for video files", () => {
+    expect(isPreviewable(makeEntry({ name: "clip.mp4" }))).toBe(true);
+    expect(isPreviewable(makeEntry({ name: "movie.webm" }))).toBe(true);
+  });
+});
+
+// ─── PreviewPanel media preview ───
+
+describe("PreviewPanel media preview", () => {
+  it("renders audio element for mp3 files", async () => {
+    const mockFs = createMockFs();
+    mockFs.readImageAsDataUri.mockResolvedValue({
+      dataUri: "data:audio/mpeg;base64,abc",
+      byteSize: 54321,
+      mimeType: "audio/mpeg",
+    });
+
+    const onClose = vi.fn();
+    const { container } = render(
+      <PreviewPanel
+        entry={makeEntry({
+          name: "song.mp3",
+          uri: "local:///home/user/Music/song.mp3",
+        })}
+        fs={mockFs}
+        onClose={onClose}
+      />,
+    );
+
+    await waitFor(() => {
+      const audio = container.querySelector(".fo-preview-audio");
+      expect(audio).toBeTruthy();
+      expect(audio?.tagName.toLowerCase()).toBe("audio");
+    });
+
+    expect(mockFs.readImageAsDataUri).toHaveBeenCalledWith({
+      uri: "local:///home/user/Music/song.mp3",
+    });
+  });
+
+  it("renders video element for mp4 files", async () => {
+    const mockFs = createMockFs();
+    mockFs.readImageAsDataUri.mockResolvedValue({
+      dataUri: "data:video/mp4;base64,abc",
+      byteSize: 999999,
+      mimeType: "video/mp4",
+    });
+
+    const onClose = vi.fn();
+    const { container } = render(
+      <PreviewPanel
+        entry={makeEntry({
+          name: "clip.mp4",
+          uri: "local:///home/user/Videos/clip.mp4",
+        })}
+        fs={mockFs}
+        onClose={onClose}
+      />,
+    );
+
+    await waitFor(() => {
+      const video = container.querySelector(".fo-preview-video");
+      expect(video).toBeTruthy();
+      expect(video?.tagName.toLowerCase()).toBe("video");
+    });
+  });
+
+  it("shows error when media load fails", async () => {
+    const mockFs = createMockFs();
+    mockFs.readImageAsDataUri.mockRejectedValue(new Error("Too large"));
+
+    const onClose = vi.fn();
+    render(
+      <PreviewPanel
+        entry={makeEntry({ name: "big.mp4" })}
+        fs={mockFs}
+        onClose={onClose}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("Too large")).toBeTruthy();
+    });
   });
 });

@@ -28,4 +28,22 @@ describe("detectViewerMode", () => {
   it("returns text for null entry", () => {
     expect(detectViewerMode(null)).toBe("text");
   });
+
+  it("returns media for audio extensions", () => {
+    expect(detectViewerMode(entry("song.mp3"))).toBe("media");
+    expect(detectViewerMode(entry("podcast.ogg"))).toBe("media");
+    expect(detectViewerMode(entry("ringtone.wav"))).toBe("media");
+    expect(detectViewerMode(entry("track.flac"))).toBe("media");
+    expect(detectViewerMode(entry("audio.aac"))).toBe("media");
+    expect(detectViewerMode(entry("sound.m4a"))).toBe("media");
+  });
+
+  it("returns media for video extensions", () => {
+    expect(detectViewerMode(entry("clip.mp4"))).toBe("media");
+    expect(detectViewerMode(entry("movie.webm"))).toBe("media");
+    expect(detectViewerMode(entry("video.mkv"))).toBe("media");
+    expect(detectViewerMode(entry("film.avi"))).toBe("media");
+    expect(detectViewerMode(entry("show.mov"))).toBe("media");
+    expect(detectViewerMode(entry("recording.m4v"))).toBe("media");
+  });
 });
