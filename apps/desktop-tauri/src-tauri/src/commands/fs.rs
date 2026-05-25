@@ -4,13 +4,13 @@ use std::time::Duration;
 use app_core::AppState;
 use app_ipc::{
     error_codes, ComputeHashRequest, ComputeHashResponse, DirectoryBatchEventDto,
-    DirectoryEntryDto, DiscoverVolumesResponse, IpcError, ListDirectoriesRequest,
-    ListDirectoriesResponse, ListStartRequest, ListStartResponse, OkResponse, OpenTerminalRequest,
-    OpenTerminalResponse, PathPropertiesDto, PathPropertiesRequest, PathPropertiesResponse,
-    PathRequest, ReadFileRangeRequest, ReadFileRangeResponse, ReadImageAsDataUriRequest,
-    ReadImageAsDataUriResponse, ReadTextFileRequest, ReadTextFileResponse, StandardLocationDto,
-    StandardLocationsResponse, StatRequest, StatResponse, WriteTextFileRequest,
-    WriteTextFileResponse, DIRECTORY_BATCH_EVENT,
+    DirectoryEntryDto, DiscoverVolumesResponse, EjectVolumeRequest, EjectVolumeResponse, IpcError,
+    ListDirectoriesRequest, ListDirectoriesResponse, ListStartRequest, ListStartResponse,
+    OkResponse, OpenTerminalRequest, OpenTerminalResponse, PathPropertiesDto,
+    PathPropertiesRequest, PathPropertiesResponse, PathRequest, ReadFileRangeRequest,
+    ReadFileRangeResponse, ReadImageAsDataUriRequest, ReadImageAsDataUriResponse,
+    ReadTextFileRequest, ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse,
+    StatRequest, StatResponse, WriteTextFileRequest, WriteTextFileResponse, DIRECTORY_BATCH_EVENT,
 };
 use fs_core::{external_open, locations, metadata, vfs_io::VfsFilesystem};
 use tauri::{AppHandle, State};
@@ -461,6 +461,50 @@ pub async fn fs_discover_volumes() -> Result<DiscoverVolumesResponse, IpcError> 
     }
 
     Ok(DiscoverVolumesResponse { volumes })
+}
+
+#[tauri::command]
+pub async fn fs_eject_volume(
+    request: EjectVolumeRequest,
+    _state: State<'_, Arc<AppState>>,
+) -> Result<EjectVolumeResponse, IpcError> {
+    telemetry::debug(&format!(
+        "fs.eject_volume requested: {}",
+        request.mount_point
+    ));
+
+    let mount_point = request.mount_point;
+
+    #[cfg(target_os = "linux")]
+    {
+        let output = std::process::Command::new("umount")
+            .arg(&mount_point)
+            .output()
+            .map_err(|e| IpcError::io(format!("failed to execute umount: {}", e)))?;
+
+        if output.status.success() {
+            return Ok(EjectVolumeResponse { success: true });
+        }
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        if stderr.contains("not found") || stderr.contains("not mounted") {
+            return Ok(EjectVolumeResponse { success: true });
+        }
+
+        return Err(IpcError::new(
+            error_codes::PERMISSION_DENIED,
+            format!("umount failed: {}", stderr.trim()),
+        ));
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        let _ = mount_point;
+        Err(IpcError::new(
+            error_codes::NOT_FOUND,
+            "eject is not supported on this platform",
+        ))
+    }
 }
 
 const MAX_WRITE_TEXT_BYTES_DEFAULT: u64 = 10 * 1024 * 1024; // 10 MiB

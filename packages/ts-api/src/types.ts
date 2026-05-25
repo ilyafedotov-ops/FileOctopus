@@ -452,6 +452,14 @@ export interface DiscoverVolumesResponse {
   volumes: VolumeDto[];
 }
 
+export interface EjectVolumeRequest {
+  mountPoint: string;
+}
+
+export interface EjectVolumeResponse {
+  success: boolean;
+}
+
 export interface NetworkProfileDto {
   id: string;
   label: string;
