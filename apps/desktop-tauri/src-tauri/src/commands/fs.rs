@@ -1,16 +1,19 @@
+use std::io::Read;
+use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
 use app_core::AppState;
 use app_ipc::{
     error_codes, ComputeHashRequest, ComputeHashResponse, DirectoryBatchEventDto,
-    DirectoryEntryDto, DiscoverVolumesResponse, EjectVolumeRequest, EjectVolumeResponse, IpcError,
-    ListDirectoriesRequest, ListDirectoriesResponse, ListStartRequest, ListStartResponse,
-    OkResponse, OpenTerminalRequest, OpenTerminalResponse, PathPropertiesDto,
-    PathPropertiesRequest, PathPropertiesResponse, PathRequest, ReadFileRangeRequest,
-    ReadFileRangeResponse, ReadImageAsDataUriRequest, ReadImageAsDataUriResponse,
-    ReadTextFileRequest, ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse,
-    StatRequest, StatResponse, WriteTextFileRequest, WriteTextFileResponse, DIRECTORY_BATCH_EVENT,
+    DirectoryEntryDto, DiscoverVolumesResponse, EjectVolumeRequest, EjectVolumeResponse,
+    FileEntryDto, IpcError, ListArchiveRequest, ListArchiveResponse, ListDirectoriesRequest,
+    ListDirectoriesResponse, ListStartRequest, ListStartResponse, OkResponse, OpenTerminalRequest,
+    OpenTerminalResponse, PathPropertiesDto, PathPropertiesRequest, PathPropertiesResponse,
+    PathRequest, ReadFileRangeRequest, ReadFileRangeResponse, ReadImageAsDataUriRequest,
+    ReadImageAsDataUriResponse, ReadTextFileRequest, ReadTextFileResponse, StandardLocationDto,
+    StandardLocationsResponse, StatRequest, StatResponse, WriteTextFileRequest,
+    WriteTextFileResponse, DIRECTORY_BATCH_EVENT,
 };
 use fs_core::{external_open, locations, metadata, vfs_io::VfsFilesystem};
 use tauri::{AppHandle, State};
@@ -606,4 +609,196 @@ pub async fn fs_list_directories(
     dirs.sort_by_key(|a| a.name.to_lowercase());
 
     Ok(ListDirectoriesResponse { directories: dirs })
+}
+
+#[tauri::command]
+pub async fn fs_list_archive(request: ListArchiveRequest) -> Result<ListArchiveResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let path = uri.to_local_path().map_err(IpcError::from)?;
+
+    let metadata = std::fs::metadata(&path).map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            IpcError::not_found(path.to_string_lossy().to_string())
+        } else {
+            IpcError::io(e.to_string())
+        }
+    })?;
+
+    if metadata.is_dir() {
+        return Err(IpcError::is_directory(
+            "cannot list archive contents of a directory",
+        ));
+    }
+
+    let name = path
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_default()
+        .to_lowercase();
+
+    let entries = if name.ends_with(".zip") {
+        list_zip_entries(&path)?
+    } else if name.ends_with(".tar.gz") || name.ends_with(".tgz") {
+        list_tar_gz_entries(&path)?
+    } else if name.ends_with(".tar.bz2") || name.ends_with(".tbz2") {
+        list_tar_bz2_entries(&path)?
+    } else if name.ends_with(".tar") {
+        list_tar_entries_inner(&path)?
+    } else {
+        return Err(IpcError::invalid_request(format!(
+            "unsupported archive format: {name}"
+        )));
+    };
+
+    Ok(ListArchiveResponse { entries })
+}
+
+fn extension_for_archive_name(name: &str, is_dir: bool) -> Option<String> {
+    if is_dir {
+        return None;
+    }
+    let file_name = name.trim_end_matches('/');
+    let file_name = file_name.split('/').next_back().unwrap_or(file_name);
+    Path::new(file_name)
+        .extension()
+        .map(|e| e.to_string_lossy().to_string())
+}
+
+fn list_zip_entries(path: &std::path::Path) -> Result<Vec<FileEntryDto>, IpcError> {
+    let file = std::fs::File::open(path).map_err(|e| IpcError::io(e.to_string()))?;
+    let mut archive = zip::ZipArchive::new(file)
+        .map_err(|e| IpcError::io(format!("failed to read zip archive: {e}")))?;
+
+    let mut entries = Vec::new();
+    for index in 0..archive.len() {
+        let entry = archive
+            .by_index(index)
+            .map_err(|e| IpcError::io(format!("failed to read zip entry {index}: {e}")))?;
+        let entry_name = entry.name().to_string();
+        let is_dir = entry_name.ends_with('/');
+        let name = entry_name
+            .trim_end_matches('/')
+            .split('/')
+            .next_back()
+            .unwrap_or("")
+            .to_string();
+
+        if name.is_empty() {
+            continue;
+        }
+
+        let entry_uri = format!("archive://{}!/{}", path.display(), entry_name);
+
+        entries.push(FileEntryDto {
+            uri: entry_uri,
+            name,
+            extension: extension_for_archive_name(&entry_name, is_dir),
+            kind: if is_dir {
+                FileKind::Directory
+            } else {
+                FileKind::File
+            },
+            size: if is_dir { None } else { Some(entry.size()) },
+            modified_at: None,
+            created_at: None,
+            accessed_at: None,
+            is_hidden: false,
+            is_symlink: false,
+            symlink_target: None,
+            provider_id: "archive".to_string(),
+            can_read: true,
+            can_list: is_dir,
+            can_write: false,
+            can_delete: false,
+            can_rename: false,
+            permissions: None,
+            owner: None,
+        });
+    }
+
+    Ok(entries)
+}
+
+fn list_tar_reader<R: Read>(
+    archive: &mut tar::Archive<R>,
+    archive_prefix: &str,
+) -> Result<Vec<FileEntryDto>, IpcError> {
+    let mut entries = Vec::new();
+    let iter = archive
+        .entries()
+        .map_err(|e| IpcError::io(format!("failed to read tar entries: {e}")))?;
+
+    for entry_result in iter {
+        let entry =
+            entry_result.map_err(|e| IpcError::io(format!("failed to read tar entry: {e}")))?;
+        let entry_path = entry
+            .path()
+            .map_err(|e| IpcError::io(format!("failed to read tar entry path: {e}")))?;
+        let entry_name = entry_path.to_string_lossy().to_string();
+        let is_dir = entry_name.ends_with('/');
+        let name = entry_name
+            .trim_end_matches('/')
+            .split('/')
+            .next_back()
+            .unwrap_or("")
+            .to_string();
+
+        if name.is_empty() {
+            continue;
+        }
+
+        let entry_uri = format!("archive://{archive_prefix}!/{entry_name}");
+
+        entries.push(FileEntryDto {
+            uri: entry_uri,
+            name,
+            extension: extension_for_archive_name(&entry_name, is_dir),
+            kind: if is_dir {
+                FileKind::Directory
+            } else {
+                FileKind::File
+            },
+            size: if is_dir { None } else { Some(entry.size()) },
+            modified_at: None,
+            created_at: None,
+            accessed_at: None,
+            is_hidden: false,
+            is_symlink: entry.link_name().ok().flatten().is_some(),
+            symlink_target: entry
+                .link_name()
+                .ok()
+                .flatten()
+                .map(|p| p.to_string_lossy().to_string()),
+            provider_id: "archive".to_string(),
+            can_read: true,
+            can_list: is_dir,
+            can_write: false,
+            can_delete: false,
+            can_rename: false,
+            permissions: None,
+            owner: None,
+        });
+    }
+
+    Ok(entries)
+}
+
+fn list_tar_gz_entries(path: &std::path::Path) -> Result<Vec<FileEntryDto>, IpcError> {
+    let file = std::fs::File::open(path).map_err(|e| IpcError::io(e.to_string()))?;
+    let gz = flate2::read::GzDecoder::new(file);
+    let mut archive = tar::Archive::new(gz);
+    list_tar_reader(&mut archive, &path.display().to_string())
+}
+
+fn list_tar_bz2_entries(path: &std::path::Path) -> Result<Vec<FileEntryDto>, IpcError> {
+    let file = std::fs::File::open(path).map_err(|e| IpcError::io(e.to_string()))?;
+    let bz = bzip2::read::BzDecoder::new(file);
+    let mut archive = tar::Archive::new(bz);
+    list_tar_reader(&mut archive, &path.display().to_string())
+}
+
+fn list_tar_entries_inner(path: &std::path::Path) -> Result<Vec<FileEntryDto>, IpcError> {
+    let file = std::fs::File::open(path).map_err(|e| IpcError::io(e.to_string()))?;
+    let mut archive = tar::Archive::new(file);
+    list_tar_reader(&mut archive, &path.display().to_string())
 }
