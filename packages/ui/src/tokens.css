@@ -375,3 +375,16 @@
   --fo-toast-width: 420px;
   --fo-job-drawer-width: 480px;
 }
+
+:root {
+  --fo-tag-red: #e53e3e;
+  --fo-tag-orange: #ed8936;
+  --fo-tag-amber: #d69e2e;
+  --fo-tag-yellow: #ecc94b;
+  --fo-tag-green: #38a169;
+  --fo-tag-teal: #319795;
+  --fo-tag-blue: #3182ce;
+  --fo-tag-indigo: #5a67d8;
+  --fo-tag-violet: #805ad5;
+  --fo-tag-pink: #d53f8c;
+}

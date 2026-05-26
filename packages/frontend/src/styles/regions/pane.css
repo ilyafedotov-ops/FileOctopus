@@ -977,6 +977,55 @@
   color: var(--fo-on-accent);
 }
 
+.fo-row-tag-badge {
+  display: inline-block;
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  margin-left: 3px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+.fo-row-tag-red {
+  background: var(--fo-tag-red);
+}
+.fo-row-tag-orange {
+  background: var(--fo-tag-orange);
+}
+.fo-row-tag-amber {
+  background: var(--fo-tag-amber);
+}
+.fo-row-tag-yellow {
+  background: var(--fo-tag-yellow);
+}
+.fo-row-tag-green {
+  background: var(--fo-tag-green);
+}
+.fo-row-tag-teal {
+  background: var(--fo-tag-teal);
+}
+.fo-row-tag-blue {
+  background: var(--fo-tag-blue);
+}
+.fo-row-tag-indigo {
+  background: var(--fo-tag-indigo);
+}
+.fo-row-tag-violet {
+  background: var(--fo-tag-violet);
+}
+.fo-row-tag-pink {
+  background: var(--fo-tag-pink);
+}
+
+.fo-context-tag-color-swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
 .fo-column-button-active {
   color: var(--fo-accent);
 }

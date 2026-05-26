@@ -6,6 +6,7 @@ import { PreferencesProvider, usePreferences } from "./PreferencesProvider";
 import { NavigationDataProvider } from "./NavigationDataProvider";
 import { WorkspaceProvider } from "./WorkspaceProvider";
 import { TerminalProvider } from "./TerminalProvider";
+import { TagProvider } from "../TagContext";
 
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
@@ -15,7 +16,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
           <WorkspaceProvider>
             <JobsProvider>
               <TerminalBridge>
-                <ModalsProvider>{children}</ModalsProvider>
+                <TagProvider>
+                  <ModalsProvider>{children}</ModalsProvider>
+                </TagProvider>
               </TerminalBridge>
             </JobsProvider>
           </WorkspaceProvider>
