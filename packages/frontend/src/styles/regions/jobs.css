@@ -189,6 +189,11 @@
   border-color: var(--fo-danger-border);
 }
 
+.fo-job-card-paused {
+  background: #3a3516;
+  border-color: #8a7c00;
+}
+
 .fo-job-card-title {
   display: flex;
   align-items: flex-start;

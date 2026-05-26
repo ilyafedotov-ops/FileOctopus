@@ -49,6 +49,8 @@ import {
   mergeCompleted,
   mergeFailed,
   mergeCancelled,
+  mergePaused,
+  mergeResumed,
 } from "../dialogs/OperationDialogView";
 import type { SearchState } from "../pane/PaneFilterBar";
 
@@ -469,6 +471,18 @@ export function useAppInit({
         });
         refreshVisiblePanels();
         void refreshHistory();
+      }),
+      client.fileOperations.onJobPaused((event) => {
+        setJobs((current) => ({
+          ...current,
+          [jobIdValue(event.jobId)]: mergePaused(current, event),
+        }));
+      }),
+      client.fileOperations.onJobResumed((event) => {
+        setJobs((current) => ({
+          ...current,
+          [jobIdValue(event.jobId)]: mergeResumed(current, event),
+        }));
       }),
     ])
       .then((items) => {

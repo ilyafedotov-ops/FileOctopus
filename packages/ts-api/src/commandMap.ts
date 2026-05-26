@@ -26,6 +26,8 @@ export const commandMap: Record<string, string> = {
   "fileOperation.plan": "plan_file_operation",
   "fileOperation.start": "start_file_operation",
   "job.cancel": "cancel_job",
+  "job.pause": "pause_job",
+  "job.resume": "resume_job",
   "job.status": "get_job_status",
   "operationHistory.listRecent": "list_recent_operations",
   "operationHistory.clear": "clear_operation_history",

@@ -3,7 +3,9 @@ import type {
   JobCancelledEvent,
   JobCompletedEvent,
   JobFailedEvent,
+  JobPausedEvent,
   JobProgressEvent,
+  JobResumedEvent,
   JobStartedEvent,
   PlanFileOperationRequest,
   PlanFileOperationResponse,
@@ -15,7 +17,9 @@ import {
   JOB_CANCELLED_EVENT,
   JOB_COMPLETED_EVENT,
   JOB_FAILED_EVENT,
+  JOB_PAUSED_EVENT,
   JOB_PROGRESS_EVENT,
+  JOB_RESUMED_EVENT,
   JOB_STARTED_EVENT,
 } from "../events";
 import { normalizeIpcError } from "../normalizeError";
@@ -74,5 +78,13 @@ export class FileOperationsClient {
     handler: (event: JobCancelledEvent) => void,
   ): Promise<UnlistenFn> {
     return requireListen(this.transport, JOB_CANCELLED_EVENT, handler);
+  }
+
+  onJobPaused(handler: (event: JobPausedEvent) => void): Promise<UnlistenFn> {
+    return requireListen(this.transport, JOB_PAUSED_EVENT, handler);
+  }
+
+  onJobResumed(handler: (event: JobResumedEvent) => void): Promise<UnlistenFn> {
+    return requireListen(this.transport, JOB_RESUMED_EVENT, handler);
   }
 }

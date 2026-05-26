@@ -758,6 +758,14 @@ export interface CancelJobRequest {
   jobId: string;
 }
 
+export interface PauseJobRequest {
+  jobId: string;
+}
+
+export interface ResumeJobRequest {
+  jobId: string;
+}
+
 export interface JobStatusRequest {
   jobId: string;
 }
@@ -861,6 +869,18 @@ export interface JobCancelledEvent {
   jobId: string;
   operationKind: FileOperationKind;
   cancelledAt: string;
+}
+
+export interface JobPausedEvent {
+  jobId: string;
+  operationKind: FileOperationKind;
+  pausedAt: string;
+}
+
+export interface JobResumedEvent {
+  jobId: string;
+  operationKind: FileOperationKind;
+  resumedAt: string;
 }
 
 export interface OperationHistoryRecordDto {

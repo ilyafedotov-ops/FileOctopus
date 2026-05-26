@@ -14,6 +14,8 @@ import {
   JobCompletedEvent,
   JobFailedEvent,
   JobCancelledEvent,
+  JobPausedEvent,
+  JobResumedEvent,
 } from "@fileoctopus/ts-api";
 import type {
   StandardLocationDto,
@@ -751,6 +753,48 @@ export function mergeCancelled(
     ...existing,
     status: "cancelled",
     updatedAt: event.cancelledAt,
+  };
+}
+
+export function mergePaused(
+  current: Record<string, JobSnapshot>,
+  event: JobPausedEvent,
+): JobSnapshot {
+  const existing =
+    current[jobIdValue(event.jobId)] ??
+    snapshotFromStarted({
+      jobId: event.jobId,
+      operationKind: event.operationKind,
+      totalItems: 0,
+      totalBytes: 0,
+      startedAt: event.pausedAt,
+    });
+
+  return {
+    ...existing,
+    status: "paused",
+    updatedAt: event.pausedAt,
+  };
+}
+
+export function mergeResumed(
+  current: Record<string, JobSnapshot>,
+  event: JobResumedEvent,
+): JobSnapshot {
+  const existing =
+    current[jobIdValue(event.jobId)] ??
+    snapshotFromStarted({
+      jobId: event.jobId,
+      operationKind: event.operationKind,
+      totalItems: 0,
+      totalBytes: 0,
+      startedAt: event.resumedAt,
+    });
+
+  return {
+    ...existing,
+    status: "running",
+    updatedAt: event.resumedAt,
   };
 }
 

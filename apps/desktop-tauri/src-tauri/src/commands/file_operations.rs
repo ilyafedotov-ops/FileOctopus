@@ -4,8 +4,9 @@ use app_core::{AppState, OperationHistoryRecord};
 use app_ipc::{
     job_event_name, job_event_payload, CancelJobRequest, ClearOperationHistoryResponse, IpcError,
     JobStatusRequest, JobStatusResponse, ListRecentOperationsRequest, ListRecentOperationsResponse,
-    OperationHistoryRecordDto, PlanFileOperationRequest, PlanFileOperationResponse,
-    StartFileOperationRequest, StartFileOperationResponse,
+    OperationHistoryRecordDto, PauseJobRequest, PlanFileOperationRequest,
+    PlanFileOperationResponse, ResumeJobRequest, StartFileOperationRequest,
+    StartFileOperationResponse,
 };
 use jobs::JobEvent;
 use tauri::{AppHandle, State};
@@ -61,6 +62,32 @@ pub async fn cancel_job(
     let job = state
         .operations()
         .cancel(&request.job_id)
+        .map_err(IpcError::from)?;
+
+    Ok(JobStatusResponse { job })
+}
+
+#[tauri::command]
+pub async fn pause_job(
+    request: PauseJobRequest,
+    state: State<'_, Arc<AppState>>,
+) -> Result<JobStatusResponse, IpcError> {
+    let job = state
+        .operations()
+        .pause_job(&request.job_id)
+        .map_err(IpcError::from)?;
+
+    Ok(JobStatusResponse { job })
+}
+
+#[tauri::command]
+pub async fn resume_job(
+    request: ResumeJobRequest,
+    state: State<'_, Arc<AppState>>,
+) -> Result<JobStatusResponse, IpcError> {
+    let job = state
+        .operations()
+        .resume_job(&request.job_id)
         .map_err(IpcError::from)?;
 
     Ok(JobStatusResponse { job })

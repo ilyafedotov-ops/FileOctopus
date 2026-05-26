@@ -12,9 +12,17 @@ export interface JobCardProps {
   job: JobSnapshot;
   metrics?: JobMetrics;
   onCancel?: () => void;
+  onPause?: () => void;
+  onResume?: () => void;
 }
 
-export function JobCard({ job, metrics, onCancel }: JobCardProps) {
+export function JobCard({
+  job,
+  metrics,
+  onCancel,
+  onPause,
+  onResume,
+}: JobCardProps) {
   const percent = progressPercent(job);
   const tone =
     job.status === "failed"
@@ -23,8 +31,15 @@ export function JobCard({ job, metrics, onCancel }: JobCardProps) {
         ? "completed"
         : job.status === "queued"
           ? "queued"
-          : "running";
-  const cancellable = job.status === "running" || job.status === "queued";
+          : job.status === "paused"
+            ? "paused"
+            : "running";
+  const cancellable =
+    job.status === "running" ||
+    job.status === "queued" ||
+    job.status === "paused";
+  const pausable = job.status === "running";
+  const resumable = job.status === "paused";
 
   return (
     <article className={`fo-job-card fo-job-card-${tone}`}>
@@ -53,11 +68,23 @@ export function JobCard({ job, metrics, onCancel }: JobCardProps) {
       {job.status === "failed" && job.message ? (
         <p className="fo-job-card-error">{job.message}</p>
       ) : null}
-      {cancellable && onCancel ? (
+      {cancellable || pausable || resumable ? (
         <div className="fo-job-card-actions">
-          <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
-            Cancel
-          </Button>
+          {pausable && onPause ? (
+            <Button type="button" variant="ghost" size="sm" onClick={onPause}>
+              {Icons.pause()} Pause
+            </Button>
+          ) : null}
+          {resumable && onResume ? (
+            <Button type="button" variant="ghost" size="sm" onClick={onResume}>
+              {Icons.play()} Resume
+            </Button>
+          ) : null}
+          {cancellable && onCancel ? (
+            <Button type="button" variant="ghost" size="sm" onClick={onCancel}>
+              Cancel
+            </Button>
+          ) : null}
         </div>
       ) : null}
     </article>

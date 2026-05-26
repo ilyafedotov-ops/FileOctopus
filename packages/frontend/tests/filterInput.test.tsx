@@ -173,6 +173,8 @@ vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
         onJobCompleted,
         onJobFailed: subscribeJob,
         onJobCancelled: subscribeJob,
+        onJobPaused: subscribeJob,
+        onJobResumed: subscribeJob,
       },
       jobs: { cancelJob },
       operationHistory: { listRecentOperations, clearOperationHistory },

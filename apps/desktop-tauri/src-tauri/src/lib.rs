@@ -121,6 +121,8 @@ pub fn run() {
             commands::file_operations::plan_file_operation,
             commands::file_operations::start_file_operation,
             commands::file_operations::cancel_job,
+            commands::file_operations::pause_job,
+            commands::file_operations::resume_job,
             commands::file_operations::get_job_status,
             commands::file_operations::list_recent_operations,
             commands::file_operations::clear_operation_history,

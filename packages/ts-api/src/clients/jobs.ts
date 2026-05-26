@@ -3,6 +3,8 @@ import type {
   CancelJobRequest,
   JobStatusRequest,
   JobStatusResponse,
+  PauseJobRequest,
+  ResumeJobRequest,
 } from "../types";
 import { normalizeIpcError } from "../normalizeError";
 
@@ -12,6 +14,26 @@ export class JobsClient {
   async cancelJob(request: CancelJobRequest): Promise<JobStatusResponse> {
     try {
       return await this.transport.invoke<JobStatusResponse>("job.cancel", {
+        request,
+      });
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async pauseJob(request: PauseJobRequest): Promise<JobStatusResponse> {
+    try {
+      return await this.transport.invoke<JobStatusResponse>("job.pause", {
+        request,
+      });
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async resumeJob(request: ResumeJobRequest): Promise<JobStatusResponse> {
+    try {
+      return await this.transport.invoke<JobStatusResponse>("job.resume", {
         request,
       });
     } catch (error) {

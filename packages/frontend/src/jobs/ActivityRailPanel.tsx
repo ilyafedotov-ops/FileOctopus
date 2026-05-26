@@ -35,6 +35,8 @@ interface ActivityRailPanelProps {
   collapsed: boolean;
   onToggleCollapsed: () => void;
   onCancel: (jobId: string) => void;
+  onPause?: (jobId: string) => void;
+  onResume?: (jobId: string) => void;
   onRefreshHistory: () => void;
   onClearHistory: () => void;
   jobMetrics: Record<string, JobMetrics>;
@@ -69,6 +71,8 @@ export function ActivityRailPanel({
   collapsed,
   onToggleCollapsed,
   onCancel,
+  onPause,
+  onResume,
   onRefreshHistory,
   onClearHistory,
   jobMetrics,
@@ -91,10 +95,18 @@ export function ActivityRailPanel({
   const paneTerminalCount = terminal.sessions.length - railSessions.length;
 
   const activeJobs = jobs.filter(
-    (job) => job.status === "queued" || job.status === "running",
+    (job) =>
+      job.status === "queued" ||
+      job.status === "running" ||
+      job.status === "paused",
   );
   const recentJobs = jobs
-    .filter((job) => job.status !== "queued" && job.status !== "running")
+    .filter(
+      (job) =>
+        job.status !== "queued" &&
+        job.status !== "running" &&
+        job.status !== "paused",
+    )
     .slice(-5)
     .reverse();
 
@@ -186,8 +198,20 @@ export function ActivityRailPanel({
                     job={job}
                     metrics={jobMetrics[jobId]}
                     onCancel={
-                      job.status === "running" || job.status === "queued"
+                      job.status === "running" ||
+                      job.status === "queued" ||
+                      job.status === "paused"
                         ? () => onCancel(jobId)
+                        : undefined
+                    }
+                    onPause={
+                      job.status === "running" && onPause
+                        ? () => onPause(jobId)
+                        : undefined
+                    }
+                    onResume={
+                      job.status === "paused" && onResume
+                        ? () => onResume(jobId)
                         : undefined
                     }
                   />
