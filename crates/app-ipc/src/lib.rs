@@ -76,6 +76,14 @@ pub struct UserPreferencesDto {
     pub terminal_args: String,
     pub remember_last_used_panes: bool,
     pub diagnostics_export_path: String,
+    #[serde(default)]
+    pub custom_shortcuts: String,
+    #[serde(default)]
+    pub file_type_color_rules: String,
+    #[serde(default)]
+    pub layout_profiles: String,
+    #[serde(default)]
+    pub column_presets: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1213,6 +1221,10 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             terminal_args: value.terminal_args,
             remember_last_used_panes: value.remember_last_used_panes,
             diagnostics_export_path: value.diagnostics_export_path,
+            custom_shortcuts: value.custom_shortcuts,
+            file_type_color_rules: value.file_type_color_rules,
+            layout_profiles: value.layout_profiles,
+            column_presets: value.column_presets,
         }
     }
 }

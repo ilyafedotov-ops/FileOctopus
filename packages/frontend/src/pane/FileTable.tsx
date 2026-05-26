@@ -13,6 +13,10 @@ import { isPaneLoading, type PaneLoadState } from "../paneTypes";
 import type { SortField, ViewMode } from "../panelStore";
 import type { TagColor } from "../utils/tagStore";
 import { isParentDirectoryEntry } from "../utils/parentEntry";
+import {
+  matchFileTypeColor,
+  parseFileTypeColorRules,
+} from "../utils/fileTypeColors";
 import { FileRow } from "./FileRow";
 import {
   buildVisibleGridTemplate,
@@ -43,6 +47,7 @@ export interface FileTableProps {
   panelId?: string;
   columnWidths?: ColumnWidths;
   visibleColumns?: VisibleColumns;
+  fileTypeColorRules?: string;
   onSubmitInlineRename?: (entryUri: string, newName: string) => void;
   onCancelInlineRename?: () => void;
   onCreateFolder?: () => void;
@@ -80,6 +85,7 @@ export function FileTable({
   panelId,
   columnWidths,
   visibleColumns = DEFAULT_VISIBLE_COLUMNS,
+  fileTypeColorRules,
   onSubmitInlineRename,
   onCancelInlineRename,
   onCreateFolder,
@@ -98,6 +104,7 @@ export function FileTable({
 }: FileTableProps) {
   const [scrollTop, setScrollTop] = useState(0);
   const [resizingColumn, setResizingColumn] = useState<ColumnId | null>(null);
+  const colorRules = parseFileTypeColorRules(fileTypeColorRules ?? "");
   const [draggedColId, setDraggedColId] = useState<ColumnId | null>(null);
   const [dragOverColId, setDragOverColId] = useState<ColumnId | null>(null);
   const [colVisMenu, setColVisMenu] = useState<{
@@ -424,6 +431,11 @@ export function FileTable({
                 multiSelected={selectedIds.indexOf(entry.uri) !== -1}
                 focused={entry.uri === focusedId}
                 gitStatus={gitStatuses?.[entry.uri]}
+                fileTypeColor={
+                  isParentDirectoryEntry(entry, currentUri)
+                    ? null
+                    : matchFileTypeColor(entry.name, colorRules)
+                }
                 panelId={panelId}
                 selectedUris={selectedIds}
                 onSelect={onSelect}

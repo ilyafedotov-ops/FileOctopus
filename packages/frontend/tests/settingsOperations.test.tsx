@@ -1,11 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import {
-  render,
-  screen,
-  cleanup,
-  fireEvent,
-  within,
-} from "@testing-library/react";
+import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { SettingsDialog } from "../src/components/SettingsDialog";
 import type { UserPreferencesDto } from "@fileoctopus/ts-api";
 
@@ -33,6 +27,7 @@ const basePreferences = {
   toolbarVisible: true,
   toolbarEntries: "",
   paneMode: "dual",
+  paneDirection: "horizontal",
   jobDrawerBehavior: "auto",
   showAdvancedCopyOptions: false,
   paneTerminalHeightLeft: 0.35,
@@ -42,6 +37,8 @@ const basePreferences = {
   confirmClosePaneWithTerminal: true,
   terminalShell: "",
   terminalArgs: "",
+  rememberLastUsedPanes: true,
+  diagnosticsExportPath: "/tmp/fileoctopus-diagnostics.zip",
 };
 
 function renderDialog(overrides: Record<string, unknown> = {}) {
@@ -63,15 +60,15 @@ function renderDialog(overrides: Record<string, unknown> = {}) {
 
 function clickOperationsTab() {
   const nav = screen.getByRole("navigation", { name: "Settings sections" });
-  const opsTab = Array.from(nav.querySelectorAll("button")).find(
+  const tab = Array.from(nav.querySelectorAll("button")).find(
     (b) => b.textContent === "Operations",
   );
-  if (!opsTab) throw new Error("Operations tab not found");
-  fireEvent.click(opsTab);
+  if (!tab) throw new Error("Operations tab not found");
+  fireEvent.click(tab);
 }
 
-describe("SettingsDialog — Operations tab", () => {
-  it("renders Operations tab in navigation", () => {
+describe("SettingsDialog — Operations", () => {
+  it("renders an Operations tab", () => {
     renderDialog();
     const nav = screen.getByRole("navigation", { name: "Settings sections" });
     const opsTab = Array.from(nav.querySelectorAll("button")).find(
@@ -80,25 +77,25 @@ describe("SettingsDialog — Operations tab", () => {
     expect(opsTab).toBeTruthy();
   });
 
-  it("shows confirm move to trash checkbox", () => {
+  it("shows confirm before delete checkbox in Operations", () => {
     renderDialog();
     clickOperationsTab();
-    expect(screen.getByText("Confirm move to trash")).toBeTruthy();
+    expect(screen.getByText("Confirm before delete")).toBeTruthy();
   });
 
-  it("shows confirm permanent delete checkbox", () => {
+  it("shows confirm before permanent delete checkbox", () => {
     renderDialog();
     clickOperationsTab();
-    expect(screen.getByText("Confirm permanent delete")).toBeTruthy();
+    expect(screen.getByText("Confirm before permanent delete")).toBeTruthy();
   });
 
-  it("shows confirm overwrite checkbox", () => {
+  it("shows confirm before overwrite checkbox", () => {
     renderDialog();
     clickOperationsTab();
-    expect(screen.getByText("Confirm before overwriting files")).toBeTruthy();
+    expect(screen.getByText("Confirm before overwrite")).toBeTruthy();
   });
 
-  it("shows advanced copy options checkbox", () => {
+  it("shows advanced copy options checkbox in Operations", () => {
     renderDialog();
     clickOperationsTab();
     expect(screen.getByText("Show advanced copy options")).toBeTruthy();
@@ -114,15 +111,7 @@ describe("SettingsDialog — Operations tab", () => {
     const { onChange } = renderDialog({ confirmDelete: true });
     clickOperationsTab();
 
-    const region = screen.getByRole("region", { name: "Operations settings" });
-    const checkboxes = within(region).getAllByRole("checkbox");
-    const confirmDeleteBox = checkboxes.find(
-      (cb) =>
-        cb.closest("label")?.textContent?.indexOf("Confirm move to trash") !==
-        -1,
-    );
-    expect(confirmDeleteBox).toBeTruthy();
-    fireEvent.click(confirmDeleteBox!);
+    fireEvent.click(screen.getByLabelText("Confirm before delete"));
     expect(onChange).toHaveBeenCalledWith("confirmDelete", "false");
   });
 
@@ -130,16 +119,10 @@ describe("SettingsDialog — Operations tab", () => {
     renderDialog({ confirmOverwrite: false });
     clickOperationsTab();
 
-    const region = screen.getByRole("region", { name: "Operations settings" });
-    const checkboxes = within(region).getAllByRole("checkbox");
-    const overwriteBox = checkboxes.find(
-      (cb) =>
-        cb
-          .closest("label")
-          ?.textContent?.indexOf("Confirm before overwriting files") !== -1,
-    );
-    expect(overwriteBox).toBeTruthy();
-    expect((overwriteBox as HTMLInputElement).checked).toBe(false);
+    const checkbox = screen.getByLabelText(
+      "Confirm before overwrite",
+    ) as HTMLInputElement;
+    expect(checkbox.checked).toBe(false);
   });
 
   it("toggling advanced copy options fires onChange", () => {

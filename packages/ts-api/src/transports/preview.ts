@@ -57,6 +57,10 @@ export function createPreviewTransport(): IpcTransport {
     terminalArgs: "",
     rememberLastUsedPanes: true,
     diagnosticsExportPath: "/tmp/fileoctopus-diagnostics.zip",
+    customShortcuts: "",
+    fileTypeColorRules: "",
+    layoutProfiles: "",
+    columnPresets: "",
   };
   const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
   const folderSizeHandlers = new Set<

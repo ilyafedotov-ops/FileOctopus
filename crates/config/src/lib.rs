@@ -64,6 +64,10 @@ pub struct UserPreferences {
     pub terminal_args: String,
     pub remember_last_used_panes: bool,
     pub diagnostics_export_path: String,
+    pub custom_shortcuts: String,
+    pub file_type_color_rules: String,
+    pub layout_profiles: String,
+    pub column_presets: String,
 }
 
 impl Default for UserPreferences {
@@ -102,6 +106,10 @@ impl Default for UserPreferences {
             terminal_args: String::new(),
             remember_last_used_panes: true,
             diagnostics_export_path: "/tmp/fileoctopus-diagnostics.zip".to_string(),
+            custom_shortcuts: String::new(),
+            file_type_color_rules: String::new(),
+            layout_profiles: String::new(),
+            column_presets: String::new(),
         }
     }
 }
@@ -722,6 +730,18 @@ fn apply_value(
         "diagnosticsExportPath" => {
             preferences.diagnostics_export_path = parse_diagnostics_export_path(value)?;
         }
+        "customShortcuts" => {
+            preferences.custom_shortcuts = parse_custom_shortcuts(value)?;
+        }
+        "fileTypeColorRules" => {
+            preferences.file_type_color_rules = parse_file_type_color_rules(value)?;
+        }
+        "layoutProfiles" => {
+            preferences.layout_profiles = parse_layout_profiles(value)?;
+        }
+        "columnPresets" => {
+            preferences.column_presets = parse_column_presets(value)?;
+        }
         _ => {}
     }
 
@@ -757,6 +777,70 @@ fn parse_diagnostics_export_path(value: &str) -> Result<String, PreferencesError
         ));
     }
 
+    Ok(trimmed.to_string())
+}
+
+fn parse_custom_shortcuts(value: &str) -> Result<String, PreferencesError> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Ok(String::new());
+    }
+    if trimmed.len() > 65536 {
+        return Err(invalid_value(
+            "customShortcuts",
+            "value is too long".to_string(),
+        ));
+    }
+    let _: serde_json::Value = serde_json::from_str(trimmed)
+        .map_err(|error| invalid_value("customShortcuts", format!("invalid JSON: {}", error)))?;
+    Ok(trimmed.to_string())
+}
+
+fn parse_file_type_color_rules(value: &str) -> Result<String, PreferencesError> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Ok(String::new());
+    }
+    if trimmed.len() > 65536 {
+        return Err(invalid_value(
+            "fileTypeColorRules",
+            "value is too long".to_string(),
+        ));
+    }
+    let _: serde_json::Value = serde_json::from_str(trimmed)
+        .map_err(|error| invalid_value("fileTypeColorRules", format!("invalid JSON: {}", error)))?;
+    Ok(trimmed.to_string())
+}
+
+fn parse_layout_profiles(value: &str) -> Result<String, PreferencesError> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Ok(String::new());
+    }
+    if trimmed.len() > 65536 {
+        return Err(invalid_value(
+            "layoutProfiles",
+            "value is too long".to_string(),
+        ));
+    }
+    let _: serde_json::Value = serde_json::from_str(trimmed)
+        .map_err(|error| invalid_value("layoutProfiles", format!("invalid JSON: {}", error)))?;
+    Ok(trimmed.to_string())
+}
+
+fn parse_column_presets(value: &str) -> Result<String, PreferencesError> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return Ok(String::new());
+    }
+    if trimmed.len() > 65536 {
+        return Err(invalid_value(
+            "columnPresets",
+            "value is too long".to_string(),
+        ));
+    }
+    let _: serde_json::Value = serde_json::from_str(trimmed)
+        .map_err(|error| invalid_value("columnPresets", format!("invalid JSON: {}", error)))?;
     Ok(trimmed.to_string())
 }
 

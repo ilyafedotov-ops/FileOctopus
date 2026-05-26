@@ -224,6 +224,23 @@ export function dispatchCommand(
       void deps.updatePreference("theme", theme);
       return true;
     }
+    case "preferences.cycleTheme": {
+      const current = deps.preferences?.theme ?? "system";
+      const next =
+        current === "system"
+          ? "light"
+          : current === "light"
+            ? "dark"
+            : "system";
+      deps.setTheme(next);
+      void deps.updatePreference("theme", next);
+      return true;
+    }
+    case "preferences.accentColor":
+    case "preferences.fontScale":
+    case "preferences.iconScale":
+      deps.setSettingsOpen(true);
+      return true;
     case "preferences.density": {
       const density = options?.preferenceValue ?? "comfortable";
       deps.setDensity(density as DensityPreference);
@@ -242,6 +259,14 @@ export function dispatchCommand(
     case "layout.swapPanes":
       deps.dispatch({ type: "swapPanes" });
       return true;
+    case "layout.togglePaneDirection": {
+      const current = deps.preferences?.paneDirection ?? "horizontal";
+      void deps.updatePreference(
+        "paneDirection",
+        current === "horizontal" ? "vertical" : "horizontal",
+      );
+      return true;
+    }
     case "nav.back":
       void deps.goHistory(panelId, "back");
       return true;

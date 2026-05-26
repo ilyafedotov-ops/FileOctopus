@@ -2077,3 +2077,255 @@ dialog.fo-dialog[open] {
   border-radius: 4px;
   cursor: pointer;
 }
+
+.fo-shortcuts-editable {
+  max-height: min(50vh, 400px);
+  overflow-y: auto;
+}
+
+.fo-shortcuts-editable .fo-shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.fo-shortcuts-editable .fo-shortcuts-table td {
+  padding: 4px 6px;
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.fo-shortcuts-editable .fo-shortcuts-table td:first-child {
+  width: 40%;
+}
+
+.fo-shortcuts-editable .fo-shortcuts-table td:last-child {
+  width: 120px;
+  text-align: right;
+}
+
+.fo-shortcuts-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.fo-shortcuts-custom-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--fo-accent);
+  background: color-mix(in srgb, var(--fo-accent) 12%, transparent);
+  border-radius: 3px;
+}
+
+.fo-shortcuts-none {
+  color: var(--fo-muted-text);
+  font-style: italic;
+  font-size: 11px;
+}
+
+.fo-shortcuts-conflict td {
+  background: color-mix(in srgb, var(--fo-danger, #f14c4c) 8%, transparent);
+}
+
+.fo-shortcuts-conflicts {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid var(--fo-danger, #f14c4c);
+  background: color-mix(in srgb, var(--fo-danger, #f14c4c) 8%, transparent);
+  font-size: 12px;
+}
+
+.fo-shortcuts-conflicts ul {
+  margin: 4px 0 0;
+  padding-left: 16px;
+}
+
+.fo-shortcuts-conflicts li {
+  margin: 2px 0;
+}
+
+.fo-shortcuts-recording {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+  border: 2px solid var(--fo-accent);
+  background: color-mix(in srgb, var(--fo-accent) 8%, transparent);
+  font-size: 13px;
+  text-align: center;
+  outline: none;
+  animation: fo-shortcuts-pulse 1s ease-in-out infinite;
+}
+
+@keyframes fo-shortcuts-pulse {
+  0%,
+  100% {
+    border-color: var(--fo-accent);
+  }
+  50% {
+    border-color: color-mix(in srgb, var(--fo-accent) 40%, transparent);
+  }
+}
+
+.fo-file-type-rules {
+  display: grid;
+  gap: 8px;
+  max-height: min(50vh, 400px);
+  overflow-y: auto;
+}
+
+.fo-file-type-rule {
+  border: 1px solid var(--fo-border);
+  background: var(--fo-control-bg);
+  padding: 8px;
+}
+
+.fo-file-type-rule-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.fo-file-type-rule-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.fo-file-type-rule-editor {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--fo-border);
+  display: grid;
+  gap: 8px;
+}
+
+.fo-file-type-color-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fo-file-type-color-picker input[type="color"] {
+  width: 40px;
+  height: 32px;
+  padding: 2px;
+  border: 1px solid var(--fo-border);
+  background: var(--fo-control-bg);
+  cursor: pointer;
+}
+
+.fo-file-type-color-presets {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.fo-file-type-color-preset {
+  width: 24px;
+  height: 24px;
+  border: 2px solid transparent;
+  border-radius: 3px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.fo-file-type-color-preset:hover {
+  border-color: var(--fo-text);
+}
+
+.fo-file-type-color-preset-active {
+  border-color: var(--fo-accent);
+}
+
+.fo-layout-profiles-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(40vh, 320px);
+  overflow-y: auto;
+}
+
+.fo-layout-profile-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid var(--fo-border);
+  background: var(--fo-control-bg);
+}
+
+.fo-layout-profile-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.fo-layout-profile-info strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-layout-profile-date {
+  font-size: 11px;
+  color: var(--fo-muted-text);
+}
+
+.fo-layout-profile-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.fo-column-presets-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(30vh, 240px);
+  overflow-y: auto;
+}
+
+.fo-column-preset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px;
+  border: 1px solid var(--fo-border);
+  background: var(--fo-control-bg);
+}
+
+.fo-column-preset-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.fo-column-preset-info strong {
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-column-preset-columns {
+  font-size: 11px;
+  color: var(--fo-muted-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-column-preset-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}

@@ -28,6 +28,7 @@ export interface FileRowProps {
   panelId?: string;
   selectedUris?: string[];
   gitStatus?: GitFileStatusDto;
+  fileTypeColor?: string | null;
   onSubmitRename?: (newName: string) => void;
   onCancelRename?: () => void;
   onSelect: (entryId: string | null) => void;
@@ -55,6 +56,7 @@ export function FileRow({
   panelId,
   selectedUris,
   gitStatus,
+  fileTypeColor,
   onSubmitRename,
   onCancelRename,
   onSelect,
@@ -187,7 +189,11 @@ export function FileRow({
             onBlur={() => onSubmitRename?.(draftName)}
           />
         ) : (
-          <span className="fo-row-text" title={entry.name}>
+          <span
+            className="fo-row-text"
+            title={entry.name}
+            style={fileTypeColor ? { color: fileTypeColor } : undefined}
+          >
             {entry.name}
           </span>
         )}

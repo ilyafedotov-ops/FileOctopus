@@ -8,6 +8,15 @@ import {
 } from "../panelStore";
 import { isEditableTarget, isTerminalInputContext } from "../shortcuts";
 import { createCommanderActions } from "../shell/commanderActions";
+import {
+  DEFAULT_KEY_BINDINGS,
+  type KeyBinding,
+} from "../commands/defaultBindings";
+import {
+  matchesKeyCombo,
+  parseKeyCombo,
+  type KeyCombo,
+} from "../commands/keyCombo";
 
 export interface UseKeyboardShortcutsDeps {
   state: { activePanelId: PanelId; panels: Record<PanelId, PanelState> };
@@ -41,11 +50,15 @@ export interface UseKeyboardShortcutsDeps {
     entry: FileEntryDto | null,
   ) => Promise<void>;
   setOperationError: (error: string | null) => void;
+  customShortcuts?: string;
 }
 
 export function createKeyboardShortcutsHandler(
   deps: UseKeyboardShortcutsDeps,
 ): (event: KeyboardEvent<HTMLElement>) => void {
+  const customBindings = parseCustomShortcuts(deps.customShortcuts);
+  const effectiveBindings = mergeBindings(DEFAULT_KEY_BINDINGS, customBindings);
+
   return function handleShellKeyDown(event: KeyboardEvent<HTMLElement>) {
     const {
       state,
@@ -124,36 +137,12 @@ export function createKeyboardShortcutsHandler(
       return;
     }
 
-    if (event.key === "Tab") {
-      event.preventDefault();
-      runCommand("switch-pane");
-      return;
-    }
-
     const mod = event.metaKey || event.ctrlKey;
     const panelId = state.activePanelId;
     const tab = activeTab(state.panels[panelId]);
     const selectedEntry =
       selectVisibleEntries(tab).find((entry) => entry.uri === tab.selectedId) ??
       null;
-
-    if (mod && event.key === ",") {
-      event.preventDefault();
-      runCommand("app.settings");
-      return;
-    }
-
-    if (mod && event.key === "/") {
-      event.preventDefault();
-      runCommand("app.shortcuts");
-      return;
-    }
-
-    if (mod && event.key.toLowerCase() === "p") {
-      event.preventDefault();
-      runCommand("app.commandPalette");
-      return;
-    }
 
     if (event.key === " " && !mod) {
       if (!previewOpen && selectedEntry && isPreviewable(selectedEntry)) {
@@ -169,84 +158,6 @@ export function createKeyboardShortcutsHandler(
     }
 
     if (dialog) {
-      return;
-    }
-
-    if (event.key === "Enter") {
-      event.preventDefault();
-      runCommand("op.open");
-      return;
-    }
-
-    if (mod && event.key.toLowerCase() === "l") {
-      event.preventDefault();
-      setPathFocusToken((value) => value + 1);
-      return;
-    }
-
-    if (mod && event.shiftKey && event.key.toLowerCase() === "f") {
-      event.preventDefault();
-      setRecursiveSearchFocusToken((value) => value + 1);
-      return;
-    }
-
-    if (mod && event.key.toLowerCase() === "f") {
-      event.preventDefault();
-      runCommand("filter");
-      return;
-    }
-
-    if (mod && (event.code === "Period" || event.key.toLowerCase() === "h")) {
-      event.preventDefault();
-      runCommand("view.toggleHidden");
-      return;
-    }
-
-    if (mod && event.key.toLowerCase() === "i") {
-      event.preventDefault();
-      runCommand("op.properties");
-      return;
-    }
-
-    if (event.altKey && event.key === "Enter") {
-      event.preventDefault();
-      runCommand("op.properties");
-      return;
-    }
-
-    if (mod && event.key.toLowerCase() === "n") {
-      event.preventDefault();
-      runCommand("create.folder");
-      return;
-    }
-
-    if (mod && event.key.toLowerCase() === "a") {
-      event.preventDefault();
-      runCommand("selection.selectAll");
-      return;
-    }
-
-    if (mod && event.key.toLowerCase() === "c") {
-      event.preventDefault();
-      runCommand("op.copy");
-      return;
-    }
-
-    if (mod && event.key.toLowerCase() === "x") {
-      event.preventDefault();
-      runCommand("op.cut");
-      return;
-    }
-
-    if (mod && event.key.toLowerCase() === "v") {
-      event.preventDefault();
-      runCommand("op.paste");
-      return;
-    }
-
-    if (event.key === "F2") {
-      event.preventDefault();
-      runCommand("op.rename");
       return;
     }
 
@@ -266,78 +177,72 @@ export function createKeyboardShortcutsHandler(
       setOperationError,
     });
 
-    if (event.key === "F3") {
-      event.preventDefault();
-      commander.view();
-      return;
-    }
+    const commanderCommands: Record<string, () => void> = {
+      "op.view": commander.view,
+      "op.edit": commander.edit,
+      "op.copyTo": commander.copy,
+      "op.moveTo": commander.move,
+      "create.folder": commander.newFolder,
+      "op.trash": commander.delete,
+      "op.openTerminal": commander.terminal,
+    };
 
-    if (event.key === "F4") {
-      event.preventDefault();
-      commander.edit();
-      return;
-    }
-
-    if (event.key === "F5") {
-      event.preventDefault();
-      commander.copy();
-      return;
-    }
-
-    if (event.key === "F6") {
-      event.preventDefault();
-      commander.move();
-      return;
-    }
-
-    if (event.key === "F7") {
-      event.preventDefault();
-      commander.newFolder();
-      return;
-    }
-
-    if (event.key === "F8") {
-      event.preventDefault();
-      commander.delete();
-      return;
-    }
-
-    if (event.key === "F9") {
-      event.preventDefault();
-      commander.terminal();
-      return;
-    }
-
-    if (event.altKey && event.key === "ArrowLeft") {
-      event.preventDefault();
-      runCommand("nav.back");
-      return;
-    }
-
-    if (event.altKey && event.key === "ArrowRight") {
-      event.preventDefault();
-      runCommand("nav.forward");
-      return;
-    }
-
-    if (
-      event.key === "Backspace" ||
-      (event.altKey && event.key === "ArrowUp")
-    ) {
-      event.preventDefault();
-      runCommand("nav.up");
-      return;
-    }
-
-    if (mod && event.key.toLowerCase() === "r") {
-      event.preventDefault();
-      runCommand("nav.refresh");
-      return;
-    }
-
-    if (event.key === "Delete") {
-      event.preventDefault();
-      runCommand(event.shiftKey ? "op.deletePermanent" : "op.trash");
+    for (const binding of effectiveBindings) {
+      for (const combo of binding.combos) {
+        if (matchesKeyCombo(event, combo)) {
+          event.preventDefault();
+          if (binding.commandId === "nav.goToLocation") {
+            setPathFocusToken((value) => value + 1);
+          } else if (binding.commandId === "search.recursive") {
+            setRecursiveSearchFocusToken((value) => value + 1);
+          } else if (commanderCommands[binding.commandId]) {
+            commanderCommands[binding.commandId]();
+          } else {
+            runCommand(binding.commandId);
+          }
+          return;
+        }
+      }
     }
   };
+}
+
+function parseCustomShortcuts(
+  json: string | undefined,
+): Map<string, KeyCombo[]> {
+  if (!json) return new Map();
+  try {
+    const parsed = JSON.parse(json) as Record<string, string[]>;
+    const map = new Map<string, KeyCombo[]>();
+    for (const [commandId, comboStrings] of Object.entries(parsed)) {
+      const combos: KeyCombo[] = [];
+      for (const str of comboStrings) {
+        const combo = parseKeyCombo(str);
+        if (combo) combos.push(combo);
+      }
+      if (combos.length > 0) {
+        map.set(commandId, combos);
+      }
+    }
+    return map;
+  } catch {
+    return new Map();
+  }
+}
+
+function mergeBindings(
+  defaults: KeyBinding[],
+  custom: Map<string, KeyCombo[]>,
+): KeyBinding[] {
+  const result = new Map<string, KeyCombo[]>();
+  for (const binding of defaults) {
+    result.set(binding.commandId, binding.combos);
+  }
+  for (const [commandId, combos] of custom) {
+    result.set(commandId, combos);
+  }
+  return Array.from(result.entries()).map(([commandId, combos]) => ({
+    commandId,
+    combos,
+  }));
 }

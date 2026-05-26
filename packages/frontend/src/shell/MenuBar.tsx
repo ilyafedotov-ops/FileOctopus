@@ -55,13 +55,17 @@ export interface MenuBarProps {
   onToggleToolbar: () => void;
   onToggleStatusBar: () => void;
   onToggleDualPane: () => void;
+  onTogglePaneDirection: () => void;
   onToggleHidden: () => void;
   onRefresh: () => void;
   onAddFavorite: () => void;
   onManageFavorites: () => void;
+  onNetworkLocations: () => void;
+  onAddServer: () => void;
   onShowRecentLocations: () => void;
   onClearRecentLocations: () => void;
   recentLocations: ReadonlyArray<{ uri: string; label: string }>;
+  starredLocations: ReadonlyArray<{ uri: string; label: string }>;
   onFilter: () => void;
   onSearchRecursive: () => void;
   onChecksum: () => void;
@@ -90,6 +94,7 @@ export interface MenuBarProps {
   toolbarVisible: boolean;
   statusBarVisible: boolean;
   dualPane: boolean;
+  paneDirection: string;
   showHidden: boolean;
   onCustomizeToolbar: () => void;
 }
@@ -526,6 +531,15 @@ export function MenuBar(props: MenuBarProps) {
       checked: props.dualPane,
       onSelect: wrap(props.onToggleDualPane),
     },
+    {
+      id: "toggle-pane-direction",
+      label:
+        props.paneDirection === "vertical"
+          ? "Split: Vertical"
+          : "Split: Horizontal",
+      disabled: !props.dualPane,
+      onSelect: wrap(props.onTogglePaneDirection),
+    },
     sep("sep-hidden"),
     {
       id: "toggle-hidden",
@@ -582,6 +596,17 @@ export function MenuBar(props: MenuBarProps) {
       label: "Volumes…",
       onSelect: wrap(props.onVolumePicker),
     },
+    {
+      id: "go-network",
+      label: "Network Locations",
+      icon: Icons.server(),
+      onSelect: wrap(props.onNetworkLocations),
+    },
+    {
+      id: "go-add-server",
+      label: "Add Server…",
+      onSelect: wrap(props.onAddServer),
+    },
     sep("sep-stdloc"),
     {
       id: "loc-desktop",
@@ -624,6 +649,19 @@ export function MenuBar(props: MenuBarProps) {
       label: "Manage Favorites…",
       onSelect: wrap(props.onManageFavorites),
     },
+    ...(props.starredLocations.length > 0
+      ? [
+          sep("sep-starred"),
+          ...props.starredLocations.slice(0, 10).map(
+            (loc): DropdownMenuItem => ({
+              id: "starred-" + loc.uri,
+              label: loc.label,
+              icon: Icons.star(),
+              onSelect: wrapArg(props.goStandardLocation, loc.uri),
+            }),
+          ),
+        ]
+      : []),
     sep("sep-recent"),
     ...props.recentLocations.slice(0, 10).map(
       (loc): DropdownMenuItem => ({
@@ -738,6 +776,12 @@ export function MenuBar(props: MenuBarProps) {
       label: "Equalize Pane Widths",
       disabled: !props.dualPane,
       onSelect: wrap(props.onEqualizePanes),
+    },
+    {
+      id: "toggle-direction",
+      label: "Toggle Split Direction",
+      disabled: !props.dualPane,
+      onSelect: wrap(props.onTogglePaneDirection),
     },
   ];
 

@@ -145,6 +145,51 @@ export function PaneTerminalResizer({
   );
 }
 
+export function ActivityPanelResizer({
+  onActivityPanelResize,
+}: {
+  onActivityPanelResize: (width: number) => void;
+}) {
+  const dragging = useRef(false);
+
+  return (
+    <div
+      className="fo-resizer fo-resizer-activity"
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize activity panel"
+      onMouseDown={(event) => {
+        dragging.current = true;
+        const container = (event.currentTarget as HTMLElement)
+          .closest(".fo-shell")
+          ?.getBoundingClientRect();
+        if (!container) {
+          return;
+        }
+
+        const onMove = (moveEvent: MouseEvent) => {
+          if (!dragging.current) {
+            return;
+          }
+          const width = Math.round(
+            Math.min(480, Math.max(200, container.right - moveEvent.clientX)),
+          );
+          onActivityPanelResize(width);
+        };
+
+        const onUp = () => {
+          dragging.current = false;
+          window.removeEventListener("mousemove", onMove);
+          window.removeEventListener("mouseup", onUp);
+        };
+
+        window.addEventListener("mousemove", onMove);
+        window.addEventListener("mouseup", onUp);
+      }}
+    />
+  );
+}
+
 export function LayoutResizers(props: LayoutResizersProps) {
   return (
     <>

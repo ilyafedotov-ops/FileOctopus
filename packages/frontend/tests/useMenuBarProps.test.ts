@@ -16,6 +16,8 @@ function baseParams(overrides: Record<string, unknown> = {}) {
     statusBarVisible: true,
     toolbarVisible: true,
     onCustomizeToolbar: vi.fn(),
+    recentLocations: [],
+    starredLocations: [],
     ...overrides,
   };
 }

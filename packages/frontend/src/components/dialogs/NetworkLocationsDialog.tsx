@@ -105,7 +105,7 @@ export function NetworkLocationsDialog({
         <header className="fo-dialog-header">
           <div>
             <h2 id="network-locations-title">Network Locations</h2>
-            <p>Connect to saved remote servers and browse SFTP locations.</p>
+            <p>Connect to saved remote servers and browse network locations.</p>
           </div>
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>
             Close

@@ -329,6 +329,10 @@ export interface UserPreferencesDto {
   terminalArgs: string;
   rememberLastUsedPanes: boolean;
   diagnosticsExportPath: string;
+  customShortcuts: string;
+  fileTypeColorRules: string;
+  layoutProfiles: string;
+  columnPresets: string;
 }
 
 export interface AutostartStatusDto {

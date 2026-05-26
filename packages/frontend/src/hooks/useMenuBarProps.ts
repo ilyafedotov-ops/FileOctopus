@@ -2,6 +2,7 @@ import type { Dispatch } from "react";
 import type {
   RecentEntryDto,
   StandardLocationDto,
+  StarredEntryDto,
   UserPreferencesDto,
 } from "@fileoctopus/ts-api";
 import {
@@ -36,6 +37,7 @@ export interface UseMenuBarPropsParams {
   toolbarVisible: boolean;
   onCustomizeToolbar: () => void;
   recentLocations: RecentEntryDto[];
+  starredLocations: StarredEntryDto[];
 }
 
 export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
@@ -53,6 +55,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     statusBarVisible,
     toolbarVisible,
     recentLocations,
+    starredLocations,
     onCustomizeToolbar,
   } = params;
 
@@ -128,13 +131,20 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onToggleToolbar: () => runCommand("view.toggleToolbar"),
     onToggleStatusBar: () => runCommand("view.toggleStatusBar"),
     onToggleDualPane: () => runCommand("view.toggleDualPane"),
+    onTogglePaneDirection: () => runCommand("layout.togglePaneDirection"),
     onToggleHidden: () => runCommand("view.toggleHidden"),
     onRefresh: () => runCommand("nav.refresh"),
     onAddFavorite: () => runCommand("nav.addFavorite", panelId),
     onManageFavorites: () => runCommand("nav.manageFavorites"),
+    onNetworkLocations: () => runCommand("nav.networkLocations"),
+    onAddServer: () => runCommand("nav.addServer"),
     onShowRecentLocations: () => runCommand("nav.recentLocations"),
     onClearRecentLocations: () => runCommand("nav.clearRecentLocations"),
     recentLocations: recentLocations,
+    starredLocations: starredLocations.map((s) => ({
+      uri: s.uri,
+      label: s.label ?? s.uri.split("/").filter(Boolean).pop() ?? s.uri,
+    })),
     onOperationHistory: () => runCommand("app.operationHistory"),
     onFilter: () => runCommand("filter"),
     onSearchRecursive: () => runCommand("recursive-search"),
@@ -181,6 +191,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     toolbarVisible,
     statusBarVisible,
     dualPane: preferences?.paneMode !== "single",
+    paneDirection: preferences?.paneDirection ?? "horizontal",
     showHidden: tab.showHidden,
     onCustomizeToolbar,
   };

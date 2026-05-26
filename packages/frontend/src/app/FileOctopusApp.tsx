@@ -683,6 +683,7 @@ function FileOctopusAppInner({
     statusBarVisible,
     toolbarVisible,
     recentLocations: [...recentToday, ...recentWeek],
+    starredLocations: starred,
     onCustomizeToolbar: () => handleCommandSelect("app.customizeToolbar"),
   });
 
@@ -795,6 +796,7 @@ function FileOctopusAppInner({
         handleCommandSelect("op.openTerminal", pid);
       },
       terminalDisabled: false,
+      fileTypeColorRules: preferences?.fileTypeColorRules,
     };
   }
 

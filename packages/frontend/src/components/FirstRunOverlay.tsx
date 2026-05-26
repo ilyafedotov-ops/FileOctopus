@@ -71,7 +71,7 @@ export function FirstRunOverlay({
               onClick={() => run(onOpenNetwork)}
             >
               <strong>Network</strong>
-              <span>Saved SFTP and SSH profiles.</span>
+              <span>Saved network server profiles.</span>
             </button>
           </div>
         </div>

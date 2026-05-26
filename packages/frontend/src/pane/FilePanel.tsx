@@ -94,6 +94,7 @@ export interface FilePanelProps {
   onOpenTab: (panelId: PanelId) => void;
   onOpenTerminal?: () => void;
   terminalDisabled?: boolean;
+  fileTypeColorRules?: string;
 }
 
 export function FilePanel({
@@ -135,6 +136,7 @@ export function FilePanel({
   onOpenTab,
   onOpenTerminal,
   terminalDisabled,
+  fileTypeColorRules,
 }: FilePanelProps) {
   const { client } = useShell();
   const {
@@ -349,6 +351,7 @@ export function FilePanel({
               panelId={panelId}
               columnWidths={columnWidths}
               visibleColumns={visibleColumns}
+              fileTypeColorRules={fileTypeColorRules}
               onToggleColumn={handleToggleColumn}
               onColumnResize={handleColumnResize}
               onColumnReorder={handleColumnReorder}

@@ -75,7 +75,7 @@ describe("SettingsDialog", () => {
         onSetAutostart={async () => {}}
       />,
     );
-    fireEvent.click(navButton("Appearance"));
+    fireEvent.click(navButton("Colors"));
     fireEvent.click(screen.getByRole("radio", { name: "Accent violet" }));
     expect(onChange).toHaveBeenCalledWith("accentColor", "violet");
   });
@@ -92,7 +92,7 @@ describe("SettingsDialog", () => {
         onSetAutostart={async () => {}}
       />,
     );
-    fireEvent.click(navButton("Appearance"));
+    fireEvent.click(navButton("Display"));
     const fontGroup = screen.getByRole("radiogroup", { name: "Font size" });
     fireEvent.click(within(fontGroup).getByText("Large"));
     expect(onChange).toHaveBeenCalledWith("fontScale", "large");
@@ -110,7 +110,7 @@ describe("SettingsDialog", () => {
         onSetAutostart={async () => {}}
       />,
     );
-    fireEvent.click(navButton("Files & Folders"));
+    fireEvent.click(navButton("Operations"));
     fireEvent.click(screen.getByLabelText("Confirm before overwrite"));
     expect(onChange).toHaveBeenCalledWith("confirmOverwrite", "false");
   });
@@ -264,8 +264,8 @@ describe("SettingsDialog", () => {
     );
   });
 
-  describe("Shortcuts tab", () => {
-    it("shows Shortcuts nav button", () => {
+  describe("Keyboard tab", () => {
+    it("shows Keyboard nav button", () => {
       render(
         <SettingsDialog
           open
@@ -276,10 +276,10 @@ describe("SettingsDialog", () => {
           onSetAutostart={async () => {}}
         />,
       );
-      expect(navButton("Shortcuts")).toBeTruthy();
+      expect(navButton("Keyboard")).toBeTruthy();
     });
 
-    it("displays shortcut groups with headings when Shortcuts tab is active", () => {
+    it("displays shortcut groups with headings when Keyboard tab is active", () => {
       render(
         <SettingsDialog
           open
@@ -290,9 +290,9 @@ describe("SettingsDialog", () => {
           onSetAutostart={async () => {}}
         />,
       );
-      fireEvent.click(navButton("Shortcuts"));
+      fireEvent.click(navButton("Keyboard"));
       const content = screen.getByRole("region", {
-        name: "Shortcuts settings",
+        name: "Keyboard settings",
       });
       expect(within(content).getByText("Navigation")).toBeTruthy();
       expect(
@@ -312,8 +312,8 @@ describe("SettingsDialog", () => {
           onSetAutostart={async () => {}}
         />,
       );
-      fireEvent.click(navButton("Shortcuts"));
-      expect(screen.getByText("Switch active pane")).toBeTruthy();
+      fireEvent.click(navButton("Keyboard"));
+      expect(screen.getByText("Switch Pane")).toBeTruthy();
       expect(screen.getByText("Copy")).toBeTruthy();
       expect(screen.getByText("Show Hidden Files")).toBeTruthy();
       const kbds = screen.getAllByRole("presentation");

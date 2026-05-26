@@ -339,6 +339,28 @@ export const COMMAND_REGISTRY = [
     group: "app",
   },
   {
+    id: "preferences.cycleTheme",
+    label: "Cycle Theme",
+    group: "app",
+    shortcutMac: "⌘⇧T",
+    shortcutWin: "Ctrl+Shift+T",
+  },
+  {
+    id: "preferences.accentColor",
+    label: "Accent Color",
+    group: "app",
+  },
+  {
+    id: "preferences.fontScale",
+    label: "Font Size",
+    group: "app",
+  },
+  {
+    id: "preferences.iconScale",
+    label: "Icon Size",
+    group: "app",
+  },
+  {
     id: "preferences.density",
     label: "Density",
     group: "app",
@@ -361,6 +383,11 @@ export const COMMAND_REGISTRY = [
     group: "view",
     shortcutMac: "⌘U",
     shortcutWin: "Ctrl+U",
+  },
+  {
+    id: "layout.togglePaneDirection",
+    label: "Toggle Split Direction",
+    group: "view",
   },
   {
     id: "search.recursive",

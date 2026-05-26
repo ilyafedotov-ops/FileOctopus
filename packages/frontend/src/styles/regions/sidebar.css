@@ -20,6 +20,13 @@
   gap: 2px;
 }
 
+.fo-sidebar-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline-end: 8px;
+}
+
 .fo-sidebar-section-title {
   margin: 0;
   padding: 0 14px 4px;

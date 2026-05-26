@@ -4,6 +4,7 @@ import type {
   NetworkProfileDto,
   RecentEntryDto,
   StandardLocationDto,
+  StarredEntryDto,
 } from "@fileoctopus/ts-api";
 import { homeUri } from "../panelStore";
 import { localPathFromUri } from "../utils/paneUtils";
@@ -18,6 +19,7 @@ export type HotlistTargetKind =
   | "volume"
   | "network"
   | "favorite"
+  | "starred"
   | "recent";
 
 export interface HotlistTarget {
@@ -36,6 +38,7 @@ export interface HotlistTargetsInput {
   networkProfiles?: NetworkProfileDto[];
   networkStatuses?: NetworkConnectionStatusDto[];
   favorites: FavoriteEntryDto[];
+  starred?: StarredEntryDto[];
   recentToday: RecentEntryDto[];
   recentWeek: RecentEntryDto[];
   maxVisible?: number;
@@ -72,6 +75,7 @@ export function buildHotlistTargets({
   networkProfiles = [],
   networkStatuses = [],
   favorites,
+  starred = [],
   recentToday,
   recentWeek,
   maxVisible = 10,
@@ -141,6 +145,17 @@ export function buildHotlistTargets({
       uri: favorite.uri,
       glyph: "★",
       title: localPathFromUri(favorite.uri),
+    }),
+  );
+
+  starred.forEach((entry, index) =>
+    addTarget(targets, seen, {
+      id: `starred-${index}-${entry.uri}`,
+      kind: "starred",
+      label: entry.label || locationName(entry.uri),
+      uri: entry.uri,
+      glyph: "☆",
+      title: localPathFromUri(entry.uri),
     }),
   );
 

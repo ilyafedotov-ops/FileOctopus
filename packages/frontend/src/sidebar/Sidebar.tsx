@@ -299,14 +299,28 @@ export function Sidebar({
       })}
 
       {networkEnabled ? (
-        <SidebarSection title="Network">
+        <SidebarSection
+          title="Network"
+          action={
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onAddServer}
+              title="Add server"
+              aria-label="Add server"
+            >
+              {Icons.folderPlus()}
+            </Button>
+          }
+        >
           {networkProfiles.length === 0 ? (
             <SidebarEmptyHint>No saved servers</SidebarEmptyHint>
           ) : (
             networkProfiles.map((profile) => renderNetworkProfileItem(profile))
           )}
           <SidebarItem
-            icon={Icons.folderPlus()}
+            icon={Icons.server()}
             label="Add server…"
             active={false}
             onClick={onAddServer}
@@ -315,7 +329,7 @@ export function Sidebar({
       ) : null}
 
       {favorites.length > 0 ? (
-        <SidebarSection title="Pinned">
+        <SidebarSection title="Favorites">
           {favorites.map((item) =>
             renamingFavoriteId === item.id ? (
               <input
@@ -843,7 +857,7 @@ function SidebarNetworkContextMenu({
             role="menuitem"
             onClick={() => run(onAddFavorite)}
           >
-            Add to Pinned
+            Add to Favorites
           </Button>
         ) : null}
         <Button
@@ -863,14 +877,19 @@ function SidebarNetworkContextMenu({
 
 function SidebarSection({
   title,
+  action,
   children,
 }: {
   title: string;
+  action?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <section className="fo-sidebar-section">
-      <h2 className="fo-sidebar-section-title">{title}</h2>
+      <div className="fo-sidebar-section-header">
+        <h2 className="fo-sidebar-section-title">{title}</h2>
+        {action}
+      </div>
       {children}
     </section>
   );

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Icons, ToolbarButton } from "@fileoctopus/ui";
 import { ToolbarCustomizeDialog } from "../components/ToolbarCustomizeDialog";
 import { useToolbarConfig } from "../hooks/useToolbarConfig";
 import { OperationToolbar } from "../pane/OperationToolbar";
@@ -59,6 +60,7 @@ export function ShellToolbar() {
         networkProfiles: ctx.networkProfiles,
         networkStatuses: ctx.networkStatuses,
         favorites: ctx.favorites,
+        starred: ctx.starred,
         recentToday: ctx.recentToday,
         recentWeek: ctx.recentWeek,
       }),
@@ -69,6 +71,7 @@ export function ShellToolbar() {
       ctx.networkProfiles,
       ctx.networkStatuses,
       ctx.favorites,
+      ctx.starred,
       ctx.recentToday,
       ctx.recentWeek,
     ],
@@ -95,6 +98,20 @@ export function ShellToolbar() {
     commandId: string,
     context?: import("../commands/invokeContext").CommandInvokeArg,
   ) => ctx.handleCommandSelect(commandId, pid, context);
+
+  const currentTheme = ctx.preferences?.theme ?? "system";
+  const themeIcon =
+    currentTheme === "dark"
+      ? Icons.moon()
+      : currentTheme === "light"
+        ? Icons.sun()
+        : Icons.monitor();
+  const themeLabel =
+    currentTheme === "dark"
+      ? "Dark"
+      : currentTheme === "light"
+        ? "Light"
+        : "System";
 
   return (
     <>
@@ -169,6 +186,15 @@ export function ShellToolbar() {
             }
           }}
         />
+        <span className="fo-toolbar-separator" aria-hidden="true" />
+        <ToolbarButton
+          onClick={() => handleCommand("preferences.cycleTheme")}
+          title={`Theme: ${themeLabel} (Ctrl+Shift+T to cycle)`}
+          aria-label={`Theme: ${themeLabel}`}
+          className="fo-toolbar-nav-btn"
+        >
+          {themeIcon}
+        </ToolbarButton>
       </div>
       <ToolbarCustomizeDialog
         open={ctx.toolbarCustomizeOpen}
