@@ -20,6 +20,7 @@ import {
 } from "../panelStore";
 import { createRequestId, loadStateFromBatchError } from "../paneTypes";
 import { localPathFromUri } from "../utils/paneUtils";
+import { isArchiveFile } from "../utils/archiveUtils";
 import { operationErrorMessage } from "../dialogs/OperationDialogView";
 import type { SearchState } from "../pane/PaneFilterBar";
 
@@ -227,7 +228,34 @@ export function createNavigationController(
       return;
     }
 
+    if (isArchiveFile(entry.name)) {
+      void navigateArchive(panelId, entry);
+      return;
+    }
+
     void openExternal(entry);
+  }
+
+  async function navigateArchive(panelId: PanelId, entry: FileEntryDto) {
+    dispatch({ type: "navigate", panelId, uri: entry.uri });
+    try {
+      const response = await client.fs.listArchive({ uri: entry.uri });
+      dispatch({
+        type: "setArchiveEntries",
+        panelId,
+        uri: entry.uri,
+        entries: response.entries,
+      });
+    } catch (error) {
+      const normalized = normalizeIpcError(error);
+      dispatch({
+        type: "setPaneError",
+        panelId,
+        error: normalized.message,
+        errorCode: normalized.code,
+        loadState: "error",
+      });
+    }
   }
 
   return {

@@ -121,7 +121,7 @@ function classicFolderIcon(): ReactNode {
 }
 
 function classicFileIcon(
-  kind: "generic" | "document" | "image" | "audio",
+  kind: "generic" | "document" | "image" | "audio" | "archive",
 ): ReactNode {
   const detail =
     kind === "image" ? (
@@ -140,6 +140,13 @@ function classicFileIcon(
         <rect width="13" height="2" x="9" y="14" fill="#2563eb" />
         <rect width="13" height="2" x="9" y="18" fill="#2563eb" />
         <rect width="9" height="2" x="9" y="22" fill="#2563eb" />
+      </>
+    ) : kind === "archive" ? (
+      <>
+        <rect width="7" height="2" x="13" y="13" fill="#f59e0b" />
+        <rect width="7" height="2" x="13" y="17" fill="#f59e0b" />
+        <rect width="7" height="2" x="13" y="21" fill="#f59e0b" />
+        <rect width="2" height="4" x="15" y="6" fill="#f59e0b" />
       </>
     ) : (
       <rect width="11" height="2" x="9" y="19" fill="#94a3b8" />
@@ -210,6 +217,16 @@ export function fileEntryIcon(
 
   if (["pdf", "doc", "docx", "txt", "md"].includes(extension)) {
     return classicFileIcon("document");
+  }
+
+  if (
+    ["zip", "tar", "tgz", "gz", "bz2", "tbz2", "7z", "rar"].includes(
+      extension,
+    ) ||
+    entry.name.endsWith(".tar.gz") ||
+    entry.name.endsWith(".tar.bz2")
+  ) {
+    return classicFileIcon("archive");
   }
 
   return classicFileIcon("generic");

@@ -125,7 +125,13 @@ export type PanelAction =
   | { type: "swapPanes" }
   | { type: "openTab"; panelId: PanelId; uri: string }
   | { type: "closeTab"; panelId: PanelId; tabId: string }
-  | { type: "switchTab"; panelId: PanelId; tabId: string };
+  | { type: "switchTab"; panelId: PanelId; tabId: string }
+  | {
+      type: "setArchiveEntries";
+      panelId: PanelId;
+      uri: string;
+      entries: FileEntryDto[];
+    };
 
 export function createInitialState(
   leftUri = homeUri(),
