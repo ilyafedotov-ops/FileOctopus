@@ -2,7 +2,7 @@
 
 This document is the authoritative description of FileOctopus's runtime API surface: the Tauri IPC commands, the events streamed back from Rust, the `@fileoctopus/ts-api` client that wraps them, and the domain types that flow across the boundary. It is the contract every change to filesystem behaviour must respect (see ADR-0002 and ADR-0003).
 
-> **Doc freshness (2026-05-23):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (59 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (14 channels). `packages/ts-api/tests/catalogs.test.ts` now guards the command count, command map, error codes, warning codes, and event constants.
+> **Doc freshness (2026-05-26):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (64 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (14 channels). `packages/ts-api/tests/catalogs.test.ts` now guards the command count, command map, error codes, warning codes, and event constants.
 
 - Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/remote-core/src/lib.rs`, `crates/provider-sftp/src/lib.rs`, `crates/config/src/network.rs`, `crates/platform/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
 - Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError,uri}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
@@ -46,7 +46,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 
 ### Full registry (2026-05-23)
 
-**63 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
+**64 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
 
 | Tauri command                        | TS dotted name (typical)           | Client area              |
 | ------------------------------------ | ---------------------------------- | ------------------------ |
@@ -65,6 +65,9 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `fs_list_start`                      | `fs.list_start`                    | `FsClient`               |
 | `fs_standard_locations`              | `fs.standard_locations`            | `FsClient`               |
 | `fs_discover_volumes`                | `fs.discover_volumes`              | `FsClient`               |
+| `fs_eject_volume`                    | `fs.eject_volume`                  | `FsClient`               |
+| `fs_list_archive`                    | `fs.list_archive`                  | `FsClient`               |
+| `fs_list_directories`                | `fs.list_directories`              | `FsClient`               |
 | `fs_open_default`                    | `fs.open_default`                  | `FsClient`               |
 | `fs_reveal`                          | `fs.reveal`                        | `FsClient`               |
 | `fs_properties`                      | `fs.properties`                    | `FsClient`               |
@@ -103,6 +106,8 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `network_validate_uri`               | `network.validateUri`              | `NetworkClient`          |
 | `plan_file_operation`                | `fileOperation.plan`               | `FileOperationsClient`   |
 | `start_file_operation`               | `fileOperation.start`              | `FileOperationsClient`   |
+| `pause_job`                          | `job.pause`                        | `JobsClient`             |
+| `resume_job`                         | `job.resume`                       | `JobsClient`             |
 | `cancel_job`                         | `job.cancel`                       | `JobsClient`             |
 | `get_job_status`                     | `job.status`                       | `JobsClient`             |
 | `list_recent_operations`             | `operationHistory.listRecent`      | `OperationHistoryClient` |

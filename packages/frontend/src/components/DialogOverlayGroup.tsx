@@ -154,12 +154,12 @@ export interface DialogOverlayGroupProps {
   deleteProfile: (profileId: string) => Promise<void>;
   saveProfile: (payload: {
     id?: string;
-    scheme: "sftp" | "ssh";
+    scheme: "sftp" | "ssh" | "smb" | "s3";
     label: string;
     host: string;
     port: number;
     username: string;
-    authKind: "password" | "privateKey";
+    authKind: "password" | "privateKey" | "accessKey";
     privateKeyPath: string | null;
     defaultPath: string;
     password: string;

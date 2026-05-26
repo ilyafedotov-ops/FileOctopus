@@ -123,7 +123,10 @@ export function NetworkLocationsDialog({
                 const status = statusById.get(profile.id);
                 const connected = status?.status === "connected";
                 const busy = connectingId === profile.id;
-                const browseable = profile.scheme === "sftp";
+                const browseable =
+                  profile.scheme === "sftp" ||
+                  profile.scheme === "smb" ||
+                  profile.scheme === "s3";
                 return (
                   <li key={profile.id} className="fo-network-profile-item">
                     <div className="fo-network-profile-main">
@@ -174,7 +177,10 @@ export function NetworkLocationsDialog({
                       >
                         Open Terminal
                       </Button>
-                      {profile.scheme === "sftp" && connected ? (
+                      {(profile.scheme === "sftp" ||
+                        profile.scheme === "smb" ||
+                        profile.scheme === "s3") &&
+                      connected ? (
                         <Button
                           type="button"
                           size="sm"
@@ -184,7 +190,9 @@ export function NetworkLocationsDialog({
                         >
                           {busy ? "Disconnecting…" : "Disconnect"}
                         </Button>
-                      ) : profile.scheme === "sftp" ? (
+                      ) : profile.scheme === "sftp" ||
+                        profile.scheme === "smb" ||
+                        profile.scheme === "s3" ? (
                         <Button
                           type="button"
                           size="sm"

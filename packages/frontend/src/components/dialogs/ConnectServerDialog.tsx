@@ -4,24 +4,45 @@ import { useEffect, useRef, useState } from "react";
 import { useDialogEscape } from "../../hooks/useDialogEscape";
 import { useFocusTrap } from "../../hooks/useFocusTrap";
 
+type SchemeType = "sftp" | "ssh" | "smb" | "s3";
+type AuthKindType = "password" | "privateKey" | "accessKey";
+
 interface ConnectServerDialogProps {
   open: boolean;
   editingProfile: NetworkProfileDto | null;
   onClose: () => void;
   onSave: (payload: {
     id?: string;
-    scheme: "sftp" | "ssh";
+    scheme: SchemeType;
     label: string;
     host: string;
     port: number;
     username: string;
-    authKind: "password" | "privateKey";
+    authKind: AuthKindType;
     privateKeyPath: string | null;
     defaultPath: string;
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileDto>;
   onForgetFingerprint?: (profileId: string) => Promise<void>;
+}
+
+function defaultPort(scheme: SchemeType): number {
+  if (scheme === "sftp" || scheme === "ssh") return 22;
+  if (scheme === "smb") return 445;
+  if (scheme === "s3") return 443;
+  return 22;
+}
+
+function defaultAuthKinds(scheme: SchemeType): AuthKindType[] {
+  if (scheme === "sftp" || scheme === "ssh") return ["password", "privateKey"];
+  if (scheme === "smb") return ["password"];
+  if (scheme === "s3") return ["accessKey"];
+  return ["password"];
+}
+
+function defaultAuthKind(scheme: SchemeType): AuthKindType {
+  return defaultAuthKinds(scheme)[0];
 }
 
 export function ConnectServerDialog({
@@ -35,13 +56,11 @@ export function ConnectServerDialog({
   useDialogEscape(open, onClose);
   useFocusTrap(dialogRef, open);
   const [label, setLabel] = useState("");
-  const [scheme, setScheme] = useState<"sftp" | "ssh">("sftp");
+  const [scheme, setScheme] = useState<SchemeType>("sftp");
   const [host, setHost] = useState("");
   const [port, setPort] = useState("22");
   const [username, setUsername] = useState("");
-  const [authKind, setAuthKind] = useState<"password" | "privateKey">(
-    "password",
-  );
+  const [authKind, setAuthKind] = useState<AuthKindType>("password");
   const [privateKeyPath, setPrivateKeyPath] = useState("");
   const [defaultPath, setDefaultPath] = useState("/");
   const [password, setPassword] = useState("");
@@ -53,13 +72,23 @@ export function ConnectServerDialog({
     if (!open) {
       return;
     }
+    const profileScheme = (
+      ["sftp", "ssh", "smb", "s3"].indexOf(editingProfile?.scheme ?? "sftp") !==
+      -1
+        ? editingProfile?.scheme
+        : "sftp"
+    ) as SchemeType;
     setLabel(editingProfile?.label ?? "");
-    setScheme(editingProfile?.scheme === "ssh" ? "ssh" : "sftp");
+    setScheme(profileScheme);
     setHost(editingProfile?.host ?? "");
-    setPort(String(editingProfile?.port ?? 22));
+    setPort(String(editingProfile?.port ?? defaultPort(profileScheme)));
     setUsername(editingProfile?.username ?? "");
+    const profileAuth = editingProfile?.authKind;
+    const validAuthKinds = defaultAuthKinds(profileScheme);
     setAuthKind(
-      editingProfile?.authKind === "privateKey" ? "privateKey" : "password",
+      profileAuth && validAuthKinds.indexOf(profileAuth as AuthKindType) !== -1
+        ? (profileAuth as AuthKindType)
+        : defaultAuthKind(profileScheme),
     );
     setPrivateKeyPath(editingProfile?.privateKeyPath ?? "");
     setDefaultPath(editingProfile?.defaultPath ?? "/");
@@ -68,9 +97,42 @@ export function ConnectServerDialog({
     setError(null);
   }, [editingProfile, open]);
 
+  function handleSchemeChange(newScheme: SchemeType) {
+    setScheme(newScheme);
+    setPort(String(defaultPort(newScheme)));
+    setAuthKind(defaultAuthKind(newScheme));
+    if (newScheme === "s3") {
+      setDefaultPath("/");
+    } else if (newScheme === "smb") {
+      setDefaultPath("/");
+    }
+  }
+
   if (!open) {
     return null;
   }
+
+  const showPasswordField = authKind === "password" || authKind === "accessKey";
+  const showPrivateKeyField = authKind === "privateKey";
+  const showDefaultPath = scheme === "sftp" || scheme === "smb";
+  const showBucketField = scheme === "s3";
+  const authKinds = defaultAuthKinds(scheme);
+
+  const hostLabel = scheme === "s3" ? "Endpoint URL" : "Host";
+  const hostPlaceholder =
+    scheme === "s3" ? "s3.amazonaws.com or minio.local:9000" : "example.com";
+  const usernameLabel = scheme === "s3" ? "Access Key ID" : "Username";
+  const usernamePlaceholder =
+    scheme === "s3" ? "AKIAIOSFODNN7EXAMPLE" : "deploy";
+  const passwordLabel =
+    authKind === "accessKey" ? "Secret Access Key" : "Password";
+  const defaultPathLabel = scheme === "s3" ? "Bucket" : "Default path";
+  const defaultPathPlaceholder =
+    scheme === "s3"
+      ? "my-bucket"
+      : scheme === "smb"
+        ? "/share"
+        : "/home/deploy";
 
   async function handleSubmit() {
     const trimmedLabel = label.trim();
@@ -78,8 +140,13 @@ export function ConnectServerDialog({
     const trimmedUsername = username.trim();
     const parsedPort = Number(port);
 
-    if (!trimmedLabel || !trimmedHost || !trimmedUsername) {
-      setError("Label, host, and username are required.");
+    if (!trimmedLabel || !trimmedHost) {
+      setError("Label and host are required.");
+      return;
+    }
+
+    if (scheme !== "s3" && !trimmedUsername) {
+      setError("Username is required.");
       return;
     }
 
@@ -93,19 +160,19 @@ export function ConnectServerDialog({
       return;
     }
 
-    if (authKind === "password" && !editingProfile && !password) {
-      setError("Password is required for a new server.");
+    if (showPasswordField && !editingProfile && !password) {
+      setError(`${passwordLabel} is required for a new server.`);
       return;
     }
 
     if (
-      authKind === "password" &&
+      showPasswordField &&
       editingProfile &&
       !editingProfile.hasStoredSecret &&
       !password
     ) {
       setError(
-        "Password is not saved in the keychain yet. Enter it now to store credentials.",
+        `${passwordLabel} is not saved in the keychain yet. Enter it now to store credentials.`,
       );
       return;
     }
@@ -123,7 +190,7 @@ export function ConnectServerDialog({
         authKind,
         privateKeyPath:
           authKind === "privateKey" ? privateKeyPath.trim() : null,
-        defaultPath: scheme === "sftp" ? defaultPath.trim() || "/" : "",
+        defaultPath: defaultPath.trim() || "/",
         password,
         passphrase,
       });
@@ -169,7 +236,13 @@ export function ConnectServerDialog({
             <input
               value={label}
               onChange={(event) => setLabel(event.target.value)}
-              placeholder="Production SFTP"
+              placeholder={
+                scheme === "s3"
+                  ? "Production S3"
+                  : scheme === "smb"
+                    ? "File Server"
+                    : "Production SFTP"
+              }
             />
           </label>
           <label className="fo-dialog-field">
@@ -178,19 +251,21 @@ export function ConnectServerDialog({
               value={scheme}
               disabled={editingProfile !== null}
               onChange={(event) =>
-                setScheme(event.target.value === "ssh" ? "ssh" : "sftp")
+                handleSchemeChange(event.target.value as SchemeType)
               }
             >
               <option value="sftp">SFTP files + SSH terminal</option>
               <option value="ssh">SSH terminal only</option>
+              <option value="smb">SMB / CIFS share</option>
+              <option value="s3">S3 object storage</option>
             </select>
           </label>
           <label className="fo-dialog-field">
-            <span>Host</span>
+            <span>{hostLabel}</span>
             <input
               value={host}
               onChange={(event) => setHost(event.target.value)}
-              placeholder="example.com"
+              placeholder={hostPlaceholder}
             />
           </label>
           <label className="fo-dialog-field">
@@ -202,32 +277,30 @@ export function ConnectServerDialog({
             />
           </label>
           <label className="fo-dialog-field">
-            <span>Username</span>
+            <span>{usernameLabel}</span>
             <input
               value={username}
               onChange={(event) => setUsername(event.target.value)}
-              placeholder="deploy"
+              placeholder={usernamePlaceholder}
             />
           </label>
-          <label className="fo-dialog-field">
-            <span>Authentication</span>
-            <select
-              value={authKind}
-              onChange={(event) =>
-                setAuthKind(
-                  event.target.value === "privateKey"
-                    ? "privateKey"
-                    : "password",
-                )
-              }
-            >
-              <option value="password">Password</option>
-              <option value="privateKey">Private key</option>
-            </select>
-          </label>
-          {authKind === "password" ? (
+          {authKinds.length > 1 ? (
             <label className="fo-dialog-field">
-              <span>Password</span>
+              <span>Authentication</span>
+              <select
+                value={authKind}
+                onChange={(event) =>
+                  setAuthKind(event.target.value as AuthKindType)
+                }
+              >
+                <option value="password">Password</option>
+                <option value="privateKey">Private key</option>
+              </select>
+            </label>
+          ) : null}
+          {showPasswordField ? (
+            <label className="fo-dialog-field">
+              <span>{passwordLabel}</span>
               <input
                 type="password"
                 value={password}
@@ -236,18 +309,19 @@ export function ConnectServerDialog({
                   editingProfile
                     ? editingProfile.hasStoredSecret
                       ? "Leave blank to keep existing"
-                      : "Enter password to save in keychain"
+                      : `Enter ${passwordLabel.toLowerCase()} to save in keychain`
                     : ""
                 }
               />
               {editingProfile && !editingProfile.hasStoredSecret ? (
                 <span className="fo-settings-hint">
-                  Credentials were not saved yet. Enter your password to
-                  connect.
+                  Credentials were not saved yet. Enter your{" "}
+                  {passwordLabel.toLowerCase()} to connect.
                 </span>
               ) : null}
             </label>
-          ) : (
+          ) : null}
+          {showPrivateKeyField ? (
             <>
               <label className="fo-dialog-field">
                 <span>Private key path</span>
@@ -269,14 +343,24 @@ export function ConnectServerDialog({
                 />
               </label>
             </>
-          )}
-          {scheme === "sftp" ? (
+          ) : null}
+          {showDefaultPath ? (
             <label className="fo-dialog-field">
-              <span>Default path</span>
+              <span>{defaultPathLabel}</span>
               <input
                 value={defaultPath}
                 onChange={(event) => setDefaultPath(event.target.value)}
-                placeholder="/home/deploy"
+                placeholder={defaultPathPlaceholder}
+              />
+            </label>
+          ) : null}
+          {showBucketField ? (
+            <label className="fo-dialog-field">
+              <span>{defaultPathLabel}</span>
+              <input
+                value={defaultPath}
+                onChange={(event) => setDefaultPath(event.target.value)}
+                placeholder={defaultPathPlaceholder}
               />
             </label>
           ) : null}

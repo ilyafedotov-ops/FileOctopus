@@ -29,7 +29,10 @@ export function DestinationChooser({
   onSelect,
 }: DestinationChooserProps) {
   const browseableNetworkProfiles = networkProfiles.filter(
-    (profile) => profile.scheme === "sftp",
+    (profile) =>
+      profile.scheme === "sftp" ||
+      profile.scheme === "smb" ||
+      profile.scheme === "s3",
   );
   const hasLocations = locations.length > 0;
   const hasFavorites = favorites.length > 0;

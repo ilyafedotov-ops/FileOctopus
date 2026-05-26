@@ -183,7 +183,10 @@ export function Sidebar({
       status,
     };
 
-    const browseable = profile.scheme === "sftp";
+    const browseable =
+      profile.scheme === "sftp" ||
+      profile.scheme === "smb" ||
+      profile.scheme === "s3";
     return (
       <SidebarItem
         key={`network-${profile.id}`}
@@ -791,7 +794,10 @@ function SidebarNetworkContextMenu({
         >
           Open Terminal
         </Button>
-        {profile.scheme === "sftp" && connected ? (
+        {(profile.scheme === "sftp" ||
+          profile.scheme === "smb" ||
+          profile.scheme === "s3") &&
+        connected ? (
           <Button
             type="button"
             variant="ghost"
@@ -802,7 +808,9 @@ function SidebarNetworkContextMenu({
           >
             Disconnect
           </Button>
-        ) : profile.scheme === "sftp" ? (
+        ) : profile.scheme === "sftp" ||
+          profile.scheme === "smb" ||
+          profile.scheme === "s3" ? (
           <Button
             type="button"
             variant="ghost"
@@ -824,7 +832,9 @@ function SidebarNetworkContextMenu({
         >
           Edit
         </Button>
-        {profile.scheme === "sftp" ? (
+        {profile.scheme === "sftp" ||
+        profile.scheme === "smb" ||
+        profile.scheme === "s3" ? (
           <Button
             type="button"
             variant="ghost"
