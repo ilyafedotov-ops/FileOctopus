@@ -306,7 +306,7 @@ pub fn join_remote_path(base: &str, name: &str) -> String {
     }
 }
 
-fn map_smb_error(uri: &ResourceUri, message: &str) -> VfsError {
+pub fn map_smb_error(uri: &ResourceUri, message: &str) -> VfsError {
     let msg = message.to_lowercase();
     if msg.contains("not found")
         || msg.contains("no such file")

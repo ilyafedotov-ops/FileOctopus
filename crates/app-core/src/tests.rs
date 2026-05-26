@@ -148,6 +148,62 @@ fn boot_registers_local_provider() {
 }
 
 #[test]
+fn boot_registers_smb_provider_when_network_is_enabled() {
+    let _env_guard = crate::ENV_LOCK.lock().unwrap();
+    let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();
+    std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", "1");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = AppPaths {
+        config_dir: dir.path().join("config"),
+        data_dir: dir.path().join("data"),
+        log_dir: dir.path().join("logs"),
+        history_db: dir.path().join("history.sqlite"),
+        preferences_db: dir.path().join("preferences.sqlite"),
+        navigation_db: dir.path().join("navigation.sqlite"),
+        network_db: dir.path().join("network.sqlite"),
+    };
+    let state = AppCore::boot_with_paths(paths).unwrap();
+    let uri = ResourceUri::parse("smb://550e8400-e29b-41d4-a716-446655440000/share").unwrap();
+    let provider = state.vfs().provider_for(&uri).unwrap();
+
+    if let Some(value) = previous {
+        std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", value);
+    } else {
+        std::env::remove_var("FILEOCTOPUS_ENABLE_NETWORK");
+    }
+
+    assert_eq!(provider.id().as_str(), "smb");
+}
+
+#[test]
+fn boot_registers_s3_provider_when_network_is_enabled() {
+    let _env_guard = crate::ENV_LOCK.lock().unwrap();
+    let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();
+    std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", "1");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = AppPaths {
+        config_dir: dir.path().join("config"),
+        data_dir: dir.path().join("data"),
+        log_dir: dir.path().join("logs"),
+        history_db: dir.path().join("history.sqlite"),
+        preferences_db: dir.path().join("preferences.sqlite"),
+        navigation_db: dir.path().join("navigation.sqlite"),
+        network_db: dir.path().join("network.sqlite"),
+    };
+    let state = AppCore::boot_with_paths(paths).unwrap();
+    let uri = ResourceUri::parse("s3://550e8400-e29b-41d4-a716-446655440000/bucket").unwrap();
+    let provider = state.vfs().provider_for(&uri).unwrap();
+
+    if let Some(value) = previous {
+        std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", value);
+    } else {
+        std::env::remove_var("FILEOCTOPUS_ENABLE_NETWORK");
+    }
+
+    assert_eq!(provider.id().as_str(), "s3");
+}
+
+#[test]
 fn boot_does_not_register_sftp_provider_when_network_is_disabled() {
     let _env_guard = crate::ENV_LOCK.lock().unwrap();
     let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();
@@ -166,6 +222,68 @@ fn boot_does_not_register_sftp_provider_when_network_is_disabled() {
     let uri = ResourceUri::parse("sftp://550e8400-e29b-41d4-a716-446655440000/").unwrap();
     let error = match state.vfs().provider_for(&uri) {
         Ok(_) => panic!("expected sftp provider to be unavailable when network is disabled"),
+        Err(error) => error,
+    };
+
+    if let Some(value) = previous {
+        std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", value);
+    } else {
+        std::env::remove_var("FILEOCTOPUS_ENABLE_NETWORK");
+    }
+
+    assert_eq!(error.code(), "unsupported_provider");
+}
+
+#[test]
+fn boot_does_not_register_smb_provider_when_network_is_disabled() {
+    let _env_guard = crate::ENV_LOCK.lock().unwrap();
+    let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();
+    std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", "0");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = AppPaths {
+        config_dir: dir.path().join("config"),
+        data_dir: dir.path().join("data"),
+        log_dir: dir.path().join("logs"),
+        history_db: dir.path().join("history.sqlite"),
+        preferences_db: dir.path().join("preferences.sqlite"),
+        navigation_db: dir.path().join("navigation.sqlite"),
+        network_db: dir.path().join("network.sqlite"),
+    };
+    let state = AppCore::boot_with_paths(paths).unwrap();
+    let uri = ResourceUri::parse("smb://550e8400-e29b-41d4-a716-446655440000/share").unwrap();
+    let error = match state.vfs().provider_for(&uri) {
+        Ok(_) => panic!("expected smb provider to be unavailable when network is disabled"),
+        Err(error) => error,
+    };
+
+    if let Some(value) = previous {
+        std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", value);
+    } else {
+        std::env::remove_var("FILEOCTOPUS_ENABLE_NETWORK");
+    }
+
+    assert_eq!(error.code(), "unsupported_provider");
+}
+
+#[test]
+fn boot_does_not_register_s3_provider_when_network_is_disabled() {
+    let _env_guard = crate::ENV_LOCK.lock().unwrap();
+    let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();
+    std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", "0");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = AppPaths {
+        config_dir: dir.path().join("config"),
+        data_dir: dir.path().join("data"),
+        log_dir: dir.path().join("logs"),
+        history_db: dir.path().join("history.sqlite"),
+        preferences_db: dir.path().join("preferences.sqlite"),
+        navigation_db: dir.path().join("navigation.sqlite"),
+        network_db: dir.path().join("network.sqlite"),
+    };
+    let state = AppCore::boot_with_paths(paths).unwrap();
+    let uri = ResourceUri::parse("s3://550e8400-e29b-41d4-a716-446655440000/bucket").unwrap();
+    let error = match state.vfs().provider_for(&uri) {
+        Ok(_) => panic!("expected s3 provider to be unavailable when network is disabled"),
         Err(error) => error,
     };
 

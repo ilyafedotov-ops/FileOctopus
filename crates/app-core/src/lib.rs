@@ -5,7 +5,9 @@ use config::{NavigationRepository, NetworkProfileRepository, PreferencesReposito
 use fs_core::{vfs_io::VfsFilesystem, LocalFsProvider};
 use git_intel::GitService;
 use platform::SecretStore;
+use provider_s3::{S3Connector, S3Provider};
 use provider_sftp::{SftpConnector, SftpProvider};
+use provider_smb::{SmbConnector, SmbProvider};
 use remote_core::{ConnectionSessionManager, RemoteConnectorRegistry};
 use terminal_core::TerminalService;
 use thiserror::Error;
@@ -152,6 +154,8 @@ impl AppCore {
         let mut connector_registry = RemoteConnectorRegistry::new();
         if network_enabled {
             connector_registry.register(Arc::new(SftpConnector::new()));
+            connector_registry.register(Arc::new(SmbConnector::new()));
+            connector_registry.register(Arc::new(S3Connector::new()));
         }
         let connector_registry = Arc::new(tokio::sync::RwLock::new(connector_registry));
         let sessions = Arc::new(ConnectionSessionManager::new(
@@ -165,6 +169,10 @@ impl AppCore {
             .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
         if network_enabled {
             vfs.register(Arc::new(SftpProvider::new(sessions.clone())))
+                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
+            vfs.register(Arc::new(SmbProvider::new(sessions.clone())))
+                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
+            vfs.register(Arc::new(S3Provider::new(sessions.clone())))
                 .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
         }
 

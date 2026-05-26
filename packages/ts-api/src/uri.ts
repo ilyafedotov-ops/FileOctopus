@@ -1,4 +1,4 @@
-export const REMOTE_URI_SCHEMES = ["sftp", "smb", "webdav"] as const;
+export const REMOTE_URI_SCHEMES = ["sftp", "smb", "s3", "webdav"] as const;
 
 export type RemoteUriScheme = (typeof REMOTE_URI_SCHEMES)[number];
 
