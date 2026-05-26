@@ -701,6 +701,14 @@ export interface ListDirectoriesResponse {
   directories: DirectoryEntryDto[];
 }
 
+export interface ListArchiveRequest {
+  uri: string;
+}
+
+export interface ListArchiveResponse {
+  entries: FileEntryDto[];
+}
+
 export type FileOperationKind =
   | "copy"
   | "move"

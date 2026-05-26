@@ -14,6 +14,8 @@ import type {
   IpcTransport,
   ListDirectoriesRequest,
   ListDirectoriesResponse,
+  ListArchiveRequest,
+  ListArchiveResponse,
   ListStartRequest,
   ListStartResponse,
   OkResponse,
@@ -155,6 +157,17 @@ export class FsClient {
     try {
       return await this.transport.invoke<ListDirectoriesResponse>(
         "fs.list_directories",
+        { request },
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async listArchive(request: ListArchiveRequest): Promise<ListArchiveResponse> {
+    try {
+      return await this.transport.invoke<ListArchiveResponse>(
+        "fs.list_archive",
         { request },
       );
     } catch (error) {
