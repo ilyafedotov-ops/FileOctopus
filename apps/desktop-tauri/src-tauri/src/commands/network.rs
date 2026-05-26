@@ -1,7 +1,9 @@
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+#[cfg(any(target_os = "macos", test))]
 use std::process::{Command, Stdio};
 use std::sync::Arc;
+#[cfg(any(target_os = "macos", test))]
 use std::time::{Duration, Instant};
 
 use app_core::{is_network_enabled, AppState};
@@ -237,6 +239,7 @@ fn cloud_entries() -> Vec<FileEntryDto> {
         .collect()
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn parse_dns_sd_browse(output: &str, protocol: &str) -> Vec<String> {
     let mut names = Vec::new();
     let mut seen = HashSet::new();
@@ -257,6 +260,7 @@ fn parse_dns_sd_browse(output: &str, protocol: &str) -> Vec<String> {
     names
 }
 
+#[cfg(any(target_os = "macos", test))]
 fn command_output_with_timeout(mut command: Command, timeout: Duration) -> Option<String> {
     let mut child = command
         .stdout(Stdio::piped())
