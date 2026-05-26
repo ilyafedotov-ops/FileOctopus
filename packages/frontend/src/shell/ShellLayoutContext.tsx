@@ -214,6 +214,7 @@ export interface ShellLayoutContextValue {
   navigateOtherPane: (uri: string) => void;
   refreshNavigation: () => Promise<void>;
   setOperationError: (error: string | null) => void;
+  runRecursiveSearch: (panelId: PanelId) => Promise<void>;
   applySplitRatioFn: (ratio: number) => number;
 }
 

@@ -936,6 +936,7 @@ function FileOctopusAppInner({
       }}
       refreshNavigation={refreshNavigation}
       setOperationError={setOperationError}
+      runRecursiveSearch={runRecursiveSearch}
       applySplitRatioFn={applySplitRatio}
     />
   );

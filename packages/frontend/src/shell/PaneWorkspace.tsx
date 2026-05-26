@@ -4,12 +4,23 @@ import { FilePanel } from "../pane/FilePanel";
 import { ActivityRailPanel } from "../jobs/ActivityRailPanel";
 import { SidebarResizer, SplitResizer } from "./LayoutResizers";
 import { useShellLayout } from "./ShellLayoutContext";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+import {
+  type SmartFolder,
+  loadSmartFolders,
+  addSmartFolder as addSmartFolderToStorage,
+  removeSmartFolder as removeSmartFolderFromStorage,
+  renameSmartFolder as renameSmartFolderInStorage,
+} from "../savedSearches";
+import { activeTab } from "../panelStore";
 
 export function PaneWorkspace() {
   const ctx = useShellLayout();
   const paneMode = ctx.preferences?.paneMode === "single" ? "single" : "dual";
   const [volumes, setVolumes] = useState<VolumeDto[]>([]);
+  const [smartFolders, setSmartFolders] = useState<SmartFolder[]>(() =>
+    loadSmartFolders(),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -23,6 +34,42 @@ export function PaneWorkspace() {
       cancelled = true;
     };
   }, [ctx.client.fs]);
+
+  const handleOpenSmartFolder = useCallback(
+    (folder: SmartFolder) => {
+      const panelId = ctx.state.activePanelId;
+      ctx.navigatePanel(panelId, folder.baseUri);
+      ctx.dispatch({ type: "setRecursiveQuery", panelId, query: folder.query });
+      setTimeout(() => {
+        void ctx.runRecursiveSearch(panelId);
+      }, 100);
+    },
+    [ctx],
+  );
+
+  const handleRemoveSmartFolder = useCallback((id: string) => {
+    removeSmartFolderFromStorage(id);
+    setSmartFolders(loadSmartFolders());
+  }, []);
+
+  const handleRenameSmartFolder = useCallback((id: string, name: string) => {
+    renameSmartFolderInStorage(id, name);
+    setSmartFolders(loadSmartFolders());
+  }, []);
+
+  const handleSaveSearch = useCallback(() => {
+    const panelId = ctx.state.activePanelId;
+    const tab = activeTab(ctx.state.panels[panelId]);
+    const query = tab.recursiveQuery?.trim();
+    if (!query) return;
+    const uri = tab.uri;
+    addSmartFolderToStorage({
+      name: `Search: ${query}`,
+      baseUri: uri,
+      query,
+    });
+    setSmartFolders(loadSmartFolders());
+  }, [ctx.state]);
 
   return (
     <section
@@ -112,6 +159,11 @@ export function PaneWorkspace() {
                 })
                 .catch(() => {});
             }}
+            smartFolders={smartFolders}
+            onOpenSmartFolder={handleOpenSmartFolder}
+            onRemoveSmartFolder={handleRemoveSmartFolder}
+            onRenameSmartFolder={handleRenameSmartFolder}
+            onSaveSearch={handleSaveSearch}
           />
           <SidebarResizer
             onSidebarResize={(width) => {
