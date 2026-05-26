@@ -72,7 +72,7 @@ fn list_zip(path: &std::path::Path) -> Result<Vec<FileEntryDto>, IpcError> {
         let name = entry_name
             .trim_end_matches('/')
             .split('/')
-            .last()
+            .next_back()
             .unwrap_or("")
             .to_string();
 
@@ -148,7 +148,7 @@ fn list_tar_entries<R: std::io::Read>(
         let name = entry_name
             .trim_end_matches('/')
             .split('/')
-            .last()
+            .next_back()
             .unwrap_or("")
             .to_string();
 
@@ -221,7 +221,7 @@ fn extension_for_name(name: &str, is_dir: bool) -> Option<String> {
         return None;
     }
     let file_name = name.trim_end_matches('/');
-    let file_name = file_name.split('/').last().unwrap_or(file_name);
+    let file_name = file_name.split('/').next_back().unwrap_or(file_name);
     std::path::Path::new(file_name)
         .extension()
         .map(|e| e.to_string_lossy().to_string())
@@ -234,17 +234,13 @@ fn make_test_zip(dir: &std::path::Path) -> PathBuf {
     let options =
         zip::write::FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
-    zip_writer.start_file("hello.txt", options.clone()).unwrap();
+    zip_writer.start_file("hello.txt", options).unwrap();
     zip_writer.write_all(b"hello world").unwrap();
 
-    zip_writer
-        .start_file("subdir/nested.txt", options.clone())
-        .unwrap();
+    zip_writer.start_file("subdir/nested.txt", options).unwrap();
     zip_writer.write_all(b"nested content").unwrap();
 
-    zip_writer
-        .add_directory("empty_dir/", options.clone())
-        .unwrap();
+    zip_writer.add_directory("empty_dir/", options).unwrap();
 
     zip_writer.finish().unwrap();
     zip_path
