@@ -1533,6 +1533,26 @@ impl IpcError {
     pub fn git_command_failed(message: impl Into<String>) -> Self {
         Self::new(error_codes::GIT_COMMAND_FAILED, message)
     }
+
+    pub fn not_found(message: impl Into<String>) -> Self {
+        Self::new(error_codes::NOT_FOUND, message)
+    }
+
+    pub fn invalid_request(message: impl Into<String>) -> Self {
+        Self::new(error_codes::INVALID_REQUEST, message)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListArchiveRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListArchiveResponse {
+    pub entries: Vec<FileEntryDto>,
 }
 
 #[cfg(test)]
