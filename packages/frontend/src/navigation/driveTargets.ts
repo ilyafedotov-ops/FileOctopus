@@ -33,7 +33,12 @@ export function buildDriveTargets(
     );
 
   const network = networkProfiles
-    .filter((profile) => profile.scheme === "sftp")
+    .filter(
+      (profile) =>
+        profile.scheme === "sftp" ||
+        profile.scheme === "smb" ||
+        profile.scheme === "s3",
+    )
     .map((profile): DriveTarget => {
       const status = networkStatuses.find(
         (item) => item.profileId === profile.id,

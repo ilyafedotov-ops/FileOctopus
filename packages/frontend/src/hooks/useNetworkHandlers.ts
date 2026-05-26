@@ -98,12 +98,12 @@ export function useNetworkHandlers({
   const saveProfile = useCallback(
     async (payload: {
       id?: string;
-      scheme: "sftp" | "ssh";
+      scheme: "sftp" | "ssh" | "smb" | "s3";
       label: string;
       host: string;
       port: number;
       username: string;
-      authKind: "password" | "privateKey";
+      authKind: "password" | "privateKey" | "accessKey";
       privateKeyPath: string | null;
       defaultPath: string;
       password: string;
@@ -148,12 +148,23 @@ export function useNetworkHandlers({
             value: payload.passphrase,
           });
         }
+        if (payload.authKind === "accessKey" && payload.password) {
+          await client.network.setSecret({
+            id: profile.id,
+            secretKind: "password",
+            value: payload.password,
+          });
+        }
 
         const shouldConnect =
-          payload.scheme === "sftp" &&
+          (payload.scheme === "sftp" ||
+            payload.scheme === "smb" ||
+            payload.scheme === "s3") &&
           (!payload.id ||
             (payload.authKind === "password" && Boolean(payload.password)) ||
-            (payload.authKind === "privateKey" && Boolean(payload.passphrase)));
+            (payload.authKind === "privateKey" &&
+              Boolean(payload.passphrase)) ||
+            (payload.authKind === "accessKey" && Boolean(payload.password)));
 
         await refreshNetworkProfiles();
 

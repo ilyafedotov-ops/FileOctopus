@@ -70,7 +70,12 @@ export function VolumePickerDialog({
   const networkVolumes = useMemo(
     () =>
       networkProfiles
-        .filter((profile) => profile.scheme === "sftp")
+        .filter(
+          (profile) =>
+            profile.scheme === "sftp" ||
+            profile.scheme === "smb" ||
+            profile.scheme === "s3",
+        )
         .map(networkProfileToVolume),
     [networkProfiles],
   );
