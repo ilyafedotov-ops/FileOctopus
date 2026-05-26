@@ -1,9 +1,9 @@
 # FileOctopus — Cron Task Queue
 
 > Execution-facing queue for autonomous agents.
-> Last verified against repo state: 2026-05-26 21:35 UTC
+> Last verified against repo state: 2026-05-27 01:15 UTC
 >
-> **Note:** If Active RC Queue has fewer than 3 `pending` tasks, the agent MUST read `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` §13 + `UI_FEATURE_INVENTORY.md` §13 and backfill immediately. Never stop with "queue empty" while deferred items exist.
+> **Note:** If Active RC Queue has fewer than 3 `pending` tasks, the agent MUST read `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` §"Specified but not implemented" + `UI_FEATURE_INVENTORY.md` §13 and backfill immediately. Never stop with "queue empty" while deferred items exist.
 
 ---
 
@@ -11,7 +11,7 @@
 
 - Only pick work from **Active RC Queue**.
 - If one or more rows are `pending`, automatically select the highest-priority unblocked row; do not ask for confirmation.
-- If Active RC Queue has no `pending` items, read `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` §13 + `UI_FEATURE_INVENTORY.md` §13, backfill the queue with 3+ P1–P3 tasks, THEN select work. Only run audit-only if ALL spec docs confirm zero gaps.
+- If Active RC Queue has no `pending` items, read `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` §"Specified but not implemented" + `UI_FEATURE_INVENTORY.md` §13, backfill the queue with 3+ P1–P3 tasks, THEN select work. Only run audit-only if ALL spec docs confirm zero gaps.
 - Do not select or promote **Deferred / Post-RC** items unless a human explicitly reprioritizes them by moving them into Active RC Queue with `Status: pending`.
 - If a queue row conflicts with the codebase or higher-trust docs, update this file first and refresh `last_verified`.
 - Keep at most one `in_progress` row at a time.
@@ -22,61 +22,74 @@
 
 ## Active RC Queue
 
-| ID           | Pri   | Status   | Owner | Run ID   | Started UTC | Lock Expires UTC | Acceptance refs              | Task                                                                                                                                                                                               | Blockers                                                                                                                                                                    | Last verified |
-| ------------ | ----- | -------- | ----- | -------- | ----------- | ---------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- | ---------- |
-| RC-4         | P1    | done     | -     | -        | -           | -                | M5; mvp-rc-checklist         | MVP RC: automated rc:validate + diagnostics E2E evidence refreshed; manual QA matrices remain human-only                                                                                           | None                                                                                                                                                                        | 2026-05-23    |
-| RC-PREFS     | P2    | done     | -     | -        | -           | -                | UI Design Spec §Preferences  | Operations / Shortcuts tabs implemented; Advanced tab deferred to post-RC                                                                                                                          | None                                                                                                                                                                        | 2026-05-23    |
-| RC-MENU-FULL | P2    | done     | codex | 207eb90  | 2026-05-23  | 2026-05-23       | Menu & Modal Spec §4         | Application menu bar full wiring: native OS menu (Tauri menu.rs), sort submenu parity                                                                                                              | None                                                                                                                                                                        | 2026-05-23    |
-| RC-PAUSE     | P2    | done     | cron  | 7f8f8a5  | 2026-05-26  | 2026-05-26       | UI §6; RC spec §3.2          | Pause on jobs: backend job.pause IPC + UI pause/resume button in activity panel (PauseToken already in jobs/app-core; needs IPC handlers + UI wiring)                                              | None                                                                                                                                                                        | 2026-05-26    |
-| RC-VIDEOS    | P3    | done     | cron  | -        | 2026-05-24  | 2026-05-24       | UI_FEATURE_INVENTORY §3      | Sidebar Videos icon mapping implemented for the `videos` standard location                                                                                                                         | None                                                                                                                                                                        | 2026-05-24    |
-| RC-RECENT    | P2    | done     | cron  | 7cadc95  | 2026-05-23  | 2026-05-23       | UI §2; UI_FEATURE_INVENTORY  | Sidebar Recent section renders Today and This Week groups from the existing recent-location buckets                                                                                                | None                                                                                                                                                                        | 2026-05-24    |
-| RC-DIAG-LOC  | P3    | done     | cron  | 6fa3dac  | 2026-05-23  | 2026-05-23       | UI Design Spec               | Diagnostics export location preference (default export path setting)                                                                                                                               | None                                                                                                                                                                        | 2026-05-24    |
-| RC-TAR       | P3    | done     | cron  | 35d463a  | 2026-05-23  | 2026-05-23       | RC spec §3.2                 | Archive formats implemented: createArchive/extractArchive for `.tar`, `.tar.gz`/`.tgz`, and `.tar.bz2`/`.tbz2`                                                                                     | None                                                                                                                                                                        | 2026-05-24    |
-| P2-15        | P2    | done     | cron  | c6fac7a  | 2026-05-24  | 2026-05-24       | UI_FEATURE_INVENTORY §3      | Checksum verification UI: wire `fs_compute_hash` into Properties dialog with on-demand SHA-256 computation, expected hash input, and Match/Mismatch indicator                                      | None                                                                                                                                                                        | 2026-05-24    |
-| QA-1         | P1    | done     | codex | qaauto   | 2026-05-24  | 2026-05-24       | Release checklist; UI §27–28 | Automated Phase 5 QA evidence: visual regression for failure states, accessibility pass, and status docs refreshed; manual cross-platform validation remains human-only                            | None                                                                                                                                                                        | 2026-05-24    |
-| DOC-DRIFT-1  | P1    | done     | codex | docdrift | 2026-05-24  | 2026-05-24       | PROJECT_STATUS; CRON_TASKS   | Reconciled planning/status drift after recent cron work: tar/non-zip archive status, menu/native menu status, preferences wording, checksum, and network-sidebar status                            | None                                                                                                                                                                        | 2026-05-24    |
-| POST-4       | P2    | done     | codex | sidebar  | 2026-05-24  | 2026-05-24       | UI Design Spec §2            | Network sidebar polish: Network section is authoritative; SFTP profiles are no longer duplicated under Devices/Volumes                                                                             | None                                                                                                                                                                        | 2026-05-24    |
-| POST-1       | P2    | done     | codex | firstrun | 2026-05-24  | 2026-05-24       | Sprint 5 stretch             | First-run welcome overlay: small dismissible onboarding flow for initial FileOctopus launch, persisted so it appears once                                                                          | None                                                                                                                                                                        | 2026-05-24    |
-| POST-2       | P3    | done     | codex | titlebar | 2026-05-24  | 2026-05-24       | UI Design Spec §1            | Title bar sync/health indicator: show dirty/repo/sync health status in the window title bar using existing Git/network status signals                                                              | None                                                                                                                                                                        | 2026-05-24    |
-| P3-1         | P3    | done     | cron  | p3-1col  | 2026-05-24  | 2026-05-24 08:00 | UI Design Spec               | Column reorder: drag column headers to change order, persisted in localStorage                                                                                                                     | None                                                                                                                                                                        | 2026-05-24    |
-| P3-6         | P3    | deferred | -     | -        | -           | -                | UI Design Spec               | Rubber-band select: click-and-drag box selection in file pane — deferred: requires virtual-scroll-aware coordinate math + intersection testing across DOM/non-DOM rows; too large for single cycle | None                                                                                                                                                                        | 2026-05-24    |
-| P3-4         | P3    | done     | cron  | vert     | 2026-05-24  | 2026-05-25       | UI Design Spec               | Dual pane vertical split: toggle between horizontal and vertical pane layout                                                                                                                       | None                                                                                                                                                                        | 2026-05-24    |
-| P3-5         | P3    | done     | cron  | rubber   | 2026-05-24  | 2026-05-25       | UI Design Spec               | Storage gauge: show disk usage bar in status bar or sidebar                                                                                                                                        | None                                                                                                                                                                        | 2026-05-24    |
-| P1-3         | P1    | done     | cron  | f8acc08  | 2026-05-25  | 2026-05-25       | UI Design Spec §5            | Rich Copy To / Move To: tree browser destination chooser for copy/move operations (FolderTree + fs_list_directories IPC)                                                                           | None                                                                                                                                                                        | 2026-05-25    |
-| P1-4         | P1    | done     | cron  | 0e65e72  | 2026-05-25  | 2026-05-25       | UI Design Spec §3            | Image preview expansion: gallery prev/next navigation, image dimensions (WxH), file size and modified date in viewer footer                                                                        | None                                                                                                                                                                        | 2026-05-25    |
-|              | P2-12 | P2       | done  | cron     | ec61bbb     | 2026-05-25       | 2026-05-25                   | UI Design Spec §4                                                                                                                                                                                  | Symlink policy: show symlink indicator in file list, warn on symlink operations, handle symlink targets in copy/move                                                        | None          | 2026-05-25 |
-|              | P2-13 | P2       | done  | cron     | df3e782     | 2026-05-26       | 2026-05-26                   | UI Design Spec §3                                                                                                                                                                                  | Audio/video media preview: ViewerMediaMode with native HTML5 controls, detectViewerMode media support, PreviewPanel inline audio/video, 19 audio/video extensions supported | None          | 2026-05-26 |
-| P2-14        | P2    | done     | cron  | 9aa61ba  | 2026-05-26  | 2026-05-26       | UI Design Spec §3            | Saved searches / smart folders: sidebar section with save/open/rename/remove, localStorage persistence, recursive search replay                                                                    | None                                                                                                                                                                        | 2026-05-26    |
-| P2-16        | P2    | done     | cron  | 1e9f07d  | 2026-05-26  | 2026-05-26       | UI Design Spec §3            | Archive browsing: browse archive contents (.zip/.tar/.tar.gz) without extraction — fs_list_archive IPC + TS client + activateEntry intercept + setArchiveEntries reducer + archive icon (16 tests) | None                                                                                                                                                                        | 2026-05-26    |
-| P3-2         | P3    | done     | cron  | 7e665e7  | 2026-05-26  | 2026-05-26       | UI Design Spec §6            | Eject/unmount: safely eject removable volumes from sidebar or context menu (already implemented — fs_eject_volume IPC + sidebar context menu + PaneWorkspace wiring)                               | None                                                                                                                                                                        | 2026-05-26    |
-|              | P3-3  | P3       | done  | cron     | 7f8f8a5     | 2026-05-26       | 2026-05-26                   | UI Design Spec §6                                                                                                                                                                                  | Job pause/resume: pause and resume long-running file operations without cancel                                                                                              | None          | 2026-05-26 |
-|              | TAG-1 | P2       | done  | cron     | 92a05c7     | 2026-05-26       | 2026-05-26                   | UI Design Spec §3                                                                                                                                                                                  | Tag/label system: assign color tags to files/folders, context menu Tags submenu, tag badges on FileRow, persisted tag store (15 tests)                                      | None          | 2026-05-26 |
-|              | RMT-1 | P2       | done  | cron     | ce392bf     | 2026-05-26       | 2026-05-26                   | UI Design Spec §2                                                                                                                                                                                  | Remote providers expansion: SMB and S3 protocol support beyond current SFTP                                                                                                 | None          | 2026-05-26 |
+| ID           | Pri | Status   | Owner | Run ID   | Started UTC | Lock Expires UTC | Acceptance refs                        | Task                                                                                                                                                             | Blockers | Last verified |
+| ------------ | --- | -------- | ----- | -------- | ----------- | ---------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- | ------------- |
+| RC-4         | P1  | done     | -     | -        | -           | -                | M5; mvp-rc-checklist                   | MVP RC: automated rc:validate + diagnostics E2E evidence refreshed; manual QA matrices remain human-only                                                         | None     | 2026-05-23    |
+| RC-PREFS     | P2  | done     | -     | -        | -           | -                | UI Design Spec §Preferences            | Operations / Shortcuts tabs implemented; Advanced tab deferred to post-RC                                                                                        | None     | 2026-05-23    |
+| RC-MENU-FULL | P2  | done     | codex | 207eb90  | 2026-05-23  | 2026-05-23       | Menu & Modal Spec §4                   | Application menu bar full wiring: native OS menu (Tauri menu.rs), sort submenu parity                                                                            | None     | 2026-05-23    |
+| RC-PAUSE     | P2  | done     | cron  | 7f8f8a5  | 2026-05-26  | 2026-05-26       | UI §6; RC spec §3.2                    | Pause on jobs: backend job.pause IPC + UI pause/resume button in activity panel                                                                                  | None     | 2026-05-26    |
+| RC-VIDEOS    | P3  | done     | cron  | -        | 2026-05-24  | 2026-05-24       | UI_FEATURE_INVENTORY §3                | Sidebar Videos icon mapping implemented                                                                                                                          | None     | 2026-05-24    |
+| RC-RECENT    | P2  | done     | cron  | 7cadc95  | 2026-05-23  | 2026-05-23       | UI §2; UI_FEATURE_INVENTORY            | Sidebar Recent section renders Today and This Week groups                                                                                                        | None     | 2026-05-24    |
+| RC-DIAG-LOC  | P3  | done     | cron  | 6fa3dac  | 2026-05-23  | 2026-05-23       | UI Design Spec                         | Diagnostics export location preference                                                                                                                           | None     | 2026-05-24    |
+| RC-TAR       | P3  | done     | cron  | 35d463a  | 2026-05-23  | 2026-05-23       | RC spec §3.2                           | Archive formats: .tar, .tar.gz/.tgz, .tar.bz2/.tbz2                                                                                                              | None     | 2026-05-24    |
+| P2-15        | P2  | done     | cron  | c6fac7a  | 2026-05-24  | 2026-05-24       | UI_FEATURE_INVENTORY §3                | Checksum verification UI: on-demand SHA-256 + expected hash + Match/Mismatch                                                                                     | None     | 2026-05-24    |
+| QA-1         | P1  | done     | codex | qaauto   | 2026-05-24  | 2026-05-24       | Release checklist; UI §27–28           | Automated Phase 5 QA evidence refreshed                                                                                                                          | None     | 2026-05-24    |
+| DOC-DRIFT-1  | P1  | done     | codex | docdrift | 2026-05-24  | 2026-05-24       | PROJECT_STATUS; CRON_TASKS             | Reconciled planning/status drift                                                                                                                                 | None     | 2026-05-24    |
+| POST-4       | P2  | done     | codex | sidebar  | 2026-05-24  | 2026-05-24       | UI Design Spec §2                      | Network sidebar polish: no SFTP duplication under Devices/Volumes                                                                                                | None     | 2026-05-24    |
+| POST-1       | P2  | done     | codex | firstrun | 2026-05-24  | 2026-05-24       | Sprint 5 stretch                       | First-run welcome overlay                                                                                                                                        | None     | 2026-05-24    |
+| POST-2       | P3  | done     | codex | titlebar | 2026-05-24  | 2026-05-24       | UI Design Spec §1                      | Title bar sync/health indicator                                                                                                                                  | None     | 2026-05-24    |
+| P3-1         | P3  | done     | cron  | p3-1col  | 2026-05-24  | 2026-05-24       | UI Design Spec                         | Column reorder: drag column headers, persisted in localStorage                                                                                                   | None     | 2026-05-24    |
+| P3-6         | P3  | deferred | -     | -        | -           | -                | UI Design Spec                         | Rubber-band select: requires virtual-scroll-aware coordinate math + intersection testing; too large for single cycle                                             | None     | 2026-05-24    |
+| P3-4         | P3  | done     | cron  | vert     | 2026-05-24  | 2026-05-25       | UI Design Spec                         | Dual pane vertical split                                                                                                                                         | None     | 2026-05-24    |
+| P3-5         | P3  | done     | cron  | rubber   | 2026-05-24  | 2026-05-25       | UI Design Spec                         | Storage gauge: disk usage bar in status bar or sidebar                                                                                                           | None     | 2026-05-24    |
+| P1-3         | P1  | done     | cron  | f8acc08  | 2026-05-25  | 2026-05-25       | UI Design Spec §5                      | Rich Copy To / Move To: tree browser destination chooser                                                                                                         | None     | 2026-05-25    |
+| P1-4         | P1  | done     | cron  | 0e65e72  | 2026-05-25  | 2026-05-25       | UI Design Spec §3                      | Image preview: gallery prev/next, image dimensions, file size and modified date in viewer footer                                                                 | None     | 2026-05-25    |
+| P2-12        | P2  | done     | cron  | ec61bbb  | 2026-05-25  | 2026-05-25       | UI Design Spec §4                      | Symlink indicator + copy/move warning                                                                                                                            | None     | 2026-05-25    |
+| P2-13        | P2  | done     | cron  | df3e782  | 2026-05-26  | 2026-05-26       | UI Design Spec §3                      | Audio/video media preview with HTML5 controls                                                                                                                    | None     | 2026-05-26    |
+| P2-14        | P2  | done     | cron  | 9aa61ba  | 2026-05-26  | 2026-05-26       | UI Design Spec §3                      | Saved searches / smart folders: sidebar section with save/open/rename/remove, localStorage persistence                                                           | None     | 2026-05-26    |
+| P2-16        | P2  | done     | cron  | 1e9f07d  | 2026-05-26  | 2026-05-26       | UI Design Spec §3                      | Archive browsing: browse zip/tar contents without extraction (16 tests)                                                                                          | None     | 2026-05-26    |
+| P3-2         | P3  | done     | cron  | 7e665e7  | 2026-05-26  | 2026-05-26       | UI Design Spec §6                      | Eject/unmount: safely eject removable volumes                                                                                                                    | None     | 2026-05-26    |
+| P3-3         | P3  | done     | cron  | 7f8f8a5  | 2026-05-26  | 2026-05-26       | UI Design Spec §6                      | Job pause/resume                                                                                                                                                 | None     | 2026-05-26    |
+| TAG-1        | P2  | done     | cron  | 92a05c7  | 2026-05-26  | 2026-05-26       | UI Design Spec §3                      | Tag/label system: color tags, context menu Tags submenu, tag badges on FileRow, localStorage persistence (15 tests)                                              | None     | 2026-05-26    |
+| RMT-1        | P2  | done     | cron  | ce392bf  | 2026-05-26  | 2026-05-26       | UI Design Spec §2                      | Remote providers: SMB and S3 protocol support                                                                                                                    | None     | 2026-05-26    |
+| E2E-1        | P1  | pending  | -     | -        | -           | -                | mvp-rc-checklist; testing/README.md    | E2E reliability audit: investigate Playwright timeout failures, fix flaky selectors, increase default timeout to 30s, ensure all 14 test files pass consistently | None     | 2026-05-27    |
+| TEST-1       | P1  | pending  | -     | -        | -           | -                | testing/README.md; coverage target 85% | Test coverage audit for recent features: TAG-1 (tags), RMT-1 (SMB/S3), P2-14 (smart folders), P2-16 (archive browsing) — add missing unit/integration tests      | None     | 2026-05-27    |
+| TEST-2       | P1  | pending  | -     | -        | -           | -                | testing/README.md                      | SMB/S3 integration test validation: verify provider-smb and provider-s3 crates have adequate test coverage for connector, ops, and provider modules              | None     | 2026-05-27    |
+| PDF-1        | P2  | pending  | -     | -        | -           | -                | UI_FEATURE_INVENTORY §13; UI §Preview  | PDF preview: render first page of PDF files in ViewerDialog using pdf.js or canvas-based approach                                                                | None     | 2026-05-27    |
+| PERF-2       | P2  | pending  | -     | -        | -           | -                | docs/performance.md; mvp-rc-checklist  | Performance benchmark capture: execute perf:smoke, record large-directory and large-file-operation timings in docs/performance.md                                | None     | 2026-05-27    |
+| SET-1        | P3  | pending  | -     | -        | -           | -                | UI Design Spec §Preferences            | Advanced settings tab: add a dedicated Advanced tab with experimental/config options (currently deferred within Settings)                                        | None     | 2026-05-27    |
 
 ---
 
 ## Deferred / Post-RC
 
-| ID       | Why deferred                                                                              |
-| -------- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| RC-PAUSE | Pause on jobs — UI §6; currently Cancel only; not RC-blocking                             |
-|          | P2-12                                                                                     | Done — symlink indicator badge + copy/move warning (`ec61bbb`)                                              |
-| P2-13    | Done — audio/video media preview with HTML5 controls (`df3e782`); PDF/EXIF remain post-RC |
-| P2-14    | Saved searches/smart folders add new persistence and virtual result views                 |
-| P2-15    | Done — implemented in Properties dialog (`c6fac7a`)                                       |
-| P2-16    | Done — archive browsing with fs_list_archive IPC + frontend wiring (`1e9f07d`)            |
-| P3-1     | Promoted to Active RC Queue for post-RC polish                                            |
-| P3-2     | Eject/unmount — polish/future                                                             |
-| P3-3     | Job pause/resume — polish/future                                                          |
-| P3-4     | Dual pane vertical split — polish/future                                                  |
-| P3-6     | Rubber-band select — polish/future                                                        |
-| POST-1   | Done — first-run welcome overlay is implemented and persisted after dismissal             |
-| POST-2   | Done — title bar shows Git, remote connection, and operation health status pills          |
-| POST-3   | Done — Videos standard-location icon mapping is implemented                               |
-| POST-4   | Done — Network sidebar deduplicates saved SFTP profiles from Devices/Volumes              |
-| POST-5   | Done — sidebar renders Today and This Week recent groups                                  |
-|          | RMT-1                                                                                     | Done — SMB/S3 providers registered in VFS + connectors + frontend UI wiring (`ce392bf`)                     |
-|          | TAG-1                                                                                     | Done — tag/label system with context menu submenu, FileRow badges, and localStorage persistence (`92a05c7`) |
+| ID       | Why deferred                                                                                    |
+| -------- | ----------------------------------------------------------------------------------------------- |
+| RC-PAUSE | Pause on jobs — UI §6; currently Cancel only; not RC-blocking                                   |
+| P2-12    | Done — symlink indicator badge + copy/move warning (`ec61bbb`)                                  |
+| P2-13    | Done — audio/video media preview with HTML5 controls (`df3e782`); PDF/EXIF remain post-RC       |
+| P2-14    | Saved searches/smart folders add new persistence and virtual result views                       |
+| P2-15    | Done — implemented in Properties dialog (`c6fac7a`)                                             |
+| P2-16    | Done — archive browsing with fs_list_archive IPC + frontend wiring (`1e9f07d`)                  |
+| P3-1     | Promoted to Active RC Queue for post-RC polish                                                  |
+| P3-2     | Eject/unmount — polish/future                                                                   |
+| P3-3     | Job pause/resume — polish/future                                                                |
+| P3-4     | Dual pane vertical split — polish/future                                                        |
+| P3-6     | Rubber-band select — polish/future                                                              |
+| POST-1   | Done — first-run welcome overlay is implemented and persisted after dismissal                   |
+| POST-2   | Done — title bar shows Git, remote connection, and operation health status pills                |
+| POST-3   | Done — Videos standard-location icon mapping is implemented                                     |
+| POST-4   | Done — Network sidebar deduplicates saved SFTP profiles from Devices/Volumes                    |
+| POST-5   | Done — sidebar renders Today and This Week recent groups                                        |
+| RMT-1    | Done — SMB/S3 providers registered in VFS + connectors + frontend UI wiring (`ce392bf`)         |
+| TAG-1    | Done — tag/label system with context menu submenu, FileRow badges, and localStorage (`92a05c7`) |
+| EXIF-1   | EXIF metadata display in Properties — post-RC visual expansion                                  |
+| P2P-1    | P2P sync — intentionally deferred (RC spec §3.3)                                                |
+| AI-1     | AI semantic search — intentionally deferred (RC spec §3.3)                                      |
+| PLUG-1   | Plugin marketplace — intentionally deferred (RC spec §3.3)                                      |
+| CLOUD-1  | Cloud providers (GDrive, Dropbox, OneDrive) — intentionally deferred (RC spec §3.3)             |
+| DIFF-1   | File content diff/merge — intentionally deferred (RC spec §3.3)                                 |
+| ACL-1    | Advanced ACL editing — intentionally deferred (RC spec §3.3)                                    |
 
 ---
 
@@ -84,60 +97,39 @@
 
 | ID          | Result                                                                                                      | Commit     |
 | ----------- | ----------------------------------------------------------------------------------------------------------- | ---------- |
-| RC-4        | Automated RC evidence refreshed: backend + frontend RC green (502 tests); E2E timeout remains environmental | d74e917    |
-| RC-MENU     | Application menu bar routing verified — sort/theme/density/favorites-add already via `runCommand`           | d74e917    |
-| RC-CONF     | Conflict dialog verified — per-item actions, metadata compare, apply-to-all already implemented (11 tests)  | d74e917    |
-| RC-IMG      | Image preview verified — `fs_read_image` + PreviewPanel + ViewerDialog image mode already implemented       | d74e917    |
-| RC-PREF     | Settings toggle "Remember last used panes" wired in Layout tab with backend persistence + localStorage sync | 1fe9ce8    |
-| RC-3        | Refresh automated RC evidence (rc-qa-automated.sh) for commit b1c3cfd                                       | b1c3cfd    |
-| GIT-1       | Git Intelligence V1: `git-intel` crate, FileRow badges (M/A/D/R/?/I/U/!), PaneHeader branch + dirty mark    | 2026-05-23 |
-| NET-1       | Network provider hardening Stage 1: connection lifecycle correctness (lazy connect, no reconnect storm)     | 2026-05-19 |
-| NET-2       | Network provider hardening Stage 2: SHA-256 fingerprint TOFU, port/hostname validation                      | 2026-05-19 |
-| NET-3       | Network provider hardening Stage 4: push status events to frontend, sidebar badges                          | 2026-05-19 |
-| NET-4       | SFTP network profiles with remote VFS and UI                                                                | 2026-05-19 |
-| TERM-1      | Embedded terminal pane: local + SSH PTY, bottom split, tabs, maximize/close controls                        | 2026-05-19 |
-| TERM-2      | Terminal shell prefs, keyboard input routing, per-pane controls (Option B/C)                                | 2026-05-19 |
-| VIEW-1      | Built-in F3 viewer + F4 editor with shared syntax highlighting                                              | 2026-05-20 |
-| VFS-1       | VfsProvider write methods: create_directory, create_file, rename, remove, copy_file, read_file_prefix       | 2026-05-22 |
-| VFS-2       | LocalFsProvider + provider-sftp write implementations with read_write capabilities                          | 2026-05-22 |
-| CMD-1       | Command registry: derive CommandId from as-const, dispatch exhaustiveness test                              | 2026-05-22 |
-| PERF-1      | Performance smoke command (`pnpm perf:smoke`)                                                               | 2026-05-22 |
-| COL-1       | Virtualize icons view with grid-aware windowing and ResizeObserver                                          | 2026-05-22 |
-| COL-2       | Route ColumnsView through shared client with request correlation + timeout                                  | 2026-05-22 |
-| PHASE5      | Phase 5 state and controller refactor + runtime reliability hardening                                       | 2026-05-22 |
-| RC-6        | MenuBar sort/theme/density/favorites/filter/search routed via `runCommand` → `dispatchCommand`              | 2026-05-19 |
-| RC-4d       | `app-layout.e2e.ts` updated for shell toolbar layout; 24/24 pass                                            | 2026-05-19 |
-| RC-4c       | Visual regression baselines + preview `sidebarVisible`; `pnpm test:e2e:vite` 104 pass                       | 2026-05-19 |
-| RC-4b       | Diagnostics E2E + `scripts/rc-qa-automated.sh` + `docs/qa/rc-automated-evidence.md`                         | 2026-05-19 |
-| RC-4a       | Automated RC: `pnpm rc:validate` + `pnpm tauri:build` (deb/rpm/AppImage bundles)                            | 2026-05-19 |
-| RC-5        | IPC integration: `ipc_basic`, `ipc_terminal`, `ipc_reveal` + error-path coverage                            | 2026-05-19 |
-| RC-7        | Conflict dialog destination metadata compare via `fs.stat` + `destinationByUri`                             | 2026-05-19 |
-| RC-2        | E2E multi-select Selection Properties smoke (`e2e/dialog.e2e.ts`)                                           | 2026-05-19 |
-| P2-9        | Selection Properties dialog wired for multi-select; folder-size aggregate via folder-size jobs              | 2026-05-19 |
-| P2-8        | Recent Locations management UI (dialog + clear/remove flows)                                                | preex      |
-| P2-7        | VolumePickerDialog with discoverVolumes IPC + Go menu                                                       | 81568c8    |
-| P2-11       | Offline/unmounted pane state                                                                                | 84867c3    |
-| P2-15       | Checksum verification UI in Properties dialog: on-demand SHA-256 + expected hash input + Match/Mismatch     | c6fac7a    |
-| RC-PAUSE    | Job pause/resume: event wiring + UI buttons + merge helpers for activity panel state updates                | 7f8f8a5    |
-| DOC-DRIFT-1 | Planning/status drift reconciled for archives, menu, preferences, checksum, and network sidebar status      | 2026-05-24 |
-| POST-4      | Network sidebar deduplication: saved SFTP profiles render only in the dedicated Network section             | 2026-05-24 |
+| E2E-1       | (pending)                                                                                                   | -          |
+| RMT-1       | SMB/S3 remote provider support: backend crates, connector/VFS registration, frontend UI wiring, URI tests   | ce392bf    |
+| TAG-1       | Tag/label system: context menu submenu, FileRow badges, localStorage persistence, 15 tests                  | 92a05c7    |
+| P3-3        | Job pause/resume: event wiring + UI buttons + merge helpers for activity panel state updates                | 7f8f8a5    |
+| P3-2        | Eject/unmount: fs_eject_volume IPC + sidebar context menu + PaneWorkspace wiring                            | 7e665e7    |
+| P2-16       | Archive browsing: fs_list_archive IPC + TS client + activateEntry intercept + archive icon (16 tests)       | 1e9f07d    |
+| P2-14       | Saved searches / smart folders: sidebar section, save/open/rename/remove, localStorage persistence          | 9aa61ba    |
+| P2-13       | Audio/video media preview: ViewerMediaMode with native HTML5 controls, 19 audio/video extensions            | df3e782    |
+| P2-12       | Symlink indicator badge + copy/move warning + kind column display                                           | ec61bbb    |
+| P1-4        | Image preview: gallery prev/next, image dimensions, file size and modified date in viewer footer            | 0e65e72    |
+| P1-3        | Rich Copy To / Move To: tree browser destination chooser via fs_list_directories IPC                        | f8acc08    |
+| P3-5        | Storage gauge in status bar: on-demand volume discovery + usage bar + free-space text                       | 15eff46    |
+| P3-4        | Dual pane vertical split toggle                                                                             | vert       |
+| P3-1        | Column reorder: drag column headers, persisted in localStorage                                              | p3-1col    |
+| POST-2      | Title bar status indicator for active Git repo, remote connection, and operation errors                     | 2026-05-24 |
 | POST-1      | First-run welcome overlay with persisted dismissal and links into Settings, Shortcuts, and Network          | 2026-05-24 |
 | QA-1        | Automated Phase 5 QA evidence refreshed: failure-state snapshots and accessibility smoke coverage           | 2026-05-24 |
-| POST-2      | Title bar status indicator for active Git repo state, remote connection state, and operation errors         | 2026-05-24 |
-| P2-10       | Accessible row names for file entries                                                                       | 993f879    |
-| P2-12       | Symlink indicator badge + copy/move warning + kind column display                                           | ec61bbb    |
-| P3-5        | Storage gauge in status bar: on-demand volume discovery + usage bar + free-space text                       | 15eff46    |
-| P2-6        | User-selectable visible columns with persistence                                                            | e902fb0    |
-| P2-5        | Confirm before app close when jobs running                                                                  | 3490ee1    |
-| P2-4        | Restore last pane paths and tab state on startup                                                            | d08d97d    |
-| P2-2        | Focus-trap on modals + restore focus on close                                                               | 4d80006    |
-| P2-1        | Real popover tooltip (replaced title-attribute stub)                                                        | 12a7a73    |
-| P1-5        | Breadcrumb overflow menu                                                                                    | a8cc7fd    |
-| P1-2        | Resizable details columns with localStorage persistence                                                     | 3a066d6    |
-| P1-1        | TabBar UI with open/close/switch tab actions                                                                | 8f7e762    |
-| P2-3        | Keyboard-navigable context menus                                                                            | c59a5e2    |
-| P0-5        | Swap Panes command                                                                                          | fb55230    |
-| P0-4        | Toolbar and status-bar menu toggles                                                                         | dffbf11    |
-| P0-3        | Drag-and-drop file operations                                                                               | c869970    |
-| P0-1        | Filter input rendered and wired                                                                             | 25c77c5    |
-| RMT-1       | SMB/S3 remote provider support: backend crates, connector/VFS registration, frontend UI wiring, URI tests   | ce392bf    |
+| DOC-DRIFT-1 | Planning/status drift reconciled for archives, menu, preferences, checksum, and network sidebar status      | 2026-05-24 |
+| POST-4      | Network sidebar deduplication: saved SFTP profiles render only in the dedicated Network section             | 2026-05-24 |
+| P2-15       | Checksum verification UI in Properties dialog: on-demand SHA-256 + expected hash input + Match/Mismatch     | c6fac7a    |
+| RC-PAUSE    | Job pause/resume: event wiring + UI buttons + merge helpers for activity panel state updates                | 7f8f8a5    |
+| RC-4        | Automated RC evidence refreshed: backend + frontend RC green (502 tests); E2E timeout remains environmental | d74e917    |
+| RC-MENU     | Application menu bar routing verified — sort/theme/density/favorites-add via runCommand                     | d74e917    |
+| RC-CONF     | Conflict dialog verified — per-item actions, metadata compare, apply-to-all (11 tests)                      | d74e917    |
+| RC-IMG      | Image preview verified — fs_read_image + PreviewPanel + ViewerDialog image mode                             | d74e917    |
+| RC-PREF     | Settings toggle "Remember last used panes" wired in Layout tab with backend persistence                     | 1fe9ce8    |
+| RC-3        | Refresh automated RC evidence for commit b1c3cfd                                                            | b1c3cfd    |
+| GIT-1       | Git Intelligence V1: git-intel crate, FileRow badges, PaneHeader branch + dirty mark                        | 2026-05-23 |
+| NET-1..4    | Network provider hardening Stages 1–4: lifecycle, fingerprint TOFU, status events, SFTP profiles            | 2026-05-19 |
+| TERM-1..2   | Embedded terminal: local + SSH PTY, bottom split, tabs, shell prefs                                         | 2026-05-19 |
+| VIEW-1      | Built-in F3 viewer + F4 editor with shared syntax highlighting                                              | 2026-05-20 |
+| VFS-1..2    | VfsProvider write methods: create_directory, create_file, rename, remove, copy_file, read_file_prefix       | 2026-05-22 |
+| CMD-1       | Command registry: derive CommandId from as-const, dispatch exhaustiveness test                              | 2026-05-22 |
+| PERF-1      | Performance smoke command (pnpm perf:smoke)                                                                 | 2026-05-22 |
+| COL-1..2    | Virtualize icons view + ColumnsView shared client routing                                                   | 2026-05-22 |
+| PHASE5      | Phase 5 state and controller refactor + runtime reliability hardening                                       | 2026-05-22 |
