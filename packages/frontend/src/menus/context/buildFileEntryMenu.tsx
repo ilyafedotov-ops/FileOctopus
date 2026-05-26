@@ -3,6 +3,8 @@ import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { isRemoteUri } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import type { PanelId, SortField, ViewMode } from "../../panelStore";
+import type { TagColor } from "../../utils/tagStore";
+import { tagColorValues } from "../../utils/tagStore";
 import { isParentDirectoryEntry } from "../../utils/parentEntry";
 import { ContextMenuItem, ContextMenuSeparator } from "./ContextMenuPrimitives";
 
@@ -12,6 +14,7 @@ interface FileEntryMenuParams {
   entry: FileEntryDto;
   canPaste: boolean;
   isStarred: boolean;
+  entryTagColors?: TagColor[];
   run: (action: () => void) => void;
   onOpen: (panelId: PanelId, entry: FileEntryDto | null) => void;
   onNavigateOtherPane: (uri: string) => void;
@@ -43,6 +46,8 @@ interface FileEntryMenuParams {
   onClearSelection: (panelId: PanelId) => void;
   onViewMode: (panelId: PanelId, viewMode: ViewMode) => void;
   onSort: (panelId: PanelId, field: SortField) => void;
+  onAssignTag?: (entry: FileEntryDto, color: TagColor) => void;
+  onRemoveTag?: (entry: FileEntryDto, color: TagColor) => void;
 }
 
 export function buildFileEntryMenu({
@@ -51,6 +56,7 @@ export function buildFileEntryMenu({
   entry,
   canPaste,
   isStarred,
+  entryTagColors,
   run,
   onOpen,
   onNavigateOtherPane,
@@ -82,6 +88,8 @@ export function buildFileEntryMenu({
   onClearSelection,
   onViewMode,
   onSort,
+  onAssignTag,
+  onRemoveTag,
 }: FileEntryMenuParams): ReactNode {
   if (isParentDirectoryEntry(entry, currentTabUri)) {
     return (
@@ -185,6 +193,45 @@ export function buildFileEntryMenu({
       >
         {isStarred ? "Remove Star" : "Add Star"}
       </ContextMenuItem>
+      {onAssignTag ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="fo-context-menu-item fo-context-menu-item--submenu"
+          role="menuitem"
+        >
+          Tags…
+          <div className="fo-context-submenu" role="menu">
+            {tagColorValues.map((color) => {
+              const hasColor = entryTagColors?.indexOf(color) !== -1;
+              return (
+                <ContextMenuItem
+                  key={color}
+                  onClick={() =>
+                    run(() => {
+                      if (hasColor && onRemoveTag) {
+                        onRemoveTag(entry, color);
+                      } else {
+                        onAssignTag(entry, color);
+                      }
+                    })
+                  }
+                >
+                  <span
+                    className={`fo-context-tag-color-swatch`}
+                    style={{
+                      backgroundColor: tagColorHex(color),
+                    }}
+                  />
+                  {color[0].toUpperCase() + color.slice(1)}
+                  {hasColor ? " ✓" : ""}
+                </ContextMenuItem>
+              );
+            })}
+          </div>
+        </Button>
+      ) : null}
       <ContextMenuItem onClick={() => run(() => onProperties(panelId, entry))}>
         Properties…
       </ContextMenuItem>
@@ -274,4 +321,21 @@ export function buildFileEntryMenu({
       </Button>
     </>
   );
+}
+
+const TAG_COLOR_HEX: Record<TagColor, string> = {
+  red: "#e53e3e",
+  orange: "#ed8936",
+  amber: "#d69e2e",
+  yellow: "#ecc94b",
+  green: "#38a169",
+  teal: "#319795",
+  blue: "#3182ce",
+  indigo: "#5a67d8",
+  violet: "#805ad5",
+  pink: "#d53f8c",
+};
+
+function tagColorHex(color: TagColor): string {
+  return TAG_COLOR_HEX[color];
 }

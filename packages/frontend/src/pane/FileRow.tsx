@@ -9,6 +9,7 @@ import {
 } from "react";
 import { formatDate, formatSize } from "./fileTableUtils";
 import type { ViewMode } from "../panelStore";
+import type { TagColor } from "../utils/tagStore";
 
 const URI_MIME = "application/x-fileoctopus-uri";
 
@@ -36,6 +37,7 @@ export interface FileRowProps {
     event: MouseEvent<HTMLElement>,
     entry: FileEntryDto | null,
   ) => void;
+  tagColors?: TagColor[];
 }
 
 export function FileRow({
@@ -59,6 +61,7 @@ export function FileRow({
   onEntrySelect,
   onEntryActivate,
   onContextMenu,
+  tagColors,
 }: FileRowProps) {
   const [draftName, setDraftName] = useState(entry.name);
   const renameInputRef = useRef<HTMLInputElement | null>(null);
@@ -189,6 +192,16 @@ export function FileRow({
             {gitStatusLabel(gitStatus)}
           </span>
         ) : null}
+        {tagColors && tagColors.length > 0
+          ? tagColors.map((color) => (
+              <span
+                key={color}
+                className={`fo-row-tag-badge fo-row-tag-${color}`}
+                aria-label={`Tag: ${color}`}
+                title={`Tag: ${color}`}
+              />
+            ))
+          : null}
         {entry.isSymlink ? (
           <span
             className="fo-row-symlink-badge"

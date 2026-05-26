@@ -3,6 +3,7 @@ import type { PanelId, FileOctopusState, PanelAction } from "../panelStore";
 import { activeTab } from "../panelStore";
 import { viewModeCommandId } from "../commands/viewModeCommands";
 import { ContextMenu, type ContextMenuState } from "./ContextMenu";
+import { useTags } from "../app/TagContext";
 
 interface FileClipboardState {
   kind: "copy" | "move";
@@ -51,6 +52,11 @@ export function ContextMenuOverlay({
     : activeTab(state.panels.left).uri;
   const run = (commandId: string, entry?: FileEntryDto | null) =>
     runPanelCommand(panelId, commandId, entry ?? contextEntry);
+
+  const { tagColorsForEntry, assignTag, removeTag } = useTags();
+  const entryTagColors = menu?.entry
+    ? tagColorsForEntry(menu.entry.uri)
+    : undefined;
 
   return (
     <ContextMenu
@@ -127,6 +133,9 @@ export function ContextMenuOverlay({
           menu?.entry ?? { targetUri: uri },
         )
       }
+      onAssignTag={(entry, color) => assignTag(entry.uri, color, color)}
+      onRemoveTag={(entry, color) => removeTag(entry.uri, color)}
+      entryTagColors={entryTagColors}
     />
   );
 }

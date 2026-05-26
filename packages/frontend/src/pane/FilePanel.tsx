@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useShell } from "../app/providers/ShellProvider";
 import { useTerminal } from "../app/providers/TerminalProvider";
+import { useTags } from "../app/TagContext";
 import {
   countOperationalSelection,
   countVisibleEntries,
@@ -142,6 +143,7 @@ export function FilePanel({
     setPaneActiveSession,
     openAdditionalPaneTab,
   } = useTerminal();
+  const { tagColorsForEntry } = useTags();
   const paneChrome = terminal.pane[panelId];
   const paneHasSessions = terminal.sessions.some(
     (session) => session.paneId === panelId,
@@ -151,6 +153,17 @@ export function FilePanel({
   const itemCount = countVisibleEntries(tab);
   const selectedCount = countOperationalSelection(tab);
   const gitStatus = usePaneGitStatus(client, tab.uri);
+
+  const tagMap = useMemo(() => {
+    const map: Record<string, import("../utils/tagStore").TagColor[]> = {};
+    for (const entry of displayedEntries) {
+      const colors = tagColorsForEntry(entry.uri);
+      if (colors.length > 0) {
+        map[entry.uri] = colors;
+      }
+    }
+    return map;
+  }, [displayedEntries, tagColorsForEntry]);
 
   const selectedEntry =
     displayedEntries.find((entry) => entry.uri === tab.selectedId) ?? null;
@@ -368,6 +381,7 @@ export function FilePanel({
                   entry,
                 });
               }}
+              tagMap={tagMap}
             />
           )}
           <RecursiveSearchPanel

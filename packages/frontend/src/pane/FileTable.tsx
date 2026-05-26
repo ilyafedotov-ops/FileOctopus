@@ -11,6 +11,7 @@ import {
 } from "react";
 import { isPaneLoading, type PaneLoadState } from "../paneTypes";
 import type { SortField, ViewMode } from "../panelStore";
+import type { TagColor } from "../utils/tagStore";
 import { isParentDirectoryEntry } from "../utils/parentEntry";
 import { FileRow } from "./FileRow";
 import {
@@ -59,6 +60,7 @@ export interface FileTableProps {
     entry: FileEntryDto | null,
   ) => void;
   onToggleColumn?: (columnId: ColumnId) => void;
+  tagMap?: Record<string, TagColor[]>;
 }
 
 export function FileTable({
@@ -92,6 +94,7 @@ export function FileTable({
   onEntryActivate,
   onContextMenu,
   onToggleColumn,
+  tagMap,
 }: FileTableProps) {
   const [scrollTop, setScrollTop] = useState(0);
   const [resizingColumn, setResizingColumn] = useState<ColumnId | null>(null);
@@ -427,6 +430,7 @@ export function FileTable({
                 onEntrySelect={onEntrySelect}
                 onEntryActivate={onEntryActivate}
                 onContextMenu={onContextMenu}
+                tagColors={tagMap?.[entry.uri]}
               />
             ))}
           </div>
