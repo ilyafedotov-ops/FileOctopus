@@ -218,6 +218,9 @@ export function SettingsKeyboard({
       aria-label="Keyboard settings"
     >
       <h3>Keyboard Shortcuts</h3>
+      <p className="fo-settings-description">
+        View and customize keyboard shortcuts.
+      </p>
       <div className="fo-settings-field">
         <input
           type="text"

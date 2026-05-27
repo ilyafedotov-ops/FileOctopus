@@ -16,6 +16,9 @@ export function SettingsAdvanced({
       aria-label="Advanced settings"
     >
       <h3>Advanced</h3>
+      <p className="fo-settings-description">
+        Log level, experimental features, cache, and threads.
+      </p>
       <label className="fo-settings-field">
         <span>Log level</span>
         <select

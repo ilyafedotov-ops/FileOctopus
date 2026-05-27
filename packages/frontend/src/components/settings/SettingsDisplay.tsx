@@ -10,8 +10,15 @@ export function SettingsDisplay({
   onChange,
 }: SettingsDisplayProps) {
   return (
-    <section className="fo-settings-section">
+    <section
+      className="fo-settings-section"
+      role="region"
+      aria-label="Display settings"
+    >
       <h3>Display</h3>
+      <p className="fo-settings-description">
+        Theme, density, font size, and icon size.
+      </p>
       <label className="fo-settings-field">
         <span>Theme</span>
         <select

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ReactElement } from "react";
 import type { SettingsCategory, SettingsTreeItem } from "./types";
 import { SETTINGS_TREE } from "./types";
@@ -26,11 +27,34 @@ function renderTreeItem(
 }
 
 export function SettingsTree({ activeCategory, onSelect }: SettingsTreeProps) {
+  const [filter, setFilter] = useState("");
+
+  const normalizedFilter = filter.toLowerCase().trim();
+  const filteredItems = normalizedFilter
+    ? SETTINGS_TREE.filter(
+        (item) =>
+          item.label.toLowerCase().indexOf(normalizedFilter) !== -1 ||
+          item.description.toLowerCase().indexOf(normalizedFilter) !== -1 ||
+          item.id.toLowerCase().indexOf(normalizedFilter) !== -1,
+      )
+    : SETTINGS_TREE;
+
   return (
-    <nav className="fo-settings-nav" aria-label="Settings sections">
-      {SETTINGS_TREE.map((item) =>
-        renderTreeItem(item, activeCategory, onSelect),
-      )}
-    </nav>
+    <div className="fo-settings-nav-wrapper">
+      <div className="fo-settings-search">
+        <input
+          type="text"
+          placeholder="Search settings…"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+          aria-label="Search settings"
+        />
+      </div>
+      <nav className="fo-settings-nav" aria-label="Settings sections">
+        {filteredItems.map((item) =>
+          renderTreeItem(item, activeCategory, onSelect),
+        )}
+      </nav>
+    </div>
   );
 }

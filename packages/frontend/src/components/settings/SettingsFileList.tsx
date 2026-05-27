@@ -33,8 +33,15 @@ export function SettingsFileList({
   };
 
   return (
-    <section className="fo-settings-section">
+    <section
+      className="fo-settings-section"
+      role="region"
+      aria-label="File List settings"
+    >
       <h3>File List</h3>
+      <p className="fo-settings-description">
+        Default view mode, hidden files, and column presets.
+      </p>
       <label className="fo-settings-field">
         <span>Default view</span>
         <select

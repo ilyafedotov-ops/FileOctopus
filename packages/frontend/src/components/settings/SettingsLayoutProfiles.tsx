@@ -79,8 +79,15 @@ export function SettingsLayoutProfiles({
   };
 
   return (
-    <section className="fo-settings-section">
+    <section
+      className="fo-settings-section"
+      role="region"
+      aria-label="Layout Profiles settings"
+    >
       <h3>Layout Profiles</h3>
+      <p className="fo-settings-description">
+        Save and switch between workspace layouts.
+      </p>
       <div className="fo-settings-field">
         <span>Save and restore layout configurations</span>
         <p className="fo-settings-hint">

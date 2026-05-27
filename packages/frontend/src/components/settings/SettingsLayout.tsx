@@ -15,8 +15,15 @@ export function SettingsLayout({
   onClose,
 }: SettingsLayoutProps) {
   return (
-    <section className="fo-settings-section">
+    <section
+      className="fo-settings-section"
+      role="region"
+      aria-label="Layout settings"
+    >
       <h3>Layout</h3>
+      <p className="fo-settings-description">
+        Sidebar, panels, status bar, and toolbar visibility.
+      </p>
       <label className="fo-settings-checkbox">
         <input
           type="checkbox"

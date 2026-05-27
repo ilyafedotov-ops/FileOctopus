@@ -1276,6 +1276,43 @@ dialog.fo-dialog[open] {
   font-size: 12px;
 }
 
+.fo-settings-nav-wrapper {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+}
+
+.fo-settings-search input {
+  width: 100%;
+  padding: 3px 6px;
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
+    var(--fo-classic-light) var(--fo-classic-shadow);
+  border-radius: 0;
+  background: var(--fo-classic-face);
+  color: var(--fo-classic-text);
+  font-size: 12px;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.fo-settings-search input:focus-visible {
+  outline: 1px dotted var(--fo-classic-title);
+  outline-offset: -1px;
+}
+
+.fo-settings-search input::placeholder {
+  color: var(--fo-classic-muted);
+}
+
+.fo-settings-description {
+  margin: 0;
+  color: var(--fo-muted-text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
 /* ─── Preview Panel ─── */
 .fo-preview-panel {
   position: absolute;

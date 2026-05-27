@@ -13,6 +13,9 @@ export function SettingsEditor({ preferences, onChange }: SettingsEditorProps) {
       aria-label="Editor settings"
     >
       <h3>Editor</h3>
+      <p className="fo-settings-description">
+        Font, tabs, word wrap, and syntax highlighting.
+      </p>
       <label className="fo-settings-field">
         <span>Font family</span>
         <input

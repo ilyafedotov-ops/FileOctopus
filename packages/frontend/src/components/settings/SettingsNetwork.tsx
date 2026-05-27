@@ -16,6 +16,9 @@ export function SettingsNetwork({
       aria-label="Network settings"
     >
       <h3>Network</h3>
+      <p className="fo-settings-description">
+        Connection timeout, auto-reconnect, and SSH keys.
+      </p>
       <label className="fo-settings-field">
         <span>Connection timeout (seconds)</span>
         <input

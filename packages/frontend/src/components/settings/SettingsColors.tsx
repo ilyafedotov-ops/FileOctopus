@@ -97,8 +97,15 @@ export function SettingsColors({ preferences, onChange }: SettingsColorsProps) {
   };
 
   return (
-    <section className="fo-settings-section">
+    <section
+      className="fo-settings-section"
+      role="region"
+      aria-label="Colors settings"
+    >
       <h3>Colors</h3>
+      <p className="fo-settings-description">
+        Accent color selection for the interface.
+      </p>
       <fieldset className="fo-settings-fieldset">
         <legend>Accent color</legend>
         <div

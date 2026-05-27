@@ -17,8 +17,15 @@ export function SettingsGeneral({
   onSetAutostart,
 }: SettingsGeneralProps) {
   return (
-    <section className="fo-settings-section">
+    <section
+      className="fo-settings-section"
+      role="region"
+      aria-label="General settings"
+    >
       <h3>General</h3>
+      <p className="fo-settings-description">
+        Startup behavior, autostart, and diagnostics.
+      </p>
       <label className="fo-settings-checkbox">
         <input
           type="checkbox"

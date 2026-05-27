@@ -13,6 +13,9 @@ export function SettingsViewer({ preferences, onChange }: SettingsViewerProps) {
       aria-label="Viewer settings"
     >
       <h3>Viewer</h3>
+      <p className="fo-settings-description">
+        View mode, image zoom, media autoplay, and file size.
+      </p>
       <label className="fo-settings-field">
         <span>Default view mode</span>
         <select

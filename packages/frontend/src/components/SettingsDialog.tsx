@@ -71,7 +71,7 @@ export function SettingsDialog({
             </span>
             <div>
               <h2 id="settings-title">Settings</h2>
-              <p>Preferences for appearance, file lists, and layout.</p>
+              <p>Configure appearance, behavior, and preferences.</p>
             </div>
           </div>
           <Button type="button" variant="ghost" size="sm" onClick={onClose}>

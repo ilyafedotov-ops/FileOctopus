@@ -16,6 +16,9 @@ export function SettingsTerminal({
       aria-label="Terminal settings"
     >
       <h3>Terminal</h3>
+      <p className="fo-settings-description">
+        Shell program, arguments, and pane terminal behavior.
+      </p>
       <label className="fo-settings-field">
         <span>Shell program</span>
         <input

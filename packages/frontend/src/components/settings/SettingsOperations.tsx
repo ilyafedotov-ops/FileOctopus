@@ -10,8 +10,15 @@ export function SettingsOperations({
   onChange,
 }: SettingsOperationsProps) {
   return (
-    <section className="fo-settings-section">
+    <section
+      className="fo-settings-section"
+      role="region"
+      aria-label="Operations settings"
+    >
       <h3>Operations</h3>
+      <p className="fo-settings-description">
+        Confirmations, trash, and conflict policies.
+      </p>
       <label className="fo-settings-checkbox">
         <input
           type="checkbox"
