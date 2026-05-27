@@ -1,74 +1,91 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-27 01:55 UTC
-> Mode: Active (5 pending tasks in Active RC Queue)
+> Last run: 2026-05-27 12:00 UTC
+> Mode: Active (9 pending tasks in Active RC Queue)
 
 ## Health Gate
 
-| Check                         | Result                    |
-| ----------------------------- | ------------------------- |
-| TypeScript (`pnpm typecheck`) | ✅ 0 errors               |
-| Rust (`cargo check`)          | ✅ clean                  |
-| Cargo clippy (`-D warnings`)  | ✅ clean (fix ea62051)    |
-| Cargo fmt                     | ✅ clean                  |
-| Frontend tests (`pnpm test`)  | ✅ 664 pass (102 files)   |
-| Rust tests (`cargo test`)     | ✅ 367 pass (all targets) |
-| Prettier (`format:check`)     | ✅ clean                  |
-| `pnpm lint`                   | ✅ clean                  |
+| Check                         | Result                  |
+| ----------------------------- | ----------------------- |
+| TypeScript (`pnpm typecheck`) | ✅ 0 errors             |
+| Rust (`cargo check`)          | ✅ clean                |
+| Cargo clippy (`-D warnings`)  | ✅ clean (fix ea62051)  |
+| Cargo fmt                     | ✅ clean                |
+| Frontend tests (`pnpm test`)  | ✅ 680 pass (104 files) |
+| Rust tests (`cargo test`)     | ✅ all targets pass     |
+| Prettier (`format:check`)     | ✅ clean                |
+| `pnpm lint`                   | ✅ clean                |
 
 **Gate status:** GREEN — 0 failures.
 
 ## Work Completed This Run
 
-### E2E-1 (P1) — E2E Reliability Audit ✅
+### TEST-1 (P1) — Test Coverage Audit for Recent Features ✅
 
-**Commit:** `02bd975`
+**Commits:** `3c346e6`, `8b75ab7`
 
-**Before:** Previous runs reported unreliable E2E (many timeouts, flaky selectors).
+**Scope:** TAG-1 (tags), RMT-1 (SMB/S3), P2-14 (smart folders), P2-16 (archive browsing)
 
-**After:** Full E2E suite now runs clean — **165 passed, 27 skipped (all conditional), 0 failures** across 14 test files.
+**New tests added: 22 total**
 
-**Changes:**
+#### Frontend (16 new tests, 664 → 680)
 
-1. **Context menu sort submenu** — Fixed by hovering the "Sort by…" trigger before asserting submenu items (CSS hover submenu requires interaction). Removed unused `SORT_SUBMENU_SELECTOR`.
-2. **Sidebar selectors** — Replaced legacy `>> text=` selectors in `sidebar.e2e.ts` with modern `locator().locator('[role="menuitem"]:has-text(...)')` pattern for better reliability.
-3. **Skip reasons** — Added descriptive skip reasons to bare `test.skip()` calls in `sidebar.e2e.ts` ("No Pinned favorites visible — requires user-pinned entries").
-4. **Documentation** — Added skip category headers to `sidebar-context-menu.e2e.ts` and `empty-directory.e2e.ts` explaining conditional skip behavior.
-5. **Retry logic** — Increased non-CI retries from 0 to 1 in `playwright.config.ts` for transient failure tolerance.
-6. **First-run overlay** — Added `storageState` config to auto-dismiss first-run welcome overlay. Added `helpers.ts` with shared `dismissFirstRunOverlay` utility.
-7. **Keyboard shortcut** — Fixed F7 for new folder (was testing Ctrl+N incorrectly).
-8. **Snapshots** — Updated visual regression snapshots for current UI state (file-table, settings-dialog, sidebar).
+1. **`useNetworkHandlers.test.ts`** (8 tests) — Previously 0 tests for the entire network handlers hook:
+   - connectProfile calls client.network.connect and refreshes profiles
+   - connectProfile sets error on failure
+   - disconnectProfile calls client.network.disconnect and refreshes
+   - deleteProfile calls client.network.deleteProfile and refreshes
+   - forgetFingerprint calls client.network.forgetFingerprint and refreshes
+   - saveProfile creates new profile when no id provided (with auto-connect + setSecret)
+   - saveProfile updates existing profile when id is provided
+   - saveProfile sets error on failure
 
-**27 conditional skips breakdown:**
+2. **`tagStorePersistence.test.ts`** (8 tests) — Previously only pure function tests, no localStorage persistence:
+   - loadTags returns empty when nothing stored
+   - loadTags returns parsed tags
+   - loadTags returns empty on invalid JSON
+   - loadTags filters out entries with invalid color
+   - loadTags filters out entries missing required fields
+   - saveTags + loadTags round-trip (empty)
+   - saveTags + loadTags round-trip (populated)
+   - add + remove + reload persistence chain
 
-- 11: Sidebar context menu (requires pinned favorites — Vite preview has none)
-- 6: Navigation folder traversal (requires real FS IPC — double-click, backspace, Alt+arrows)
-- 3: Compress/extract multi-file (requires multiple rows + real IPC)
-- 2: Checksum IPC success (requires Tauri runtime for hash computation)
-- 2: Empty directory (unconditionally skipped — needs real empty FS path)
-- 1: Ctrl+A select all (requires real FS entries)
-- 1: Breadcrumb click navigation (requires real FS navigation)
-- 1: View mode persistence (requires real FS navigation)
+#### Rust (6 new tests, +1 bug fix)
 
-All skips are intentional and documented — they represent runtime state that requires the Tauri backend.
+3. **`provider-smb/tests/ops_test.rs`** (3 new tests, 6 → 9):
+   - smb_error_no_such_file — revealed `map_smb_error` didn't match `NT_STATUS_NO_SUCH_FILE`
+   - smb_error_not_found_case_insensitive — verifies lowercase comparison
+   - join_path_preserves_multiple_segments
 
-## Spec Alignment Audit
+4. **`provider-s3/tests/ops_test.rs`** (3 new tests, 11 → 14):
+   - object_entry_dotfile_has_no_extension — `.env` files have no extension
+   - dir_entry_nested_prefix_extracts_name — `a/b/c/` → name "c"
+   - parse_bucket_key_empty_path — edge case
 
-Findings:
+**Bug found and fixed:** `map_smb_error()` in `provider-smb/src/ops.rs` did not match `NT_STATUS_NO_SUCH_FILE` because the function checked for `"no such file"` (with spaces) but the NT_STATUS uses underscores. Added `msg.contains("no_such_file")` pattern.
 
-1. **E2E tests now reliable** — 165 pass, 27 conditional skips, 0 failures. All timeout issues resolved.
-2. **No TODO/FIXME** in codebase — clean.
-3. **No stub/placeholder components** — all features fully wired.
-4. **RC checklist**: 7/20 unchecked — all are process/QA items.
+**Existing coverage confirmed adequate:**
+
+- `tagStore.test.ts` (10 tests) — pure functions well-covered
+- `tagIntegration.test.tsx` (5 tests) — React component tests
+- `archiveUtils.test.ts` (11 tests) — isArchiveFile + extensions
+- `archiveEntriesReducer.test.ts` (5 tests) — reducer actions
+- `savedSearches.test.ts` (11 tests) — full CRUD round-trip
+- `sidebarSmartFolders.test.tsx` (4 tests) — sidebar rendering
+- `networkNavigation.test.ts` (6 tests) — navigation controller
+- `networkLocationsDialog.ssh.test.tsx` (1 test) — SSH dialog
 
 ## Queue Status
 
-Active RC Queue has **5 pending rows**:
+Active RC Queue has **9 pending rows**:
 
-- **TEST-1** (P1) — Test coverage audit for recent features
 - **TEST-2** (P1) — SMB/S3 integration test validation
 - **PDF-1** (P2) — PDF preview in ViewerDialog
 - **PERF-2** (P2) — Performance benchmark capture
-- **SET-1** (P3) — Advanced settings tab
+- **SET-ADV** (P2) — Advanced settings tab (plan: 2026-05-26-settings-ui-improvement)
+- **SET-NET** (P2) — Network settings tab (plan: 2026-05-26-settings-ui-improvement)
+- **SET-EDIT** (P2) — Editor settings tab (plan: 2026-05-26-settings-ui-improvement)
+- **SET-VIEW** (P2) — Viewer settings tab (plan: 2026-05-26-settings-ui-improvement)
+- **SET-POLISH** (P3) — Settings dialog polish (blocked by SET-ADV/NET/EDIT/VIEW)
 
-Next cron run should pick **TEST-1** as highest priority.
+Next cron run should pick **TEST-2** as highest priority.
