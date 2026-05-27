@@ -162,6 +162,17 @@ export interface ReadImageAsDataUriResponse {
   mimeType: string;
 }
 
+export interface ReadFileAsDataUriRequest {
+  uri: string;
+  maxBytes?: number;
+}
+
+export interface ReadFileAsDataUriResponse {
+  dataUri: string;
+  byteSize: number;
+  mimeType: string;
+}
+
 export interface ReadFileRangeRequest {
   uri: string;
   offset: number;
@@ -333,6 +344,7 @@ export interface UserPreferencesDto {
   fileTypeColorRules: string;
   layoutProfiles: string;
   columnPresets: string;
+  tabSessions: string;
 }
 
 export interface AutostartStatusDto {
@@ -664,6 +676,56 @@ export interface RecursiveSearchCompletedEventDto {
   uri: string;
   query: string;
   result: RecursiveSearchResultDto;
+}
+
+export interface ContentSearchRequest {
+  uri: string;
+  query: string;
+  limit?: number;
+  case_sensitive?: boolean;
+  use_regex?: boolean;
+  file_pattern?: string;
+}
+
+export interface ContentSearchMatchDto {
+  uri: string;
+  parentUri: string;
+  name: string;
+  kind: FileKind;
+  size?: number | null;
+  modifiedAt?: string | null;
+  lineNumber: number;
+  lineContent: string;
+  matchStart: number;
+  matchEnd: number;
+}
+
+export interface ContentSearchResultDto {
+  matches: ContentSearchMatchDto[];
+  warnings: string[];
+  incomplete: boolean;
+}
+
+export interface ContentSearchResponse {
+  result: ContentSearchResultDto;
+}
+
+export interface ContentSearchJobResponse {
+  job: JobSnapshot;
+}
+
+export interface ContentSearchMatchEventDto {
+  jobId: string;
+  uri: string;
+  query: string;
+  item: ContentSearchMatchDto;
+}
+
+export interface ContentSearchCompletedEventDto {
+  jobId: string;
+  uri: string;
+  query: string;
+  result: ContentSearchResultDto;
 }
 
 export interface WatchStartRequest {

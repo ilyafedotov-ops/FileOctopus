@@ -61,6 +61,7 @@ export function createPreviewTransport(): IpcTransport {
     fileTypeColorRules: "",
     layoutProfiles: "",
     columnPresets: "",
+    tabSessions: "",
   };
   const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
   const folderSizeHandlers = new Set<
@@ -306,6 +307,26 @@ export function createPreviewTransport(): IpcTransport {
         command === "fs.watch_stop"
       ) {
         return { ok: true } as TResponse;
+      }
+
+      if (command === "fs.read_file_as_data_uri") {
+        const request = args?.request as { uri?: string } | undefined;
+        const uri = request?.uri ?? "local:///Users/ilya/Documents/manual.pdf";
+        const lower = uri.toLowerCase();
+        const mimeType = lower.endsWith(".png")
+          ? "image/png"
+          : lower.endsWith(".jpg") || lower.endsWith(".jpeg")
+            ? "image/jpeg"
+            : lower.endsWith(".mp3")
+              ? "audio/mpeg"
+              : lower.endsWith(".mp4")
+                ? "video/mp4"
+                : "application/pdf";
+        return {
+          dataUri: `data:${mimeType};base64,JVBERi0xLjQK`,
+          byteSize: 1024,
+          mimeType,
+        } as TResponse;
       }
 
       if (command === "fs.properties") {

@@ -3,6 +3,7 @@ export const commandMap: Record<string, string> = {
   "fs.stat": "fs_stat",
   "fs.read_text_file": "fs_read_text_file",
   "fs.read_file_range": "fs_read_file_range",
+  "fs.read_file_as_data_uri": "fs_read_file_as_data_uri",
   "fs.read_image_as_data_uri": "fs_read_image_as_data_uri",
   "fs.write_text_file": "fs_write_text_file",
   "fs.compute_hash": "fs_compute_hash",

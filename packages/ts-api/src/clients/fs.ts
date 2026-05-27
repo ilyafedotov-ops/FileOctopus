@@ -24,6 +24,8 @@ import type {
   PathPropertiesRequest,
   PathPropertiesResponse,
   PathRequest,
+  ReadFileAsDataUriRequest,
+  ReadFileAsDataUriResponse,
   ReadImageAsDataUriRequest,
   ReadImageAsDataUriResponse,
   ReadFileRangeRequest,
@@ -110,6 +112,19 @@ export class FsClient {
     try {
       return await this.transport.invoke<ReadImageAsDataUriResponse>(
         "fs.read_image_as_data_uri",
+        { request },
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async readFileAsDataUri(
+    request: ReadFileAsDataUriRequest,
+  ): Promise<ReadFileAsDataUriResponse> {
+    try {
+      return await this.transport.invoke<ReadFileAsDataUriResponse>(
+        "fs.read_file_as_data_uri",
         { request },
       );
     } catch (error) {

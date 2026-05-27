@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { FsClient } from "../src/clients/fs";
 import type {
   IpcTransport,
+  ReadFileAsDataUriResponse,
   ReadFileRangeResponse,
   WriteTextFileResponse,
 } from "../src/types";
@@ -33,6 +34,29 @@ describe("FsClient.readFileRange", () => {
     expect(result).toEqual(expected);
     expect(transport.invoke).toHaveBeenCalledWith("fs.read_file_range", {
       request: { uri: "local:///tmp/file.txt", offset: 0, length: 64 },
+    });
+  });
+});
+
+describe("FsClient.readFileAsDataUri", () => {
+  it("routes to fs.read_file_as_data_uri with request payload", async () => {
+    const transport = makeTransport();
+    const expected: ReadFileAsDataUriResponse = {
+      dataUri: "data:application/pdf;base64,JVBERi0xLjQK",
+      byteSize: 1024,
+      mimeType: "application/pdf",
+    };
+    transport.invoke.mockResolvedValueOnce(expected);
+
+    const client = new FsClient(transport);
+    const result = await client.readFileAsDataUri({
+      uri: "local:///tmp/file.pdf",
+      maxBytes: 2048,
+    });
+
+    expect(result).toEqual(expected);
+    expect(transport.invoke).toHaveBeenCalledWith("fs.read_file_as_data_uri", {
+      request: { uri: "local:///tmp/file.pdf", maxBytes: 2048 },
     });
   });
 });

@@ -307,6 +307,21 @@ pub struct ReadImageAsDataUriResponse {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct ReadFileAsDataUriRequest {
+    pub uri: String,
+    pub max_bytes: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ReadFileAsDataUriResponse {
+    pub data_uri: String,
+    pub byte_size: u64,
+    pub mime_type: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ReadFileRangeRequest {
     pub uri: String,
     pub offset: u64,
