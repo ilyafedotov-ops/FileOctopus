@@ -80,6 +80,10 @@ const FALLBACK_PREFERENCES: UserPreferencesDto = {
   layoutProfiles: "",
   columnPresets: "",
   tabSessions: "",
+  logLevel: "warn",
+  experimentalFeatures: false,
+  cacheSizeLimit: 256,
+  fileOperationThreads: 4,
 };
 
 export interface DialogOverlayGroupProps {

@@ -17,6 +17,7 @@ import {
   SettingsOperations,
   SettingsTerminal,
   SettingsKeyboard,
+  SettingsAdvanced,
   type SettingsCategory,
 } from "./settings";
 
@@ -122,6 +123,9 @@ export function SettingsDialog({
             )}
             {activeCategory === "keyboard" && (
               <SettingsKeyboard preferences={preferences} onChange={onChange} />
+            )}
+            {activeCategory === "advanced" && (
+              <SettingsAdvanced preferences={preferences} onChange={onChange} />
             )}
           </div>
         </div>
