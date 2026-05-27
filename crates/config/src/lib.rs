@@ -83,6 +83,10 @@ pub struct UserPreferences {
     pub editor_auto_save: bool,
     pub editor_syntax_highlighting: bool,
     pub editor_line_numbers: bool,
+    pub viewer_default_view_mode: String,
+    pub viewer_image_zoom: String,
+    pub viewer_media_autoplay: bool,
+    pub viewer_max_preview_size: u32,
 }
 
 impl Default for UserPreferences {
@@ -140,6 +144,10 @@ impl Default for UserPreferences {
             editor_auto_save: false,
             editor_syntax_highlighting: true,
             editor_line_numbers: true,
+            viewer_default_view_mode: "text".to_string(),
+            viewer_image_zoom: "fit".to_string(),
+            viewer_media_autoplay: false,
+            viewer_max_preview_size: 10,
         }
     }
 }
@@ -675,6 +683,19 @@ impl UserPreferences {
                 self.editor_syntax_highlighting.to_string(),
             ),
             ("editorLineNumbers", self.editor_line_numbers.to_string()),
+            (
+                "viewerDefaultViewMode",
+                self.viewer_default_view_mode.clone(),
+            ),
+            ("viewerImageZoom", self.viewer_image_zoom.clone()),
+            (
+                "viewerMediaAutoplay",
+                self.viewer_media_autoplay.to_string(),
+            ),
+            (
+                "viewerMaxPreviewSize",
+                self.viewer_max_preview_size.to_string(),
+            ),
         ]
     }
 }
@@ -865,6 +886,21 @@ fn apply_value(
         "editorLineNumbers" => {
             preferences.editor_line_numbers = parse_bool(value, key)?;
         }
+        "viewerDefaultViewMode" => {
+            preferences.viewer_default_view_mode = parse_viewer_view_mode(value)?;
+        }
+        "viewerImageZoom" => {
+            preferences.viewer_image_zoom = parse_viewer_zoom(value)?;
+        }
+        "viewerMediaAutoplay" => {
+            preferences.viewer_media_autoplay = parse_bool(value, key)?;
+        }
+        "viewerMaxPreviewSize" => {
+            preferences.viewer_max_preview_size = value
+                .parse::<u32>()
+                .map_err(|error| invalid_value(key, error.to_string()))?
+                .clamp(1, 1024);
+        }
         _ => {}
     }
 
@@ -1002,6 +1038,32 @@ fn parse_file_path(value: &str) -> Result<String, PreferencesError> {
         ));
     }
     Ok(trimmed.to_string())
+}
+
+fn parse_viewer_view_mode(value: &str) -> Result<String, PreferencesError> {
+    let valid = ["text", "hex"];
+    let lowered = value.trim().to_lowercase();
+    if valid.contains(&lowered.as_str()) {
+        Ok(lowered)
+    } else {
+        Err(invalid_value(
+            "viewerDefaultViewMode",
+            format!("must be one of: {}", valid.join(", ")),
+        ))
+    }
+}
+
+fn parse_viewer_zoom(value: &str) -> Result<String, PreferencesError> {
+    let valid = ["fit", "fill", "actual"];
+    let lowered = value.trim().to_lowercase();
+    if valid.contains(&lowered.as_str()) {
+        Ok(lowered)
+    } else {
+        Err(invalid_value(
+            "viewerImageZoom",
+            format!("must be one of: {}", valid.join(", ")),
+        ))
+    }
 }
 
 fn parse_terminal_shell(value: &str) -> Result<String, PreferencesError> {

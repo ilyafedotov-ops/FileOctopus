@@ -95,6 +95,10 @@ const FALLBACK_PREFERENCES: UserPreferencesDto = {
   editorAutoSave: false,
   editorSyntaxHighlighting: true,
   editorLineNumbers: true,
+  viewerDefaultViewMode: "text",
+  viewerImageZoom: "fit",
+  viewerMediaAutoplay: false,
+  viewerMaxPreviewSize: 10,
 };
 
 export interface DialogOverlayGroupProps {

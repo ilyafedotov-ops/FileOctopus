@@ -57,6 +57,15 @@ fn default_editor_font_size() -> u32 {
 fn default_editor_tab_size() -> u32 {
     4
 }
+fn default_viewer_view_mode() -> String {
+    "text".to_string()
+}
+fn default_viewer_zoom() -> String {
+    "fit".to_string()
+}
+fn default_viewer_max_preview_size() -> u32 {
+    10
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -133,6 +142,14 @@ pub struct UserPreferencesDto {
     pub editor_syntax_highlighting: bool,
     #[serde(default = "default_true")]
     pub editor_line_numbers: bool,
+    #[serde(default = "default_viewer_view_mode")]
+    pub viewer_default_view_mode: String,
+    #[serde(default = "default_viewer_zoom")]
+    pub viewer_image_zoom: String,
+    #[serde(default)]
+    pub viewer_media_autoplay: bool,
+    #[serde(default = "default_viewer_max_preview_size")]
+    pub viewer_max_preview_size: u32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1304,6 +1321,10 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             editor_auto_save: value.editor_auto_save,
             editor_syntax_highlighting: value.editor_syntax_highlighting,
             editor_line_numbers: value.editor_line_numbers,
+            viewer_default_view_mode: value.viewer_default_view_mode,
+            viewer_image_zoom: value.viewer_image_zoom,
+            viewer_media_autoplay: value.viewer_media_autoplay,
+            viewer_max_preview_size: value.viewer_max_preview_size,
         }
     }
 }

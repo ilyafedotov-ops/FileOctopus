@@ -20,6 +20,7 @@ import {
   SettingsAdvanced,
   SettingsNetwork,
   SettingsEditor,
+  SettingsViewer,
   type SettingsCategory,
 } from "./settings";
 
@@ -134,6 +135,9 @@ export function SettingsDialog({
             )}
             {activeCategory === "editor" && (
               <SettingsEditor preferences={preferences} onChange={onChange} />
+            )}
+            {activeCategory === "viewer" && (
+              <SettingsViewer preferences={preferences} onChange={onChange} />
             )}
           </div>
         </div>

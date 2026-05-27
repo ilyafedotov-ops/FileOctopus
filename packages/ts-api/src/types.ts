@@ -360,6 +360,10 @@ export interface UserPreferencesDto {
   editorAutoSave: boolean;
   editorSyntaxHighlighting: boolean;
   editorLineNumbers: boolean;
+  viewerDefaultViewMode: string;
+  viewerImageZoom: string;
+  viewerMediaAutoplay: boolean;
+  viewerMaxPreviewSize: number;
 }
 
 export interface AutostartStatusDto {

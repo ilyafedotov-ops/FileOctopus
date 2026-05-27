@@ -77,6 +77,10 @@ export function createPreviewTransport(): IpcTransport {
     editorAutoSave: false,
     editorSyntaxHighlighting: true,
     editorLineNumbers: true,
+    viewerDefaultViewMode: "text",
+    viewerImageZoom: "fit",
+    viewerMediaAutoplay: false,
+    viewerMaxPreviewSize: 10,
   };
   const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
   const folderSizeHandlers = new Set<
