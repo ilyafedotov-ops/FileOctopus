@@ -7,7 +7,11 @@ afterEach(cleanup);
 
 function makeMockFs(dataUri = "data:image/png;base64,abc", byteSize = 12345) {
   return {
-    readImageAsDataUri: vi.fn().mockResolvedValue({ dataUri, byteSize }),
+    readFileAsDataUri: vi.fn().mockResolvedValue({
+      dataUri,
+      byteSize,
+      mimeType: "image/png",
+    }),
   } as unknown as FsClient;
 }
 
@@ -43,7 +47,7 @@ describe("ViewerImageMode", () => {
 
   it("shows error on failure", async () => {
     const fs = {
-      readImageAsDataUri: vi.fn().mockRejectedValue(new Error("not found")),
+      readFileAsDataUri: vi.fn().mockRejectedValue(new Error("not found")),
     } as unknown as FsClient;
     const entry = makeEntry();
     render(<ViewerImageMode entry={entry} fs={fs} />);

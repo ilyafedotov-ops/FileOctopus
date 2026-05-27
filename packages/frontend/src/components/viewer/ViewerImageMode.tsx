@@ -26,7 +26,7 @@ export function ViewerImageMode({ entry, fs }: ViewerImageModeProps) {
     setError(null);
     setDimensions(null);
     setLoading(true);
-    fs.readImageAsDataUri({ uri: entry.uri })
+    fs.readFileAsDataUri({ uri: entry.uri, maxBytes: 20 * 1024 * 1024 })
       .then((response) => {
         if (cancelled) return;
         setDataUri(response.dataUri);

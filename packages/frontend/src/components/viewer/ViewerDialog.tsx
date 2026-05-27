@@ -5,6 +5,7 @@ import { ViewerTextMode } from "./ViewerTextMode";
 import { ViewerHexMode } from "./ViewerHexMode";
 import { ViewerImageMode } from "./ViewerImageMode";
 import { ViewerMediaMode } from "./ViewerMediaMode";
+import { ViewerPdfMode } from "./ViewerPdfMode";
 
 interface ViewerDialogProps {
   open: boolean;
@@ -84,6 +85,14 @@ export function ViewerDialog({
             </button>
             <button
               role="tab"
+              aria-selected={mode === "pdf"}
+              onClick={() => setMode("pdf")}
+              className="fo-viewer-mode-tab"
+            >
+              PDF
+            </button>
+            <button
+              role="tab"
               aria-selected={mode === "image"}
               onClick={() => setMode("image")}
               className="fo-viewer-mode-tab"
@@ -156,6 +165,7 @@ function ViewerBody({
 }) {
   if (mode === "text") return <ViewerTextMode entry={entry} fs={fs} />;
   if (mode === "hex") return <ViewerHexMode entry={entry} fs={fs} />;
+  if (mode === "pdf") return <ViewerPdfMode entry={entry} fs={fs} />;
   if (mode === "image") return <ViewerImageMode entry={entry} fs={fs} />;
   if (mode === "media") return <ViewerMediaMode entry={entry} fs={fs} />;
   return null;

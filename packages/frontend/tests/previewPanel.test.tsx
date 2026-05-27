@@ -15,8 +15,8 @@ import {
 } from "../src/components/PreviewPanel";
 import type {
   FileEntryDto,
+  ReadFileAsDataUriResponse,
   ReadTextFileResponse,
-  ReadImageAsDataUriResponse,
 } from "@fileoctopus/ts-api";
 
 function makeEntry(overrides: Partial<FileEntryDto> = {}): FileEntryDto {
@@ -31,7 +31,7 @@ function makeEntry(overrides: Partial<FileEntryDto> = {}): FileEntryDto {
 function createMockFs() {
   return {
     readTextFile: vi.fn<() => Promise<ReadTextFileResponse>>(),
-    readImageAsDataUri: vi.fn<() => Promise<ReadImageAsDataUriResponse>>(),
+    readFileAsDataUri: vi.fn<() => Promise<ReadFileAsDataUriResponse>>(),
   };
 }
 
@@ -301,7 +301,7 @@ describe("isPreviewable", () => {
 describe("PreviewPanel image preview", () => {
   it("renders image preview for image files", async () => {
     const mockFs = createMockFs();
-    mockFs.readImageAsDataUri.mockResolvedValue({
+    mockFs.readFileAsDataUri.mockResolvedValue({
       dataUri: "data:image/png;base64,iVBOR",
       byteSize: 12345,
       mimeType: "image/png",
@@ -331,14 +331,15 @@ describe("PreviewPanel image preview", () => {
       expect(img.src.indexOf("data:image/png;base64,iVBOR") !== -1).toBe(true);
     });
 
-    expect(mockFs.readImageAsDataUri).toHaveBeenCalledWith({
+    expect(mockFs.readFileAsDataUri).toHaveBeenCalledWith({
       uri: "local:///home/user/photo.png",
+      maxBytes: 20971520,
     });
   });
 
   it("shows error when image load fails", async () => {
     const mockFs = createMockFs();
-    mockFs.readImageAsDataUri.mockRejectedValue(new Error("File too large"));
+    mockFs.readFileAsDataUri.mockRejectedValue(new Error("File too large"));
 
     const onClose = vi.fn();
     render(
@@ -420,7 +421,7 @@ describe("isPreviewable includes media", () => {
 describe("PreviewPanel media preview", () => {
   it("renders audio element for mp3 files", async () => {
     const mockFs = createMockFs();
-    mockFs.readImageAsDataUri.mockResolvedValue({
+    mockFs.readFileAsDataUri.mockResolvedValue({
       dataUri: "data:audio/mpeg;base64,abc",
       byteSize: 54321,
       mimeType: "audio/mpeg",
@@ -444,14 +445,15 @@ describe("PreviewPanel media preview", () => {
       expect(audio?.tagName.toLowerCase()).toBe("audio");
     });
 
-    expect(mockFs.readImageAsDataUri).toHaveBeenCalledWith({
+    expect(mockFs.readFileAsDataUri).toHaveBeenCalledWith({
       uri: "local:///home/user/Music/song.mp3",
+      maxBytes: 20971520,
     });
   });
 
   it("renders video element for mp4 files", async () => {
     const mockFs = createMockFs();
-    mockFs.readImageAsDataUri.mockResolvedValue({
+    mockFs.readFileAsDataUri.mockResolvedValue({
       dataUri: "data:video/mp4;base64,abc",
       byteSize: 999999,
       mimeType: "video/mp4",
@@ -478,7 +480,7 @@ describe("PreviewPanel media preview", () => {
 
   it("shows error when media load fails", async () => {
     const mockFs = createMockFs();
-    mockFs.readImageAsDataUri.mockRejectedValue(new Error("Too large"));
+    mockFs.readFileAsDataUri.mockRejectedValue(new Error("Too large"));
 
     const onClose = vi.fn();
     render(

@@ -1,7 +1,11 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
-import { isImagePreviewable, isTextPreviewable } from "../PreviewPanel";
+import {
+  isImagePreviewable,
+  isPdfPreviewable,
+  isTextPreviewable,
+} from "../PreviewPanel";
 
-export type ViewerMode = "text" | "hex" | "image" | "media";
+export type ViewerMode = "text" | "hex" | "image" | "media" | "pdf";
 
 const AUDIO_EXTENSIONS = new Set([
   ".mp3",
@@ -46,6 +50,7 @@ export function isAudioEntry(entry: FileEntryDto): boolean {
 
 export function detectViewerMode(entry: FileEntryDto | null): ViewerMode {
   if (!entry) return "text";
+  if (isPdfPreviewable(entry)) return "pdf";
   if (isImagePreviewable(entry)) return "image";
   if (isMediaPreviewable(entry)) return "media";
   if (isTextPreviewable(entry)) return "text";

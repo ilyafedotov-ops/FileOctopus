@@ -7,9 +7,10 @@ afterEach(cleanup);
 
 function makeMockFs() {
   return {
-    readImageAsDataUri: vi.fn().mockResolvedValue({
+    readFileAsDataUri: vi.fn().mockResolvedValue({
       dataUri: "data:image/png;base64,abc",
       byteSize: 5000,
+      mimeType: "image/png",
     }),
     readTextFile: vi
       .fn()

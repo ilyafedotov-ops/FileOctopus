@@ -76,6 +76,8 @@ const IMAGE_EXTENSIONS = new Set([
   ".ico",
 ]);
 
+const PDF_EXTENSIONS = new Set([".pdf"]);
+
 /** Extensions for audio/video media preview */
 const MEDIA_EXTENSIONS = new Set([
   ".mp3",
@@ -100,6 +102,7 @@ const MEDIA_EXTENSIONS = new Set([
 ]);
 
 const MAX_PREVIEW_BYTES = 512 * 1024; // 512 KB
+const MAX_DATA_URI_PREVIEW_BYTES = 20 * 1024 * 1024; // 20 MB
 
 function getExtension(name: string): string {
   const dot = name.lastIndexOf(".");
@@ -134,6 +137,12 @@ export function isImagePreviewable(entry: FileEntryDto | null): boolean {
   return IMAGE_EXTENSIONS.has(ext);
 }
 
+export function isPdfPreviewable(entry: FileEntryDto | null): boolean {
+  if (!entry || entry.kind === "directory") return false;
+  const ext = getExtension(entry.name);
+  return PDF_EXTENSIONS.has(ext);
+}
+
 export function isMediaPreviewable(entry: FileEntryDto | null): boolean {
   if (!entry || entry.kind === "directory") return false;
   const ext = getExtension(entry.name);
@@ -143,6 +152,7 @@ export function isMediaPreviewable(entry: FileEntryDto | null): boolean {
 export function isPreviewable(entry: FileEntryDto | null): boolean {
   return (
     isTextPreviewable(entry) ||
+    isPdfPreviewable(entry) ||
     isImagePreviewable(entry) ||
     isMediaPreviewable(entry)
   );
@@ -174,8 +184,7 @@ function isAudioEntry(entry: FileEntryDto): boolean {
 
 export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
   const [textContent, setTextContent] = useState<string | null>(null);
-  const [imageDataUri, setImageDataUri] = useState<string | null>(null);
-  const [mediaDataUri, setMediaDataUri] = useState<string | null>(null);
+  const [binaryDataUri, setBinaryDataUri] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [truncated, setTruncated] = useState(false);
@@ -186,13 +195,16 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
     setLoading(true);
     setError(null);
     try {
-      if (isImagePreviewable(entry)) {
-        const resp = await fs.readImageAsDataUri({ uri: entry.uri });
-        setImageDataUri(resp.dataUri);
-        setByteSize(resp.byteSize);
-      } else if (isMediaPreviewable(entry)) {
-        const resp = await fs.readImageAsDataUri({ uri: entry.uri });
-        setMediaDataUri(resp.dataUri);
+      if (
+        isImagePreviewable(entry) ||
+        isPdfPreviewable(entry) ||
+        isMediaPreviewable(entry)
+      ) {
+        const resp = await fs.readFileAsDataUri({
+          uri: entry.uri,
+          maxBytes: MAX_DATA_URI_PREVIEW_BYTES,
+        });
+        setBinaryDataUri(resp.dataUri);
         setByteSize(resp.byteSize);
       } else {
         const resp = await fs.readTextFile({
@@ -220,8 +232,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
 
   useEffect(() => {
     setTextContent(null);
-    setImageDataUri(null);
-    setMediaDataUri(null);
+    setBinaryDataUri(null);
     setError(null);
     setTruncated(false);
     setByteSize(0);
@@ -247,6 +258,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
   if (!isPreviewable(entry)) return null;
 
   const isImage = isImagePreviewable(entry);
+  const isPdf = isPdfPreviewable(entry);
   const isMedia = isMediaPreviewable(entry);
 
   const formatBytes = (b: number): string => {
@@ -261,7 +273,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
         <span className="fo-preview-title">{entry.name}</span>
         <span className="fo-preview-meta">
           {loading ? "Loading..." : error ? "Error" : formatBytes(byteSize)}
-          {!isImage && !isMedia && truncated && " (truncated)"}
+          {!isImage && !isPdf && !isMedia && truncated && " (truncated)"}
         </span>
         <button
           className="fo-preview-close"
@@ -274,33 +286,41 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
       <div className="fo-preview-content">
         {loading && <div className="fo-preview-loading">Loading...</div>}
         {error && <div className="fo-preview-error">{error}</div>}
-        {isImage && imageDataUri && !loading && (
+        {isImage && binaryDataUri && !loading && (
           <img
             className="fo-preview-image"
-            src={imageDataUri}
+            src={binaryDataUri}
             alt={entry.name}
           />
         )}
-        {isMedia && mediaDataUri && !loading && (
+        {isPdf && binaryDataUri && !loading && (
+          <object
+            className="fo-preview-pdf"
+            data={binaryDataUri}
+            type="application/pdf"
+            title="PDF preview"
+          />
+        )}
+        {isMedia && binaryDataUri && !loading && (
           <div className="fo-preview-media">
             {isAudioEntry(entry) ? (
               <audio
                 className="fo-preview-audio"
-                src={mediaDataUri}
+                src={binaryDataUri}
                 controls
                 autoPlay
               />
             ) : (
               <video
                 className="fo-preview-video"
-                src={mediaDataUri}
+                src={binaryDataUri}
                 controls
                 autoPlay
               />
             )}
           </div>
         )}
-        {!isImage && !isMedia && textContent !== null && !loading && (
+        {!isImage && !isPdf && !isMedia && textContent !== null && !loading && (
           <pre className="fo-preview-code">{textContent}</pre>
         )}
       </div>

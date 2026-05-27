@@ -7,7 +7,11 @@ afterEach(cleanup);
 
 function makeMockFs(dataUri = "data:audio/mpeg;base64,abc", byteSize = 54321) {
   return {
-    readImageAsDataUri: vi.fn().mockResolvedValue({ dataUri, byteSize }),
+    readFileAsDataUri: vi.fn().mockResolvedValue({
+      dataUri,
+      byteSize,
+      mimeType: dataUri.startsWith("data:video/") ? "video/mp4" : "audio/mpeg",
+    }),
   } as unknown as FsClient;
 }
 
@@ -58,7 +62,7 @@ describe("ViewerMediaMode", () => {
 
   it("shows loading state initially", () => {
     const fs = {
-      readImageAsDataUri: vi.fn().mockReturnValue(new Promise(() => {})),
+      readFileAsDataUri: vi.fn().mockReturnValue(new Promise(() => {})),
     } as unknown as FsClient;
     const entry = makeEntry();
     render(<ViewerMediaMode entry={entry} fs={fs} />);
@@ -67,7 +71,7 @@ describe("ViewerMediaMode", () => {
 
   it("shows error on failure", async () => {
     const fs = {
-      readImageAsDataUri: vi.fn().mockRejectedValue(new Error("read error")),
+      readFileAsDataUri: vi.fn().mockRejectedValue(new Error("read error")),
     } as unknown as FsClient;
     const entry = makeEntry();
     render(<ViewerMediaMode entry={entry} fs={fs} />);
