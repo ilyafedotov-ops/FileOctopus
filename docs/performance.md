@@ -1,5 +1,42 @@
 # FileOctopus Performance Baselines
 
+> Last captured: 2026-05-27 14:00 UTC
+> Machine: Linux 6.8.0-117-generic, dev build (unoptimized)
+
+## Perf Smoke Test Results
+
+Run:
+
+```bash
+pnpm test:perf-smoke
+```
+
+### Frontend: 100k Entry Batch Rendering
+
+| Metric                               | Value                |
+| ------------------------------------ | -------------------- |
+| 100k entry batch render time (jsdom) | ~6.0–6.5s            |
+| Virtual row count                    | < 80 `.fo-row` nodes |
+| Icons view virtualization            | 2/2 tests pass       |
+
+Baseline: Frontend virtualization renders fewer than 80 `.fo-row` nodes for a 100k-entry injected fixture. The render time is dominated by jsdom overhead; real WebKitGTK rendering is faster.
+
+### Frontend: Icons View Virtualization
+
+| Metric    | Value                              |
+| --------- | ---------------------------------- |
+| Test file | `iconsVirtualization.test.tsx`     |
+| Tests     | 2 pass                             |
+| Behavior  | Only visible icons rendered in DOM |
+
+### Backend: Streaming Directory Listing
+
+| Metric   | Value                                               |
+| -------- | --------------------------------------------------- |
+| Test     | `list_streams_without_collecting_all_entries_first` |
+| Duration | ~0.19s                                              |
+| Behavior | Streams entries without collecting all first        |
+
 ## Large Directory Listing
 
 Run:
