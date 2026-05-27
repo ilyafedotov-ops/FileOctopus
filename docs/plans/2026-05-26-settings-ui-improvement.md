@@ -1,7 +1,7 @@
 # Settings UI Improvement Plan
 
 > **Started:** 2026-05-26
-> **Status:** Active
+> **Status:** Complete
 > **Supersedes:** `2026-05-15-settings-controls-gaps.md` (historical — preference fields from that plan are implemented)
 
 ## Goal
