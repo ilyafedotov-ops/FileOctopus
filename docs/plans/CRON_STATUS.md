@@ -1,7 +1,7 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-27 07:00 UTC
-> Mode: Active (3 pending tasks in Active RC Queue)
+> Last run: 2026-05-27 13:45 UTC
+> Mode: Active (5 pending tasks in Active RC Queue)
 
 ## Health Gate
 
@@ -10,7 +10,7 @@
 | TypeScript (`pnpm typecheck`) | ✅ 0 errors             |
 | Rust (`cargo check`)          | ✅ clean                |
 | Cargo fmt                     | ✅ clean                |
-| Frontend tests (`pnpm test`)  | ✅ 680 pass (104 files) |
+| Frontend tests (`pnpm test`)  | ✅ 702 pass (105 files) |
 | Rust tests (`cargo test`)     | ✅ all targets pass     |
 | Prettier (`format:check`)     | ✅ clean                |
 | `pnpm lint`                   | ✅ clean                |
@@ -19,38 +19,32 @@
 
 ## Work Completed This Run
 
-### TEST-1 (P1) — Test Coverage Audit for Recent Features ✅
+### PDF-1 (P2) — PDF Preview with pdf.js Canvas Rendering ✅
 
-**Commits:** `3c346e6`, `8b75ab7`
+**Commit:** `3aa5615`
 
-**22 new tests + 1 bug fix:**
+**Changes (7 files, +731/-17):**
 
-- `useNetworkHandlers.test.ts` — 8 tests covering connect, disconnect, delete, forget, save (new + update), error handling
-- `tagStorePersistence.test.ts` — 8 tests covering loadTags filtering, saveTags + loadTags round-trip, persistence chain
-- `provider-smb/tests/ops_test.rs` — 3 new tests (smb_error_no_such_file, case_insensitive, join_path_segments)
-- `provider-s3/tests/ops_test.rs` — 3 new tests (dotfile extension, nested prefix, empty path)
-- **Bug fix:** `map_smb_error()` didn't match `NT_STATUS_NO_SUCH_FILE` — added `no_such_file` underscore pattern
+- `ViewerPdfMode.tsx` — Rewrote from `<object>` tag to pdf.js canvas-based rendering for WebKitGTK compatibility
+  - Dynamic import of `pdfjs-dist` with `getDocument()` for PDF parsing
+  - Canvas page rendering at 1.5× scale
+  - Page navigation (prev/next) with disabled states on first/last page
+  - Page counter showing "current / total"
+  - Error fallback for corrupted/unsupported PDFs
+  - Proper cancellation of render tasks on unmount/page change
+- `viewerPdfMode.test.tsx` — 13 tests with mocked pdf.js module
+  - Loading state, canvas rendering, file size, modified date
+  - IPC error handling, URI verification, unmount cancellation
+  - Page counter, prev/next buttons, disabled states, page navigation
+  - pdf.js parse error fallback with footer still visible
+- `dialogs.css` — 75 lines of CSS for PDF viewer: canvas, controls, page buttons, error state
+- `detectViewerMode.test.ts` — 2 new tests for PDF routing
+- `previewPanel.test.tsx` — 5 new tests for `isPdfPreviewable`
+- `package.json` — Added `pdfjs-dist: ^5.7.284` dependency
 
-### TEST-2 (P1) — SMB/S3 Connector Integration Tests ✅
+**Remaining pending tasks:** PERF-2, SET-ADV, SET-NET, SET-EDIT, SET-VIEW (5 items)
 
-**Commit:** `938249a`
+## Spec Compliance
 
-**7 new connector tests:**
-
-- `provider-smb/tests/connector_test.rs` — 3 tests: scheme validation, private key rejection, missing password rejection
-- `provider-s3/tests/connector_test.rs` — 4 tests: scheme validation, empty bucket rejection, private key rejection, missing secret key rejection
-
-**Coverage summary per crate (after this run):**
-
-- `provider-smb`: 12 tests (3 connector + 9 ops) — covers error mapping, path joining, auth validation
-- `provider-s3`: 18 tests (4 connector + 14 ops) — covers entry construction, URI parsing, auth validation, bucket resolution
-
-## Queue Status
-
-Active RC Queue has **3 pending rows**:
-
-- **PDF-1** (P2) — PDF preview in ViewerDialog
-- **PERF-2** (P2) — Performance benchmark capture
-- **SET-ADV** (P2) — Advanced settings tab
-
-All P1 tasks are complete. Next cron run should pick **PDF-1** or **PERF-2** as highest remaining priority.
+- PDF preview: ✅ pdf.js canvas-based rendering with page navigation
+- All health gates: ✅ clean
