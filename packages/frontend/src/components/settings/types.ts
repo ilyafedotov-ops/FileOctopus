@@ -7,7 +7,9 @@ export type SettingsCategory =
   | "file-list"
   | "operations"
   | "terminal"
-  | "keyboard";
+  | "keyboard"
+  | "advanced"
+  | "network";
 
 export interface SettingsTreeItem {
   id: SettingsCategory;
@@ -26,4 +28,6 @@ export const SETTINGS_TREE: SettingsTreeItem[] = [
   { id: "operations", label: "Operations" },
   { id: "terminal", label: "Terminal" },
   { id: "keyboard", label: "Keyboard" },
+  { id: "advanced", label: "Advanced" },
+  { id: "network", label: "Network" },
 ];

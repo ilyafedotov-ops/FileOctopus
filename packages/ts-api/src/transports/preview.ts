@@ -62,6 +62,14 @@ export function createPreviewTransport(): IpcTransport {
     layoutProfiles: "",
     columnPresets: "",
     tabSessions: "",
+    logLevel: "warn",
+    experimentalFeatures: false,
+    cacheSizeLimit: 256,
+    fileOperationThreads: 4,
+    networkConnectionTimeout: 30,
+    networkAutoReconnect: true,
+    networkDefaultProtocol: "sftp",
+    networkSshKeyPath: "",
   };
   const batchHandlers = new Set<(payload: DirectoryBatchEventDto) => void>();
   const folderSizeHandlers = new Set<

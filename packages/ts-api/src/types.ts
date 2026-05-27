@@ -345,6 +345,14 @@ export interface UserPreferencesDto {
   layoutProfiles: string;
   columnPresets: string;
   tabSessions: string;
+  logLevel: string;
+  experimentalFeatures: boolean;
+  cacheSizeLimit: number;
+  fileOperationThreads: number;
+  networkConnectionTimeout: number;
+  networkAutoReconnect: boolean;
+  networkDefaultProtocol: string;
+  networkSshKeyPath: string;
 }
 
 export interface AutostartStatusDto {

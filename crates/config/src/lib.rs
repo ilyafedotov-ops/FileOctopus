@@ -68,6 +68,14 @@ pub struct UserPreferences {
     pub file_type_color_rules: String,
     pub layout_profiles: String,
     pub column_presets: String,
+    pub log_level: String,
+    pub experimental_features: bool,
+    pub cache_size_limit: u32,
+    pub file_operation_threads: u32,
+    pub network_connection_timeout: u32,
+    pub network_auto_reconnect: bool,
+    pub network_default_protocol: String,
+    pub network_ssh_key_path: String,
 }
 
 impl Default for UserPreferences {
@@ -110,6 +118,14 @@ impl Default for UserPreferences {
             file_type_color_rules: String::new(),
             layout_profiles: String::new(),
             column_presets: String::new(),
+            log_level: "warn".to_string(),
+            experimental_features: false,
+            cache_size_limit: 256,
+            file_operation_threads: 4,
+            network_connection_timeout: 30,
+            network_auto_reconnect: true,
+            network_default_protocol: "sftp".to_string(),
+            network_ssh_key_path: String::new(),
         }
     }
 }
@@ -612,6 +628,29 @@ impl UserPreferences {
                 "diagnosticsExportPath",
                 self.diagnostics_export_path.clone(),
             ),
+            ("logLevel", self.log_level.clone()),
+            (
+                "experimentalFeatures",
+                self.experimental_features.to_string(),
+            ),
+            ("cacheSizeLimit", self.cache_size_limit.to_string()),
+            (
+                "fileOperationThreads",
+                self.file_operation_threads.to_string(),
+            ),
+            (
+                "networkConnectionTimeout",
+                self.network_connection_timeout.to_string(),
+            ),
+            (
+                "networkAutoReconnect",
+                self.network_auto_reconnect.to_string(),
+            ),
+            (
+                "networkDefaultProtocol",
+                self.network_default_protocol.clone(),
+            ),
+            ("networkSshKeyPath", self.network_ssh_key_path.clone()),
         ]
     }
 }
@@ -742,6 +781,39 @@ fn apply_value(
         "columnPresets" => {
             preferences.column_presets = parse_column_presets(value)?;
         }
+        "logLevel" => {
+            preferences.log_level = parse_log_level(value)?;
+        }
+        "experimentalFeatures" => {
+            preferences.experimental_features = parse_bool(value, key)?;
+        }
+        "cacheSizeLimit" => {
+            preferences.cache_size_limit = value
+                .parse::<u32>()
+                .map_err(|error| invalid_value(key, error.to_string()))?
+                .clamp(16, 4096);
+        }
+        "fileOperationThreads" => {
+            preferences.file_operation_threads = value
+                .parse::<u32>()
+                .map_err(|error| invalid_value(key, error.to_string()))?
+                .clamp(1, 32);
+        }
+        "networkConnectionTimeout" => {
+            preferences.network_connection_timeout = value
+                .parse::<u32>()
+                .map_err(|error| invalid_value(key, error.to_string()))?
+                .clamp(5, 300);
+        }
+        "networkAutoReconnect" => {
+            preferences.network_auto_reconnect = parse_bool(value, key)?;
+        }
+        "networkDefaultProtocol" => {
+            preferences.network_default_protocol = parse_network_protocol(value)?;
+        }
+        "networkSshKeyPath" => {
+            preferences.network_ssh_key_path = parse_file_path(value)?;
+        }
         _ => {}
     }
 
@@ -841,6 +913,43 @@ fn parse_column_presets(value: &str) -> Result<String, PreferencesError> {
     }
     let _: serde_json::Value = serde_json::from_str(trimmed)
         .map_err(|error| invalid_value("columnPresets", format!("invalid JSON: {}", error)))?;
+    Ok(trimmed.to_string())
+}
+
+fn parse_log_level(value: &str) -> Result<String, PreferencesError> {
+    let valid = ["error", "warn", "info", "debug"];
+    let lowered = value.trim().to_lowercase();
+    if valid.contains(&lowered.as_str()) {
+        Ok(lowered)
+    } else {
+        Err(invalid_value(
+            "logLevel",
+            format!("must be one of: {}", valid.join(", ")),
+        ))
+    }
+}
+
+fn parse_network_protocol(value: &str) -> Result<String, PreferencesError> {
+    let valid = ["sftp", "smb", "s3", "webdav"];
+    let lowered = value.trim().to_lowercase();
+    if valid.contains(&lowered.as_str()) {
+        Ok(lowered)
+    } else {
+        Err(invalid_value(
+            "networkDefaultProtocol",
+            format!("must be one of: {}", valid.join(", ")),
+        ))
+    }
+}
+
+fn parse_file_path(value: &str) -> Result<String, PreferencesError> {
+    let trimmed = value.trim();
+    if trimmed.len() > 2048 {
+        return Err(invalid_value(
+            "networkSshKeyPath",
+            "value is too long".to_string(),
+        ));
+    }
     Ok(trimmed.to_string())
 }
 

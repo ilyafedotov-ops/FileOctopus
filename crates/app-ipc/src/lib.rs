@@ -39,6 +39,16 @@ pub struct AppInfoResponse {
     pub network_enabled: bool,
 }
 
+fn default_network_timeout() -> u32 {
+    30
+}
+fn default_true() -> bool {
+    true
+}
+fn default_network_protocol() -> String {
+    "sftp".to_string()
+}
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UserPreferencesDto {
@@ -84,6 +94,22 @@ pub struct UserPreferencesDto {
     pub layout_profiles: String,
     #[serde(default)]
     pub column_presets: String,
+    #[serde(default)]
+    pub log_level: String,
+    #[serde(default)]
+    pub experimental_features: bool,
+    #[serde(default)]
+    pub cache_size_limit: u32,
+    #[serde(default)]
+    pub file_operation_threads: u32,
+    #[serde(default = "default_network_timeout")]
+    pub network_connection_timeout: u32,
+    #[serde(default = "default_true")]
+    pub network_auto_reconnect: bool,
+    #[serde(default = "default_network_protocol")]
+    pub network_default_protocol: String,
+    #[serde(default)]
+    pub network_ssh_key_path: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1240,6 +1266,14 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             file_type_color_rules: value.file_type_color_rules,
             layout_profiles: value.layout_profiles,
             column_presets: value.column_presets,
+            log_level: value.log_level,
+            experimental_features: value.experimental_features,
+            cache_size_limit: value.cache_size_limit,
+            file_operation_threads: value.file_operation_threads,
+            network_connection_timeout: value.network_connection_timeout,
+            network_auto_reconnect: value.network_auto_reconnect,
+            network_default_protocol: value.network_default_protocol,
+            network_ssh_key_path: value.network_ssh_key_path,
         }
     }
 }
