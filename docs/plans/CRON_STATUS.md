@@ -1,7 +1,7 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-27 12:00 UTC
-> Mode: Active (9 pending tasks in Active RC Queue)
+> Last run: 2026-05-27 07:00 UTC
+> Mode: Active (3 pending tasks in Active RC Queue)
 
 ## Health Gate
 
@@ -9,7 +9,6 @@
 | ----------------------------- | ----------------------- |
 | TypeScript (`pnpm typecheck`) | ✅ 0 errors             |
 | Rust (`cargo check`)          | ✅ clean                |
-| Cargo clippy (`-D warnings`)  | ✅ clean (fix ea62051)  |
 | Cargo fmt                     | ✅ clean                |
 | Frontend tests (`pnpm test`)  | ✅ 680 pass (104 files) |
 | Rust tests (`cargo test`)     | ✅ all targets pass     |
@@ -24,68 +23,34 @@
 
 **Commits:** `3c346e6`, `8b75ab7`
 
-**Scope:** TAG-1 (tags), RMT-1 (SMB/S3), P2-14 (smart folders), P2-16 (archive browsing)
+**22 new tests + 1 bug fix:**
 
-**New tests added: 22 total**
+- `useNetworkHandlers.test.ts` — 8 tests covering connect, disconnect, delete, forget, save (new + update), error handling
+- `tagStorePersistence.test.ts` — 8 tests covering loadTags filtering, saveTags + loadTags round-trip, persistence chain
+- `provider-smb/tests/ops_test.rs` — 3 new tests (smb_error_no_such_file, case_insensitive, join_path_segments)
+- `provider-s3/tests/ops_test.rs` — 3 new tests (dotfile extension, nested prefix, empty path)
+- **Bug fix:** `map_smb_error()` didn't match `NT_STATUS_NO_SUCH_FILE` — added `no_such_file` underscore pattern
 
-#### Frontend (16 new tests, 664 → 680)
+### TEST-2 (P1) — SMB/S3 Connector Integration Tests ✅
 
-1. **`useNetworkHandlers.test.ts`** (8 tests) — Previously 0 tests for the entire network handlers hook:
-   - connectProfile calls client.network.connect and refreshes profiles
-   - connectProfile sets error on failure
-   - disconnectProfile calls client.network.disconnect and refreshes
-   - deleteProfile calls client.network.deleteProfile and refreshes
-   - forgetFingerprint calls client.network.forgetFingerprint and refreshes
-   - saveProfile creates new profile when no id provided (with auto-connect + setSecret)
-   - saveProfile updates existing profile when id is provided
-   - saveProfile sets error on failure
+**Commit:** `938249a`
 
-2. **`tagStorePersistence.test.ts`** (8 tests) — Previously only pure function tests, no localStorage persistence:
-   - loadTags returns empty when nothing stored
-   - loadTags returns parsed tags
-   - loadTags returns empty on invalid JSON
-   - loadTags filters out entries with invalid color
-   - loadTags filters out entries missing required fields
-   - saveTags + loadTags round-trip (empty)
-   - saveTags + loadTags round-trip (populated)
-   - add + remove + reload persistence chain
+**7 new connector tests:**
 
-#### Rust (6 new tests, +1 bug fix)
+- `provider-smb/tests/connector_test.rs` — 3 tests: scheme validation, private key rejection, missing password rejection
+- `provider-s3/tests/connector_test.rs` — 4 tests: scheme validation, empty bucket rejection, private key rejection, missing secret key rejection
 
-3. **`provider-smb/tests/ops_test.rs`** (3 new tests, 6 → 9):
-   - smb_error_no_such_file — revealed `map_smb_error` didn't match `NT_STATUS_NO_SUCH_FILE`
-   - smb_error_not_found_case_insensitive — verifies lowercase comparison
-   - join_path_preserves_multiple_segments
+**Coverage summary per crate (after this run):**
 
-4. **`provider-s3/tests/ops_test.rs`** (3 new tests, 11 → 14):
-   - object_entry_dotfile_has_no_extension — `.env` files have no extension
-   - dir_entry_nested_prefix_extracts_name — `a/b/c/` → name "c"
-   - parse_bucket_key_empty_path — edge case
-
-**Bug found and fixed:** `map_smb_error()` in `provider-smb/src/ops.rs` did not match `NT_STATUS_NO_SUCH_FILE` because the function checked for `"no such file"` (with spaces) but the NT_STATUS uses underscores. Added `msg.contains("no_such_file")` pattern.
-
-**Existing coverage confirmed adequate:**
-
-- `tagStore.test.ts` (10 tests) — pure functions well-covered
-- `tagIntegration.test.tsx` (5 tests) — React component tests
-- `archiveUtils.test.ts` (11 tests) — isArchiveFile + extensions
-- `archiveEntriesReducer.test.ts` (5 tests) — reducer actions
-- `savedSearches.test.ts` (11 tests) — full CRUD round-trip
-- `sidebarSmartFolders.test.tsx` (4 tests) — sidebar rendering
-- `networkNavigation.test.ts` (6 tests) — navigation controller
-- `networkLocationsDialog.ssh.test.tsx` (1 test) — SSH dialog
+- `provider-smb`: 12 tests (3 connector + 9 ops) — covers error mapping, path joining, auth validation
+- `provider-s3`: 18 tests (4 connector + 14 ops) — covers entry construction, URI parsing, auth validation, bucket resolution
 
 ## Queue Status
 
-Active RC Queue has **9 pending rows**:
+Active RC Queue has **3 pending rows**:
 
-- **TEST-2** (P1) — SMB/S3 integration test validation
 - **PDF-1** (P2) — PDF preview in ViewerDialog
 - **PERF-2** (P2) — Performance benchmark capture
-- **SET-ADV** (P2) — Advanced settings tab (plan: 2026-05-26-settings-ui-improvement)
-- **SET-NET** (P2) — Network settings tab (plan: 2026-05-26-settings-ui-improvement)
-- **SET-EDIT** (P2) — Editor settings tab (plan: 2026-05-26-settings-ui-improvement)
-- **SET-VIEW** (P2) — Viewer settings tab (plan: 2026-05-26-settings-ui-improvement)
-- **SET-POLISH** (P3) — Settings dialog polish (blocked by SET-ADV/NET/EDIT/VIEW)
+- **SET-ADV** (P2) — Advanced settings tab
 
-Next cron run should pick **TEST-2** as highest priority.
+All P1 tasks are complete. Next cron run should pick **PDF-1** or **PERF-2** as highest remaining priority.
