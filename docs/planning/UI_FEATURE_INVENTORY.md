@@ -2,7 +2,7 @@
 
 Extracted from: UI Design Spec, MVP Engineering Spec, ui.md, frontend.md, Sprint 4 Backlog, Sprint 5 Backlog, Sprint 5 Release Notes.
 
-**Status alignment:** See [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](./PROJECT_STATUS_AND_DOC_ALIGNMENT.md) for what is implemented in the codebase as of 2026-05-16. Section 13 below reflects that snapshot.
+**Status alignment:** See [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](./PROJECT_STATUS_AND_DOC_ALIGNMENT.md) for what is implemented in the codebase as of 2026-05-27. Section 13 below reflects that snapshot.
 
 Each item is marked **specified** (explicitly defined in docs with detail) or **suggested** (implied, mentioned as TODO/stretch, or described loosely without full spec).
 
@@ -386,7 +386,7 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 
 ---
 
-## 13. Implementation snapshot (2026-05-23)
+## 13. Implementation snapshot (2026-05-27)
 
 ### Delivered after Sprint 5 (codebase)
 
@@ -413,7 +413,36 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 
 ### Still not implemented (specified)
 
-- **PDF/media/EXIF preview expansion** — broader product expansion than current RC image-preview scope
+- **EXIF metadata display** — Properties dialog EXIF tab; post-RC visual expansion
+- **Rubber-band (lasso) select** — requires virtual-scroll-aware coordinate math; deferred (P3-6)
+- **Keyboard-navigable dropdown menus** — arrow-key navigation in toolbar/MenuBar dropdowns (context menu sort submenu done)
+
+### Delivered since last snapshot (2026-05-23 → 2026-05-27)
+
+- **PDF preview** — pdf.js canvas rendering with page navigation, zoom, and error fallback (PDF-1)
+- **Advanced settings tab** — log level, experimental features toggle, cache size, thread count (SET-ADV)
+- **Network settings tab** — connection timeout, auto-reconnect, default protocol, SSH key path (SET-NET)
+- **Editor settings tab** — font family/size, tab size, word wrap, auto-save, syntax highlighting, line numbers (SET-EDIT)
+- **Viewer settings tab** — default view mode, image zoom, media autoplay, max preview file size (SET-VIEW)
+- **Settings dialog polish** — search/filter bar, section descriptions, consistent accessibility labels (SET-POLISH)
+- **Performance benchmark capture** — `docs/performance.md` with large-directory and file-operation timings (PERF-2)
+- **Audio/video media preview** — HTML5 controls for 19 audio/video extensions (P2-13)
+- **Saved searches / smart folders** — sidebar section with save/open/rename/remove, localStorage (P2-14)
+- **Archive browsing** — browse zip/tar contents without extraction (P2-16)
+- **Tag/label system** — color tags, context menu Tags submenu, FileRow badges, localStorage (TAG-1)
+- **SMB/S3 remote providers** — full provider crates, VFS registration, frontend UI wiring (RMT-1)
+- **Job pause/resume** — backend job.pause IPC + UI buttons (P3-3)
+- **Eject/unmount** — safely eject removable volumes from sidebar (P3-2)
+- **Dual pane vertical split** — toggle between horizontal and vertical split (P3-4)
+- **Storage gauge** — disk usage bar in status bar (P3-5)
+- **Column reorder** — drag column headers, persisted in localStorage (P3-1)
+- **Rich Copy To / Move To** — tree browser destination chooser (P1-3)
+- **Image preview** — gallery prev/next, image dimensions, viewer footer (P1-4)
+- **Symlink indicator** — badge + copy/move warning (P2-12)
+- **Checksum verification UI** — on-demand SHA-256 + expected hash + match/mismatch in Properties (P2-15)
+- **E2E reliability** — 165 pass, 27 conditional skips, 0 failures (E2E-1)
+- **Test coverage audit** — 22 new tests across recent features (TEST-1)
+- **SMB/S3 integration test validation** — provider crate test coverage confirmed (TEST-2)
 
 ### Fixed doc drift (previously listed as not implemented, now done)
 

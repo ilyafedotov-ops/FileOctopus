@@ -1,6 +1,6 @@
 # FileOctopus — Project Status & Documentation Alignment
 
-**As of:** 2026-05-26
+**As of:** 2026-05-27
 **Purpose:** Single source of truth for how specification documents relate to the running codebase. Use this page before trusting older audit notes, sprint release notes, or inventory “not implemented” lists.
 
 ## Document roles
@@ -49,7 +49,7 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 - View modes: details, list, icons, columns
 - Details columns: Name, Size, Modified, Created, Type, Extension, Permissions, Owner; Hash on-demand per selected file
 - Context menus (item + empty space), operation dialogs, activity/history panel, status bar, toasts
-- Settings: General (autostart), Appearance (theme, density, accent, font/icon scale), Files & Folders, Layout (sidebar/activity visibility)
+- Settings: General (autostart), Appearance (theme, density, accent, font/icon scale), Files & Folders, Layout (sidebar/activity visibility), Operations (confirm delete/overwrite, conflict policy, trash behavior), Advanced (log level, experimental features, cache size, thread count), Network (connection timeout, auto-reconnect, protocol, SSH key path), Editor (font, tab size, word wrap, auto-save, syntax highlight, line numbers), Viewer (default view mode, image zoom, media autoplay, max preview size), Diagnostics, Shortcuts — with search/filter bar and section descriptions
 - Help: Keyboard shortcuts, Diagnostics + export bundle
 - Filesystem watcher → debounced refresh
 - Command palette (Ctrl/Cmd+P) built from `COMMAND_DEFINITIONS` (`commands/paletteEntries.ts`), text preview panel (Space for text files)
@@ -72,16 +72,29 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 - **Network sidebar deduplication** — saved SFTP/SSH profiles are surfaced in the dedicated Network section instead of being duplicated under Devices/Volumes
 - **First-run overlay** — dismissible initial welcome flow persisted in localStorage with entry points into Settings, Shortcuts, and Network
 - **Title bar sync/health indicator** — title bar shows active Git repo state, remote connection state, and operation error health pills
+- **PDF preview** — pdf.js canvas rendering with page navigation, zoom, and error fallback (PDF-1)
+- **Advanced/Network/Editor/Viewer settings tabs** — four new settings tabs with real preferences wiring (SET-ADV, SET-NET, SET-EDIT, SET-VIEW)
+- **Settings dialog polish** — search/filter bar, section descriptions, consistent spacing and accessibility labels (SET-POLISH)
+- **Performance benchmark capture** — `docs/performance.md` with smoke timings (PERF-2)
+- **Audio/video media preview** — HTML5 controls for 19 audio/video extensions (P2-13)
+- **Saved searches / smart folders** — sidebar section with save/open/rename/remove, localStorage (P2-14)
+- **Archive browsing** — browse zip/tar contents without extraction (P2-16)
+- **Tag/label system** — color tags, context menu Tags submenu, FileRow badges, localStorage (TAG-1)
+- **SMB/S3 remote providers** — full provider crates, VFS registration, frontend UI wiring (RMT-1)
+- **Job pause/resume** — backend job.pause IPC + UI pause/resume buttons in activity panel (P3-3)
+- **Eject/unmount** — safely eject removable volumes from sidebar (P3-2)
+- **Dual pane vertical split** — toggle between horizontal and vertical split (P3-4)
+- **Storage gauge** — disk usage bar in status bar (P3-5)
+- **Column reorder** — drag column headers, persisted in localStorage (P3-1)
+- **E2E reliability** — 165 pass, 27 conditional skips, 0 failures (E2E-1)
 
 ### Specified but not implemented (or stub only)
 
-| Item                             | Spec source                 | Notes                                                                        |
-| -------------------------------- | --------------------------- | ---------------------------------------------------------------------------- |
-| Advanced settings tab            | UI Design Spec §Preferences | Planned in 2026-05-26-settings-ui-improvement (SET-ADV); previously deferred |
-| Network settings tab             | UI Design Spec §Preferences | Stub exists; planned in 2026-05-26-settings-ui-improvement (SET-NET)         |
-| Editor settings tab              | UI Design Spec §Preferences | Stub exists; planned in 2026-05-26-settings-ui-improvement (SET-EDIT)        |
-| Viewer settings tab              | UI Design Spec §Preferences | Stub exists; planned in 2026-05-26-settings-ui-improvement (SET-VIEW)        |
-| PDF/media/EXIF preview expansion | UI §Preview                 | Image preview is implemented; broader preview modes remain deferred          |
+| Item                       | Spec source       | Notes                                                                   |
+| -------------------------- | ----------------- | ----------------------------------------------------------------------- |
+| EXIF metadata display      | UI §Preview       | Properties dialog EXIF tab — post-RC visual expansion                   |
+| Rubber-band (lasso) select | UI Design Spec    | Requires virtual-scroll-aware coordinate math; deferred (P3-6)          |
+| Keyboard-navigable menus   | UI Design Spec §5 | Arrow-key navigation in dropdown menus (context menu sort submenu done) |
 
 ### Intentionally deferred (RC spec §3.3)
 
@@ -204,8 +217,8 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 4. Keep **UI Feature Inventory §13** in sync with this page (not the reverse).
 5. Use RC spec §17 and the milestone table above for planning (not the old MVP §17 list).
 
-## Test signal (2026-05-26)
+## Test signal (2026-05-27)
 
-- `pnpm --filter @fileoctopus/frontend test` — 647 tests across 101 files pass (`vitest run --environment jsdom`)
-- `cargo test --workspace` — 333 tests pass across all crates
+- `pnpm --filter @fileoctopus/frontend test` — 772 tests across 110 files pass (`vitest run --environment jsdom`)
+- `cargo test --workspace` — 381 tests pass across all crates
 - Catalog drift guards: `packages/ts-api/tests/catalogs.test.ts` keeps Rust ↔ TS command/event constants and the 57-command count aligned

@@ -1,6 +1,6 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-27 20:55 UTC
+> Last run: 2026-05-27 23:05 UTC
 > Mode: Audit-only (Active RC Queue empty — all tasks complete)
 
 ## Health Gate
@@ -10,50 +10,41 @@
 | TypeScript (`pnpm typecheck`) | ✅ 0 errors             |
 | Rust (`cargo check`)          | ✅ clean                |
 | Cargo fmt                     | ✅ clean                |
-| Frontend tests (`pnpm test`)  | ✅ 768 pass (110 files) |
-| Rust tests (`cargo test`)     | ✅ 367 tests all pass   |
+| Frontend tests (`pnpm test`)  | ✅ 772 pass (110 files) |
+| Rust tests (`cargo test`)     | ✅ 381 tests all pass   |
 | Prettier (`format:check`)     | ✅ clean                |
 | `pnpm lint`                   | ✅ clean                |
 | Clippy                        | ✅ clean                |
-| RC validate                   | ✅ clean                |
 
 **Gate status:** GREEN — 0 failures.
 
 ## Work Completed This Run
 
-### SET-POLISH (P3) — Settings Dialog Polish ✅
+### Doc audit and drift correction ✅
 
-**Commit:** `a54576c`
-
-- Added search/filter bar to `SettingsTree` that filters nav items by label, description, and ID
-- Added `description` field to `SettingsTreeItem` interface and populated all 13 `SETTINGS_TREE` entries
-- Added `role="region"` + `aria-label` to all 13 settings tabs (was inconsistent before)
-- Added `fo-settings-description` paragraph to all 13 tabs with descriptive text
-- Updated `SettingsDialog` header subtitle to "Configure appearance, behavior, and preferences."
-- Added CSS: `.fo-settings-nav-wrapper`, `.fo-settings-search`, `.fo-settings-description`
-- **27 new tests** (3 search filter + 12 section descriptions + 12 accessibility regions)
-- 768/768 tests pass, `tsc --noEmit` clean
-
-### Doc update ✅
-
-**Commit:** `d9e1ec7`
-
-- Marked SET-POLISH as done in `CRON_TASKS.md`
-- Updated `2026-05-26-settings-ui-improvement.md` plan status to "Complete"
-
-## TDD Evidence
-
-- RED: `settingsPolish.test.tsx` — 21 tests failing (no search input, missing regions, missing descriptions)
-- GREEN: Implemented search bar in `SettingsTree`, descriptions + regions in all 13 tabs
-- REFACTOR: Added CSS, verified prettier formatting
-- Final: 768/768 pass (110 files), `tsc --noEmit` 0 errors
+- Updated `PROJECT_STATUS_AND_DOC_ALIGNMENT.md`:
+  - Corrected date from 2026-05-26 → 2026-05-27
+  - Removed 5 items from "Specified but not implemented" that are all done (SET-ADV, SET-NET, SET-EDIT, SET-VIEW, PDF-1)
+  - Added 16 new delivered items to "Implemented" section
+  - Updated Settings description to reflect all 13 tabs with search/filter
+  - Updated test signal: 647→772 frontend tests, 333→381 Rust tests
+- Updated `UI_FEATURE_INVENTORY.md`:
+  - Corrected alignment date from 2026-05-16 → 2026-05-27
+  - Updated snapshot date from 2026-05-23 → 2026-05-27
+  - Replaced "Still not implemented" (was only PDF) with 3 actual remaining items
+  - Added 24 newly delivered items since last snapshot (2026-05-23)
 
 ## Spec Compliance
 
-- Settings dialog now has search/filter capability ✅
-- All 13 tabs follow consistent patterns (role="region", aria-label, description) ✅
-- UI Design Spec §Preferences alignment confirmed ✅
+- PROJECT_STATUS "Specified but not implemented" now accurately lists only 3 remaining UI gaps (EXIF, rubber-band, keyboard-navigable menus) ✅
+- UI_FEATURE_INVENTORY §13 aligned with current codebase ✅
 
 ## Queue Status
 
 Active RC Queue: **0 pending** — all tasks complete. Audit-only mode engaged.
+
+## Remaining Specified-But-Not-Implemented Items
+
+1. EXIF metadata display (post-RC visual expansion)
+2. Rubber-band (lasso) select (deferred P3-6 — too large for single cycle)
+3. Keyboard-navigable dropdown menus (context menu sort submenu done; toolbar/MenuBar dropdowns pending)
