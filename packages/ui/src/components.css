@@ -105,6 +105,8 @@
 
 .fo-ui-dropdown-menu--portal {
   position: fixed;
+  max-height: min(70vh, 28rem);
+  overflow-y: auto;
 }
 
 .fo-ui-input,

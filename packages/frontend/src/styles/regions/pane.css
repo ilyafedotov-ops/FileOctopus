@@ -1351,6 +1351,55 @@
   min-width: 0;
 }
 
+.fo-panel-title-row > .fo-ui-dropdown {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.fo-pane-location-trigger.fo-ui-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 10.5rem;
+  min-height: var(--fo-pathbar-height);
+  padding: 0 6px;
+  border-right: 1px solid var(--fo-panel-bg);
+  border-radius: 0;
+  background: var(--fo-editor-bg);
+  color: var(--fo-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.fo-panel[data-active="false"] .fo-pane-location-trigger.fo-ui-btn {
+  background: var(--fo-tab-bg);
+  color: var(--fo-classic-text);
+}
+
+.fo-pane-location-trigger.fo-ui-btn:hover:not(:disabled),
+.fo-pane-location-trigger.fo-ui-btn:focus-visible {
+  background: var(--fo-border);
+  border-color: var(--fo-border);
+}
+
+.fo-pane-location-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+}
+
+.fo-pane-location-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-pane-location-trigger .fo-ui-icon {
+  color: currentColor;
+}
+
 .fo-panel-title-row .fo-breadcrumb {
   width: 100%;
   min-height: var(--fo-pathbar-height);
@@ -1385,6 +1434,10 @@
 .fo-panel-path-row .fo-path {
   flex: 1;
   min-width: 0;
+}
+
+.fo-workspace[data-layout-tier="xs"] .fo-pane-location-trigger.fo-ui-btn {
+  max-width: 7rem;
 }
 
 .fo-toolbar-group {

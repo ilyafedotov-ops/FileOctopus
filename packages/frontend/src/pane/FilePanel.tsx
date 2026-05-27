@@ -45,6 +45,7 @@ import {
 } from "./columnWidths";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { paneDirectoryCanWrite } from "../navigation/fileMutationState";
+import type { PaneLocationTarget } from "../navigation/driveTargets";
 import type { ContextMenuState } from "../components/ContextMenu";
 import { usePaneGitStatus } from "./usePaneGitStatus";
 
@@ -57,6 +58,7 @@ export interface FilePanelProps {
   active: boolean;
   onActivate: () => void;
   onNavigate: (uri: string) => void;
+  locationTargets: PaneLocationTarget[];
   onSelect: (entryId: string | null) => void;
   onEntrySelect: (entryId: string, mode: "single" | "toggle" | "range") => void;
   onMove: (delta: number) => void;
@@ -104,6 +106,7 @@ export function FilePanel({
   active,
   onActivate,
   onNavigate,
+  locationTargets,
   onSelect,
   onEntrySelect,
   onMove,
@@ -238,6 +241,8 @@ export function FilePanel({
         pathError={tab.error}
         pathFocusToken={pathFocusToken}
         onNavigate={onNavigate}
+        onActivate={onActivate}
+        locationTargets={locationTargets}
         onBreadcrumbContextMenu={onBreadcrumbContextMenu}
         onOpenTerminal={onOpenTerminal}
         terminalDisabled={terminalDisabled}

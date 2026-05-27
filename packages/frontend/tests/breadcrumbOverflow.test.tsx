@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { BreadcrumbPath, type BreadcrumbSegment } from "@fileoctopus/ui";
 import { PathBar } from "../src/pane/PanePathBar";
+import { PaneHeader } from "../src/pane/PaneHeader";
 
 afterEach(cleanup);
 
@@ -172,5 +173,47 @@ describe("BreadcrumbPath overflow", () => {
       ),
     ).toBeTruthy();
     expect(screen.getByText("home")).toBeTruthy();
+  });
+});
+
+describe("PaneHeader location selector", () => {
+  it("navigates through the pane-specific location dropdown", () => {
+    const onNavigate = vi.fn();
+    render(
+      <PaneHeader
+        uri="local:///Users/ilya"
+        pathError={null}
+        pathFocusToken={0}
+        onNavigate={onNavigate}
+        locationTargets={[
+          {
+            id: "volume-root",
+            label: "Macintosh HD",
+            uri: "local:///",
+            section: "Devices/Volumes",
+            kind: "volume",
+          },
+          {
+            id: "standard-home",
+            label: "Home",
+            uri: "local:///Users/ilya",
+            section: "User folders",
+            kind: "standard",
+          },
+          {
+            id: "favorite-projects",
+            label: "Projects",
+            uri: "local:///Users/ilya/Projects",
+            section: "Favorites",
+            kind: "favorite",
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Location: Home" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Projects" }));
+
+    expect(onNavigate).toHaveBeenCalledWith("local:///Users/ilya/Projects");
   });
 });
