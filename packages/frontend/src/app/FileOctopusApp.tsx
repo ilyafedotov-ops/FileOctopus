@@ -14,6 +14,7 @@ import { isPreviewable, isTextPreviewable } from "../components/PreviewPanel";
 import type { FilePanelProps } from "../pane/FilePanel";
 import { ShellLayout } from "../shell/ShellLayout";
 import { buildPaletteEntries } from "../commands/paletteEntries";
+import { buildPaneLocationTargets } from "../navigation/driveTargets";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { isRemoteUri, profileIdFromRemoteUri } from "@fileoctopus/ts-api";
 
@@ -689,6 +690,14 @@ function FileOctopusAppInner({
 
   function makeFilePanelProps(pid: "left" | "right"): FilePanelProps {
     const tab = activeTab(state.panels[pid]);
+    const locationTargets = buildPaneLocationTargets({
+      locations,
+      networkProfiles,
+      networkStatuses,
+      favorites,
+      starred,
+      recentEntries: [...recentToday, ...recentWeek],
+    });
     const runPanel = (
       commandId: string,
       context?: import("../commands/invokeContext").CommandInvokeArg,
@@ -701,6 +710,7 @@ function FileOctopusAppInner({
       active: state.activePanelId === pid,
       onActivate: () => dispatch({ type: "setActivePanel", panelId: pid }),
       onNavigate: (uri) => navigatePanel(pid, uri),
+      locationTargets,
       onSelect: (entryId) =>
         dispatch({ type: "setSelection", panelId: pid, entryId }),
       onEntrySelect: (entryId, mode) =>
