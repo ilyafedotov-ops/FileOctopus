@@ -135,15 +135,19 @@ Each item is marked **specified** (explicitly defined in docs with detail) or **
 
 ### Sections
 
-- **General** — specified (UI Design Spec §Preferences)
-- **Appearance** — specified (UI Design Spec §Preferences, Sprint 5 FO-0221)
-- **Files & Folders** — specified (UI Design Spec §Preferences)
-- **Operations** — specified (UI Design Spec §Preferences)
-- **Shortcuts** — specified (UI Design Spec §Preferences)
-- **Advanced** — specified (UI Design Spec §Preferences)
-- **Layout** — specified (Sprint 5 FO-0221)
-- **Diagnostics** — specified (Sprint 5 FO-0221)
-- **File List** — specified (Sprint 5 FO-0221)
+- **General** — specified (UI Design Spec §Preferences) — **implemented**
+- **Display** (Appearance) — specified (UI Design Spec §Preferences, Sprint 5 FO-0221) — **implemented**
+- **Colors** — specified (Sprint 5 FO-0221) — **implemented**
+- **Layout** — specified (Sprint 5 FO-0221) — **implemented**
+- **Layout Profiles** — specified (Sprint 5 FO-0221) — **implemented**
+- **File List** — specified (Sprint 5 FO-0221) — **implemented**
+- **Operations** (Files & Folders) — specified (UI Design Spec §Preferences) — **implemented**
+- **Terminal** — specified — **implemented**
+- **Shortcuts** (Keyboard) — specified (UI Design Spec §Preferences) — **implemented**
+- **Advanced** — specified (UI Design Spec §Preferences) — **planned** (SET-ADV in 2026-05-26-settings-ui-improvement)
+- **Network** — specified (UI Design Spec §Preferences) — **stub** (SET-NET in 2026-05-26-settings-ui-improvement)
+- **Editor** — specified (UI Design Spec §Preferences) — **stub** (SET-EDIT in 2026-05-26-settings-ui-improvement)
+- **Viewer** — specified (UI Design Spec §Preferences) — **stub** (SET-VIEW in 2026-05-26-settings-ui-improvement)
 
 ### Individual Settings Fields
 

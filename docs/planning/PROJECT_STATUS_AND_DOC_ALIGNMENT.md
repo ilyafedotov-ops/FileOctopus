@@ -75,10 +75,13 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 
 ### Specified but not implemented (or stub only)
 
-| Item                             | Spec source                 | Notes                                                                             |
-| -------------------------------- | --------------------------- | --------------------------------------------------------------------------------- |
-| Advanced settings tab            | UI Design Spec §Preferences | Operations and Shortcuts sections exist; a separate Advanced tab remains deferred |
-| PDF/media/EXIF preview expansion | UI §Preview                 | Image preview is implemented; broader preview modes remain deferred               |
+| Item                             | Spec source                 | Notes                                                                        |
+| -------------------------------- | --------------------------- | ---------------------------------------------------------------------------- |
+| Advanced settings tab            | UI Design Spec §Preferences | Planned in 2026-05-26-settings-ui-improvement (SET-ADV); previously deferred |
+| Network settings tab             | UI Design Spec §Preferences | Stub exists; planned in 2026-05-26-settings-ui-improvement (SET-NET)         |
+| Editor settings tab              | UI Design Spec §Preferences | Stub exists; planned in 2026-05-26-settings-ui-improvement (SET-EDIT)        |
+| Viewer settings tab              | UI Design Spec §Preferences | Stub exists; planned in 2026-05-26-settings-ui-improvement (SET-VIEW)        |
+| PDF/media/EXIF preview expansion | UI §Preview                 | Image preview is implemented; broader preview modes remain deferred          |
 
 ### Intentionally deferred (RC spec §3.3)
 

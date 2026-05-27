@@ -1043,16 +1043,35 @@ Properties should include:
 ```text
 SettingsDialog
 ├─ Sidebar navigation
-│  ├─ Appearance
+│  ├─ General
+│  ├─ Display
+│  ├─ Colors
 │  ├─ Layout
+│  ├─ Layout Profiles
 │  ├─ File List
-│  ├─ Behavior
+│  ├─ Operations
+│  ├─ Terminal
 │  ├─ Keyboard
+│  ├─ Network
+│  ├─ Editor
+│  ├─ Viewer
+│  ├─ Advanced
 │  └─ Diagnostics
 └─ Settings page content
 ```
 
-### 19.2 Appearance settings
+> **Implementation note:** See `docs/plans/2026-05-26-settings-ui-improvement.md` for the active plan
+> wiring Network, Editor, Viewer, and Advanced tabs. General, Display, Colors, Layout, Layout Profiles,
+> File List, Operations, Terminal, and Keyboard are already implemented.
+
+### 19.2 General settings
+
+| Setting                 | Values           | Notes                                      |
+| ----------------------- | ---------------- | ------------------------------------------ |
+| Start on system startup | Boolean          | Registers/removes autostart entry          |
+| Diagnostics export path | File path string | Default `/tmp/fileoctopus-diagnostics.zip` |
+
+### 19.3 Display settings
 
 | Setting      | Values                                        | Applies to                          |
 | ------------ | --------------------------------------------- | ----------------------------------- |
@@ -1062,39 +1081,125 @@ SettingsDialog
 | Icon size    | Small, Default, Large                         | Sidebar, file rows, toolbar         |
 | Accent style | Default/system or future configurable accents | Focus, active pane, primary buttons |
 
-### 19.3 Layout settings
+### 19.4 Colors settings
+
+| Setting          | Values                                    | Notes                                    |
+| ---------------- | ----------------------------------------- | ---------------------------------------- |
+| Accent color     | 8 preset swatches                         | Primary UI accent                        |
+| File type colors | Rules with pattern, color, enabled toggle | Add/edit/delete/reorder; preset palettes |
+
+### 19.5 Layout settings
 
 | Setting             | Values                                   | Notes                         |
 | ------------------- | ---------------------------------------- | ----------------------------- |
 | Pane mode           | Single, Dual                             | Dual default                  |
 | Split ratio         | Numeric/persisted                        | Updated by dragging splitter  |
+| Split direction     | Horizontal, Vertical                     | Vertical split supported      |
 | Sidebar visible     | Boolean                                  | Toggleable from View menu     |
 | Status bar visible  | Boolean or always-on                     | Recommended always-on for MVP |
+| Toolbar visible     | Boolean                                  | Toggleable from View menu     |
 | Job drawer behavior | Manual, open on job start, open on error | User preference               |
+| Remember last panes | Boolean                                  | Persisted via backend         |
 | Reset layout        | Action                                   | Requires confirmation         |
 
-### 19.4 File List settings
+### 19.6 Layout Profiles
+
+| Setting  | Values | Notes                                                  |
+| -------- | ------ | ------------------------------------------------------ |
+| Profiles | List   | Save/apply/delete/export/import named layout snapshots |
+
+### 19.7 File List settings
 
 | Setting                | Values                                                      |
 | ---------------------- | ----------------------------------------------------------- |
-| Default view mode      | Details, List, Compact                                      |
+| Default view mode      | Details, List, Icons, Columns                               |
 | Show hidden files      | Boolean                                                     |
 | Folders first          | Boolean                                                     |
 | Default sort column    | Name, Size, Type, Modified                                  |
 | Default sort direction | Ascending, Descending                                       |
 | Visible columns        | Name, Size, Type, Modified, Created, Extension, Permissions |
+| Column presets         | Save/apply/delete named column configurations               |
 
-### 19.5 Behavior settings
+### 19.8 Operations settings
 
 | Setting                            | Values                                              |
 | ---------------------------------- | --------------------------------------------------- |
 | Confirm move to trash              | Always, Multi-selection only, Never for single item |
 | Confirm permanent delete           | Always; not disableable for MVP                     |
+| Use trash by default               | Boolean                                             |
+| Confirm overwrite                  | Boolean                                             |
+| Default conflict policy            | Fail, Skip, Overwrite, Rename New, Rename Existing  |
+| Show advanced copy options         | Boolean                                             |
 | Open job drawer on operation start | Boolean                                             |
 | Restore last session paths         | Boolean                                             |
 | Preserve selection after refresh   | Boolean where safe                                  |
 
-### 19.6 Diagnostics settings
+### 19.9 Terminal settings
+
+| Setting                          | Values  | Notes                        |
+| -------------------------------- | ------- | ---------------------------- |
+| Shell program                    | String  | Default: system shell        |
+| Launch arguments                 | String  | Extra args for shell process |
+| Open pane terminal expanded      | Boolean |                              |
+| Cd on navigate                   | Boolean | Sync cwd with active pane    |
+| Confirm close pane with terminal | Boolean | Warn before closing          |
+
+### 19.10 Keyboard settings
+
+| Setting           | Values                                | Notes                                        |
+| ----------------- | ------------------------------------- | -------------------------------------------- |
+| Shortcut list     | Filterable, grouped by category       | Navigation, operation, view, clipboard, etc. |
+| Per-shortcut edit | Key recording with conflict detection | Custom badge for user-modified shortcuts     |
+| Reset shortcuts   | Per-shortcut or reset all             |                                              |
+
+### 19.11 Network settings
+
+> **Status:** Stub component exists (`SettingsNetwork.tsx`); wiring planned (SET-NET).
+
+| Setting               | Values           | Notes                                    |
+| --------------------- | ---------------- | ---------------------------------------- |
+| Connection timeout    | Numeric (ms)     | Default timeout for remote connections   |
+| Auto-reconnect        | Boolean          | Automatically reconnect dropped sessions |
+| Default protocol      | SFTP, SMB, S3    | Preferred protocol for new connections   |
+| SSH key path override | File path string | Custom identity file for SSH             |
+
+### 19.12 Editor settings
+
+> **Status:** Stub component exists (`SettingsEditor.tsx`); wiring planned (SET-EDIT).
+
+| Setting             | Values  | Notes             |
+| ------------------- | ------- | ----------------- |
+| Font family         | String  | Monospace default |
+| Font size           | Numeric | In pixels         |
+| Tab size            | 2, 4, 8 | Spaces per tab    |
+| Word wrap           | Boolean | Wrap long lines   |
+| Auto-save           | Boolean | Save on change    |
+| Syntax highlighting | String  | Theme name        |
+| Line numbers        | Boolean | Show line gutter  |
+
+### 19.13 Viewer settings
+
+> **Status:** Stub component exists (`SettingsViewer.tsx`); wiring planned (SET-VIEW).
+
+| Setting               | Values            | Notes                             |
+| --------------------- | ----------------- | --------------------------------- |
+| Default view mode     | Text, Hex         | F3 viewer default                 |
+| Image zoom behavior   | Fit, Fill, Actual | How images scale in preview       |
+| Media autoplay        | Boolean           | Autoplay audio/video on open      |
+| Max preview file size | Numeric (MB)      | Skip preview above this threshold |
+
+### 19.14 Advanced settings
+
+> **Status:** No component yet; planned (SET-ADV).
+
+| Setting                      | Values                   | Notes                            |
+| ---------------------------- | ------------------------ | -------------------------------- |
+| Log level                    | Error, Warn, Info, Debug | Production default: Warn         |
+| Enable experimental features | Boolean                  | Unlock pre-release functionality |
+| Cache size limit             | Numeric (MB)             | Max size for thumbnail/metadata  |
+| File operation thread count  | Numeric                  | Parallel operation workers       |
+
+### 19.15 Diagnostics settings
 
 Diagnostics settings must not expose raw development controls by default. The settings page may include:
 

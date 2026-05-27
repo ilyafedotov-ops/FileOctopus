@@ -46,7 +46,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 
 ### Full registry (2026-05-23)
 
-**65 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
+**66 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
 
 | Tauri command                        | TS dotted name (typical)           | Client area              |
 | ------------------------------------ | ---------------------------------- | ------------------------ |
@@ -229,7 +229,7 @@ Folder size and recursive search support synchronous commands for small/preview 
 
 ### `get_preferences` / `set_preference`
 
-Preferences persist in SQLite (`preferences.sqlite` under the app data directory). Keys include `theme` (`system` \| `light` \| `dark`), `density` (`compact` \| `comfortable` \| `spacious`), `defaultViewMode`, `showHiddenFiles` (boolean string), `sidebarWidth`, `splitRatio`, `activityPanelVisible`, `activityPanelWidth`, `confirmDelete`, `confirmPermanentDelete`, `useTrashByDefault`, `defaultConflictPolicy`, `accentColor`, `fontScale`, `iconScale`, `confirmOverwrite`, `sidebarVisible`, `statusBarVisible`, `toolbarVisible`, `toolbarEntries`, `paneMode`, `jobDrawerBehavior`, `showAdvancedCopyOptions`, pane terminal settings, `terminalShell`, `terminalArgs`, `rememberLastUsedPanes`, and `diagnosticsExportPath`.
+Preferences persist in SQLite (`preferences.sqlite` under the app data directory). Keys include `theme` (`system` \| `light` \| `dark`), `density` (`compact` \| `comfortable` \| `spacious`), `defaultViewMode`, `showHiddenFiles` (boolean string), `sidebarWidth`, `splitRatio`, `activityPanelVisible`, `activityPanelWidth`, `confirmDelete`, `confirmPermanentDelete`, `useTrashByDefault`, `defaultConflictPolicy`, `accentColor`, `fontScale`, `iconScale`, `confirmOverwrite`, `sidebarVisible`, `statusBarVisible`, `toolbarVisible`, `toolbarEntries`, `paneMode`, `splitDirection`, `jobDrawerBehavior`, `showAdvancedCopyOptions`, pane terminal settings, `terminalShell`, `terminalArgs`, `rememberLastUsedPanes`, and `diagnosticsExportPath`. Planned keys for Network tab: `networkTimeout`, `networkAutoReconnect`, `networkDefaultProtocol`, `networkSshKeyPath`. Planned keys for Editor tab: `editorFontFamily`, `editorFontSize`, `editorTabSize`, `editorWordWrap`, `editorAutoSave`, `editorSyntaxTheme`, `editorLineNumbers`. Planned keys for Viewer tab: `viewerDefaultMode`, `viewerImageZoom`, `viewerMediaAutoplay`, `viewerMaxPreviewSize`. Planned keys for Advanced tab: `logLevel`, `enableExperimentalFeatures`, `cacheSizeLimit`, `operationThreadCount`.
 
 ```ts
 const { preferences } = await client.preferences.get();

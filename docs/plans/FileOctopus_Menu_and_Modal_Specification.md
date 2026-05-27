@@ -1026,30 +1026,89 @@ Actions
 **Navigation sections:**
 
 ```text
-Appearance
+General
+├─ Start on system startup
+└─ Diagnostics export path
+
+Display
 ├─ Theme: System / Light / Dark
 ├─ Density: Compact / Comfortable / Spacious
 ├─ Font size
 └─ Icon size
 
-File List
-├─ Default view mode: Details / List / Icons
-├─ Show hidden/system files
-├─ Sort default
-└─ Show file extensions [future/optional]
+Colors
+├─ Accent color (8 preset swatches)
+└─ File type color rules (add/edit/delete/reorder)
 
 Layout
 ├─ Single pane / Dual pane
+├─ Split direction: Horizontal / Vertical
 ├─ Sidebar visibility
 ├─ Status bar visibility
 ├─ Toolbar visibility
+├─ Remember last used panes
+├─ Job drawer behavior
 └─ Reset layout…
+
+Layout Profiles
+├─ Save current layout as profile
+├─ Apply / delete / export / import profiles
+└─ Named snapshots with date
+
+File List
+├─ Default view mode: Details / List / Icons / Columns
+├─ Show hidden/system files
+├─ Sort default
+├─ Show file extensions [future/optional]
+└─ Column presets
 
 Operations
 ├─ Confirm move to trash
-├─ Confirm paste with conflicts
-├─ Show job activity automatically
-└─ Operation history retention [future]
+├─ Confirm permanent delete
+├─ Use trash by default
+├─ Confirm overwrite
+├─ Default conflict policy: Fail / Skip / Overwrite / Rename New / Rename Existing
+├─ Show advanced copy options
+└─ Show job activity automatically
+
+Terminal
+├─ Shell program
+├─ Launch arguments
+├─ Open pane terminal expanded
+├─ Cd on navigate
+└─ Confirm close pane with terminal
+
+Keyboard
+├─ Filterable shortcut list (grouped by category)
+├─ Per-shortcut recording/editing with conflict detection
+└─ Reset individual / reset all
+
+Network [planned — SET-NET]
+├─ Connection timeout (ms)
+├─ Auto-reconnect
+├─ Default protocol: SFTP / SMB / S3
+└─ SSH key path override
+
+Editor [planned — SET-EDIT]
+├─ Font family
+├─ Font size
+├─ Tab size
+├─ Word wrap
+├─ Auto-save
+├─ Syntax highlighting theme
+└─ Line numbers
+
+Viewer [planned — SET-VIEW]
+├─ Default view mode: Text / Hex
+├─ Image zoom behavior: Fit / Fill / Actual
+├─ Media autoplay
+└─ Max preview file size (MB)
+
+Advanced [planned — SET-ADV]
+├─ Log level: Error / Warn / Info / Debug
+├─ Enable experimental features
+├─ Cache size limit (MB)
+└─ File operation thread count
 
 Diagnostics
 ├─ Diagnostics visibility
