@@ -62,7 +62,7 @@
 | SET-EDIT     | P2         | done     | cron  | 9bfe938  | 2026-05-27  | 2026-05-27       | 2026-05-26-settings-ui-improvement    | Editor settings tab: wire stub into tree with font family/size, tab size, word wrap, auto-save, syntax highlighting, line numbers                   | None                                                                                                                                                        | 2026-05-27    |
 | SET-VIEW     | P2         | done     | cron  | 7243e03  | 2026-05-27  | 2026-05-27       | 2026-05-26-settings-ui-improvement    | Viewer settings tab: wire stub into tree with default view mode, image zoom, media autoplay, max preview file size                                  | None                                                                                                                                                        | 2026-05-27    |
 |              | SET-POLISH | P3       | done  | cron     | a54576c     | 2026-05-27       | 2026-05-27                            | 2026-05-26-settings-ui-improvement                                                                                                                  | Settings dialog polish: search/filter bar, consistent spacing/labels, section descriptions                                                                  | None          | 2026-05-27 |
-| CLOUD-1      | P2         | pending  | -     | -        | -           | -                | RC spec §3.3                          | Cloud providers: Google Drive, Dropbox, OneDrive — backend connector crates + VFS registration + frontend sidebar UI wiring                         | None                                                                                                                                                        | 2026-05-28    |
+|              | CLOUD-1    | P2       | done  | cron     | 917d772     | 2026-05-28       | 2026-05-28                            | RC spec §3.3                                                                                                                                        | Cloud providers: Google Drive, Dropbox, OneDrive — backend connector crates + VFS registration + frontend sidebar UI wiring                                 | None          | 2026-05-28 |
 | PLUG-1       | P2         | pending  | -     | -        | -           | -                | RC spec §3.3                          | Plugin marketplace: plugin loader, manifest schema, sandboxed execution, UI marketplace browser                                                     | None                                                                                                                                                        | 2026-05-28    |
 | DIFF-1       | P2         | done     | cron  | bb87696  | 2026-05-28  | 2026-05-28       | RC spec §3.3                          | File content diff/merge: side-by-side diff view, merge conflict resolution UI, inline change markers                                                | None                                                                                                                                                        | 2026-05-28    |
 | ACL-1        | P3         | pending  | -     | -        | -           | -                | RC spec §3.3                          | Advanced ACL editing: POSIX/NTFS ACL viewer + editor, permission matrix UI, recursive apply                                                         | None                                                                                                                                                        | 2026-05-28    |
@@ -96,7 +96,7 @@
 | P2P-1    | P2P sync — intentionally deferred (RC spec §3.3)                                                |
 | AI-1     | AI semantic search — intentionally deferred (RC spec §3.3)                                      |
 | PLUG-1   | **Promoted to Active RC Queue** (2026-05-28) — plugin marketplace                               |
-| CLOUD-1  | **Promoted to Active RC Queue** (2026-05-28) — cloud providers                                  |
+| CLOUD-1  | Done — Google Drive, Dropbox, OneDrive providers (`917d772`)                                    |
 | DIFF-1   | **Promoted to Active RC Queue** (2026-05-28) — file diff/merge                                  |
 | ACL-1    | **Promoted to Active RC Queue** (2026-05-28) — ACL editing                                      |
 
@@ -106,7 +106,8 @@
 
 || ID | Result | Commit |
 || ----------- | ------------------------------------------------------------------------------------------------------------ | ---------- |
-|| SET-POLISH | Settings dialog polish: search/filter bar, section descriptions, consistent aria-labels (27 tests) | a54576c |
+|| SET-POLISH | Settings dialog polish: search/filter bar, section descriptions, consistent aria-labels (27 tests) | a54576c ||
+|| CLOUD-1 | Cloud providers: Google Drive, Dropbox, OneDrive connector crates + VFS registration + OAuth auth (20 tests) | 917d772 ||
 || PDF-1 | PDF preview: pdf.js canvas rendering, page navigation, error fallback, 13 tests | 3aa5615 |
 | TEST-1 | Test coverage audit: 22 new tests (16 frontend, 6 Rust), 1 SMB bug fix for NT_STATUS mapping | 8b75ab7 |
 | E2E-1 | E2E reliability audit: 165 pass, 27 conditional skips, 0 failures; sort submenu, selectors, retry, snapshots | 02bd975 |

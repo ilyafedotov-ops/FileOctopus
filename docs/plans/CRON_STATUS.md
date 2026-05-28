@@ -1,7 +1,7 @@
 # CRON Status — FileOctopus CI/CD Agent
 
-> Last run: 2026-05-27 23:05 UTC
-> Mode: Audit-only (Active RC Queue empty — all tasks complete)
+> Last run: 2026-05-28 10:30 UTC
+> Mode: Implementation (CLOUD-1 health fix + compilation)
 
 ## Health Gate
 
@@ -10,8 +10,8 @@
 | TypeScript (`pnpm typecheck`) | ✅ 0 errors             |
 | Rust (`cargo check`)          | ✅ clean                |
 | Cargo fmt                     | ✅ clean                |
-| Frontend tests (`pnpm test`)  | ✅ 772 pass (110 files) |
-| Rust tests (`cargo test`)     | ✅ 381 tests all pass   |
+| Frontend tests (`pnpm test`)  | ✅ 781 pass (111 files) |
+| Rust tests (`cargo test`)     | ✅ 401 tests all pass   |
 | Prettier (`format:check`)     | ✅ clean                |
 | `pnpm lint`                   | ✅ clean                |
 | Clippy                        | ✅ clean                |
@@ -20,31 +20,41 @@
 
 ## Work Completed This Run
 
-### Doc audit and drift correction ✅
+### CLOUD-1 — Cloud Providers Fix ✅
 
-- Updated `PROJECT_STATUS_AND_DOC_ALIGNMENT.md`:
-  - Corrected date from 2026-05-26 → 2026-05-27
-  - Removed 5 items from "Specified but not implemented" that are all done (SET-ADV, SET-NET, SET-EDIT, SET-VIEW, PDF-1)
-  - Added 16 new delivered items to "Implemented" section
-  - Updated Settings description to reflect all 13 tabs with search/filter
-  - Updated test signal: 647→772 frontend tests, 333→381 Rust tests
-- Updated `UI_FEATURE_INVENTORY.md`:
-  - Corrected alignment date from 2026-05-16 → 2026-05-27
-  - Updated snapshot date from 2026-05-23 → 2026-05-27
-  - Replaced "Still not implemented" (was only PDF) with 3 actual remaining items
-  - Added 24 newly delivered items since last snapshot (2026-05-23)
+The CLOUD-1 task (Google Drive, Dropbox, OneDrive) was partially implemented by a previous run but left with compilation errors. Fixed all issues:
+
+- **3 provider crates** now compile and pass tests:
+  - `provider-gdrive`: Google Drive API v3 (stat, list, connector, 3 ops tests, 2 connector tests)
+  - `provider-dropbox`: Dropbox API v2 (stat, list, connector, 2 ops tests, 1 connector test)
+  - `provider-onedrive`: Microsoft Graph API (stat, list, connector, 2 ops tests, 1 connector test)
+- **API fixes**: `uri.path()` → `uri.remote_path().unwrap_or_default()`, `VfsError::not_found(uri)` not `.as_str()`
+- **Trait impl fix**: Added `#[async_trait::async_trait]` to all 3 `impl VfsProvider` blocks
+- **Clippy fixes**: Redundant closures, useless `format!()` macro
+- **Test struct fixes**: Updated `NetworkProfile` (18 fields) and `AuthSecrets` (password + passphrase) in test code
+- **AuthKind::OAuth**: Added new enum variant for cloud OAuth; fixed `terminal.rs` match exhaustiveness
+- **VFS registration**: Added `gdrive`, `dropbox`, `onedrive` to `REMOTE_SCHEMES`
+- **app-core wiring**: Registered all 3 connectors and providers in the application runtime
+
+**Commit:** `917d772` — 27 files, +1529/-3
+
+### Test counts
+
+- Rust: 401 tests (was 381, +20 from cloud providers)
+- Frontend: 781 tests (was 772, +9 from related changes)
+- Clippy: clean with `-D warnings`
 
 ## Spec Compliance
 
-- PROJECT_STATUS "Specified but not implemented" now accurately lists only 3 remaining UI gaps (EXIF, rubber-band, keyboard-navigable menus) ✅
-- UI_FEATURE_INVENTORY §13 aligned with current codebase ✅
+- Cloud providers registered in VFS + app-core ✅
+- OAuth authentication variant available for cloud connectors ✅
+- All providers implement `VfsProvider` with read-only capabilities ✅
 
 ## Queue Status
 
-Active RC Queue: **0 pending** — all tasks complete. Audit-only mode engaged.
+Active RC Queue: **2 pending** — PLUG-1 (P2), ACL-1 (P3).
 
-## Remaining Specified-But-Not-Implemented Items
+## Remaining Active RC Queue Items
 
-1. EXIF metadata display (post-RC visual expansion)
-2. Rubber-band (lasso) select (deferred P3-6 — too large for single cycle)
-3. Keyboard-navigable dropdown menus (context menu sort submenu done; toolbar/MenuBar dropdowns pending)
+1. PLUG-1 (P2) — Plugin marketplace
+2. ACL-1 (P3) — Advanced ACL editing
