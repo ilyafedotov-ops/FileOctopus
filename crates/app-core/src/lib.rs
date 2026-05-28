@@ -5,6 +5,9 @@ use config::{NavigationRepository, NetworkProfileRepository, PreferencesReposito
 use fs_core::{vfs_io::VfsFilesystem, LocalFsProvider};
 use git_intel::GitService;
 use platform::SecretStore;
+use provider_dropbox::{DropboxConnector, DropboxProvider};
+use provider_gdrive::{GDriveConnector, GDriveProvider};
+use provider_onedrive::{OneDriveConnector, OneDriveProvider};
 use provider_s3::{S3Connector, S3Provider};
 use provider_sftp::{SftpConnector, SftpProvider};
 use provider_smb::{SmbConnector, SmbProvider};
@@ -156,6 +159,9 @@ impl AppCore {
             connector_registry.register(Arc::new(SftpConnector::new()));
             connector_registry.register(Arc::new(SmbConnector::new()));
             connector_registry.register(Arc::new(S3Connector::new()));
+            connector_registry.register(Arc::new(GDriveConnector::new()));
+            connector_registry.register(Arc::new(DropboxConnector::new()));
+            connector_registry.register(Arc::new(OneDriveConnector::new()));
         }
         let connector_registry = Arc::new(tokio::sync::RwLock::new(connector_registry));
         let sessions = Arc::new(ConnectionSessionManager::new(
@@ -173,6 +179,12 @@ impl AppCore {
             vfs.register(Arc::new(SmbProvider::new(sessions.clone())))
                 .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
             vfs.register(Arc::new(S3Provider::new(sessions.clone())))
+                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
+            vfs.register(Arc::new(GDriveProvider::new(sessions.clone())))
+                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
+            vfs.register(Arc::new(DropboxProvider::new(sessions.clone())))
+                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
+            vfs.register(Arc::new(OneDriveProvider::new(sessions.clone())))
                 .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
         }
 

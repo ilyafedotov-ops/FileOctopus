@@ -101,6 +101,12 @@ impl SmbConnector {
                         message: "SMB does not support private key authentication".to_string(),
                     })
                 }
+                AuthKind::OAuth => {
+                    return Err(RemoteError::AuthenticationFailed {
+                        uri: uri.to_string(),
+                        message: "SMB does not support OAuth authentication".to_string(),
+                    })
+                }
             };
 
         let server = format!("{}:{}", profile.host, profile.port);

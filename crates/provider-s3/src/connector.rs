@@ -148,6 +148,12 @@ impl S3Connector {
                     message: "S3 does not support private key authentication".to_string(),
                 })
             }
+            AuthKind::OAuth => {
+                return Err(RemoteError::AuthenticationFailed {
+                    uri: format!("s3://{}", profile.id),
+                    message: "S3 does not support OAuth authentication".to_string(),
+                })
+            }
         };
 
         let bucket = Bucket::new(&bucket_name, region, credentials).map_err(|e| {

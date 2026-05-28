@@ -18,6 +18,7 @@ impl AuthSecrets {
                 .private_key_path
                 .as_ref()
                 .is_some_and(|path| !path.is_empty()),
+            AuthKind::OAuth => profile.has_stored_secret,
         }
     }
 
@@ -39,6 +40,10 @@ impl AuthSecrets {
                     passphrase,
                 })
             }
+            AuthKind::OAuth => Ok(Self {
+                password: Some(store.get(&SecretStore::network_password_key(&profile.id))?),
+                passphrase: None,
+            }),
         }
     }
 }
