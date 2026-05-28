@@ -58,6 +58,12 @@ export function ShellOverlays() {
         editorEntry={ctx.editorEntry}
         setEditorOpen={ctx.setEditorOpen}
         refreshActivePane={ctx.refreshActivePane}
+        diffOpen={ctx.diffOpen}
+        diffLeftUri={ctx.diffLeftUri}
+        diffRightUri={ctx.diffRightUri}
+        diffLeftName={ctx.diffLeftName}
+        diffRightName={ctx.diffRightName}
+        setDiffOpen={ctx.setDiffOpen}
         diagnosticsOpen={ctx.diagnosticsOpen}
         aboutOpen={ctx.aboutOpen}
         goToLocationOpen={ctx.goToLocationOpen}

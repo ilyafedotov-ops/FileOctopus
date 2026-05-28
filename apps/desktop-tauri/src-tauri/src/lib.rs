@@ -83,6 +83,7 @@ pub fn run() {
             commands::fs::fs_standard_locations,
             commands::fs::fs_discover_volumes,
             commands::fs::fs_eject_volume,
+            commands::fs::fs_diff_text,
             commands::fs::fs_open_default,
             commands::fs::fs_reveal,
             commands::fs::fs_properties,

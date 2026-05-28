@@ -5,15 +5,16 @@ use std::time::Duration;
 
 use app_core::AppState;
 use app_ipc::{
-    error_codes, ComputeHashRequest, ComputeHashResponse, DirectoryBatchEventDto,
-    DirectoryEntryDto, DiscoverVolumesResponse, EjectVolumeRequest, EjectVolumeResponse,
-    FileEntryDto, IpcError, ListArchiveRequest, ListArchiveResponse, ListDirectoriesRequest,
-    ListDirectoriesResponse, ListStartRequest, ListStartResponse, OkResponse, OpenTerminalRequest,
-    OpenTerminalResponse, PathPropertiesDto, PathPropertiesRequest, PathPropertiesResponse,
-    PathRequest, ReadFileAsDataUriRequest, ReadFileAsDataUriResponse, ReadFileRangeRequest,
-    ReadFileRangeResponse, ReadImageAsDataUriRequest, ReadImageAsDataUriResponse,
-    ReadTextFileRequest, ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse,
-    StatRequest, StatResponse, WriteTextFileRequest, WriteTextFileResponse, DIRECTORY_BATCH_EVENT,
+    error_codes, ComputeHashRequest, ComputeHashResponse, DiffHunk, DiffLine, DiffTextRequest,
+    DiffTextResponse, DirectoryBatchEventDto, DirectoryEntryDto, DiscoverVolumesResponse,
+    EjectVolumeRequest, EjectVolumeResponse, FileEntryDto, IpcError, ListArchiveRequest,
+    ListArchiveResponse, ListDirectoriesRequest, ListDirectoriesResponse, ListStartRequest,
+    ListStartResponse, OkResponse, OpenTerminalRequest, OpenTerminalResponse, PathPropertiesDto,
+    PathPropertiesRequest, PathPropertiesResponse, PathRequest, ReadFileAsDataUriRequest,
+    ReadFileAsDataUriResponse, ReadFileRangeRequest, ReadFileRangeResponse,
+    ReadImageAsDataUriRequest, ReadImageAsDataUriResponse, ReadTextFileRequest,
+    ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse, StatRequest,
+    StatResponse, WriteTextFileRequest, WriteTextFileResponse, DIRECTORY_BATCH_EVENT,
 };
 use fs_core::{external_open, locations, metadata, vfs_io::VfsFilesystem};
 use tauri::{AppHandle, State};
@@ -940,4 +941,149 @@ fn list_tar_entries_inner(path: &std::path::Path) -> Result<Vec<FileEntryDto>, I
     let file = std::fs::File::open(path).map_err(|e| IpcError::io(e.to_string()))?;
     let mut archive = tar::Archive::new(file);
     list_tar_reader(&mut archive, &path.display().to_string())
+}
+
+#[tauri::command]
+pub async fn fs_diff_text(
+    request: DiffTextRequest,
+    _state: State<'_, Arc<AppState>>,
+) -> Result<DiffTextResponse, IpcError> {
+    let left_uri = ResourceUri::parse(&request.left_uri).map_err(IpcError::from)?;
+    let left_path = left_uri.to_local_path().map_err(IpcError::from)?;
+
+    let right_uri = ResourceUri::parse(&request.right_uri).map_err(IpcError::from)?;
+    let right_path = right_uri.to_local_path().map_err(IpcError::from)?;
+
+    let left_meta = std::fs::metadata(&left_path).map_err(|e| IpcError::io(e.to_string()))?;
+    if left_meta.is_dir() {
+        return Err(IpcError::is_directory("cannot diff a directory"));
+    }
+
+    let right_meta = std::fs::metadata(&right_path).map_err(|e| IpcError::io(e.to_string()))?;
+    if right_meta.is_dir() {
+        return Err(IpcError::is_directory("cannot diff a directory"));
+    }
+
+    let max_bytes = request.max_bytes.unwrap_or(512 * 1024);
+
+    let left_bytes = std::fs::read(&left_path).map_err(|e| IpcError::io(e.to_string()))?;
+    let right_bytes = std::fs::read(&right_path).map_err(|e| IpcError::io(e.to_string()))?;
+
+    let left_truncated = left_bytes.len() as u64 > max_bytes;
+    let right_truncated = right_bytes.len() as u64 > max_bytes;
+
+    let left_str =
+        String::from_utf8_lossy(&left_bytes[..(left_bytes.len().min(max_bytes as usize))]);
+    let right_str =
+        String::from_utf8_lossy(&right_bytes[..(right_bytes.len().min(max_bytes as usize))]);
+
+    let left_lines: Vec<&str> = left_str.lines().collect();
+    let right_lines: Vec<&str> = right_str.lines().collect();
+
+    let diff = similar::TextDiff::from_lines(&left_str, &right_str);
+
+    let mut hunks: Vec<DiffHunk> = Vec::new();
+    let mut current_lines: Vec<DiffLine> = Vec::new();
+    let mut current_old_start: u64 = 0;
+    let mut current_new_start: u64 = 0;
+    let mut in_hunk = false;
+
+    for change in diff.iter_all_changes() {
+        let (kind, old_line, new_line) = match change.tag() {
+            similar::ChangeTag::Equal => (
+                "equal",
+                Some(change.old_index().unwrap() as u64 + 1),
+                Some(change.new_index().unwrap() as u64 + 1),
+            ),
+            similar::ChangeTag::Delete => {
+                ("delete", Some(change.old_index().unwrap() as u64 + 1), None)
+            }
+            similar::ChangeTag::Insert => {
+                ("insert", None, Some(change.new_index().unwrap() as u64 + 1))
+            }
+        };
+
+        let line = DiffLine {
+            kind: kind.to_string(),
+            content: change.to_string_lossy().to_string(),
+            old_line,
+            new_line,
+        };
+
+        if kind == "equal" && in_hunk {
+            let equal_count = current_lines
+                .iter()
+                .rev()
+                .take_while(|l| l.kind == "equal")
+                .count();
+            if equal_count >= 3 {
+                current_lines.push(line);
+                let old_count = current_lines
+                    .iter()
+                    .filter(|l| l.kind == "equal" || l.kind == "delete")
+                    .count() as u64;
+                let new_count = current_lines
+                    .iter()
+                    .filter(|l| l.kind == "equal" || l.kind == "insert")
+                    .count() as u64;
+                hunks.push(DiffHunk {
+                    old_start: current_old_start,
+                    old_count,
+                    new_start: current_new_start,
+                    new_count,
+                    lines: current_lines.clone(),
+                });
+                current_lines.clear();
+                in_hunk = false;
+                continue;
+            }
+        }
+
+        if !in_hunk && kind != "equal" {
+            if !current_lines.is_empty() {
+                let eq_count = current_lines
+                    .iter()
+                    .rev()
+                    .take_while(|l| l.kind == "equal")
+                    .count();
+                let context_count = eq_count.min(3);
+                current_lines.truncate(current_lines.len() - eq_count);
+                let context: Vec<DiffLine> = current_lines
+                    .drain(current_lines.len().saturating_sub(context_count)..)
+                    .collect();
+                current_lines.extend(context);
+            }
+            current_old_start = old_line.unwrap_or(1);
+            current_new_start = new_line.unwrap_or(1);
+            in_hunk = true;
+        }
+
+        current_lines.push(line);
+    }
+
+    if !current_lines.is_empty() && in_hunk {
+        let old_count = current_lines
+            .iter()
+            .filter(|l| l.kind == "equal" || l.kind == "delete")
+            .count() as u64;
+        let new_count = current_lines
+            .iter()
+            .filter(|l| l.kind == "equal" || l.kind == "insert")
+            .count() as u64;
+        hunks.push(DiffHunk {
+            old_start: current_old_start,
+            old_count,
+            new_start: current_new_start,
+            new_count,
+            lines: current_lines,
+        });
+    }
+
+    Ok(DiffTextResponse {
+        hunks,
+        left_line_count: left_lines.len() as u64,
+        right_line_count: right_lines.len() as u64,
+        left_truncated,
+        right_truncated,
+    })
 }

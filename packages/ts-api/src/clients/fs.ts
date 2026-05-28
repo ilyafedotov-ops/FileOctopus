@@ -221,6 +221,19 @@ export class FsClient {
     }
   }
 
+  async diffText(
+    request: import("../types").DiffTextRequest,
+  ): Promise<import("../types").DiffTextResponse> {
+    try {
+      return await this.transport.invoke<import("../types").DiffTextResponse>(
+        "fs.diff_text",
+        { request },
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
   async openPathWithDefaultApp(request: PathRequest): Promise<OkResponse> {
     try {
       return await this.transport.invoke<OkResponse>("fs.open_default", {

@@ -40,6 +40,11 @@ export interface ModalsContextValue {
   connectServerInitial: NetworkConnectionDraftDto | null;
   removeServerProfile: NetworkProfileDto | null;
   toolbarCustomizeOpen: boolean;
+  diffOpen: boolean;
+  diffLeftUri: string;
+  diffRightUri: string;
+  diffLeftName: string;
+  diffRightName: string;
   dialog: OperationDialog | null;
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
   setShortcutsOpen: Dispatch<SetStateAction<boolean>>;
@@ -68,6 +73,11 @@ export interface ModalsContextValue {
   >;
   setRemoveServerProfile: Dispatch<SetStateAction<NetworkProfileDto | null>>;
   setToolbarCustomizeOpen: Dispatch<SetStateAction<boolean>>;
+  setDiffOpen: Dispatch<SetStateAction<boolean>>;
+  setDiffLeftUri: Dispatch<SetStateAction<string>>;
+  setDiffRightUri: Dispatch<SetStateAction<string>>;
+  setDiffLeftName: Dispatch<SetStateAction<string>>;
+  setDiffRightName: Dispatch<SetStateAction<string>>;
   setDialog: Dispatch<SetStateAction<OperationDialog | null>>;
 }
 
@@ -112,6 +122,11 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
   const [removeServerProfile, setRemoveServerProfile] =
     useState<NetworkProfileDto | null>(null);
   const [toolbarCustomizeOpen, setToolbarCustomizeOpen] = useState(false);
+  const [diffOpen, setDiffOpen] = useState(false);
+  const [diffLeftUri, setDiffLeftUri] = useState("");
+  const [diffRightUri, setDiffRightUri] = useState("");
+  const [diffLeftName, setDiffLeftName] = useState("");
+  const [diffRightName, setDiffRightName] = useState("");
   const [dialog, setDialog] = useState<OperationDialog | null>(null);
 
   const value = useMemo<ModalsContextValue>(
@@ -141,6 +156,11 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       connectServerInitial,
       removeServerProfile,
       toolbarCustomizeOpen,
+      diffOpen,
+      diffLeftUri,
+      diffRightUri,
+      diffLeftName,
+      diffRightName,
       dialog,
       setSettingsOpen,
       setShortcutsOpen,
@@ -167,6 +187,11 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       setConnectServerInitial,
       setRemoveServerProfile,
       setToolbarCustomizeOpen,
+      setDiffOpen,
+      setDiffLeftUri,
+      setDiffRightUri,
+      setDiffLeftName,
+      setDiffRightName,
       setDialog,
     }),
     [
@@ -195,6 +220,11 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       connectServerInitial,
       removeServerProfile,
       toolbarCustomizeOpen,
+      diffOpen,
+      diffLeftUri,
+      diffRightUri,
+      diffLeftName,
+      diffRightName,
       dialog,
     ],
   );

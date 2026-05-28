@@ -14,6 +14,7 @@ import { ShortcutsDialog } from "./ShortcutsDialog";
 import { CommandPalette, type CommandEntry } from "./CommandPalette";
 import { PreviewPanel } from "./PreviewPanel";
 import { ViewerDialog } from "./viewer/ViewerDialog";
+import { DiffDialog } from "./diff/DiffDialog";
 import { EditorDialog } from "./editor/EditorDialog";
 import { setRememberSessionPaths } from "../pane/sessionPaths";
 import {
@@ -176,6 +177,12 @@ export interface DialogOverlayGroupProps {
   setConnectServerProfile: (profile: NetworkProfileDto | null) => void;
   setConnectServerInitial: (profile: NetworkConnectionDraftDto | null) => void;
   setRemoveServerProfile: (profile: NetworkProfileDto | null) => void;
+  diffOpen: boolean;
+  diffLeftUri: string;
+  diffRightUri: string;
+  diffLeftName: string;
+  diffRightName: string;
+  setDiffOpen: (open: boolean) => void;
   connectProfile: (profileId: string) => Promise<void>;
   forgetFingerprint: (profileId: string) => Promise<void>;
   disconnectProfile: (profileId: string) => Promise<void>;
@@ -308,6 +315,12 @@ export function DialogOverlayGroup({
   setConnectServerProfile,
   setConnectServerInitial,
   setRemoveServerProfile,
+  diffOpen,
+  diffLeftUri,
+  diffRightUri,
+  diffLeftName,
+  diffRightName,
+  setDiffOpen,
   connectProfile,
   disconnectProfile,
   deleteProfile,
@@ -389,6 +402,15 @@ export function DialogOverlayGroup({
         fs={fs}
         onClose={() => setEditorOpen(false)}
         onSaved={() => refreshActivePane?.()}
+      />
+      <DiffDialog
+        open={diffOpen}
+        leftUri={diffLeftUri}
+        rightUri={diffRightUri}
+        leftName={diffLeftName}
+        rightName={diffRightName}
+        fs={fs}
+        onClose={() => setDiffOpen(false)}
       />
       <AboutDialog
         open={aboutOpen}

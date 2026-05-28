@@ -46,7 +46,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 
 ### Full registry (2026-05-23)
 
-**66 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
+**67 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
 
 | Tauri command                        | TS dotted name (typical)           | Client area              |
 | ------------------------------------ | ---------------------------------- | ------------------------ |
@@ -67,6 +67,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `fs_discover_volumes`                | `fs.discover_volumes`              | `FsClient`               |
 | `fs_eject_volume`                    | `fs.eject_volume`                  | `FsClient`               |
 | `fs_list_archive`                    | `fs.list_archive`                  | `FsClient`               |
+| `fs_diff_text`                       | `fs.diff_text`                     | `FsClient`               |
 | `fs_list_directories`                | `fs.list_directories`              | `FsClient`               |
 | `fs_open_default`                    | `fs.open_default`                  | `FsClient`               |
 | `fs_reveal`                          | `fs.reveal`                        | `FsClient`               |

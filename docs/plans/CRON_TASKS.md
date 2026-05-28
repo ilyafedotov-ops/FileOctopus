@@ -1,7 +1,7 @@
 # FileOctopus — Cron Task Queue
 
 > Execution-facing queue for autonomous agents.
-> Last verified against repo state: 2026-05-27 23:05 UTC
+> Last verified against repo state: 2026-05-28 00:15 UTC
 >
 > **Note:** If Active RC Queue has fewer than 3 `pending` tasks, the agent MUST read `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` §"Specified but not implemented" + `UI_FEATURE_INVENTORY.md` §13 and backfill immediately. Never stop with "queue empty" while deferred items exist.
 
@@ -62,6 +62,10 @@
 | SET-EDIT     | P2         | done     | cron  | 9bfe938  | 2026-05-27  | 2026-05-27       | 2026-05-26-settings-ui-improvement    | Editor settings tab: wire stub into tree with font family/size, tab size, word wrap, auto-save, syntax highlighting, line numbers                   | None                                                                                                                                                        | 2026-05-27    |
 | SET-VIEW     | P2         | done     | cron  | 7243e03  | 2026-05-27  | 2026-05-27       | 2026-05-26-settings-ui-improvement    | Viewer settings tab: wire stub into tree with default view mode, image zoom, media autoplay, max preview file size                                  | None                                                                                                                                                        | 2026-05-27    |
 |              | SET-POLISH | P3       | done  | cron     | a54576c     | 2026-05-27       | 2026-05-27                            | 2026-05-26-settings-ui-improvement                                                                                                                  | Settings dialog polish: search/filter bar, consistent spacing/labels, section descriptions                                                                  | None          | 2026-05-27 |
+| CLOUD-1      | P2         | pending  | -     | -        | -           | -                | RC spec §3.3                          | Cloud providers: Google Drive, Dropbox, OneDrive — backend connector crates + VFS registration + frontend sidebar UI wiring                         | None                                                                                                                                                        | 2026-05-28    |
+| PLUG-1       | P2         | pending  | -     | -        | -           | -                | RC spec §3.3                          | Plugin marketplace: plugin loader, manifest schema, sandboxed execution, UI marketplace browser                                                     | None                                                                                                                                                        | 2026-05-28    |
+| DIFF-1       | P2         | pending  | -     | -        | -           | -                | RC spec §3.3                          | File content diff/merge: side-by-side diff view, merge conflict resolution UI, inline change markers                                                | None                                                                                                                                                        | 2026-05-28    |
+| ACL-1        | P3         | pending  | -     | -        | -           | -                | RC spec §3.3                          | Advanced ACL editing: POSIX/NTFS ACL viewer + editor, permission matrix UI, recursive apply                                                         | None                                                                                                                                                        | 2026-05-28    |
 
 ---
 
@@ -91,10 +95,10 @@
 | EXIF-1   | EXIF metadata display in Properties — post-RC visual expansion                                  |
 | P2P-1    | P2P sync — intentionally deferred (RC spec §3.3)                                                |
 | AI-1     | AI semantic search — intentionally deferred (RC spec §3.3)                                      |
-| PLUG-1   | Plugin marketplace — intentionally deferred (RC spec §3.3)                                      |
-| CLOUD-1  | Cloud providers (GDrive, Dropbox, OneDrive) — intentionally deferred (RC spec §3.3)             |
-| DIFF-1   | File content diff/merge — intentionally deferred (RC spec §3.3)                                 |
-| ACL-1    | Advanced ACL editing — intentionally deferred (RC spec §3.3)                                    |
+| PLUG-1   | **Promoted to Active RC Queue** (2026-05-28) — plugin marketplace                               |
+| CLOUD-1  | **Promoted to Active RC Queue** (2026-05-28) — cloud providers                                  |
+| DIFF-1   | **Promoted to Active RC Queue** (2026-05-28) — file diff/merge                                  |
+| ACL-1    | **Promoted to Active RC Queue** (2026-05-28) — ACL editing                                      |
 
 ---
 

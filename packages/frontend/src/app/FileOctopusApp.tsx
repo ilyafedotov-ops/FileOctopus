@@ -159,6 +159,16 @@ function FileOctopusAppInner({
     setConnectServerInitial,
     toolbarCustomizeOpen,
     setToolbarCustomizeOpen,
+    diffOpen,
+    diffLeftUri,
+    diffRightUri,
+    diffLeftName,
+    diffRightName,
+    setDiffOpen,
+    setDiffLeftUri,
+    setDiffRightUri,
+    setDiffLeftName,
+    setDiffRightName,
     dialog,
     setSettingsOpen,
     setShortcutsOpen,
@@ -908,6 +918,16 @@ function FileOctopusAppInner({
       setViewerEntry={setViewerEntry}
       setEditorOpen={setEditorOpen}
       setEditorEntry={setEditorEntry}
+      diffOpen={diffOpen}
+      diffLeftUri={diffLeftUri}
+      diffRightUri={diffRightUri}
+      diffLeftName={diffLeftName}
+      diffRightName={diffRightName}
+      setDiffOpen={setDiffOpen}
+      setDiffLeftUri={setDiffLeftUri}
+      setDiffRightUri={setDiffRightUri}
+      setDiffLeftName={setDiffLeftName}
+      setDiffRightName={setDiffRightName}
       isTextEditable={isTextEditable}
       refreshActivePane={() => refreshPanel(state.activePanelId)}
       setDiagnosticsOpen={setDiagnosticsOpen}

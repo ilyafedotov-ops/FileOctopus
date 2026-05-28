@@ -216,6 +216,35 @@ export interface OpenTerminalResponse {
   success: boolean;
 }
 
+export interface DiffTextRequest {
+  leftUri: string;
+  rightUri: string;
+  maxBytes?: number;
+}
+
+export interface DiffLine {
+  kind: "equal" | "delete" | "insert";
+  content: string;
+  oldLine?: number | null;
+  newLine?: number | null;
+}
+
+export interface DiffHunk {
+  oldStart: number;
+  oldCount: number;
+  newStart: number;
+  newCount: number;
+  lines: DiffLine[];
+}
+
+export interface DiffTextResponse {
+  hunks: DiffHunk[];
+  leftLineCount: number;
+  rightLineCount: number;
+  leftTruncated: boolean;
+  rightTruncated: boolean;
+}
+
 export interface GitDiscoverRequest {
   uri: string;
 }

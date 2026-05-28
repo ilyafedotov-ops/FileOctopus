@@ -148,6 +148,16 @@ export interface ShellLayoutContextValue {
   setViewerEntry: (entry: FileEntryDto | null) => void;
   setEditorOpen: (v: boolean) => void;
   setEditorEntry: (entry: FileEntryDto | null) => void;
+  diffOpen: boolean;
+  diffLeftUri: string;
+  diffRightUri: string;
+  diffLeftName: string;
+  diffRightName: string;
+  setDiffOpen: (v: boolean) => void;
+  setDiffLeftUri: (v: string) => void;
+  setDiffRightUri: (v: string) => void;
+  setDiffLeftName: (v: string) => void;
+  setDiffRightName: (v: string) => void;
   isTextEditable: (entry: FileEntryDto | null) => boolean;
   refreshActivePane: () => void;
   setDiagnosticsOpen: (v: boolean) => void;
