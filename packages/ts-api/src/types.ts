@@ -216,6 +216,34 @@ export interface OpenTerminalResponse {
   success: boolean;
 }
 
+export interface GetAclRequest {
+  uri: string;
+}
+
+export interface AclEntry {
+  principal: string;
+  read: boolean;
+  write: boolean;
+  execute: boolean;
+}
+
+export interface GetAclResponse {
+  owner: string | null;
+  group: string | null;
+  entries: AclEntry[];
+  octal: string;
+}
+
+export interface SetAclRequest {
+  uri: string;
+  octal: string;
+  recursive: boolean;
+}
+
+export interface SetAclResponse {
+  success: boolean;
+}
+
 export interface DiffTextRequest {
   leftUri: string;
   rightUri: string;

@@ -8,6 +8,7 @@ import { Button, fileEntryIcon } from "@fileoctopus/ui";
 import type { PanelId } from "../../panelStore";
 import { propertyType, localPathFromUri } from "../../utils/paneUtils";
 import { formatDate, formatSize } from "../../pane/fileTableUtils";
+import { AclEditor } from "./AclEditor";
 
 export interface PropertiesDialogState {
   panelId: PanelId;
@@ -340,6 +341,14 @@ export function PropertiesDialog({
               </dl>
             </PropertiesSection>
           ) : null}
+
+          <PropertiesSection title="Permissions">
+            <AclEditor
+              uri={properties.uri}
+              fs={fs}
+              isDirectory={properties.kind === "directory"}
+            />
+          </PropertiesSection>
 
           {properties.warnings.length > 0 ? (
             <div className="fo-properties-warnings" role="note">

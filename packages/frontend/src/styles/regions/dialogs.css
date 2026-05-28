@@ -2645,3 +2645,90 @@ dialog.fo-dialog[open] {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ACL Editor */
+.fo-acl-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fo-acl-info {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--fo-muted-text);
+}
+
+.fo-acl-matrix {
+  width: auto;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.fo-acl-matrix th,
+.fo-acl-matrix td {
+  padding: 2px 8px;
+  text-align: center;
+  font-weight: normal;
+}
+
+.fo-acl-matrix thead th {
+  font-size: 11px;
+  color: var(--fo-muted-text);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.fo-acl-principal {
+  text-align: left;
+  min-width: 60px;
+}
+
+.fo-acl-checkbox input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+}
+
+.fo-acl-octal-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.fo-acl-octal-label {
+  font-size: 12px;
+  color: var(--fo-muted-text);
+}
+
+.fo-acl-octal-input {
+  width: 48px;
+  font-family: monospace;
+  font-size: 13px;
+  text-align: center;
+  border: 1px solid var(--fo-border);
+  border-radius: var(--fo-radius-sm);
+  padding: 2px 4px;
+  background: var(--fo-surface);
+  color: var(--fo-text);
+}
+
+.fo-acl-recursive {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--fo-muted-text);
+  cursor: pointer;
+}
+
+.fo-acl-recursive input[type="checkbox"] {
+  margin: 0;
+}
+
+.fo-acl-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}

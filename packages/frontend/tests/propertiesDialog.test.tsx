@@ -21,6 +21,17 @@ afterEach(() => {
 function makeFs(overrides?: Partial<FsClient>): Partial<FsClient> {
   return {
     computeHash: vi.fn().mockResolvedValue({ hash: "abc123", fileSize: 42 }),
+    getAcl: vi.fn().mockResolvedValue({
+      owner: "user",
+      group: "user",
+      entries: [
+        { principal: "owner", read: true, write: true, execute: false },
+        { principal: "group", read: true, write: false, execute: false },
+        { principal: "other", read: true, write: false, execute: false },
+      ],
+      octal: "644",
+    }),
+    setAcl: vi.fn().mockResolvedValue({ success: true }),
     ...overrides,
   };
 }

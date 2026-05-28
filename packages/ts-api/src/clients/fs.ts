@@ -45,6 +45,10 @@ import type {
   UnlistenFn,
   WatchEventDto,
   WatchStartRequest,
+  GetAclRequest,
+  GetAclResponse,
+  SetAclRequest,
+  SetAclResponse,
 } from "../types";
 import {
   DIRECTORY_BATCH_EVENT,
@@ -381,5 +385,17 @@ export class FsClient {
       DIRECTORY_BATCH_EVENT,
       handler,
     );
+  }
+
+  async getAcl(request: GetAclRequest): Promise<GetAclResponse> {
+    return await this.transport.invoke<GetAclResponse>("fs.get_acl", {
+      request,
+    });
+  }
+
+  async setAcl(request: SetAclRequest): Promise<SetAclResponse> {
+    return await this.transport.invoke<SetAclResponse>("fs.set_acl", {
+      request,
+    });
   }
 }

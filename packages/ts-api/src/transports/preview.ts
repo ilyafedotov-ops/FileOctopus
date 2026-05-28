@@ -578,6 +578,23 @@ export function createPreviewTransport(): IpcTransport {
         } as TResponse;
       }
 
+      if (command === "fs.get_acl") {
+        return {
+          owner: "user",
+          group: "user",
+          entries: [
+            { principal: "owner", read: true, write: true, execute: false },
+            { principal: "group", read: true, write: false, execute: false },
+            { principal: "other", read: true, write: false, execute: false },
+          ],
+          octal: "644",
+        } as TResponse;
+      }
+
+      if (command === "fs.set_acl") {
+        return { success: true } as TResponse;
+      }
+
       throw {
         code: IPC_ERROR_CODES.TAURI_UNAVAILABLE,
         message: "Tauri IPC is unavailable in browser preview",

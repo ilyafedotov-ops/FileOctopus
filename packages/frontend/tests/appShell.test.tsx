@@ -409,6 +409,17 @@ vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
         computeHash,
         openTerminal,
         discoverVolumes: vi.fn(async () => ({ volumes: [] })),
+        getAcl: vi.fn(async () => ({
+          owner: "user",
+          group: "user",
+          entries: [
+            { principal: "owner", read: true, write: true, execute: false },
+            { principal: "group", read: true, write: false, execute: false },
+            { principal: "other", read: true, write: false, execute: false },
+          ],
+          octal: "644",
+        })),
+        setAcl: vi.fn(async () => ({ success: true })),
       },
       terminal: mockTerminalClient(),
       fileOperations: {

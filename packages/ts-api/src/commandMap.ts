@@ -70,4 +70,6 @@ export const commandMap: Record<string, string> = {
   "plugin.install": "plugin_install",
   "plugin.uninstall": "plugin_uninstall",
   "plugin.toggle": "plugin_toggle",
+  "fs.get_acl": "fs_get_acl",
+  "fs.set_acl": "fs_set_acl",
 };

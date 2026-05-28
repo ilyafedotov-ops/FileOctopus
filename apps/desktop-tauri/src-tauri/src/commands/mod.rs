@@ -1,3 +1,4 @@
+pub mod acl;
 pub mod app_info;
 pub mod autostart;
 pub mod diagnostics;

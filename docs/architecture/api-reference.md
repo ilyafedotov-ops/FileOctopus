@@ -46,7 +46,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 
 ### Full registry (2026-05-23)
 
-**71 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
+**73 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
 
 | Tauri command                        | TS dotted name (typical)           | Client area              |
 | ------------------------------------ | ---------------------------------- | ------------------------ |
@@ -120,6 +120,8 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `plugin_install`                     | `plugin.install`                   | `PluginClient`           |
 | `plugin_uninstall`                   | `plugin.uninstall`                 | `PluginClient`           |
 | `plugin_toggle`                      | `plugin.toggle`                    | `PluginClient`           |
+| `fs_get_acl`                         | `fs.get_acl`                       | `FsClient`               |
+| `fs_set_acl`                         | `fs.set_acl`                       | `FsClient`               |
 
 Per-command request/response detail below covers the **core** surface first; extend subsections when you add handlers.
 
