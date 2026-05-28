@@ -10,7 +10,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct ResourceUri(String);
 
-pub const REMOTE_SCHEMES: &[&str] = &["sftp", "smb", "s3", "webdav"];
+pub const REMOTE_SCHEMES: &[&str] = &[
+    "sftp", "smb", "s3", "webdav", "gdrive", "dropbox", "onedrive",
+];
 
 impl ResourceUri {
     pub fn parse(input: &str) -> Result<Self, VfsError> {

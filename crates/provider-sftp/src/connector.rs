@@ -175,6 +175,12 @@ impl SftpConnector {
                     message: "access key authentication is not supported for SFTP".to_string(),
                 });
             }
+            AuthKind::OAuth => {
+                return Err(RemoteError::AuthenticationFailed {
+                    uri: uri.to_string(),
+                    message: "OAuth authentication is not supported for SFTP".to_string(),
+                });
+            }
         }
 
         if !session.authenticated() {

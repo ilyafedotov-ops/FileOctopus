@@ -163,6 +163,12 @@ async fn terminal_spawn_ssh(
                 )
             })?,
         },
+        AuthKind::OAuth => {
+            return Err(IpcError::new(
+                error_codes::AUTHENTICATION_FAILED,
+                "OAuth authentication is not supported for terminal connections",
+            ));
+        }
     };
     let owner = window.label().to_string();
     let terminals = state.terminals();

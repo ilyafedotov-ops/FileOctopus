@@ -27,6 +27,7 @@ pub enum AuthKind {
     Password,
     PrivateKey,
     AccessKey,
+    OAuth,
 }
 
 impl AuthKind {
@@ -35,6 +36,7 @@ impl AuthKind {
             Self::Password => "password",
             Self::PrivateKey => "privateKey",
             Self::AccessKey => "accessKey",
+            Self::OAuth => "oauth",
         }
     }
 
@@ -43,6 +45,7 @@ impl AuthKind {
             "password" => Ok(Self::Password),
             "privateKey" => Ok(Self::PrivateKey),
             "accessKey" => Ok(Self::AccessKey),
+            "oauth" => Ok(Self::OAuth),
             other => Err(NetworkError::InvalidValue {
                 field: "authKind".to_string(),
                 reason: format!("unsupported value `{other}`"),
@@ -406,6 +409,7 @@ fn stored_secret_flag_for_profile(
         }
         AuthKind::PrivateKey => private_key_path.is_some_and(|path| !path.trim().is_empty()),
         AuthKind::AccessKey => false,
+        AuthKind::OAuth => false,
     }
 }
 
