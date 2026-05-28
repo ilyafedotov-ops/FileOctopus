@@ -144,10 +144,10 @@ Each item is marked **specified** (explicitly defined in docs with detail) or **
 - **Operations** (Files & Folders) — specified (UI Design Spec §Preferences) — **implemented**
 - **Terminal** — specified — **implemented**
 - **Shortcuts** (Keyboard) — specified (UI Design Spec §Preferences) — **implemented**
-- **Advanced** — specified (UI Design Spec §Preferences) — **planned** (SET-ADV in 2026-05-26-settings-ui-improvement)
-- **Network** — specified (UI Design Spec §Preferences) — **stub** (SET-NET in 2026-05-26-settings-ui-improvement)
-- **Editor** — specified (UI Design Spec §Preferences) — **stub** (SET-EDIT in 2026-05-26-settings-ui-improvement)
-- **Viewer** — specified (UI Design Spec §Preferences) — **stub** (SET-VIEW in 2026-05-26-settings-ui-improvement)
+- **Advanced** — specified (UI Design Spec §Preferences) — **implemented** (SET-ADV `05b31a7`)
+- **Network** — specified (UI Design Spec §Preferences) — **implemented** (SET-NET `01748a3`)
+- **Editor** — specified (UI Design Spec §Preferences) — **implemented** (SET-EDIT `9bfe938`)
+- **Viewer** — specified (UI Design Spec §Preferences) — **implemented** (SET-VIEW `7243e03`)
 
 ### Individual Settings Fields
 
@@ -386,7 +386,7 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 
 ---
 
-## 13. Implementation snapshot (2026-05-27)
+## 13. Implementation snapshot (2026-05-29)
 
 ### Delivered after Sprint 5 (codebase)
 
@@ -443,6 +443,10 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 - **E2E reliability** — 165 pass, 27 conditional skips, 0 failures (E2E-1)
 - **Test coverage audit** — 22 new tests across recent features (TEST-1)
 - **SMB/S3 integration test validation** — provider crate test coverage confirmed (TEST-2)
+- **Cloud providers** — Google Drive, Dropbox, OneDrive connector crates + VFS registration + OAuth auth (CLOUD-1)
+- **Plugin marketplace** — plugin loader, manifest schema, sandboxed execution, UI marketplace browser (PLUG-1)
+- **File content diff/merge** — side-by-side diff view, merge conflict resolution UI, inline change markers (DIFF-1)
+- **Advanced ACL editing** — POSIX permission matrix UI, recursive apply (ACL-1)
 
 ### Fixed doc drift (previously listed as not implemented, now done)
 
@@ -466,7 +470,7 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 
 ### Out of MVP scope (unchanged)
 
-- **File content diff/merge**, **plugin marketplace**, **cloud providers**, **AI semantic search**, **advanced ACL editing**
+- **AI semantic search**, **P2P sync** — intentionally deferred (RC spec §3.3)
 
 ---
 
