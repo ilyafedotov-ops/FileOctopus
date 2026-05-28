@@ -118,7 +118,7 @@ describe("Settings Dialog Polish", () => {
         />,
       );
       const allButtons = navButtons();
-      expect(allButtons.length).toBe(13);
+      expect(allButtons.length).toBe(14);
 
       const searchInput = screen.getByPlaceholderText("Search settings…");
       fireEvent.change(searchInput, { target: { value: "term" } });
@@ -144,7 +144,7 @@ describe("Settings Dialog Polish", () => {
       expect(navButtons().length).toBe(0);
 
       fireEvent.change(searchInput, { target: { value: "" } });
-      expect(navButtons().length).toBe(13);
+      expect(navButtons().length).toBe(14);
     });
   });
 

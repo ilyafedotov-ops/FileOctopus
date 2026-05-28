@@ -1,4 +1,4 @@
-import type { FsClient } from "@fileoctopus/ts-api";
+import type { FsClient, PluginClient } from "@fileoctopus/ts-api";
 import type {
   AppDataHealthResponse,
   AppInfoResponse,
@@ -152,6 +152,7 @@ export interface DialogOverlayGroupProps {
   exportingDiagnostics: boolean;
   isProductionBuild: boolean;
   fs: FsClient;
+  pluginClient?: PluginClient;
   updatePreference: (key: string, value: string) => void;
   handleSetAutostart: (enabled: boolean) => Promise<void>;
   onCustomizeToolbar?: () => void;
@@ -293,6 +294,7 @@ export function DialogOverlayGroup({
   exportingDiagnostics,
   isProductionBuild,
   fs,
+  pluginClient,
   updatePreference,
   handleSetAutostart,
   onCustomizeToolbar,
@@ -360,6 +362,7 @@ export function DialogOverlayGroup({
         open={settingsOpen}
         preferences={preferences ?? FALLBACK_PREFERENCES}
         autostart={autostart}
+        pluginClient={pluginClient}
         onClose={() => setSettingsOpen(false)}
         onChange={(key, value) => {
           if (key === "rememberLastUsedPanes") {

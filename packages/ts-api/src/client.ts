@@ -15,6 +15,7 @@ import { OperationHistoryClient } from "./clients/history";
 import { NavigationClient } from "./clients/navigation";
 import { PreferencesClient } from "./clients/preferences";
 import { TerminalClient } from "./clients/terminal";
+import { PluginClient } from "./clients/plugin";
 import { createPreviewTransport } from "./transports/preview";
 import { createTauriTransport, isTauriRuntime } from "./transports/tauri";
 import { requireListen } from "./requireListen";
@@ -35,6 +36,7 @@ export class FileOctopusClient {
   readonly network: NetworkClient;
   readonly autostart: AutostartClient;
   readonly terminal: TerminalClient;
+  readonly plugin: PluginClient;
 
   constructor(private readonly transport: IpcTransport) {
     this.fs = new FsClient(transport);
@@ -48,6 +50,7 @@ export class FileOctopusClient {
     this.network = new NetworkClient(transport);
     this.autostart = new AutostartClient(transport);
     this.terminal = new TerminalClient(transport);
+    this.plugin = new PluginClient(transport);
   }
 
   getAppInfo(): Promise<AppInfoResponse> {
@@ -89,6 +92,7 @@ export { NetworkClient } from "./clients/network";
 export { FsClient } from "./clients/fs";
 export { GitClient } from "./clients/git";
 export { TerminalClient } from "./clients/terminal";
+export { PluginClient } from "./clients/plugin";
 export * from "./uri";
 export { createTauriTransport, isTauriRuntime } from "./transports/tauri";
 export { createPreviewTransport } from "./transports/preview";

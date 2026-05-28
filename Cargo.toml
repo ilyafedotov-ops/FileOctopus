@@ -21,6 +21,7 @@ members = [
   "crates/terminal-core",
   "crates/test-support",
   "crates/vfs",
+  "crates/plugin-core",
 ]
 
 [workspace.package]

@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type {
   AutostartStatusDto,
+  PluginClient,
   UserPreferencesDto,
 } from "@fileoctopus/ts-api";
 import { Button, Icons } from "@fileoctopus/ui";
@@ -21,6 +22,7 @@ import {
   SettingsNetwork,
   SettingsEditor,
   SettingsViewer,
+  SettingsPlugins,
   type SettingsCategory,
 } from "./settings";
 
@@ -28,6 +30,7 @@ interface SettingsDialogProps {
   open: boolean;
   preferences: UserPreferencesDto;
   autostart: AutostartStatusDto | null;
+  pluginClient?: PluginClient;
   onClose: () => void;
   onChange: (key: string, value: string) => void;
   onSetAutostart: (enabled: boolean) => Promise<void>;
@@ -38,6 +41,7 @@ export function SettingsDialog({
   open,
   preferences,
   autostart,
+  pluginClient,
   onClose,
   onChange,
   onSetAutostart,
@@ -138,6 +142,9 @@ export function SettingsDialog({
             )}
             {activeCategory === "viewer" && (
               <SettingsViewer preferences={preferences} onChange={onChange} />
+            )}
+            {activeCategory === "plugins" && pluginClient && (
+              <SettingsPlugins pluginClient={pluginClient} />
             )}
           </div>
         </div>

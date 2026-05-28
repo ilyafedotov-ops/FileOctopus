@@ -533,6 +533,51 @@ export function createPreviewTransport(): IpcTransport {
         return { success: true } as TResponse;
       }
 
+      if (command === "plugin.list") {
+        return { plugins: [] } as TResponse;
+      }
+
+      if (command === "plugin.install") {
+        return {
+          plugin: {
+            manifest: {
+              id: "preview",
+              name: "Preview Plugin",
+              version: "0.0.1",
+              description: "Preview mock",
+              author: "FileOctopus",
+              entryPoint: "main.js",
+              permissions: [],
+            },
+            installPath: "/tmp/preview-plugin",
+            enabled: true,
+          },
+        } as TResponse;
+      }
+
+      if (command === "plugin.uninstall") {
+        return { ok: true } as TResponse;
+      }
+
+      if (command === "plugin.toggle") {
+        return {
+          plugin: {
+            manifest: {
+              id: "preview",
+              name: "Preview Plugin",
+              version: "0.0.1",
+              description: "Preview mock",
+              author: "FileOctopus",
+              entryPoint: "main.js",
+              permissions: [],
+            },
+            installPath: "/tmp/preview-plugin",
+            enabled:
+              (args?.request as Record<string, unknown>)?.enabled ?? true,
+          },
+        } as TResponse;
+      }
+
       throw {
         code: IPC_ERROR_CODES.TAURI_UNAVAILABLE,
         message: "Tauri IPC is unavailable in browser preview",

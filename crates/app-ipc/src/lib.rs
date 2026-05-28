@@ -1738,6 +1738,98 @@ pub struct ListArchiveResponse {
     pub entries: Vec<FileEntryDto>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginManifestDto {
+    pub id: String,
+    pub name: String,
+    pub version: String,
+    pub description: String,
+    pub author: String,
+    pub entry_point: String,
+    pub permissions: Vec<String>,
+    pub min_app_version: Option<String>,
+}
+
+impl From<plugin_core::PluginManifest> for PluginManifestDto {
+    fn from(m: plugin_core::PluginManifest) -> Self {
+        Self {
+            id: m.id,
+            name: m.name,
+            version: m.version,
+            description: m.description,
+            author: m.author,
+            entry_point: m.entry_point,
+            permissions: m
+                .permissions
+                .into_iter()
+                .map(|p| match p {
+                    plugin_core::PluginPermission::ReadFiles => "readFiles".to_string(),
+                    plugin_core::PluginPermission::WriteFiles => "writeFiles".to_string(),
+                    plugin_core::PluginPermission::NetworkAccess => "networkAccess".to_string(),
+                    plugin_core::PluginPermission::ClipboardAccess => "clipboardAccess".to_string(),
+                })
+                .collect(),
+            min_app_version: m.min_app_version,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct InstalledPluginDto {
+    pub manifest: PluginManifestDto,
+    pub install_path: String,
+    pub enabled: bool,
+}
+
+impl From<plugin_core::InstalledPlugin> for InstalledPluginDto {
+    fn from(p: plugin_core::InstalledPlugin) -> Self {
+        Self {
+            manifest: p.manifest.into(),
+            install_path: p.install_path.to_string_lossy().to_string(),
+            enabled: p.enabled,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginListResponse {
+    pub plugins: Vec<InstalledPluginDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginInstallRequest {
+    pub source_path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginInstallResponse {
+    pub plugin: InstalledPluginDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginUninstallRequest {
+    pub plugin_id: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginToggleRequest {
+    pub plugin_id: String,
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginToggleResponse {
+    pub plugin: InstalledPluginDto,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

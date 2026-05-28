@@ -1648,3 +1648,118 @@
   .fo-toolbar-label-compact {
   display: none;
 }
+
+.fo-plugin-manager-dialog {
+  max-width: 600px;
+  width: 90vw;
+  max-height: 80vh;
+}
+
+.fo-plugin-loading,
+.fo-plugin-empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--fo-text);
+}
+
+.fo-plugin-empty-hint {
+  font-size: 0.85em;
+  color: var(--fo-muted-text);
+  margin-top: 8px;
+}
+
+.fo-plugin-error {
+  padding: 8px 12px;
+  background: var(--fo-danger);
+  color: white;
+  border-radius: var(--fo-radius-sm);
+  margin-bottom: 12px;
+}
+
+.fo-plugin-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fo-plugin-card {
+  border: 1px solid var(--fo-border);
+  border-radius: var(--fo-radius-md);
+  padding: 12px 16px;
+}
+
+.fo-plugin-card-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.fo-plugin-name {
+  font-weight: 600;
+  font-size: 0.95em;
+}
+
+.fo-plugin-version {
+  font-size: 0.8em;
+  color: var(--fo-muted-text);
+}
+
+.fo-plugin-description {
+  font-size: 0.85em;
+  color: var(--fo-text);
+  margin-bottom: 6px;
+}
+
+.fo-plugin-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8em;
+  margin-bottom: 8px;
+}
+
+.fo-plugin-author {
+  color: var(--fo-muted-text);
+}
+
+.fo-plugin-status {
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.85em;
+}
+
+.fo-plugin-status-enabled {
+  background: color-mix(in srgb, var(--fo-accent) 15%, transparent);
+  color: var(--fo-accent);
+}
+
+.fo-plugin-status-disabled {
+  background: color-mix(in srgb, var(--fo-muted-text) 15%, transparent);
+  color: var(--fo-muted-text);
+}
+
+.fo-plugin-permissions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.fo-plugin-permission-tag {
+  font-size: 0.75em;
+  padding: 1px 6px;
+  border: 1px solid var(--fo-border);
+  border-radius: 3px;
+  color: var(--fo-muted-text);
+}
+
+.fo-plugin-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.fo-settings-plugins .fo-plugin-empty,
+.fo-settings-plugins .fo-plugin-list {
+  margin-top: 16px;
+}

@@ -155,6 +155,7 @@ dependencies = [
  "config",
  "git-intel",
  "jobs",
+ "plugin-core",
  "serde",
  "serde_json",
  "vfs",
@@ -1196,6 +1197,7 @@ dependencies = [
  "fs-core",
  "jobs",
  "platform",
+ "plugin-core",
  "remote-core",
  "serde",
  "serde_json",
@@ -3209,6 +3211,16 @@ dependencies = [
  "quick-xml 0.39.4",
  "serde",
  "time",
+]
+
+[[package]]
+name = "plugin-core"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
 ]
 
 [[package]]

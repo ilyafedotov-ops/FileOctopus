@@ -12,5 +12,6 @@ export { SettingsAdvanced } from "./SettingsAdvanced";
 export { SettingsNetwork } from "./SettingsNetwork";
 export { SettingsEditor } from "./SettingsEditor";
 export { SettingsViewer } from "./SettingsViewer";
+export { SettingsPlugins } from "./SettingsPlugins";
 export type { SettingsCategory, SettingsTreeItem } from "./types";
 export { SETTINGS_TREE } from "./types";

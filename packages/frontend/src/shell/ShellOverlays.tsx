@@ -98,6 +98,7 @@ export function ShellOverlays() {
         exportingDiagnostics={ctx.exportingDiagnostics}
         isProductionBuild={ctx.isProductionBuild}
         fs={ctx.client.fs}
+        pluginClient={ctx.client.plugin}
         updatePreference={ctx.updatePreference}
         handleSetAutostart={ctx.handleSetAutostart}
         onCustomizeToolbar={() =>

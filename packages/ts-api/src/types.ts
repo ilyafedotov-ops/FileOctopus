@@ -1038,3 +1038,45 @@ export interface OperationHistoryRecordDto {
   completedAt?: string | null;
   errorCode?: string | null;
 }
+
+export interface PluginManifestDto {
+  id: string;
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  entryPoint: string;
+  permissions: string[];
+  minAppVersion?: string | null;
+}
+
+export interface InstalledPluginDto {
+  manifest: PluginManifestDto;
+  installPath: string;
+  enabled: boolean;
+}
+
+export interface PluginListResponse {
+  plugins: InstalledPluginDto[];
+}
+
+export interface PluginInstallRequest {
+  sourcePath: string;
+}
+
+export interface PluginInstallResponse {
+  plugin: InstalledPluginDto;
+}
+
+export interface PluginUninstallRequest {
+  pluginId: string;
+}
+
+export interface PluginToggleRequest {
+  pluginId: string;
+  enabled: boolean;
+}
+
+export interface PluginToggleResponse {
+  plugin: InstalledPluginDto;
+}

@@ -11,7 +11,8 @@ export type SettingsCategory =
   | "advanced"
   | "network"
   | "editor"
-  | "viewer";
+  | "viewer"
+  | "plugins";
 
 export interface SettingsTreeItem {
   id: SettingsCategory;
@@ -86,5 +87,10 @@ export const SETTINGS_TREE: SettingsTreeItem[] = [
     id: "viewer",
     label: "Viewer",
     description: "View mode, image zoom, media autoplay, and file size.",
+  },
+  {
+    id: "plugins",
+    label: "Plugins",
+    description: "Manage installed plugins and their permissions.",
   },
 ];

@@ -66,4 +66,8 @@ export const commandMap: Record<string, string> = {
   "terminal.write": "terminal_write",
   "terminal.resize": "terminal_resize",
   "terminal.kill": "terminal_kill",
+  "plugin.list": "plugin_list",
+  "plugin.install": "plugin_install",
+  "plugin.uninstall": "plugin_uninstall",
+  "plugin.toggle": "plugin_toggle",
 };

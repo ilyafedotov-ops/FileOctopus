@@ -5,12 +5,14 @@ mod emit;
 mod menu;
 mod state;
 
+use commands::plugin::PluginState;
 use state::{ListingRegistry, MetadataJobState, WatchState};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app_state = AppCore::boot().expect("failed to boot FileOctopus app core");
+    let plugin_state = PluginState::new(app_state.paths());
 
     tauri::Builder::default()
         .plugin(tauri_plugin_autostart::init(
@@ -21,6 +23,7 @@ pub fn run() {
         .manage(WatchState::default())
         .manage(MetadataJobState::default())
         .manage(ListingRegistry::default())
+        .manage(plugin_state)
         .on_menu_event(|app, event| {
             menu::handle_native_menu_event(app, event.id().as_ref());
         })
@@ -136,6 +139,10 @@ pub fn run() {
             commands::terminal::terminal_resize,
             commands::terminal::terminal_kill,
             commands::fs::fs_list_archive,
+            commands::plugin::plugin_list,
+            commands::plugin::plugin_install,
+            commands::plugin::plugin_uninstall,
+            commands::plugin::plugin_toggle,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run FileOctopus");

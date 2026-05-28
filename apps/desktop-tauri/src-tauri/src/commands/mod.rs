@@ -7,6 +7,7 @@ pub mod fs;
 pub mod git;
 pub mod navigation;
 pub mod network;
+pub mod plugin;
 pub mod preferences;
 pub mod recursive_search;
 pub mod terminal;
