@@ -8,6 +8,7 @@ import { createFileOctopusClient } from "@fileoctopus/ts-api";
 import type { FileOctopusState, PanelAction, PanelId } from "../../panelStore";
 import type { OperationDialog } from "../../dialogs/OperationDialogView";
 import type { SearchState } from "../../pane/PaneFilterBar";
+import type { ContentSearchState } from "../../pane/ContentSearchPanel";
 import type { ToastMessage } from "../../components/ToastStack";
 
 export type CopyMoveKind = Extract<FileOperationKind, "copy" | "move">;
@@ -24,6 +25,7 @@ export interface UseFileOpHandlersDeps {
   state: FileOctopusState;
   dispatch: Dispatch<PanelAction>;
   setSearch: Dispatch<SetStateAction<SearchState | null>>;
+  setContentSearch: Dispatch<SetStateAction<ContentSearchState | null>>;
   setDialog: Dispatch<SetStateAction<OperationDialog | null>>;
   setClipboard: Dispatch<SetStateAction<FileClipboardState | null>>;
   clipboard: FileClipboardState | null;

@@ -75,4 +75,5 @@ export const commandMap: Record<string, string> = {
   "plugin.toggle": "plugin_toggle",
   "fs.get_acl": "fs_get_acl",
   "fs.set_acl": "fs_set_acl",
+  "fs.sync_directories": "fs_sync_directories",
 };

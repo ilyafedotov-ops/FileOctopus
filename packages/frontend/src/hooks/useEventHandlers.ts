@@ -3,6 +3,8 @@ import type {
   AppDataHealthResponse,
   AppInfoResponse,
   AutostartStatusDto,
+  ContentSearchCompletedEventDto,
+  ContentSearchMatchEventDto,
   FavoriteEntryDto,
   FolderSizeCompletedEventDto,
   NetworkConnectionStatusDto,
@@ -29,6 +31,7 @@ import {
   type DensityPreference,
 } from "../applyPreferences";
 import type { SearchState } from "../pane/PaneFilterBar";
+import type { ContentSearchState } from "../pane/ContentSearchPanel";
 import type { ToastMessage } from "../components/ToastStack";
 import type { OperationDialog } from "../dialogs/OperationDialogView";
 import { mergeToast } from "../toastNotifications";
@@ -46,6 +49,7 @@ export interface UseEventHandlersParams {
   setActivityCollapsed: Dispatch<SetStateAction<boolean>>;
   setOperationError: Dispatch<SetStateAction<string | null>>;
   setSearch: Dispatch<SetStateAction<SearchState | null>>;
+  setContentSearch: Dispatch<SetStateAction<ContentSearchState | null>>;
   setAutostart: Dispatch<SetStateAction<AutostartStatusDto | null>>;
   setFavorites: Dispatch<SetStateAction<FavoriteEntryDto[]>>;
   setRecentToday: Dispatch<SetStateAction<RecentEntryDto[]>>;
@@ -75,6 +79,7 @@ export function useEventHandlers({
   setActivityCollapsed,
   setOperationError,
   setSearch,
+  setContentSearch,
   setAutostart,
   setFavorites,
   setRecentToday,
@@ -302,6 +307,40 @@ export function useEventHandlers({
     });
   }
 
+  function applyContentSearchMatch(event: ContentSearchMatchEventDto) {
+    setContentSearch((current) => {
+      if (!current || current.jobId !== event.jobId) {
+        return current;
+      }
+
+      const matches = current.result?.matches ?? [];
+
+      return {
+        ...current,
+        result: {
+          matches: [...matches, event.item],
+          warnings: current.result?.warnings ?? [],
+          incomplete: current.result?.incomplete ?? false,
+        },
+      };
+    });
+  }
+
+  function applyContentSearchCompleted(event: ContentSearchCompletedEventDto) {
+    setContentSearch((current) => {
+      if (!current || current.jobId !== event.jobId) {
+        return current;
+      }
+
+      return {
+        ...current,
+        running: false,
+        result: event.result,
+        error: null,
+      };
+    });
+  }
+
   async function clearHistory() {
     try {
       await client.operationHistory.clearOperationHistory();
@@ -351,6 +390,8 @@ export function useEventHandlers({
     applyFolderSizeCompleted,
     applyRecursiveSearchMatch,
     applyRecursiveSearchCompleted,
+    applyContentSearchMatch,
+    applyContentSearchCompleted,
     clearHistory,
     exportDiagnostics,
     openExternal,

@@ -2732,3 +2732,253 @@ dialog.fo-dialog[open] {
   gap: 6px;
   margin-top: 4px;
 }
+
+/* ── Sync Directories Dialog ──────────────────────────────────── */
+
+.fo-sync-dialog {
+  width: min(720px, 90vw);
+  max-height: 80vh;
+}
+
+.fo-sync-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.fo-sync-paths {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.fo-sync-path {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 12px;
+}
+
+.fo-sync-path-label {
+  font-weight: 600;
+  min-width: 40px;
+}
+
+.fo-sync-path-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--fo-muted-text);
+}
+
+.fo-sync-options {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 12px;
+}
+
+.fo-sync-options label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fo-sync-options select {
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.fo-sync-loading,
+.fo-sync-error,
+.fo-sync-empty {
+  text-align: center;
+  padding: 2rem;
+  color: var(--fo-muted-text);
+  font-size: 13px;
+}
+
+.fo-sync-error {
+  color: var(--fo-danger, #e04040);
+}
+
+.fo-sync-stats {
+  padding: 0.25rem 0;
+  font-size: 12px;
+  color: var(--fo-muted-text);
+  border-bottom: 1px solid var(--fo-border);
+}
+
+.fo-sync-results {
+  overflow: auto;
+  max-height: 50vh;
+  margin: 0.25rem 0;
+}
+
+.fo-sync-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.fo-sync-table th {
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--fo-border);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.fo-sync-table td {
+  padding: 3px 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+.fo-sync-table td:first-child {
+  max-width: 240px;
+}
+
+.fo-sync-row {
+  border-bottom: 1px solid var(--fo-classic-shadow, rgba(0, 0, 0, 0.05));
+}
+
+.fo-sync-row:hover {
+  background: var(--fo-classic-selected, rgba(74, 158, 255, 0.08));
+}
+
+/* Hotlist Dialog */
+.fo-hotlist-dialog {
+  max-width: 480px;
+  min-width: 360px;
+}
+
+.fo-hotlist-entries {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.fo-hotlist-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--fo-classic-muted, #888);
+  font-size: 12px;
+}
+
+.fo-hotlist-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  border-radius: 3px;
+}
+
+.fo-hotlist-entry:hover,
+.fo-hotlist-entry-selected {
+  background: var(--fo-classic-selected, rgba(74, 158, 255, 0.12));
+}
+
+.fo-hotlist-shortcut {
+  width: 16px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--fo-classic-muted, #888);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.fo-hotlist-label {
+  flex-shrink: 0;
+  font-weight: 500;
+}
+
+.fo-hotlist-path {
+  color: var(--fo-classic-muted, #888);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Manage Hotlist Dialog */
+.fo-manage-hotlist-dialog {
+  max-width: 560px;
+  min-width: 420px;
+}
+
+.fo-manage-hotlist-list {
+  padding: 4px 0;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.fo-manage-hotlist-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--fo-classic-muted, #888);
+  font-size: 12px;
+}
+
+.fo-manage-hotlist-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--fo-classic-shadow, rgba(0, 0, 0, 0.05));
+}
+
+.fo-manage-hotlist-row:last-child {
+  border-bottom: none;
+}
+
+.fo-manage-hotlist-index {
+  width: 16px;
+  text-align: center;
+  font-weight: 700;
+  color: var(--fo-classic-muted, #888);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.fo-manage-hotlist-label {
+  font-weight: 500;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.fo-manage-hotlist-path {
+  color: var(--fo-classic-muted, #888);
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.fo-manage-hotlist-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.fo-manage-hotlist-edit {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.fo-manage-hotlist-edit .fo-ui-input {
+  min-width: 80px;
+  font-size: 12px;
+}

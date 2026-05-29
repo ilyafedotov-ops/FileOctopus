@@ -4,6 +4,8 @@ import type {
   ComputeHashResponse,
   CompareFilesRequest,
   CompareFilesResponse,
+  SyncDirectoriesRequest,
+  SyncDirectoriesResponse,
   ContentSearchCompletedEventDto,
   ContentSearchJobResponse,
   ContentSearchMatchEventDto,
@@ -455,6 +457,15 @@ export class FsClient {
   ): Promise<CompareFilesResponse> {
     return await this.transport.invoke<CompareFilesResponse>(
       "fs.compare_files",
+      { request },
+    );
+  }
+
+  async syncDirectories(
+    request: SyncDirectoriesRequest,
+  ): Promise<SyncDirectoriesResponse> {
+    return await this.transport.invoke<SyncDirectoriesResponse>(
+      "fs.sync_directories",
       { request },
     );
   }

@@ -186,6 +186,10 @@ function FileOctopusAppInner({
     setMultiRenameOpen,
     syncDirectoriesOpen,
     setSyncDirectoriesOpen,
+    hotlistOpen,
+    setHotlistOpen,
+    manageHotlistOpen,
+    setManageHotlistOpen,
   } = useModals();
 
   const {
@@ -576,6 +580,8 @@ function FileOctopusAppInner({
     },
     setMultiRenameOpen,
     setSyncDirectoriesOpen,
+    setHotlistOpen,
+    setManageHotlistOpen,
     removeRecentEntry: async (uri: string) => {
       try {
         await client.navigation.removeRecent({ uri });
@@ -947,6 +953,10 @@ function FileOctopusAppInner({
       setMultiRenameOpen={setMultiRenameOpen}
       syncDirectoriesOpen={syncDirectoriesOpen}
       setSyncDirectoriesOpen={setSyncDirectoriesOpen}
+      hotlistOpen={hotlistOpen}
+      setHotlistOpen={setHotlistOpen}
+      manageHotlistOpen={manageHotlistOpen}
+      setManageHotlistOpen={setManageHotlistOpen}
       isTextEditable={isTextEditable}
       refreshActivePane={() => refreshPanel(state.activePanelId)}
       setDiagnosticsOpen={setDiagnosticsOpen}

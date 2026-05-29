@@ -122,6 +122,8 @@ export interface CommandDispatchDeps {
   toggleToolbar: () => void;
   setMultiRenameOpen: (open: boolean) => void;
   setSyncDirectoriesOpen: (open: boolean) => void;
+  setHotlistOpen: (open: boolean) => void;
+  setManageHotlistOpen: (open: boolean) => void;
 }
 
 function resolveCommandId(id: string): string {
@@ -519,6 +521,12 @@ export function dispatchCommand(
       return true;
     case "tools.syncDirectories":
       deps.setSyncDirectoriesOpen(true);
+      return true;
+    case "tools.openHotlist":
+      deps.setHotlistOpen(true);
+      return true;
+    case "tools.manageHotlist":
+      deps.setManageHotlistOpen(true);
       return true;
     default:
       return false;

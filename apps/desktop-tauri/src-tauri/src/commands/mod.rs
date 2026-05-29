@@ -13,5 +13,6 @@ pub mod network;
 pub mod plugin;
 pub mod preferences;
 pub mod recursive_search;
+pub mod sync;
 pub mod terminal;
 pub mod watch;

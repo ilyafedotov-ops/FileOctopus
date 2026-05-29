@@ -144,6 +144,8 @@ export interface ShellLayoutContextValue {
   isProductionBuild: boolean;
   multiRenameOpen: boolean;
   syncDirectoriesOpen: boolean;
+  hotlistOpen: boolean;
+  manageHotlistOpen: boolean;
   setSettingsOpen: (v: boolean) => void;
   setShortcutsOpen: (v: boolean) => void;
   setCommandPaletteOpen: (v: boolean) => void;
@@ -164,6 +166,8 @@ export interface ShellLayoutContextValue {
   setDiffRightName: (v: string) => void;
   setMultiRenameOpen: (v: boolean) => void;
   setSyncDirectoriesOpen: (v: boolean) => void;
+  setHotlistOpen: (v: boolean) => void;
+  setManageHotlistOpen: (v: boolean) => void;
   isTextEditable: (entry: FileEntryDto | null) => boolean;
   refreshActivePane: () => void;
   setDiagnosticsOpen: (v: boolean) => void;
