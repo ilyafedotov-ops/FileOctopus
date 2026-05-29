@@ -88,6 +88,10 @@ const appPreferences: UserPreferencesDto = {
   terminalArgs: "",
   tabSessions: "",
   hotlistEntries: "",
+  leftDefaultViewMode: "details",
+  rightDefaultViewMode: "details",
+  leftDefaultSortField: "name",
+  rightDefaultSortField: "name",
 };
 const preferencesGet = vi.fn(async () => ({
   preferences: appPreferences,

@@ -403,6 +403,10 @@ export interface UserPreferencesDto {
   columnPresets: string;
   tabSessions: string;
   hotlistEntries: string;
+  leftDefaultViewMode: string;
+  rightDefaultViewMode: string;
+  leftDefaultSortField: string;
+  rightDefaultSortField: string;
   logLevel: string;
   experimentalFeatures: boolean;
   cacheSizeLimit: number;
