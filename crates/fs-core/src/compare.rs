@@ -143,8 +143,8 @@ fn compute_diff_hunks(left: &[&str], right: &[&str]) -> Vec<DiffHunk> {
     let mut lcs_table = vec![vec![0usize; right.len() + 1]; left.len() + 1];
 
     // Build LCS table
-    for (i, li) in (1..=left.len()).enumerate() {
-        for (j, ri) in (1..=right.len()).enumerate() {
+    for li in 1..=left.len() {
+        for ri in 1..=right.len() {
             if left[li - 1] == right[ri - 1] {
                 lcs_table[li][ri] = lcs_table[li - 1][ri - 1] + 1;
             } else {
@@ -221,7 +221,6 @@ fn compute_diff_hunks(left: &[&str], right: &[&str]) -> Vec<DiffHunk> {
                     in_hunk = true;
                     hunk_old_start = li;
                     hunk_new_start = ri;
-                    context_count = 0;
                 }
                 current_lines.push(DiffLine {
                     line_number_left: None,
@@ -238,7 +237,6 @@ fn compute_diff_hunks(left: &[&str], right: &[&str]) -> Vec<DiffHunk> {
                     in_hunk = true;
                     hunk_old_start = li;
                     hunk_new_start = ri;
-                    context_count = 0;
                 }
                 current_lines.push(DiffLine {
                     line_number_left: Some(li + 1),
