@@ -17,6 +17,7 @@ pub mod file_ops;
 pub mod locations;
 pub mod metadata;
 pub mod search;
+pub mod sync;
 pub mod vfs_io;
 
 #[derive(Debug, Default)]

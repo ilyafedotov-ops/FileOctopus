@@ -1141,3 +1141,32 @@ export interface CompareFilesResponse {
   hunks: DiffHunkDto[];
   byteDifferences: ByteDifferenceDto[];
 }
+
+// ── Directory Sync ──────────────────────────────────────────────
+
+export interface SyncDirectoriesRequest {
+  leftUri: string;
+  rightUri: string;
+  comparison: "name" | "size" | "date";
+  recursive: boolean;
+}
+
+export interface SyncEntryDto {
+  name: string;
+  leftUri: string | null;
+  rightUri: string | null;
+  leftSize: number | null;
+  rightSize: number | null;
+  leftModified: string | null;
+  rightModified: string | null;
+  leftIsDir: boolean;
+  rightIsDir: boolean;
+  status: string;
+}
+
+export interface SyncDirectoriesResponse {
+  leftUri: string;
+  rightUri: string;
+  entries: SyncEntryDto[];
+  recursive: boolean;
+}

@@ -21,6 +21,8 @@ import type {
   NetworkConnectionStatusDto,
   RecursiveSearchMatchEventDto,
   RecursiveSearchCompletedEventDto,
+  ContentSearchMatchEventDto,
+  ContentSearchCompletedEventDto,
   StandardLocationDto,
 } from "@fileoctopus/ts-api";
 import {
@@ -148,6 +150,8 @@ export interface UseAppInitParams {
   applyRecursiveSearchCompleted: (
     event: RecursiveSearchCompletedEventDto,
   ) => void;
+  applyContentSearchMatch: (event: ContentSearchMatchEventDto) => void;
+  applyContentSearchCompleted: (event: ContentSearchCompletedEventDto) => void;
   setAutostart: Dispatch<SetStateAction<AutostartStatusDto | null>>;
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
   setShortcutsOpen: Dispatch<SetStateAction<boolean>>;
@@ -199,6 +203,8 @@ export function useAppInit({
   applyFolderSizeCompleted,
   applyRecursiveSearchMatch,
   applyRecursiveSearchCompleted,
+  applyContentSearchMatch,
+  applyContentSearchCompleted,
   setAutostart,
   setSettingsOpen,
   setShortcutsOpen,
@@ -549,6 +555,10 @@ export function useAppInit({
       ),
       client.fs.onRecursiveSearchCompleted((event) =>
         applyRecursiveSearchCompleted(event),
+      ),
+      client.fs.onContentSearchMatch((event) => applyContentSearchMatch(event)),
+      client.fs.onContentSearchCompleted((event) =>
+        applyContentSearchCompleted(event),
       ),
     ])
       .then((items) => {

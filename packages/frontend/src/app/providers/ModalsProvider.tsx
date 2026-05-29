@@ -48,6 +48,8 @@ export interface ModalsContextValue {
   dialog: OperationDialog | null;
   multiRenameOpen: boolean;
   syncDirectoriesOpen: boolean;
+  hotlistOpen: boolean;
+  manageHotlistOpen: boolean;
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
   setShortcutsOpen: Dispatch<SetStateAction<boolean>>;
   setCommandPaletteOpen: Dispatch<SetStateAction<boolean>>;
@@ -83,6 +85,8 @@ export interface ModalsContextValue {
   setDialog: Dispatch<SetStateAction<OperationDialog | null>>;
   setMultiRenameOpen: Dispatch<SetStateAction<boolean>>;
   setSyncDirectoriesOpen: Dispatch<SetStateAction<boolean>>;
+  setHotlistOpen: Dispatch<SetStateAction<boolean>>;
+  setManageHotlistOpen: Dispatch<SetStateAction<boolean>>;
 }
 
 const ModalsContext = createContext<ModalsContextValue | null>(null);
@@ -134,6 +138,8 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
   const [dialog, setDialog] = useState<OperationDialog | null>(null);
   const [multiRenameOpen, setMultiRenameOpen] = useState(false);
   const [syncDirectoriesOpen, setSyncDirectoriesOpen] = useState(false);
+  const [hotlistOpen, setHotlistOpen] = useState(false);
+  const [manageHotlistOpen, setManageHotlistOpen] = useState(false);
 
   const value = useMemo<ModalsContextValue>(
     () => ({
@@ -170,6 +176,8 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       dialog,
       multiRenameOpen,
       syncDirectoriesOpen,
+      hotlistOpen,
+      manageHotlistOpen,
       setSettingsOpen,
       setShortcutsOpen,
       setCommandPaletteOpen,
@@ -203,6 +211,8 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       setDialog,
       setMultiRenameOpen,
       setSyncDirectoriesOpen,
+      setHotlistOpen,
+      setManageHotlistOpen,
     }),
     [
       settingsOpen,
@@ -238,6 +248,8 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       dialog,
       multiRenameOpen,
       syncDirectoriesOpen,
+      hotlistOpen,
+      manageHotlistOpen,
     ],
   );
 

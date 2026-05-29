@@ -500,4 +500,16 @@ export const COMMAND_REGISTRY = [
     label: "Synchronize Directories…",
     group: "tools",
   },
+  {
+    id: "tools.openHotlist",
+    label: "Open Hotlist…",
+    group: "tools",
+    shortcutMac: "⌘D",
+    shortcutWin: "Ctrl+D",
+  },
+  {
+    id: "tools.manageHotlist",
+    label: "Manage Hotlist…",
+    group: "tools",
+  },
 ] as const;

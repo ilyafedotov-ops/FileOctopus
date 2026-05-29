@@ -35,6 +35,13 @@ import { ConnectServerDialog } from "./dialogs/ConnectServerDialog";
 import { RemoveServerDialog } from "./dialogs/RemoveServerDialog";
 import { MultiRenameDialog } from "./MultiRenameDialog";
 import { SyncDirectoriesDialog } from "./dialogs/SyncDirectoriesDialog";
+import { HotlistDialog } from "../dialogs/HotlistDialog";
+import { ManageHotlistDialog } from "../dialogs/ManageHotlistDialog";
+import {
+  createHotlistEntry,
+  parseHotlistEntries,
+  serializeHotlistEntries,
+} from "../utils/hotlist";
 import type {
   FavoriteEntryDto,
   NetworkConnectionStatusDto,
@@ -192,6 +199,10 @@ export interface DialogOverlayGroupProps {
   setMultiRenameOpen: (open: boolean) => void;
   syncDirectoriesOpen: boolean;
   setSyncDirectoriesOpen: (open: boolean) => void;
+  hotlistOpen: boolean;
+  setHotlistOpen: (open: boolean) => void;
+  manageHotlistOpen: boolean;
+  setManageHotlistOpen: (open: boolean) => void;
   multiRenameEntries: FileEntryDto[];
   connectProfile: (profileId: string) => Promise<void>;
   forgetFingerprint: (profileId: string) => Promise<void>;
@@ -338,6 +349,10 @@ export function DialogOverlayGroup({
   setMultiRenameOpen,
   syncDirectoriesOpen,
   setSyncDirectoriesOpen,
+  hotlistOpen,
+  setHotlistOpen,
+  manageHotlistOpen,
+  setManageHotlistOpen,
   multiRenameEntries,
   connectProfile,
   disconnectProfile,
@@ -443,6 +458,27 @@ export function DialogOverlayGroup({
         rightUri={rightPanelUri}
         fs={fs}
         onClose={() => setSyncDirectoriesOpen(false)}
+      />
+      <HotlistDialog
+        open={hotlistOpen}
+        onNavigate={(uri) => {
+          setHotlistOpen(false);
+          onNavigateActivePane(uri);
+        }}
+        onManage={() => setManageHotlistOpen(true)}
+        onClose={() => setHotlistOpen(false)}
+        onAddCurrent={(label, uri) => {
+          const STORAGE_KEY = "fileoctopus_hotlist";
+          const raw = localStorage.getItem(STORAGE_KEY) ?? "";
+          const existing = parseHotlistEntries(raw);
+          existing.push(createHotlistEntry(label, uri));
+          localStorage.setItem(STORAGE_KEY, serializeHotlistEntries(existing));
+        }}
+        currentUri={goToLocationInitialUri}
+      />
+      <ManageHotlistDialog
+        open={manageHotlistOpen}
+        onClose={() => setManageHotlistOpen(false)}
       />
       <AboutDialog
         open={aboutOpen}
