@@ -332,3 +332,229 @@ fn search_file_content(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn make_dir_with_files() -> TempDir {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("hello.txt"), "hello world\nfoo bar\n").unwrap();
+        fs::write(dir.path().join("data.csv"), "name,age\nAlice,30\nBob,25\n").unwrap();
+        fs::create_dir(dir.path().join("subdir")).unwrap();
+        fs::write(
+            dir.path().join("subdir/nested.txt"),
+            "nested hello\nworld\n",
+        )
+        .unwrap();
+        dir
+    }
+
+    fn uri_for(path: &std::path::Path) -> ResourceUri {
+        ResourceUri::from_local_path(path).unwrap()
+    }
+
+    #[test]
+    fn search_finds_matches_in_files() {
+        let dir = make_dir_with_files();
+        let uri = uri_for(dir.path());
+        let result = content_search(&uri, "hello", 100, ContentSearchOptions::default()).unwrap();
+        assert_eq!(result.matches.len(), 2); // hello.txt + subdir/nested.txt
+        assert!(result
+            .matches
+            .iter()
+            .any(|m| m.name == "hello.txt" && m.line_number == 1));
+        assert!(result
+            .matches
+            .iter()
+            .any(|m| m.name == "nested.txt" && m.line_number == 1));
+    }
+
+    #[test]
+    fn search_is_case_insensitive_by_default() {
+        let dir = make_dir_with_files();
+        let uri = uri_for(dir.path());
+        let result = content_search(&uri, "HELLO", 100, ContentSearchOptions::default()).unwrap();
+        assert!(!result.matches.is_empty());
+    }
+
+    #[test]
+    fn search_case_sensitive_mode() {
+        let dir = make_dir_with_files();
+        let uri = uri_for(dir.path());
+        let opts = ContentSearchOptions {
+            case_sensitive: true,
+            ..ContentSearchOptions::default()
+        };
+        let result = content_search(&uri, "HELLO", 100, opts).unwrap();
+        assert!(result.matches.is_empty());
+    }
+
+    #[test]
+    fn search_regex_mode() {
+        let dir = make_dir_with_files();
+        let uri = uri_for(dir.path());
+        let opts = ContentSearchOptions {
+            use_regex: true,
+            ..ContentSearchOptions::default()
+        };
+        let result = content_search(&uri, r"\d{2}", 100, opts).unwrap();
+        assert!(result
+            .matches
+            .iter()
+            .any(|m| m.name == "data.csv" && m.line_content.contains("Alice,30")));
+    }
+
+    #[test]
+    fn search_file_pattern_filter() {
+        let dir = make_dir_with_files();
+        let uri = uri_for(dir.path());
+        let opts = ContentSearchOptions {
+            file_pattern: Some("*.txt".to_string()),
+            ..ContentSearchOptions::default()
+        };
+        let result = content_search(&uri, "hello", 100, opts).unwrap();
+        assert!(result.matches.iter().all(|m| m.name.ends_with(".txt")));
+    }
+
+    #[test]
+    fn search_respects_limit() {
+        let dir = make_dir_with_files();
+        let uri = uri_for(dir.path());
+        let result = content_search(&uri, "hello", 1, ContentSearchOptions::default()).unwrap();
+        assert_eq!(result.matches.len(), 1);
+        // Note: incomplete flag is set for IO errors, not limit capping
+    }
+
+    #[test]
+    fn search_empty_query_returns_empty() {
+        let dir = make_dir_with_files();
+        let uri = uri_for(dir.path());
+        let result = content_search(&uri, "", 100, ContentSearchOptions::default()).unwrap();
+        assert!(result.matches.is_empty());
+    }
+
+    #[test]
+    fn search_nonexistent_path_returns_error() {
+        let uri = ResourceUri::parse("local:///nonexistent/path/xyz").unwrap();
+        let result = content_search(&uri, "test", 100, ContentSearchOptions::default());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn search_file_path_returns_error() {
+        let dir = make_dir_with_files();
+        let uri = uri_for(&dir.path().join("hello.txt"));
+        let result = content_search(&uri, "hello", 100, ContentSearchOptions::default());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn search_match_positions_are_correct() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("test.txt"), "abcdefg\n").unwrap();
+        let uri = uri_for(dir.path());
+        let result = content_search(&uri, "cde", 100, ContentSearchOptions::default()).unwrap();
+        assert_eq!(result.matches.len(), 1);
+        let m = &result.matches[0];
+        assert_eq!(m.match_start, 2);
+        assert_eq!(m.match_end, 5);
+        assert_eq!(m.line_content, "abcdefg");
+    }
+
+    #[test]
+    fn search_max_file_size_skips_large_files() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("big.txt"), "hello world\n").unwrap();
+        let uri = uri_for(dir.path());
+        let opts = ContentSearchOptions {
+            max_file_size: 5, // smaller than file
+            ..ContentSearchOptions::default()
+        };
+        let result = content_search(&uri, "hello", 100, opts).unwrap();
+        assert!(result.matches.is_empty());
+    }
+
+    #[test]
+    fn matches_file_pattern_wildcard_extension() {
+        assert!(matches_file_pattern("test.txt", &Some("*.txt".to_string())));
+        assert!(!matches_file_pattern(
+            "test.csv",
+            &Some("*.txt".to_string())
+        ));
+    }
+
+    #[test]
+    fn matches_file_pattern_none_accepts_all() {
+        assert!(matches_file_pattern("anything.xyz", &None));
+    }
+
+    #[test]
+    fn matches_file_pattern_comma_separated() {
+        assert!(matches_file_pattern(
+            "test.txt",
+            &Some("*.txt,*.csv".to_string())
+        ));
+        assert!(matches_file_pattern(
+            "test.csv",
+            &Some("*.txt,*.csv".to_string())
+        ));
+        assert!(!matches_file_pattern(
+            "test.rs",
+            &Some("*.txt,*.csv".to_string())
+        ));
+    }
+
+    #[test]
+    fn search_invalid_regex_returns_warning() {
+        let dir = make_dir_with_files();
+        let uri = uri_for(dir.path());
+        let opts = ContentSearchOptions {
+            use_regex: true,
+            ..ContentSearchOptions::default()
+        };
+        let result = content_search(&uri, "[invalid", 100, opts).unwrap();
+        assert!(result.matches.is_empty());
+        assert!(!result.warnings.is_empty());
+    }
+
+    #[test]
+    fn search_progress_callback_receives_matches() {
+        let dir = TempDir::new().unwrap();
+        fs::write(dir.path().join("test.txt"), "aaa\nbbb\nccc\n").unwrap();
+        let uri = uri_for(dir.path());
+        let cancel = CancellationToken::new();
+        let mut received: Vec<String> = Vec::new();
+        let result = content_search_with_progress(
+            &uri,
+            "aaa",
+            100,
+            ContentSearchOptions::default(),
+            &cancel,
+            |m, _| received.push(m.name.clone()),
+        )
+        .unwrap();
+        assert_eq!(result.matches.len(), 1);
+        assert_eq!(received.len(), 1);
+        assert_eq!(received[0], "test.txt");
+    }
+
+    #[test]
+    fn search_cancellation_returns_error() {
+        let dir = make_dir_with_files();
+        let uri = uri_for(dir.path());
+        let cancel = CancellationToken::new();
+        cancel.cancel();
+        let result = content_search_with_progress(
+            &uri,
+            "hello",
+            100,
+            ContentSearchOptions::default(),
+            &cancel,
+            |_, _| {},
+        );
+        assert!(result.is_err());
+    }
+}
