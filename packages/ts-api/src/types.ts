@@ -1108,3 +1108,36 @@ export interface PluginToggleRequest {
 export interface PluginToggleResponse {
   plugin: InstalledPluginDto;
 }
+
+export interface CompareFilesRequest {
+  leftUri: string;
+  rightUri: string;
+  mode: string;
+}
+
+export interface DiffLineDto {
+  lineNumberLeft: number | null;
+  lineNumberRight: number | null;
+  content: string;
+  lineType: string;
+}
+
+export interface DiffHunkDto {
+  oldStart: number;
+  oldCount: number;
+  newStart: number;
+  newCount: number;
+  lines: DiffLineDto[];
+}
+
+export interface ByteDifferenceDto {
+  offset: number;
+  leftByte: number;
+  rightByte: number;
+}
+
+export interface CompareFilesResponse {
+  identical: boolean;
+  hunks: DiffHunkDto[];
+  byteDifferences: ByteDifferenceDto[];
+}

@@ -26,6 +26,7 @@ export const commandMap: Record<string, string> = {
   "fs.recursive_search_start": "fs_recursive_search_start",
   "fs.content_search": "fs_content_search",
   "fs.content_search_start": "fs_content_search_start",
+  "fs.compare_files": "fs_compare_files",
   "fs.watch_start": "fs_watch_start",
   "fs.watch_stop": "fs_watch_stop",
   "fileOperation.plan": "plan_file_operation",

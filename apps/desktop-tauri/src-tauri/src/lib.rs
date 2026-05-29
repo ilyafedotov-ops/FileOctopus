@@ -147,6 +147,7 @@ pub fn run() {
             commands::plugin::plugin_toggle,
             commands::acl::fs_get_acl,
             commands::acl::fs_set_acl,
+            commands::compare::fs_compare_files,
         ])
         .run(tauri::generate_context!())
         .expect("failed to run FileOctopus");

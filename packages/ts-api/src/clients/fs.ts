@@ -2,6 +2,8 @@ import { IPC_ERROR_CODES } from "../types";
 import type {
   ComputeHashRequest,
   ComputeHashResponse,
+  CompareFilesRequest,
+  CompareFilesResponse,
   ContentSearchCompletedEventDto,
   ContentSearchJobResponse,
   ContentSearchMatchEventDto,
@@ -446,5 +448,14 @@ export class FsClient {
     return await this.transport.invoke<SetAclResponse>("fs.set_acl", {
       request,
     });
+  }
+
+  async compareFiles(
+    request: CompareFilesRequest,
+  ): Promise<CompareFilesResponse> {
+    return await this.transport.invoke<CompareFilesResponse>(
+      "fs.compare_files",
+      { request },
+    );
   }
 }

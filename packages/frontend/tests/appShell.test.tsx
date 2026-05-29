@@ -420,6 +420,11 @@ vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
           octal: "644",
         })),
         setAcl: vi.fn(async () => ({ success: true })),
+        compareFiles: vi.fn(async () => ({
+          identical: false,
+          hunks: [],
+          byteDifferences: [],
+        })),
         onContentSearchMatch: vi.fn(async () => () => {}),
         onContentSearchCompleted: vi.fn(async () => () => {}),
       },
