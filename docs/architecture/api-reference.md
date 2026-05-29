@@ -42,11 +42,11 @@ Each IPC payload is a `serde(rename_all = "camelCase")` DTO defined in `crates/a
 
 ## Tauri command catalog
 
-The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!` with `commands::*` paths). Handler bodies live in `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,git,folder_size,recursive_search,watch,preferences,autostart,navigation,network,file_operations,diagnostics}.rs`. Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/commandMap.ts` and the per-domain methods in `packages/ts-api/src/clients/*.ts`.
+The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!` with `commands::*` paths). Handler bodies live in `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,git,folder_size,recursive_search,content_search,watch,preferences,autostart,navigation,network,file_operations,diagnostics}.rs`. Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/commandMap.ts` and the per-domain methods in `packages/ts-api/src/clients/*.ts`.
 
 ### Full registry (2026-05-23)
 
-**73 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
+**75 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
 
 | Tauri command                        | TS dotted name (typical)           | Client area              |
 | ------------------------------------ | ---------------------------------- | ------------------------ |
@@ -78,6 +78,8 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `fs_folder_size_start`               | `fs.folder_size_start`             | `FsClient`               |
 | `fs_recursive_search`                | `fs.recursive_search`              | `FsClient`               |
 | `fs_recursive_search_start`          | `fs.recursive_search_start`        | `FsClient`               |
+| `fs_content_search`                  | `fs.content_search`                | `FsClient`               |
+| `fs_content_search_start`            | `fs.content_search_start`          | `FsClient`               |
 | `fs_watch_start`                     | `fs.watch_start`                   | `FsClient`               |
 | `fs_watch_stop`                      | `fs.watch_stop`                    | `FsClient`               |
 | `get_preferences`                    | `preferences.get`                  | `PreferencesClient`      |
@@ -223,14 +225,16 @@ Git commands are local-only metadata helpers backed by `crates/git-intel`. They 
 
 Folder size and recursive search support synchronous commands for small/preview usage and job-backed commands for longer work. Job-backed metadata commands emit the same `fileOperation:job:*` lifecycle events as file mutations, but their `operationKind` is `folderSize` or `recursiveSearch` and they are tracked in desktop in-memory metadata job state, not persisted to operation history.
 
-| Command                                                   | Request                  | Response      | Extra events                                                    |
-| --------------------------------------------------------- | ------------------------ | ------------- | --------------------------------------------------------------- |
-| `fs_folder_size` / `fs.folder_size`                       | `{ uri }`                | `{ summary }` | none                                                            |
-| `fs_folder_size_start` / `fs.folder_size_start`           | `{ uri }`                | `{ job }`     | `fs:folderSize:completed` with `{ jobId, uri, summary }`        |
-| `fs_recursive_search` / `fs.recursive_search`             | `{ uri, query, limit? }` | `{ result }`  | none                                                            |
-| `fs_recursive_search_start` / `fs.recursive_search_start` | `{ uri, query, limit? }` | `{ job }`     | `fs:recursiveSearch:match`, then `fs:recursiveSearch:completed` |
-| `fs_watch_start` / `fs.watch_start`                       | `{ uri }`                | `{ ok }`      | `fs:watch:changed` while active                                 |
-| `fs_watch_stop` / `fs.watch_stop`                         | none                     | `{ ok }`      | stops the single active folder watcher                          |
+| Command                                                   | Request                                                           | Response      | Extra events                                                    |
+| --------------------------------------------------------- | ----------------------------------------------------------------- | ------------- | --------------------------------------------------------------- |
+| `fs_folder_size` / `fs.folder_size`                       | `{ uri }`                                                         | `{ summary }` | none                                                            |
+| `fs_folder_size_start` / `fs.folder_size_start`           | `{ uri }`                                                         | `{ job }`     | `fs:folderSize:completed` with `{ jobId, uri, summary }`        |
+| `fs_recursive_search` / `fs.recursive_search`             | `{ uri, query, limit? }`                                          | `{ result }`  | none                                                            |
+| `fs_recursive_search_start` / `fs.recursive_search_start` | `{ uri, query, limit? }`                                          | `{ job }`     | `fs:recursiveSearch:match`, then `fs:recursiveSearch:completed` |
+| `fs_content_search` / `fs.content_search`                 | `{ uri, query, limit?, caseSensitive?, useRegex?, filePattern? }` | `{ result }`  | none                                                            |
+| `fs_content_search_start` / `fs.content_search_start`     | `{ uri, query, limit?, caseSensitive?, useRegex?, filePattern? }` | `{ job }`     | `fs:contentSearch:match`, then `fs:contentSearch:completed`     |
+| `fs_watch_start` / `fs.watch_start`                       | `{ uri }`                                                         | `{ ok }`      | `fs:watch:changed` while active                                 |
+| `fs_watch_stop` / `fs.watch_stop`                         | none                                                              | `{ ok }`      | stops the single active folder watcher                          |
 
 `FolderSizeSummaryDto` is `{ totalSize, itemCount, fileCount, directoryCount, warnings, incomplete }`. Recursive search defaults `limit` to 500, trims the query, returns an empty result for an empty query, and clamps traversal to at least one result slot. `SearchMatchDto` is `{ uri, parentUri, name, kind, size?, modifiedAt? }`.
 
@@ -351,6 +355,8 @@ Rust pushes events via `app.emit(name, payload)`. The TS client wraps them in `t
 | `fs:folderSize:completed` (`FOLDER_SIZE_COMPLETED_EVENT`)           | `FolderSizeCompletedEventDto`      | Folder-size metadata job                  |
 | `fs:recursiveSearch:match` (`RECURSIVE_SEARCH_MATCH_EVENT`)         | `RecursiveSearchMatchEventDto`     | Recursive-search metadata job             |
 | `fs:recursiveSearch:completed` (`RECURSIVE_SEARCH_COMPLETED_EVENT`) | `RecursiveSearchCompletedEventDto` | Recursive-search metadata job             |
+| `fs:contentSearch:match` (`CONTENT_SEARCH_MATCH_EVENT`)             | `ContentSearchMatchEventDto`       | Content-search metadata job               |
+| `fs:contentSearch:completed` (`CONTENT_SEARCH_COMPLETED_EVENT`)     | `ContentSearchCompletedEventDto`   | Content-search metadata job               |
 | `terminal:output` (`TERMINAL_OUTPUT_EVENT`)                         | `TerminalOutputEventDto`           | Local and SSH PTY output chunk            |
 | `terminal:exit` (`TERMINAL_EXIT_EVENT`)                             | `TerminalExitEventDto`             | Local and SSH PTY session exit            |
 | `nativeMenu:command` (`NATIVE_MENU_COMMAND_EVENT`)                  | `NativeMenuCommandEventDto`        | Native Tauri application menu selection   |

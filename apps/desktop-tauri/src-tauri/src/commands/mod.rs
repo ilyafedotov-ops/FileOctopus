@@ -1,6 +1,7 @@
 pub mod acl;
 pub mod app_info;
 pub mod autostart;
+pub mod content_search;
 pub mod diagnostics;
 pub mod file_operations;
 pub mod folder_size;

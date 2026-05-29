@@ -9,6 +9,7 @@ use vfs::{
     ProviderCapabilities, ProviderId, ResourceUri, VfsError, VfsProvider,
 };
 
+pub mod content_search;
 pub mod direct_ops;
 pub mod external_open;
 pub mod file_ops;

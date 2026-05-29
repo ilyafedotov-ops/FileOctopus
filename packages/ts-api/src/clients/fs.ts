@@ -2,6 +2,11 @@ import { IPC_ERROR_CODES } from "../types";
 import type {
   ComputeHashRequest,
   ComputeHashResponse,
+  ContentSearchCompletedEventDto,
+  ContentSearchJobResponse,
+  ContentSearchMatchEventDto,
+  ContentSearchRequest,
+  ContentSearchResponse,
   DirectoryBatchEventDto,
   DiscoverVolumesResponse,
   EjectVolumeRequest,
@@ -52,6 +57,8 @@ import type {
 } from "../types";
 import {
   DIRECTORY_BATCH_EVENT,
+  CONTENT_SEARCH_COMPLETED_EVENT,
+  CONTENT_SEARCH_MATCH_EVENT,
   FOLDER_SIZE_COMPLETED_EVENT,
   RECURSIVE_SEARCH_COMPLETED_EVENT,
   RECURSIVE_SEARCH_MATCH_EVENT,
@@ -320,6 +327,32 @@ export class FsClient {
     }
   }
 
+  async contentSearch(
+    request: ContentSearchRequest,
+  ): Promise<ContentSearchResponse> {
+    try {
+      return await this.transport.invoke<ContentSearchResponse>(
+        "fs.content_search",
+        { request },
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
+  async startContentSearchJob(
+    request: ContentSearchRequest,
+  ): Promise<ContentSearchJobResponse> {
+    try {
+      return await this.transport.invoke<ContentSearchJobResponse>(
+        "fs.content_search_start",
+        { request },
+      );
+    } catch (error) {
+      throw normalizeIpcError(error);
+    }
+  }
+
   onFolderSizeCompleted(
     handler: (event: FolderSizeCompletedEventDto) => void,
   ): Promise<UnlistenFn> {
@@ -338,6 +371,22 @@ export class FsClient {
     return requireListen(
       this.transport,
       RECURSIVE_SEARCH_COMPLETED_EVENT,
+      handler,
+    );
+  }
+
+  onContentSearchMatch(
+    handler: (event: ContentSearchMatchEventDto) => void,
+  ): Promise<UnlistenFn> {
+    return requireListen(this.transport, CONTENT_SEARCH_MATCH_EVENT, handler);
+  }
+
+  onContentSearchCompleted(
+    handler: (event: ContentSearchCompletedEventDto) => void,
+  ): Promise<UnlistenFn> {
+    return requireListen(
+      this.transport,
+      CONTENT_SEARCH_COMPLETED_EVENT,
       handler,
     );
   }

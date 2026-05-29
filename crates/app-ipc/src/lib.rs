@@ -26,6 +26,8 @@ pub const RECURSIVE_SEARCH_COMPLETED_EVENT: &str = "fs:recursiveSearch:completed
 pub const TERMINAL_OUTPUT_EVENT: &str = "terminal:output";
 pub const TERMINAL_EXIT_EVENT: &str = "terminal:exit";
 pub const NATIVE_MENU_COMMAND_EVENT: &str = "nativeMenu:command";
+pub const CONTENT_SEARCH_MATCH_EVENT: &str = "fs:contentSearch:match";
+pub const CONTENT_SEARCH_COMPLETED_EVENT: &str = "fs:contentSearch:completed";
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -938,6 +940,70 @@ pub struct RecursiveSearchCompletedEventDto {
     pub uri: String,
     pub query: String,
     pub result: RecursiveSearchResultDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentSearchRequest {
+    pub uri: String,
+    pub query: String,
+    pub limit: Option<usize>,
+    pub case_sensitive: Option<bool>,
+    pub use_regex: Option<bool>,
+    pub file_pattern: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentSearchMatchDto {
+    pub uri: String,
+    pub parent_uri: String,
+    pub name: String,
+    pub kind: FileKind,
+    pub size: Option<u64>,
+    pub modified_at: Option<DateTime<Utc>>,
+    pub line_number: usize,
+    pub line_content: String,
+    pub match_start: usize,
+    pub match_end: usize,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentSearchResultDto {
+    pub matches: Vec<ContentSearchMatchDto>,
+    pub warnings: Vec<String>,
+    pub incomplete: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentSearchResponse {
+    pub result: ContentSearchResultDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentSearchJobResponse {
+    pub job: JobSnapshot,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentSearchMatchEventDto {
+    pub job_id: String,
+    pub uri: String,
+    pub query: String,
+    pub item: ContentSearchMatchDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ContentSearchCompletedEventDto {
+    pub job_id: String,
+    pub uri: String,
+    pub query: String,
+    pub result: ContentSearchResultDto,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

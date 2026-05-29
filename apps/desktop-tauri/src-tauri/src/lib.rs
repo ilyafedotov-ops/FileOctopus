@@ -96,6 +96,8 @@ pub fn run() {
             commands::folder_size::fs_folder_size_start,
             commands::recursive_search::fs_recursive_search,
             commands::recursive_search::fs_recursive_search_start,
+            commands::content_search::fs_content_search,
+            commands::content_search::fs_content_search_start,
             commands::watch::fs_watch_start,
             commands::watch::fs_watch_stop,
             commands::preferences::get_preferences,

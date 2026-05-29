@@ -1322,6 +1322,7 @@ dependencies = [
  "flate2",
  "jobs",
  "provider-sftp",
+ "regex",
  "remote-core",
  "tar",
  "tempfile",

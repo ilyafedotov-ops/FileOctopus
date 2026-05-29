@@ -130,10 +130,10 @@ fn matches_file_pattern(name: &str, pattern: &Option<String>) -> bool {
         Some(p) => {
             let patterns: Vec<&str> = p.split(',').map(|s| s.trim()).collect();
             patterns.iter().any(|pat| {
-                if pat.starts_with('*') {
-                    name.ends_with(&pat[1..])
-                } else if pat.ends_with('*') {
-                    name.starts_with(&pat[..pat.len() - 1])
+                if let Some(stripped) = pat.strip_prefix('*') {
+                    name.ends_with(stripped)
+                } else if let Some(stripped) = pat.strip_suffix('*') {
+                    name.starts_with(stripped)
                 } else {
                     name == *pat
                 }
@@ -142,6 +142,7 @@ fn matches_file_pattern(name: &str, pattern: &Option<String>) -> bool {
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn search_folder_content(
     path: &Path,
     query: &str,
@@ -233,6 +234,7 @@ fn search_folder_content(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn search_file_content(
     path: &Path,
     query: &str,

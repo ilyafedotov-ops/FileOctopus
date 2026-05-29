@@ -17,6 +17,7 @@ zip = "0.6"
 tar = "0.4"
 flate2 = "1"
 bzip2 = "0.4"
+regex = "1"
 
 [dev-dependencies]
 tempfile = "3"
