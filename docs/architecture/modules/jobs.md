@@ -8,18 +8,18 @@
 
 ## Types
 
-| Type                | Purpose                                                                                                                      |
-| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `JobId(String)`     | Opaque newtype. `app-core` constructs UUIDs.                                                                                 |
-| `JobStatus`         | `Queued`, `Running`, `Paused`, `Cancelled`, `Completed`, `Failed`. `Paused` is reserved; no path currently produces it.      |
-| `JobSnapshot`       | Read-side view of a job (id, kind, status, progress counters, error fields, timestamps).                                     |
-| `JobStartedEvent`   | Emitted once when work begins.                                                                                               |
-| `JobProgressEvent`  | Emitted periodically while items are processed.                                                                              |
-| `JobCompletedEvent` | Emitted once on success.                                                                                                     |
-| `JobFailedEvent`    | Emitted once on failure with `error_code` and `message`.                                                                     |
-| `JobCancelledEvent` | Emitted once when cooperative cancellation is observed.                                                                      |
-| `JobEvent`          | `enum { Started, Progress, Completed, Failed, Cancelled }`, tagged with `#[serde(tag = "event", rename_all = "camelCase")]`. |
-| `CancellationToken` | `Clone` wrapper around `Arc<AtomicBool>`.                                                                                    |
+| Type                | Purpose                                                                                                                           |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `JobId(String)`     | Opaque newtype. `app-core` constructs UUIDs.                                                                                      |
+| `JobStatus`         | `Queued`, `Running`, `Paused`, `Cancelled`, `Completed`, `Failed`. `Paused` is produced by `pause_job`/`resume_job` IPC commands. |
+| `JobSnapshot`       | Read-side view of a job (id, kind, status, progress counters, error fields, timestamps).                                          |
+| `JobStartedEvent`   | Emitted once when work begins.                                                                                                    |
+| `JobProgressEvent`  | Emitted periodically while items are processed.                                                                                   |
+| `JobCompletedEvent` | Emitted once on success.                                                                                                          |
+| `JobFailedEvent`    | Emitted once on failure with `error_code` and `message`.                                                                          |
+| `JobCancelledEvent` | Emitted once when cooperative cancellation is observed.                                                                           |
+| `JobEvent`          | `enum { Started, Progress, Completed, Failed, Cancelled }`, tagged with `#[serde(tag = "event", rename_all = "camelCase")]`.      |
+| `CancellationToken` | `Clone` wrapper around `Arc<AtomicBool>`.                                                                                         |
 
 All event types and `JobSnapshot` serialize with camelCase. `JobEvent`'s tag is `event`, so the wire form is `{"event":"progress", …}`. `app-ipc::job_event_name` maps each variant to the channel name (`fileOperation:job:progress`, etc.); `app-ipc::job_event_payload` strips the tag for the channel payload.
 
@@ -27,7 +27,7 @@ All event types and `JobSnapshot` serialize with camelCase. `JobEvent`'s tag is 
 
 ```
                   ┌─────────► Completed
-queued ─► running ┤
+queued ─► running ┤◄──► paused
                   ├─────────► Failed   (carries error_code + message)
                   └─────────► Cancelled
 ```
@@ -38,7 +38,7 @@ Transitions are owned by `OperationRuntime` in `app-core`:
 2. The executor (`fs-core::file_ops`) calls the sink with `JobProgressEvent` on byte/item milestones; `OperationRuntime` updates the in-memory snapshot.
 3. Terminal events (`Completed` / `Failed` / `Cancelled`) update both the snapshot and the SQLite history row.
 
-`JobStatus::Paused` exists for future use (resumable jobs, throttling) and currently never appears.
+`pause_job` sets `CancellationToken.paused = true`; the executor calls `wait_while_paused()` between items, emitting `JobEvent::Paused`/`JobEvent::Resumed`. `resume_job` clears the paused flag.
 
 ## `JobSnapshot`
 

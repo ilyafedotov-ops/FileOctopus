@@ -10,6 +10,7 @@ import {
 import { createPortal } from "react-dom";
 import { cx } from "./cx";
 import { Button } from "./Button";
+import { MenuSurface } from "./MenuSurface";
 
 export interface DropdownMenuItem {
   id: string;
@@ -101,7 +102,7 @@ function SubmenuItem({
       </button>
       {open && pos
         ? createPortal(
-            <div
+            <MenuSurface
               ref={submenuRef}
               role="menu"
               className="fo-ui-dropdown-menu fo-ui-dropdown-menu--portal fo-ui-dropdown-submenu"
@@ -142,7 +143,7 @@ function SubmenuItem({
                   ) : null}
                 </button>
               ))}
-            </div>,
+            </MenuSurface>,
             document.body,
           )
         : null}
@@ -305,7 +306,7 @@ export function DropdownMenu({
       </Button>
       {open && menuStyle
         ? createPortal(
-            <div
+            <MenuSurface
               ref={menuRef}
               id={menuId}
               role="menu"
@@ -371,7 +372,7 @@ export function DropdownMenu({
                   </button>
                 );
               })}
-            </div>,
+            </MenuSurface>,
             document.body,
           )
         : null}

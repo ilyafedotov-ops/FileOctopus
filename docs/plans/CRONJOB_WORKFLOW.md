@@ -58,7 +58,7 @@ Trust order for “what should exist” vs “what exists today”:
 | 4        | `docs/plans/FileOctopus_Menu_and_Modal_Specification.md`   | Spec  | Menus, modals, shortcuts                                                               |
 | 5        | `docs/FileOctopus_UI_Design_and_Layout_Specification-1.md` | Spec  | Layout architecture, visible surfaces, acceptance (§27), implementation priority (§28) |
 | 6        | `docs/planning/UI_FEATURE_INVENTORY.md`                    | State | Coverage checklist                                                                     |
-| 7        | `docs/qa/e2e-audit-report.md`                              | State | Manual QA hints (may be stale—verify in code)                                          |
+| 7        | `docs/archive/e2e-audit-report.md`                         | State | Manual QA hints (may be stale—verify in code)                                          |
 
 **Spec rows** describe what should exist; **State rows** describe what does. When they disagree, trust code + tests over either — and fix whichever row is wrong in Phase 5.
 

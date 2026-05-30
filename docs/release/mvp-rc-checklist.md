@@ -21,8 +21,8 @@
 
 ## Manual QA
 
-- [ ] Complete `docs/qa/sprint-3-smoke-test.md`
-- [ ] Complete `docs/qa/sprint-4-baseline-qa.md`
+- [ ] Complete `docs/archive/sprint-3-smoke-test.md`
+- [ ] Complete `docs/archive/sprint-4-baseline-qa.md`
 - [ ] Capture large directory result from `docs/performance.md`
 - [ ] Capture large file operation result from `docs/performance.md`
 - [x] Export diagnostics bundle (automated E2E in preview; inspect zip on packaged build manually)

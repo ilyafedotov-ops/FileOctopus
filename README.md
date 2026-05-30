@@ -70,7 +70,7 @@ pnpm tauri:build
 
 - `apps/desktop-tauri` — Tauri v2 shell (React + `src-tauri/src/commands/*` handlers, thin `lib.rs` entrypoint)
 - `apps/cli` — Placeholder CLI
-- `crates/` — `vfs`, `fs-core`, `jobs`, `app-core`, `app-ipc`, `telemetry`, `config`, `platform`, `test-support`
+- `crates/` — `vfs`, `fs-core`, `jobs`, `app-core`, `app-ipc`, `telemetry`, `config`, `platform`, `test-support`, `git-intel`, `terminal-core`, `remote-core`, `plugin-core`, `provider-gdrive`, `provider-dropbox`, `provider-onedrive`, `provider-s3`, `provider-sftp`, `provider-smb`
 - `packages/` — `@fileoctopus/frontend`, `@fileoctopus/ui`, `@fileoctopus/ts-api`
 - `docs/` — Architecture, ADRs, QA, planning — start at [docs/architecture/README.md](docs/architecture/README.md)
 

@@ -9,7 +9,7 @@
 
 ## 0. Implementation status
 
-**Last updated:** 2026-05-30 · **Verification at last update:** `pnpm typecheck`, `pnpm lint`, `pnpm format:check` clean; frontend **1039 tests** + UI **21 tests** pass (0 failures).
+**Last updated:** 2026-05-30 · **Verification at last update:** `pnpm typecheck`, `pnpm lint`, `pnpm test` clean; frontend **1104 tests** (137 files) pass, **479 Rust tests** pass (0 failures).
 
 ### Progress by backlog item
 
@@ -18,7 +18,7 @@
 | UPP-H1 — typography/spacing/status tokens | ✅ Done (tokens)       | `--fo-font-size-*`, `--fo-line-*`, `--fo-success/-warning-bg/-border` (theme-derived via `color-mix`) added + consumed; font-size literals in `shell/components/jobs/sidebar/shared/dialogs` swept to scale.                                                                                                                                                                                                                                |
 | UPP-H2 — radius scale                     | ✅ Done                | `--fo-radius-xs: 2px` added; commander content radii tokenized.                                                                                                                                                                                                                                                                                                                                                                             |
 | UPP-A1 — chrome tokenization              | ✅ Done                | Light-theme dark-titlebar bug fixed; topbar/menubar/toolbar/status-fg tokenized; `--fo-chrome-hover-bg/-text` per theme.                                                                                                                                                                                                                                                                                                                    |
-| UPP-A2 — standard focus ring              | ✅ Done                | `--fo-focus-ring*` tokens; button/input/segmented/menubar focus converged.                                                                                                                                                                                                                                                                                                                                                                  |
+| UPP-A2 — standard focus ring              | ✅ Done                | `--fo-focus-ring*` tokens; button/input/segmented/menubar focus converged. **2026-05-30 follow-up:** all `focus-visible` declarations in `dialogs.css` and `shell.css` now use `box-shadow: var(--fo-focus-ring)` (5 rules unified); new `.fo-focusable` utility class added to `components.css`.                                                                                                                                           |
 | UPP-C1 — unmistakable active pane         | ✅ Done                | Accent frame + 2px top strip + header underline + accent pane-label; was previously framed in near-invisible `--fo-tab-bg`.                                                                                                                                                                                                                                                                                                                 |
 | UPP-D1 — shared menu/popover frame        | 🟡 Partial             | Elevation tokens made theme-aware; inline popover shadows consolidated onto `--fo-elevation-popover`; undefined submenu shadow fixed. Shared `MenuSurface` component not yet extracted.                                                                                                                                                                                                                                                     |
 | UPP-D2 — keyboard-navigable menus         | ✅ Done (DropdownMenu) | Arrow/Home/End/type-ahead/Esc/Tab + focus-on-open + disabled-skip + visible focus on `DropdownMenu`; `ContextMenu` already had arrow nav.                                                                                                                                                                                                                                                                                                   |
@@ -46,7 +46,7 @@ Other epics (UPP-B\*, UPP-C3/C4, UPP-E2/E3, UPP-F2 archive wizard, UPP-G\*, UPP-
 - Regional-CSS hardcoded hex: **164 → 92** (remainder is intentional: theme-palette token defs, window-dot colors, accent-picker swatches).
 - Regional-CSS `font-size` literals: **192 → 47** (remainder are off-scale 14/16/9/48px).
 - Files now guarded hex-free: `pane.css`, `jobs.css`, `sidebar.css`; `dialogs.css` guarded to classic-palette defs only.
-- Tests: **1060 total** (1039 frontend + 21 UI), all green.
+- Tests: **1104 frontend** (137 files) + **479 Rust** = **1583 total**, all green.
 
 ### UPP-E1 dialog migration — complete (with 2 intentional exceptions)
 
@@ -73,7 +73,7 @@ FileOctopus is **far past prototype**. The shell already ships the hard parts of
 - A working **design-token layer**: spacing (`--fo-spacing-*`), radius (`--fo-radius-*`), elevation (`--fo-elevation-*`), component heights (`--fo-toolbar-height`, `--fo-row-height`, …), and three density modes (`compact`/`comfortable`/`spacious`) in `packages/ui/src/tokens.css`.
 - **Three themes** — default dark, explicit `light`, and a retro `commander-blue` skin — plus seven accent swatches and font/icon scale switches.
 - A deep component inventory: 18 dialog components (`components/dialogs/*`) plus shell-level dialogs, 15 settings panels (`components/settings/*`), shared UI primitives (`packages/ui/src/*`: `Button`, `IconButton`, `ToolbarButton`, `DropdownMenu`, `SegmentedControl`, `BreadcrumbPath`, …), context-menu builders, command palette, toasts, viewer/editor.
-- Strong test signal: 877 frontend tests, 479 Rust tests.
+- Strong test signal: 1104 frontend tests (137 files), 479 Rust tests.
 
 The product is **functionally complete but visually uneven.** It looks like a capable app assembled feature-by-feature rather than a single, coherently finished premium tool.
 

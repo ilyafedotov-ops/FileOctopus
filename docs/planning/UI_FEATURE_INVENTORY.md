@@ -422,7 +422,7 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 - **Theme registry** — data-driven `THEMES` replacing hardcoded `system/light/dark`
 - **Commander Blue theme** — opt-in retro skin (token overrides; core surfaces)
 - **Function-key bar F1–F10** — extend existing F2–F9 commander bar with F1 Help + F10 Menu, theme-aware retro skin
-- Design: `docs/superpowers/specs/2026-05-29-commander-visual-identity-design.md`; plan: `docs/plans/2026-05-26-commander-features-expansion.md` Task 12
+- Design: `docs/superpowers/specs/2026-05-29-commander-visual-identity-design.md`; plan: `docs/archive/2026-05-26-commander-features-expansion.md` Task 12
 
 ### Delivered since last snapshot (2026-05-23 → 2026-05-27)
 
@@ -489,7 +489,7 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 | Context menu items (file)            | 10        | 1         |
 | Context menu items (empty space)     | 8         | 0         |
 | Context menu items (sidebar)         | 3         | 0         |
-| Dialogs                              | 12        | 2         |
+| Dialogs                              | 20        | 1         |
 | Sidebar sections/entries             | 14        | 1         |
 | Toolbar buttons (primary)            | 10        | 0         |
 | Toolbar buttons (secondary/overflow) | 10        | 0         |

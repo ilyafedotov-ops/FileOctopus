@@ -24,6 +24,7 @@ export {
   type DropdownMenuItem,
   type DropdownMenuProps,
 } from "./DropdownMenu";
+export { MenuSurface, type MenuSurfaceProps } from "./MenuSurface";
 export {
   BreadcrumbPath,
   type BreadcrumbPathProps,

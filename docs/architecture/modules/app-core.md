@@ -2,7 +2,7 @@
 
 `crates/app-core` is the **composition root** for the Rust side of FileOctopus. It boots the provider registry, attaches the operation history database, and exposes the `OperationRuntime` that the Tauri shell calls into. Everything stateful and process-scoped lives here.
 
-- Source: `crates/app-core/src/{lib,runtime,history,paths}.rs` (integration tests in `crates/app-core/src/tests.rs`)
+- Source: `crates/app-core/src/{lib,runtime,history,paths,boot_config}.rs` (integration tests in `crates/app-core/src/tests.rs`)
 - Depends on: `vfs`, `fs-core`, `jobs`, `telemetry`, `rusqlite`, `chrono`, `uuid`, `thiserror`.
 - Used by: `apps/desktop-tauri/src-tauri/src/lib.rs` (as `tauri::Manager` state) and integration tests.
 

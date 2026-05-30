@@ -15,16 +15,16 @@ pnpm rc:validate             # release-candidate bundle of checks
 | Document                                                           | Purpose                                          |
 | ------------------------------------------------------------------ | ------------------------------------------------ |
 | [large-directory-performance.md](./large-directory-performance.md) | 10k / 100k listing and scroll validation         |
-| [sprint-1-demo.md](./sprint-1-demo.md)                             | Early vertical-slice demo script (historical)    |
+| [sprint-1-demo.md](../archive/sprint-1-demo.md)                    | Early vertical-slice demo script (historical)    |
 | [sprint-5-macos-qa.md](./sprint-5-macos-qa.md)                     | macOS-specific smoke (verify against current UI) |
 
 ## QA checklists
 
-| Document                                                       | Purpose                                                                                                  |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| [../qa/sprint-3-smoke-test.md](../qa/sprint-3-smoke-test.md)   | Core IPC and operations smoke                                                                            |
-| [../qa/sprint-4-baseline-qa.md](../qa/sprint-4-baseline-qa.md) | Baseline file manager completeness                                                                       |
-| [../qa/e2e-audit-report.md](../qa/e2e-audit-report.md)         | E2E snapshot — **partially stale**; see [alignment doc](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md) |
+| Document                                                      | Purpose                                                                                                  |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| [sprint-3-smoke-test.md](../archive/sprint-3-smoke-test.md)   | Core IPC and operations smoke                                                                            |
+| [sprint-4-baseline-qa.md](../archive/sprint-4-baseline-qa.md) | Baseline file manager completeness                                                                       |
+| [e2e-audit-report.md](../archive/e2e-audit-report.md)         | E2E snapshot — **partially stale**; see [alignment doc](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md) |
 
 ## Fixtures
 

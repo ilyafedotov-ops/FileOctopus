@@ -148,18 +148,22 @@ FileOctopus RC should prove three things:
 
 ---
 
-## 3.2 RC known gaps
+## 3.2 RC known gaps (updated 2026-05-30)
 
-Items from the original MVP §3.1 that are **not** required for RC sign-off but may follow in 1.0:
+Items from the original MVP §3.1 that remain **not** required for RC sign-off:
 
 - Remote Git status.
 - Embedded terminal manual smoke and polish.
 - Additional archive formats beyond zip/tar/tar.gz/tar.bz2 and future archive browsing.
 - Remaining [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) polish; the in-app `MenuBar` and native Tauri menu are present.
 - Advanced session restore and tab persistence polish.
-- Pause/resume jobs; RC supports cancel only.
 - Full `job` / `job_item_result` SQLite schema and per-item recovery.
 - Formal performance and RC checklist sign-off (MVP-PERF-\*, §16).
+
+**Resolved since original spec (now shipped):**
+
+- ~~Pause/resume jobs; RC supports cancel only.~~ → `pause_job` / `resume_job` commands implemented.
+- ~~Advanced ACL editing.~~ → `AclEditor` component and `fs_get_acl` / `fs_set_acl` commands shipped.
 
 ---
 
@@ -168,16 +172,16 @@ Items from the original MVP §3.1 that are **not** required for RC sign-off but 
 - Peer-to-peer sync.
 - AI semantic search.
 - Full content-addressed library model.
-- Plugin marketplace.
-- Full Lua/WASM plugin runtime.
-- Production cloud provider support.
-- SMB/SFTP/S3/Azure Blob production providers.
+- ~~Plugin marketplace.~~ → **Shipped**: `plugin-core` crate, marketplace UI, `plugin_install`/`plugin_list`/`plugin_toggle`/`plugin_uninstall` commands.
+- Full Lua/WASM plugin runtime (marketplace uses local crates for now).
+- ~~Production cloud provider support.~~ → **Shipped**: OAuth connectors for GDrive, Dropbox, OneDrive; `remote-core` crate with provider architecture.
+- ~~SMB/SFTP/S3/Azure Blob production providers.~~ → **Shipped**: `provider-smb`, `provider-sftp`, `provider-s3` crates in workspace. Azure Blob not yet.
 - Native shell extensions.
-- File content diff/merge.
+- ~~File content diff/merge.~~ → **Partially shipped**: `DiffDialog` component, `fs_compare_files` / `fs_diff_text` commands. Full merge not yet.
 - Multi-user collaboration.
 - Mobile clients.
-- Advanced ACL editing.
-- Full metadata editor.
+- ~~Advanced ACL editing.~~ → **Shipped**: see §3.2 above.
+- ~~Full metadata editor.~~ → **Shipped**: `PropertiesDialog` and `SelectionPropertiesDialog` with metadata display.
 
 ---
 
@@ -380,21 +384,32 @@ fileoctopus/
     desktop-tauri/
       src-tauri/src/
         lib.rs
-        commands/          # app_info, fs, file_operations, watch, navigation, …
+        commands/          # app_info, fs, file_operations, watch, navigation, git,
+                          # content_search, compare, network, plugin, terminal, …
         state.rs, emit.rs
       src/                 # mounts FileOctopusShell
     cli/                   # placeholder binary
 
   crates/
-    vfs/
+    vfs/                   # ResourceUri, VfsProvider trait, VfsRegistry
     fs-core/               # LocalFsProvider, file_ops/, metadata, search, …
-    jobs/
+    jobs/                  # JobEngine, CancellationToken, progress events
     app-core/              # boot, OperationRuntime, operation_history SQLite
-    app-ipc/
+    app-ipc/               # DTOs, error contracts, event constants
     config/                # preferences + navigation stores
     platform/              # minimal placeholder
     telemetry/
     test-support/          # fileoctopus-test-tree
+    git-intel/             # local git status (shipped post-M1)
+    terminal-core/         # local PTY + SSH terminal (shipped post-M4)
+    remote-core/           # remote connection lifecycle, OAuth base
+    plugin-core/           # plugin registry, install/list/toggle
+    provider-gdrive/       # Google Drive VFS provider
+    provider-dropbox/      # Dropbox VFS provider
+    provider-onedrive/     # OneDrive VFS provider
+    provider-s3/           # S3 VFS provider
+    provider-sftp/         # SFTP VFS provider
+    provider-smb/           # SMB VFS provider
 
   packages/
     frontend/src/
@@ -414,7 +429,7 @@ fileoctopus/
   pnpm-workspace.yaml
 ```
 
-**Post-RC crates (not in workspace):** `archive-core`, `indexer`, `content-id`. Backend `git-intel` and `terminal-core` are now in the workspace.
+**Post-RC crates (not in workspace):** `archive-core`, `indexer`, `content-id`.
 
 ---
 
@@ -1789,7 +1804,7 @@ Summary buckets:
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | Build        | `pnpm rc:validate`, `pnpm tauri:build` locally; artifact under `target/release/bundle`                                                      |
 | Automated QA | `pnpm test:backend:rc`, `pnpm test:frontend:rc`, `pnpm lint`, `pnpm build` (local); CI runs `typecheck` + `test` only when app paths change |
-| Manual QA    | `docs/qa/sprint-3-smoke-test.md`, `docs/qa/sprint-4-baseline-qa.md`, performance captures                                                   |
+| Manual QA    | `docs/archive/sprint-3-smoke-test.md`, `docs/archive/sprint-4-baseline-qa.md`, performance captures                                         |
 | Go/No-Go     | Owner, date, accepted non-blockers                                                                                                          |
 
 RC engineering gate: §4 criteria **Met** or **Deferred** with owner sign-off; zip-slip and ADR-0002 boundaries covered by automated tests.

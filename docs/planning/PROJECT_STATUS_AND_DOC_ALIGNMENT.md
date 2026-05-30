@@ -5,16 +5,16 @@
 
 ## Document roles
 
-| Document                                                                  | Role                                            | Trust for “what exists today”                                                                                               |
-| ------------------------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| [API reference](../architecture/api-reference.md)                         | Runtime IPC contract (commands, events, DTOs)   | **Highest** — update with every boundary change                                                                             |
-| [RC engineering spec](../architecture/rc-engineering-spec.md)             | RC scope, milestones, crate design              | Scope & acceptance criteria; see §1 delivery matrix in spec                                                                 |
-| [UI Design Spec](../FileOctopus_UI_Design_and_Layout_Specification-1.md)  | Visual/layout/UX direction post–Sprint 5        | Target UX; partial delivery                                                                                                 |
-| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) | Full desktop menu bar + modal catalog           | **Target + status** — in-app `MenuBar` and native Tauri menu are wired; use for remaining modal/menu polish                 |
-| [UI Premium Polish Plan](../ui-premium-polish-improvement-plan.md)        | Premium visual finish, tokens, commander polish | **Source of truth for premium UI polish** — drives chrome tokenization, dialog/menu frames, active-pane, theme parity, a11y |
-| [UI Feature Inventory](./UI_FEATURE_INVENTORY.md)                         | Checklist of specified UI elements              | Good for coverage matrix; §13 updated from this page                                                                        |
-| [E2E audit](../qa/e2e-audit-report.md)                                    | Manual QA snapshot (2026-05-16)                 | **Partially stale** — many “missing” items fixed same day                                                                   |
-| Gap analysis (`~/.hermes/.../gap-analysis-2026-05.md`)                    | Agent implementation tracker                    | Working notes; sync from this page                                                                                          |
+| Document                                                                  | Role                                                                             | Trust for “what exists today”                                                                                               |
+| ------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [API reference](../architecture/api-reference.md)                         | Runtime IPC contract (commands, events, DTOs)                                    | **Highest** — update with every boundary change                                                                             |
+| [RC engineering spec](../architecture/rc-engineering-spec.md)             | RC scope, milestones, crate design                                               | Scope & acceptance criteria; see §1 delivery matrix in spec                                                                 |
+|                                                                           | [UI Design Spec](../archive/FileOctopus_UI_Design_and_Layout_Specification-1.md) | Visual/layout/UX direction post–Sprint 5                                                                                    | **Archived** — superseded by rc-engineering-spec + menu spec |
+| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) | Full desktop menu bar + modal catalog                                            | **Target + status** — in-app `MenuBar` and native Tauri menu are wired; use for remaining modal/menu polish                 |
+| [UI Premium Polish Plan](../ui-premium-polish-improvement-plan.md)        | Premium visual finish, tokens, commander polish                                  | **Source of truth for premium UI polish** — drives chrome tokenization, dialog/menu frames, active-pane, theme parity, a11y |
+| [UI Feature Inventory](./UI_FEATURE_INVENTORY.md)                         | Checklist of specified UI elements                                               | Good for coverage matrix; §13 updated from this page                                                                        |
+| [E2E audit](../archive/e2e-audit-report.md)                               | Manual QA snapshot (2026-05-16)                                                  | **Archived** — many "missing" items fixed same day                                                                          |
+| Gap analysis (`~/.hermes/.../gap-analysis-2026-05.md`)                    | Agent implementation tracker                                                     | Working notes; sync from this page                                                                                          |
 
 ## Engineering milestones (RC spec §5)
 
@@ -140,28 +140,28 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 
 ### Architecture & API
 
-| Document                                                           | Status              | Notes                                                                                                                                                |
-| ------------------------------------------------------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [architecture/README.md](../architecture/README.md)                | **Current**         | Links this page                                                                                                                                      |
-| [api-reference.md](../architecture/api-reference.md)               | **Current**         | Full registry (78 cmds, 2026-05-30); per-command detail sections complete for core ops; helper sections for acl/compare/plugin/sync/terminal present |
-| [rc-engineering-spec.md](../architecture/rc-engineering-spec.md)   | **Target + status** | RC scope; §17 post-RC priorities                                                                                                                     |
-| [mvp-engineering-spec.md](../architecture/mvp-engineering-spec.md) | **Redirect**        | Stub → rc-engineering-spec                                                                                                                           |
-| [pane-lifecycle.md](../architecture/pane-lifecycle.md)             | **Current**         | `requestId`, `loadState`, 30s timeout                                                                                                                |
-| [modules/\*.md](../architecture/modules/)                          | **Mixed**           | See module table below                                                                                                                               |
+| Document                                                         | Status              | Notes                                                                                                                                                |
+| ---------------------------------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [architecture/README.md](../architecture/README.md)              | **Current**         | Links this page                                                                                                                                      |
+| [api-reference.md](../architecture/api-reference.md)             | **Current**         | Full registry (77 cmds, 2026-05-30); per-command detail sections complete for core ops; helper sections for acl/compare/plugin/sync/terminal present |
+| [rc-engineering-spec.md](../architecture/rc-engineering-spec.md) | **Target + status** | RC scope; §17 post-RC priorities                                                                                                                     |
+| [mvp-engineering-spec.md](../archive/mvp-engineering-spec.md)    | **Archived**        | Redirect stub → rc-engineering-spec                                                                                                                  |
+| [pane-lifecycle.md](../architecture/pane-lifecycle.md)           | **Current**         | `requestId`, `loadState`, 30s timeout                                                                                                                |
+| [modules/\*.md](../architecture/modules/)                        | **Mixed**           | See module table below                                                                                                                               |
 
-| Module doc                                | Status      | Gap                                                                                     |
-| ----------------------------------------- | ----------- | --------------------------------------------------------------------------------------- |
-| [vfs](modules/vfs.md)                     | Current     | —                                                                                       |
-| [fs-core](modules/fs-core.md)             | Current     | Reflects `file_ops/` split + helper modules (2026-05-17)                                |
-| [jobs](modules/jobs.md)                   | Current     | —                                                                                       |
-| [app-core](modules/app-core.md)           | Current     | Reflects `runtime` / `history` / `paths` split (2026-05-17)                             |
-| [app-ipc](modules/app-ipc.md)             | Partial     | DTO count grew; spot-check when adding IPC                                              |
-| [frontend](modules/frontend.md)           | **Current** | Decomposed shell, commands, jobs/, styles (2026-05-17)                                  |
-| [desktop-tauri](modules/desktop-tauri.md) | Current     | `commands/*` layout; full registry in [api-reference](../architecture/api-reference.md) |
-| [ts-api](modules/ts-api.md)               | Current     | `commandMap.ts`, `clients/*`, `transports/*` (2026-05-17)                               |
-| [ui](modules/ui.md)                       | Current     | Small package                                                                           |
-| [telemetry](modules/telemetry.md)         | Current     | —                                                                                       |
-| [test-support](modules/test-support.md)   | Current     | —                                                                                       |
+| Module doc                                | Status      | Gap                                                                                                           |
+| ----------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------- |
+| [vfs](modules/vfs.md)                     | Current     | —                                                                                                             |
+| [fs-core](modules/fs-core.md)             | Current     | Reflects `file_ops/` split + helper modules (2026-05-17)                                                      |
+| [jobs](modules/jobs.md)                   | Current     | —                                                                                                             |
+| [app-core](modules/app-core.md)           | Current     | Reflects `runtime` / `history` / `paths` split (2026-05-17)                                                   |
+| [app-ipc](modules/app-ipc.md)             | Partial     | DTO count grew; spot-check when adding IPC                                                                    |
+| [frontend](modules/frontend.md)           | **Current** | Decomposed shell, commands, jobs/, styles (2026-05-30)                                                        |
+| [desktop-tauri](modules/desktop-tauri.md) | Current     | `commands/*` layout (18 modules, 77 cmds); full registry in [api-reference](../architecture/api-reference.md) |
+| [ts-api](modules/ts-api.md)               | Current     | `commandMap.ts`, `clients/*` (12), `transports/*` (2026-05-30)                                                |
+| [ui](modules/ui.md)                       | Current     | Small package                                                                                                 |
+| [telemetry](modules/telemetry.md)         | Current     | —                                                                                                             |
+| [test-support](modules/test-support.md)   | Current     | —                                                                                                             |
 
 ### ADRs
 
@@ -174,39 +174,38 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 
 ### Product & UI specs
 
-| Document                                                                                                      | Status                                                                                                                                                |
-| ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [FileOctopus_UI_Design_and_Layout_Specification-1.md](../FileOctopus_UI_Design_and_Layout_Specification-1.md) | Target + status banner                                                                                                                                |
-| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md)                                     | Target + status; in-app `MenuBar` and native menu (`menu.rs`) built                                                                                   |
-| [UI Premium Polish Plan](../ui-premium-polish-improvement-plan.md)                                            | **Source of truth for premium UI polish** — token consumption, shared dialog/menu frames, active-pane, theme parity, accessibility, visual regression |
-| [UI_FEATURE_INVENTORY](./UI_FEATURE_INVENTORY.md)                                                             | Current §13                                                                                                                                           |
+| Document                                                                  | Status                                                                                                                                                |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+|                                                                           | [UI Design Spec](../archive/FileOctopus_UI_Design_and_Layout_Specification-1.md)                                                                      | **Archived** — superseded by rc-engineering-spec + menu spec |
+| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) | Target + status; in-app `MenuBar` and native menu (`menu.rs`) built                                                                                   |
+| [UI Premium Polish Plan](../ui-premium-polish-improvement-plan.md)        | **Source of truth for premium UI polish** — token consumption, shared dialog/menu frames, active-pane, theme parity, accessibility, visual regression |
+| [UI_FEATURE_INVENTORY](./UI_FEATURE_INVENTORY.md)                         | Current §13                                                                                                                                           |
 
 ### Planning & sprint backlogs
 
-| Document                                                                                                | Status                                                     |
-| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [sprint-0-1 through sprint-4 backlogs](./sprint-0-1-backlog.md)                                         | **Historical**                                             |
-| [FileOctopus_Sprint_5_Backlog.md](./FileOctopus_Sprint_5_Backlog.md)                                    | **Historical** — many FO-\* items done on `main` after tag |
-| [2026-05-15-settings-controls-gaps.md](../plans/2026-05-15-settings-controls-gaps.md)                   | **Historical** — superseded by settings work               |
-| [2026-05-16-gap-analysis-and-implementation.md](../plans/2026-05-16-gap-analysis-and-implementation.md) | **Historical** — points here                               |
-| [2025-05-16-b4-command-palette.md](../plans/2025-05-16-b4-command-palette.md)                           | **Historical** — palette shipped                           |
-| [superpowers/\* settings plans](../superpowers/)                                                        | **Historical** — implementation complete                   |
+|| Document | Status |
+|| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+|| Sprint backlogs (0–4) + Sprint 5 | **Archived** — see `docs/archive/` |
+|| [2026-05-15-settings-controls-gaps.md](../archive/2026-05-15-settings-controls-gaps.md) | **Archived** — superseded by settings work |
+|| [2026-05-16-gap-analysis-and-implementation.md](../archive/2026-05-16-gap-analysis-and-implementation.md) | **Archived** — points here |
+|| [2025-05-16-b4-command-palette.md](../archive/2025-05-16-b4-command-palette.md) | **Archived** — palette shipped |
+|| [superpowers/\* settings plans](../superpowers/) | **Historical** — implementation complete |
 
 ### QA, testing, release
 
-| Document                                                                            | Status                                        |
-| ----------------------------------------------------------------------------------- | --------------------------------------------- |
-| [qa/e2e-audit-report.md](../qa/e2e-audit-report.md)                                 | **Stale** §2–4 — banner added                 |
-| [qa/sprint-3-smoke-test.md](../qa/sprint-3-smoke-test.md)                           | Historical checklist — still useful for RC    |
-| [qa/sprint-4-baseline-qa.md](../qa/sprint-4-baseline-qa.md)                         | Historical checklist — still useful for RC    |
-| [testing/README.md](../testing/README.md)                                           | **Updated** — links all protocols             |
-| [testing/large-directory-performance.md](../testing/large-directory-performance.md) | Current protocol                              |
-| [testing/sprint-1-demo.md](../testing/sprint-1-demo.md)                             | Historical demo script                        |
-| [testing/sprint-5-macos-qa.md](../testing/sprint-5-macos-qa.md)                     | Platform QA — verify against current UI       |
-| [performance.md](../performance.md)                                                 | Current baselines; manual timings per machine |
-| [release/mvp-rc-checklist.md](../release/mvp-rc-checklist.md)                       | **Living** — unchecked; use for RC gate       |
-| [release-notes/mvp-rc.md](../release-notes/mvp-rc.md)                               | **Updated** — post–Sprint 5 note              |
-| [releases/sprint-5.md](../releases/sprint-5.md)                                     | Historical + post-sprint section              |
+|| Document | Status |
+|| ----------------------------------------------------------------------------------- | --------------------------------------------- |
+|| [e2e-audit-report.md](../archive/e2e-audit-report.md) | **Archived** — early audit |
+|| [sprint-3-smoke-test.md](../archive/sprint-3-smoke-test.md) | **Archived** — Sprint 3 checklist |
+|| [sprint-4-baseline-qa.md](../archive/sprint-4-baseline-qa.md) | **Archived** — Sprint 4 checklist |
+|| [testing/README.md](../testing/README.md) | **Updated** — links all protocols |
+|| [testing/large-directory-performance.md](../testing/large-directory-performance.md) | Current protocol |
+|| [testing/sprint-1-demo.md](../archive/sprint-1-demo.md) | **Archived** — Sprint 1 demo |
+|| [testing/sprint-5-macos-qa.md](../testing/sprint-5-macos-qa.md) | Platform QA — verify against current UI |
+| [performance.md](../performance.md) | Current baselines; manual timings per machine |
+| [release/mvp-rc-checklist.md](../release/mvp-rc-checklist.md) | **Living** — unchecked; use for RC gate |
+| [release-notes/mvp-rc.md](../release-notes/mvp-rc.md) | **Updated** — post–Sprint 5 note |
+| [releases/sprint-5.md](../releases/sprint-5.md) | Historical + post-sprint section |
 
 ### Operations & misc
 
@@ -230,6 +229,6 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 
 ## Test signal (2026-05-30)
 
-- `pnpm --filter @fileoctopus/frontend test` — 1039 tests across 134 files pass (`vitest run --environment jsdom`)
+- `pnpm --filter @fileoctopus/frontend test` — 1104 tests across 137 files pass, 479 Rust tests pass (all green)
 - `cargo test --workspace` — 479 tests pass across all crates
-- Catalog drift guards: `packages/ts-api/tests/catalogs.test.ts` keeps Rust ↔ TS command/event constants and the 78-command count aligned
+- Catalog drift guards: `packages/ts-api/tests/catalogs.test.ts` keeps Rust ↔ TS command/event constants aligned (77 `commands::` entries in generate_handler!, 78 total including `start_terminal_event_bridge`, 78 in commandMap.ts)

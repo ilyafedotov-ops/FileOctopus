@@ -4,7 +4,7 @@
 
 - Source: `crates/test-support/src/lib.rs`, `crates/test-support/src/bin/fileoctopus-test-tree.rs`
 - Depends on: standard library only (no `tokio`, no `serde`).
-- Used by: the perf protocol in `docs/testing/large-directory-performance.md`, the Sprint 1 demo (`docs/testing/sprint-1-demo.md`), and integration tests in `crates/test-support/tests/test_tree.rs`.
+- Used by: the perf protocol in `docs/testing/large-directory-performance.md`, the Sprint 1 demo (`docs/archive/sprint-1-demo.md`), and integration tests in `crates/test-support/tests/test_tree.rs`.
 
 ## API
 

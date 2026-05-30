@@ -625,6 +625,7 @@
   border-color: var(--fo-commander-key-hover-border);
   background: var(--fo-commander-key-hover-bg);
   color: var(--fo-statusbar-fg);
+  box-shadow: var(--fo-focus-ring);
 }
 
 .fo-commander-key:disabled {

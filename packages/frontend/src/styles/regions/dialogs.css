@@ -182,9 +182,9 @@
   max-height: min(80vh, calc(100vh - 16px));
   overflow: auto;
   border: 1px solid var(--fo-dialog-border);
-  background: var(--fo-surface);
+  background: var(--fo-surface-elevated);
   padding: 4px;
-  box-shadow: 0 12px 28px var(--fo-menu-shadow);
+  box-shadow: var(--fo-elevation-popover);
 }
 
 .fo-context-menu .fo-context-menu-item {
@@ -230,9 +230,9 @@
   min-width: 160px;
   gap: 2px;
   border: 1px solid var(--fo-dialog-border);
-  background: var(--fo-surface);
+  background: var(--fo-surface-elevated);
   padding: 4px;
-  box-shadow: 0 12px 28px var(--fo-menu-shadow);
+  box-shadow: var(--fo-elevation-popover);
   z-index: 40;
 }
 
@@ -708,8 +708,8 @@ dialog.fo-dialog[open] {
 .fo-dialog-field input:focus-visible,
 .fo-dialog-field select:focus-visible,
 .fo-dialog-field textarea:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--fo-accent) 45%, transparent);
-  outline-offset: 1px;
+  box-shadow: var(--fo-focus-ring);
+  outline: none;
 }
 
 /* Wizard step indicator (UPP-F1). Numbered chips that read as todo / active /
@@ -1277,8 +1277,8 @@ dialog.fo-dialog[open] {
 .fo-settings-field select:focus-visible,
 .fo-settings-field input:focus-visible,
 .fo-settings-field textarea:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--fo-accent) 45%, transparent);
-  outline-offset: 1px;
+  box-shadow: var(--fo-focus-ring);
+  outline: none;
 }
 
 .fo-dialog label.fo-settings-checkbox,
@@ -1323,8 +1323,8 @@ dialog.fo-dialog[open] {
 }
 
 .fo-settings-checkbox input[type="checkbox"]:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--fo-accent) 45%, transparent);
-  outline-offset: 2px;
+  box-shadow: var(--fo-focus-ring);
+  outline: none;
 }
 
 .fo-settings-checkbox input[type="checkbox"]:disabled {
@@ -1375,8 +1375,8 @@ dialog.fo-dialog[open] {
 }
 
 .fo-settings-search input:focus-visible {
-  outline: 1px dotted var(--fo-classic-title);
-  outline-offset: -1px;
+  box-shadow: var(--fo-focus-ring);
+  outline: none;
 }
 
 .fo-settings-search input::placeholder {

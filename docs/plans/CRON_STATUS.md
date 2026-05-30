@@ -1,18 +1,18 @@
 # FileOctopus — Cron Status
 
-Last run: 2026-05-30 (Audit-Only Cycle)
+Last run: 2026-05-30 (Doc Alignment Audit — counts updated)
 
 ## Health Gate
 
-| Check                         | Status                 |
-| ----------------------------- | ---------------------- |
-| `pnpm typecheck`              | ✅ clean               |
-| `cargo check`                 | ✅ clean               |
-| `pnpm test` (frontend)        | ✅ 877/877 (122 files) |
-| `cargo test --workspace`      | ✅ 479 tests pass      |
-| `pnpm lint`                   | ✅ clean               |
-| `cargo fmt --all --check`     | ✅ clean               |
-| `cargo clippy -- -D warnings` | ✅ clean               |
+| Check                         | Status                                       |
+| ----------------------------- | -------------------------------------------- |
+| `pnpm typecheck`              | ✅ clean                                     |
+| `cargo check`                 | ✅ clean                                     |
+| `pnpm test` (frontend)        | ✅ 1074/1075 (135 files — 1 skip) 2026-05-30 |
+| `cargo test --workspace`      | ✅ 479 tests pass                            |
+| `pnpm lint`                   | ✅ clean                                     |
+| `cargo fmt --all --check`     | ✅ clean                                     |
+| `cargo clippy -- -D warnings` | ✅ clean                                     |
 
 ## Work Completed
 

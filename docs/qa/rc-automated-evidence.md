@@ -37,8 +37,8 @@
 
 ## Manual follow-up (human on target hardware)
 
-- [ ] `docs/qa/sprint-3-smoke-test.md` against packaged `.deb` / AppImage
-- [ ] `docs/qa/sprint-4-baseline-qa.md` full checklist
+- [ ] `docs/archive/sprint-3-smoke-test.md` against packaged `.deb` / AppImage
+- [ ] `docs/archive/sprint-4-baseline-qa.md` full checklist
 - [ ] `docs/testing/large-directory-performance.md` scroll recording for `tmp/10k` and `tmp/100k`
 - [ ] Export diagnostics bundle from Help menu and inspect zip contents
 

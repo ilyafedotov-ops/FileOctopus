@@ -45,6 +45,8 @@ These are useful but should not block Sprint 4 completion:
 - git-aware decorations
 - bulk rename templates
 
+> **Note (2026-05-30):** Many of these items have since been implemented on `main`. See [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](PROJECT_STATUS_AND_DOC_ALIGNMENT.md) for current status.
+
 ---
 
 # Epic A — OS integration and file opening

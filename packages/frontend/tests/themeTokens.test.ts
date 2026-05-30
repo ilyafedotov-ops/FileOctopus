@@ -266,6 +266,33 @@ describe("Design token architecture", () => {
     ).toBe(true);
   });
 
+  it("provides a .fo-focusable utility class for keyboard focus (UPP-A2)", () => {
+    expect(
+      componentsContent,
+      "components.css should contain .fo-focusable:focus-visible rule",
+    ).toContain(".fo-focusable:focus-visible");
+    expect(
+      componentsContent,
+      ".fo-focusable should use --fo-focus-ring box-shadow",
+    ).toMatch(
+      /\.fo-focusable:focus-visible\s*\{[^}]*box-shadow:\s*var\(--fo-focus-ring\)/s,
+    );
+  });
+
+  it("unifies dialog/settings focus-visible onto --fo-focus-ring (UPP-A2 follow-up)", () => {
+    // After the 2026-05-30 unification, dialog and settings field focus-visible
+    // rules should use box-shadow: var(--fo-focus-ring) instead of outline + color-mix.
+    const dialogFocusBlocks =
+      dialogsContent.match(/:focus-visible\s*\{[^}]*\}/g) || [];
+    const outlineBased = dialogFocusBlocks.filter(
+      (b) => b.includes("outline:") && !b.includes("outline: none"),
+    );
+    expect(
+      outlineBased,
+      `dialogs.css focus-visible rules should not use outline (found ${outlineBased.length}: ${outlineBased.join(" | ")})`,
+    ).toHaveLength(0);
+  });
+
   it("derives the primary-button hover from the active accent (no pinned blue)", () => {
     // The old #006bb3 only matched the default-blue accent; hover is now
     // derived from var(--fo-accent) so all seven accent swatches work.

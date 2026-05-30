@@ -2,7 +2,7 @@
 
 `crates/fs-core` is where FileOctopus actually touches the disk. It supplies the only registered `VfsProvider` today (`LocalFsProvider`) and the planner/executor for every file-mutating operation. Everything privileged that the desktop shell does goes through this crate.
 
-- Source: `crates/fs-core/src/lib.rs`, `crates/fs-core/src/file_ops/{mod,planning,execution,archive,trash,paths}.rs`, plus `metadata.rs`, `search.rs`, `locations.rs`, `external_open.rs`, `direct_ops.rs`
+- Source: `crates/fs-core/src/lib.rs`, `crates/fs-core/src/file_ops/{mod,planning,execution,archive,trash,paths,tests}.rs`, plus `metadata.rs`, `search.rs`, `locations.rs`, `external_open.rs`, `direct_ops.rs`, `compare.rs`, `content_search.rs`, `sync.rs`, `vfs_io.rs`
 - Depends on: `vfs`, `jobs`, `chrono`, `filetime`, `uuid`, `tokio` (for `spawn_blocking`).
 - Used by: `app-core` (which wraps `OperationRuntime` around the planner/executor), Tauri `commands/*`, and integration tests.
 

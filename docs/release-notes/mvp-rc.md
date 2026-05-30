@@ -24,4 +24,4 @@
 
 ## Bug Reports
 
-Attach the diagnostics bundle from **Help → Diagnostics** and the completed QA checklist (`docs/testing/sprint-5-macos-qa.md` on macOS, or `docs/qa/sprint-3-smoke-test.md` on Linux).
+Attach the diagnostics bundle from **Help → Diagnostics** and the completed QA checklist (`docs/testing/sprint-5-macos-qa.md` on macOS, or `docs/archive/sprint-3-smoke-test.md` on Linux).

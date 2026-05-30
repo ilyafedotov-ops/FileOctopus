@@ -123,7 +123,7 @@ pub trait VfsProvider: Send + Sync {
 
 A provider is registered in `VfsRegistry` against one or more schemes. The current registry rejects duplicate registrations for the same scheme (`VfsError::DuplicateProvider`). The async trait uses `Arc<dyn VfsProvider>` for dynamic dispatch — providers are reference-counted and shared across the runtime.
 
-There is no `write`/`delete` on the trait yet: mutation is handled by `fs-core::file_ops` directly against `ResourceUri::to_local_path()` (for `LocalFsProvider`). When a second provider needs mutation, that surface will need to move onto the trait.
+There is no generic `write`/`delete` on the trait yet: mutation is handled by `fs-core::file_ops` directly against `ResourceUri::to_local_path()` (for `LocalFsProvider`). `create_directory`, `create_file`, and `rename` are on the trait for remote providers that need to handle mutations through their own protocol. When a second provider needs more mutation surfaces, those will be added to the trait.
 
 ## VfsRegistry
 
