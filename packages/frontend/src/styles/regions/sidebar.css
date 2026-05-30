@@ -126,7 +126,7 @@
   border: 1px solid var(--fo-dialog-border);
   border-radius: 0;
   background: var(--fo-surface-elevated);
-  box-shadow: 0 8px 20px var(--fo-menu-shadow);
+  box-shadow: var(--fo-elevation-popover);
   overflow-y: auto;
   z-index: 1001;
 }

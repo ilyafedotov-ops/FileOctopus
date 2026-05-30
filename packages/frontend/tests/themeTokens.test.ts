@@ -365,6 +365,30 @@ describe("Design token architecture", () => {
     );
   });
 
+  it("all menu surfaces use --fo-elevation-popover (UPP-D1 strict)", () => {
+    const allCss = [
+      paneContent,
+      shellContent,
+      dialogsContent,
+      sidebarContent,
+      componentsContent,
+      sharedContent,
+      baseContent,
+      jobsContent,
+    ].join("\n");
+
+    // No menu-like surface should inline a raw box-shadow with menu-shadow.
+    // Allowed patterns: var(--fo-elevation-popover), var(--fo-elevation-modal),
+    // var(--fo-elevation-drawer), var(--fo-dialog-shadow).
+    const inlineShadowPattern =
+      /box-shadow:\s*\d+px\s+\d+px\s+\d+px\s+var\(--fo-menu-shadow/g;
+    const matches = allCss.match(inlineShadowPattern);
+    expect(
+      matches,
+      `Menu surfaces should use --fo-elevation-popover, not inline shadows (${matches?.length ?? 0} found)`,
+    ).toBeNull();
+  });
+
   it("dialogs.css hex is limited to the classic-skin palette defs", () => {
     // Every remaining hex literal must be a --fo-classic-* palette definition
     // (the dialog retro skin, analogous to shell's classic tokens). All other

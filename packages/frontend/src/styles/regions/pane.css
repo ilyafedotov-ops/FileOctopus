@@ -724,7 +724,7 @@
   background: var(--fo-surface);
   border: 1px solid var(--fo-border);
   border-radius: var(--fo-radius-sm, 6px);
-  box-shadow: 0 8px 24px var(--fo-menu-shadow, rgba(0, 0, 0, 18%));
+  box-shadow: var(--fo-elevation-popover);
   z-index: 51;
 }
 
@@ -1564,7 +1564,7 @@
   background: var(--fo-surface-elevated);
   border: 1px solid var(--fo-dialog-border);
   border-radius: 0;
-  box-shadow: 0 8px 20px var(--fo-menu-shadow);
+  box-shadow: var(--fo-elevation-popover);
 }
 
 .fo-toolbar-meta {

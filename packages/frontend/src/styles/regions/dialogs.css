@@ -504,7 +504,7 @@
   border-radius: 0.5rem;
   border: 1px solid var(--fo-control-border);
   background: var(--fo-control-bg);
-  box-shadow: 0 8px 24px var(--fo-menu-shadow);
+  box-shadow: var(--fo-elevation-popover);
 }
 
 .fo-toast-success {
