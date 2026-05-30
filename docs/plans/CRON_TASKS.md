@@ -1,7 +1,7 @@
 # FileOctopus — Cron Task Queue
 
 > Execution-facing queue for autonomous agents.
-> Last verified against repo state: 2026-05-30 02:30 UTC
+> Last verified against repo state: 2026-05-30 06:45 UTC
 >
 > **Note:** If Active RC Queue has fewer than 3 `pending` tasks, the agent MUST read `PROJECT_STATUS_AND_DOC_ALIGNMENT.md` §"Specified but not implemented" + `UI_FEATURE_INVENTORY.md` §13 and backfill immediately. Never stop with "queue empty" while deferred items exist.
 
