@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
@@ -216,6 +217,70 @@ export function DropdownMenu({
     };
   }, [onOpenChange, open]);
 
+  // When the menu opens, move focus to the menu container so arrow keys work
+  // immediately (ARIA menu pattern, mirroring the context-menu behavior).
+  useEffect(() => {
+    if (!open || !menuStyle) {
+      return;
+    }
+    const frame = requestAnimationFrame(() => menuRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [open, menuStyle]);
+
+  const menuItemElements = () =>
+    Array.from(
+      menuRef.current?.querySelectorAll<HTMLElement>(
+        '[role="menuitem"]:not([disabled])',
+      ) ?? [],
+    );
+
+  const handleMenuKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Tab") {
+      onOpenChange(false);
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      onOpenChange(false);
+      triggerRef.current?.focus();
+      return;
+    }
+
+    const elements = menuItemElements();
+    if (elements.length === 0) {
+      return;
+    }
+    const current = elements.findIndex((el) => el === document.activeElement);
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      const next = current < 0 ? 0 : (current + 1) % elements.length;
+      elements[next]?.focus();
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      const next =
+        current < 0
+          ? elements.length - 1
+          : (current - 1 + elements.length) % elements.length;
+      elements[next]?.focus();
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      elements[0]?.focus();
+    } else if (event.key === "End") {
+      event.preventDefault();
+      elements[elements.length - 1]?.focus();
+    } else if (event.key.length === 1 && /\S/.test(event.key)) {
+      // Type-ahead: jump to the next item whose label starts with the key.
+      const char = event.key.toLowerCase();
+      const start = current + 1;
+      const ordered = [...elements.slice(start), ...elements.slice(0, start)];
+      const match = ordered.find((el) =>
+        el.textContent?.trim().toLowerCase().startsWith(char),
+      );
+      match?.focus();
+    }
+  };
+
   return (
     <div
       ref={rootRef}
@@ -244,6 +309,7 @@ export function DropdownMenu({
               ref={menuRef}
               id={menuId}
               role="menu"
+              tabIndex={-1}
               className="fo-ui-dropdown-menu fo-ui-dropdown-menu--portal"
               style={{
                 position: "fixed",
@@ -253,6 +319,7 @@ export function DropdownMenu({
                 zIndex: 200,
               }}
               onClick={(event) => event.stopPropagation()}
+              onKeyDown={handleMenuKeyDown}
             >
               {items.map((item) => {
                 const isSeparator =
