@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { DialogShell } from "../components/DialogShell";
 import { type HotlistEntry, parseHotlistEntries } from "../utils/hotlist";
 
 const STORAGE_KEY = "fileoctopus_hotlist";
@@ -66,63 +67,19 @@ export function HotlistDialog({
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [open, entries, selectedIndex, onNavigate, onClose]);
 
-  if (!open) return null;
-
   const pathFromUri = (uri: string) => {
     if (uri.startsWith("local://")) return uri.slice("local://".length);
     return uri;
   };
 
   return (
-    <div className="fo-dialog-backdrop" onClick={onClose}>
-      <div
-        className="fo-dialog fo-hotlist-dialog"
-        role="dialog"
-        aria-label="Directory Hotlist"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="fo-dialog-header">
-          <h2>Directory Hotlist</h2>
-          <button
-            type="button"
-            className="fo-ui-icon-btn"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            ✕
-          </button>
-        </div>
-
-        <ul className="fo-hotlist-entries" role="listbox">
-          {entries.length === 0 && (
-            <li className="fo-hotlist-empty">
-              No entries. Add directories to get started.
-            </li>
-          )}
-          {entries.map((entry, index) => (
-            <li
-              key={entry.id}
-              className={`fo-hotlist-entry${index === selectedIndex ? " fo-hotlist-entry-selected" : ""}`}
-              role="option"
-              aria-selected={index === selectedIndex}
-              onClick={() => {
-                onNavigate(entry.uri);
-                onClose();
-              }}
-              onMouseEnter={() => setSelectedIndex(index)}
-            >
-              <span className="fo-hotlist-shortcut">
-                {index < 9 ? String(index + 1) : "·"}
-              </span>
-              <span className="fo-hotlist-label">{entry.label}</span>
-              <span className="fo-hotlist-path" title={entry.uri}>
-                {pathFromUri(entry.uri)}
-              </span>
-            </li>
-          ))}
-        </ul>
-
-        <div className="fo-dialog-footer">
+    <DialogShell
+      open={open}
+      onClose={onClose}
+      title="Directory Hotlist"
+      className="fo-hotlist-dialog"
+      footer={
+        <>
           <button
             type="button"
             className="fo-ui-btn fo-ui-btn--sm"
@@ -145,15 +102,37 @@ export function HotlistDialog({
           >
             Manage…
           </button>
-          <button
-            type="button"
-            className="fo-ui-btn fo-ui-btn--sm"
-            onClick={onClose}
+        </>
+      }
+    >
+      <ul className="fo-hotlist-entries" role="listbox">
+        {entries.length === 0 && (
+          <li className="fo-hotlist-empty">
+            No entries. Add directories to get started.
+          </li>
+        )}
+        {entries.map((entry, index) => (
+          <li
+            key={entry.id}
+            className={`fo-hotlist-entry${index === selectedIndex ? " fo-hotlist-entry-selected" : ""}`}
+            role="option"
+            aria-selected={index === selectedIndex}
+            onClick={() => {
+              onNavigate(entry.uri);
+              onClose();
+            }}
+            onMouseEnter={() => setSelectedIndex(index)}
           >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
+            <span className="fo-hotlist-shortcut">
+              {index < 9 ? String(index + 1) : "·"}
+            </span>
+            <span className="fo-hotlist-label">{entry.label}</span>
+            <span className="fo-hotlist-path" title={entry.uri}>
+              {pathFromUri(entry.uri)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </DialogShell>
   );
 }

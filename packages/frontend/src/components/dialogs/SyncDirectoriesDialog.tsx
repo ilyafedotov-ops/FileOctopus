@@ -4,7 +4,7 @@ import type {
   SyncDirectoriesResponse,
   SyncEntryDto,
 } from "@fileoctopus/ts-api";
-import { useDialogEscape } from "../../hooks/useDialogEscape";
+import { DialogShell } from "../DialogShell";
 
 interface SyncDirectoriesDialogProps {
   open: boolean;
@@ -96,8 +96,6 @@ export function SyncDirectoriesDialog({
     };
   }, [open, leftUri, rightUri, comparison, recursive, fs]);
 
-  useDialogEscape(open, onClose);
-
   const stats = useMemo(() => {
     if (!result) return null;
     let onlyLeft = 0;
@@ -119,137 +117,107 @@ export function SyncDirectoriesDialog({
     };
   }, [result]);
 
-  if (!open) return null;
-
   return (
-    <div className="fo-dialog-backdrop" onClick={onClose}>
-      <div
-        className="fo-dialog fo-sync-dialog"
-        role="dialog"
-        aria-label="Directory Sync"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="fo-dialog-header">
-          <h2>Directory Sync</h2>
-          <button
-            type="button"
-            className="fo-ui-icon-btn"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="fo-sync-controls">
-          <div className="fo-sync-paths">
-            <div className="fo-sync-path" title={leftUri}>
-              <span className="fo-sync-path-label">Left:</span>
-              <span className="fo-sync-path-value">
-                {localPathFromUri(leftUri)}
-              </span>
-            </div>
-            <div className="fo-sync-path" title={rightUri}>
-              <span className="fo-sync-path-label">Right:</span>
-              <span className="fo-sync-path-value">
-                {localPathFromUri(rightUri)}
-              </span>
-            </div>
-          </div>
-
-          <div className="fo-sync-options">
-            <label>
-              Compare by:{" "}
-              <select
-                value={comparison}
-                onChange={(e) =>
-                  setComparison(e.target.value as ComparisonMode)
-                }
-              >
-                <option value="name">Name</option>
-                <option value="size">Size</option>
-                <option value="date">Date</option>
-              </select>
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={recursive}
-                onChange={(e) => setRecursive(e.target.checked)}
-              />{" "}
-              Recursive
-            </label>
-          </div>
-        </div>
-
-        {loading && (
-          <div className="fo-sync-loading">Comparing directories…</div>
-        )}
-        {error && <div className="fo-sync-error">Error: {error}</div>}
-
-        {stats && (
-          <div className="fo-sync-stats">
-            <span>
-              {stats.total} entries: {stats.same} same, {stats.onlyLeft} left
-              only, {stats.onlyRight} right only, {stats.different} different
+    <DialogShell
+      open={open}
+      onClose={onClose}
+      title="Directory Sync"
+      className="fo-sync-dialog"
+    >
+      <div className="fo-sync-controls">
+        <div className="fo-sync-paths">
+          <div className="fo-sync-path" title={leftUri}>
+            <span className="fo-sync-path-label">Left:</span>
+            <span className="fo-sync-path-value">
+              {localPathFromUri(leftUri)}
             </span>
           </div>
-        )}
-
-        {result && result.entries.length > 0 && (
-          <div className="fo-sync-results">
-            <table className="fo-sync-table">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Status</th>
-                  <th>Left Size</th>
-                  <th>Right Size</th>
-                  <th>Left Modified</th>
-                  <th>Right Modified</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.entries.map((entry: SyncEntryDto) => (
-                  <tr
-                    key={entry.name}
-                    className={`fo-sync-row fo-sync-${entry.status}`}
-                  >
-                    <td>
-                      {entry.leftIsDir || entry.rightIsDir ? "📁 " : ""}
-                      {entry.name}
-                    </td>
-                    <td style={{ color: statusColor(entry.status) }}>
-                      {statusLabel(entry.status)}
-                    </td>
-                    <td>{formatSize(entry.leftSize)}</td>
-                    <td>{formatSize(entry.rightSize)}</td>
-                    <td>{formatDate(entry.leftModified)}</td>
-                    <td>{formatDate(entry.rightModified)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="fo-sync-path" title={rightUri}>
+            <span className="fo-sync-path-label">Right:</span>
+            <span className="fo-sync-path-value">
+              {localPathFromUri(rightUri)}
+            </span>
           </div>
-        )}
+        </div>
 
-        {result && result.entries.length === 0 && !loading && (
-          <div className="fo-sync-empty">
-            Directories are identical — no differences found.
-          </div>
-        )}
-
-        <div className="fo-dialog-footer">
-          <button
-            type="button"
-            className="fo-ui-btn fo-ui-btn--md"
-            onClick={onClose}
-          >
-            Close
-          </button>
+        <div className="fo-sync-options">
+          <label>
+            Compare by:{" "}
+            <select
+              value={comparison}
+              onChange={(e) => setComparison(e.target.value as ComparisonMode)}
+            >
+              <option value="name">Name</option>
+              <option value="size">Size</option>
+              <option value="date">Date</option>
+            </select>
+          </label>
+          <label>
+            <input
+              type="checkbox"
+              checked={recursive}
+              onChange={(e) => setRecursive(e.target.checked)}
+            />{" "}
+            Recursive
+          </label>
         </div>
       </div>
-    </div>
+
+      {loading && <div className="fo-sync-loading">Comparing directories…</div>}
+      {error && <div className="fo-sync-error">Error: {error}</div>}
+
+      {stats && (
+        <div className="fo-sync-stats">
+          <span>
+            {stats.total} entries: {stats.same} same, {stats.onlyLeft} left
+            only, {stats.onlyRight} right only, {stats.different} different
+          </span>
+        </div>
+      )}
+
+      {result && result.entries.length > 0 && (
+        <div className="fo-sync-results">
+          <table className="fo-sync-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Left Size</th>
+                <th>Right Size</th>
+                <th>Left Modified</th>
+                <th>Right Modified</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.entries.map((entry: SyncEntryDto) => (
+                <tr
+                  key={entry.name}
+                  className={`fo-sync-row fo-sync-${entry.status}`}
+                >
+                  <td>
+                    {entry.leftIsDir || entry.rightIsDir ? "📁 " : ""}
+                    {entry.name}
+                  </td>
+                  <td style={{ color: statusColor(entry.status) }}>
+                    {statusLabel(entry.status)}
+                  </td>
+                  <td>{formatSize(entry.leftSize)}</td>
+                  <td>{formatSize(entry.rightSize)}</td>
+                  <td>{formatDate(entry.leftModified)}</td>
+                  <td>{formatDate(entry.rightModified)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {result && result.entries.length === 0 && !loading && (
+        <div className="fo-sync-empty">
+          Directories are identical — no differences found.
+        </div>
+      )}
+    </DialogShell>
   );
 }
 

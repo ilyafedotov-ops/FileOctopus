@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { DialogShell } from "../components/DialogShell";
 import {
   type HotlistEntry,
   createHotlistEntry,
@@ -92,129 +93,14 @@ export function ManageHotlistDialog({
     return uri;
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fo-dialog-backdrop" onClick={onClose}>
-      <div
-        className="fo-dialog fo-manage-hotlist-dialog"
-        role="dialog"
-        aria-label="Manage Directory Hotlist"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="fo-dialog-header">
-          <h2>Manage Directory Hotlist</h2>
-          <button
-            type="button"
-            className="fo-ui-icon-btn"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="fo-manage-hotlist-list">
-          {entries.length === 0 && (
-            <div className="fo-manage-hotlist-empty">
-              No hotlist entries yet. Click "Add" to create one.
-            </div>
-          )}
-          {entries.map((entry, index) => (
-            <div key={entry.id} className="fo-manage-hotlist-row">
-              {editingId === entry.id ? (
-                <div className="fo-manage-hotlist-edit">
-                  <input
-                    type="text"
-                    className="fo-ui-input"
-                    value={editLabel}
-                    onChange={(e) => setEditLabel(e.target.value)}
-                    placeholder="Label"
-                    aria-label="Entry label"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") commitEdit();
-                      if (e.key === "Escape") cancelEdit();
-                    }}
-                  />
-                  <input
-                    type="text"
-                    className="fo-ui-input"
-                    value={editUri}
-                    onChange={(e) => setEditUri(e.target.value)}
-                    placeholder="URI (local:///path/to/dir)"
-                    aria-label="Entry URI"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") commitEdit();
-                      if (e.key === "Escape") cancelEdit();
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="fo-ui-btn fo-ui-btn--sm"
-                    onClick={commitEdit}
-                  >
-                    ✓
-                  </button>
-                  <button
-                    type="button"
-                    className="fo-ui-btn fo-ui-btn--sm"
-                    onClick={cancelEdit}
-                  >
-                    ✕
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <span className="fo-manage-hotlist-index">
-                    {index < 9 ? String(index + 1) : ""}
-                  </span>
-                  <span className="fo-manage-hotlist-label">{entry.label}</span>
-                  <span className="fo-manage-hotlist-path" title={entry.uri}>
-                    {pathFromUri(entry.uri)}
-                  </span>
-                  <div className="fo-manage-hotlist-actions">
-                    <button
-                      type="button"
-                      className="fo-ui-icon-btn"
-                      aria-label="Move up"
-                      disabled={index === 0}
-                      onClick={() => handleMoveUp(index)}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="fo-ui-icon-btn"
-                      aria-label="Move down"
-                      disabled={index >= entries.length - 1}
-                      onClick={() => handleMoveDown(index)}
-                    >
-                      ↓
-                    </button>
-                    <button
-                      type="button"
-                      className="fo-ui-icon-btn"
-                      aria-label="Edit"
-                      onClick={() => startEdit(entry)}
-                    >
-                      ✎
-                    </button>
-                    <button
-                      type="button"
-                      className="fo-ui-icon-btn"
-                      aria-label="Remove"
-                      onClick={() => handleRemove(entry.id)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="fo-dialog-footer">
+    <DialogShell
+      open={open}
+      onClose={onClose}
+      title="Manage Directory Hotlist"
+      className="fo-manage-hotlist-dialog"
+      footer={
+        <>
           <button
             type="button"
             className="fo-ui-btn fo-ui-btn--sm"
@@ -229,8 +115,108 @@ export function ManageHotlistDialog({
           >
             Done
           </button>
-        </div>
+        </>
+      }
+    >
+      <div className="fo-manage-hotlist-list">
+        {entries.length === 0 && (
+          <div className="fo-manage-hotlist-empty">
+            No hotlist entries yet. Click "Add" to create one.
+          </div>
+        )}
+        {entries.map((entry, index) => (
+          <div key={entry.id} className="fo-manage-hotlist-row">
+            {editingId === entry.id ? (
+              <div className="fo-manage-hotlist-edit">
+                <input
+                  type="text"
+                  className="fo-ui-input"
+                  value={editLabel}
+                  onChange={(e) => setEditLabel(e.target.value)}
+                  placeholder="Label"
+                  aria-label="Entry label"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitEdit();
+                    if (e.key === "Escape") cancelEdit();
+                  }}
+                />
+                <input
+                  type="text"
+                  className="fo-ui-input"
+                  value={editUri}
+                  onChange={(e) => setEditUri(e.target.value)}
+                  placeholder="URI (local:///path/to/dir)"
+                  aria-label="Entry URI"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") commitEdit();
+                    if (e.key === "Escape") cancelEdit();
+                  }}
+                />
+                <button
+                  type="button"
+                  className="fo-ui-btn fo-ui-btn--sm"
+                  onClick={commitEdit}
+                >
+                  ✓
+                </button>
+                <button
+                  type="button"
+                  className="fo-ui-btn fo-ui-btn--sm"
+                  onClick={cancelEdit}
+                >
+                  ✕
+                </button>
+              </div>
+            ) : (
+              <>
+                <span className="fo-manage-hotlist-index">
+                  {index < 9 ? String(index + 1) : ""}
+                </span>
+                <span className="fo-manage-hotlist-label">{entry.label}</span>
+                <span className="fo-manage-hotlist-path" title={entry.uri}>
+                  {pathFromUri(entry.uri)}
+                </span>
+                <div className="fo-manage-hotlist-actions">
+                  <button
+                    type="button"
+                    className="fo-ui-icon-btn"
+                    aria-label="Move up"
+                    disabled={index === 0}
+                    onClick={() => handleMoveUp(index)}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    className="fo-ui-icon-btn"
+                    aria-label="Move down"
+                    disabled={index >= entries.length - 1}
+                    onClick={() => handleMoveDown(index)}
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    className="fo-ui-icon-btn"
+                    aria-label="Edit"
+                    onClick={() => startEdit(entry)}
+                  >
+                    ✎
+                  </button>
+                  <button
+                    type="button"
+                    className="fo-ui-icon-btn"
+                    aria-label="Remove"
+                    onClick={() => handleRemove(entry.id)}
+                  >
+                    ✕
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        ))}
       </div>
-    </div>
+    </DialogShell>
   );
 }
