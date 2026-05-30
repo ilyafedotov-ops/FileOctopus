@@ -2,7 +2,7 @@
 
 `packages/ts-api` is the **only** package that talks to Tauri. Everything else in the frontend imports from `@fileoctopus/ts-api`, never from `@tauri-apps/api` directly. This keeps the IPC surface small, typed, and swappable.
 
-> **Doc freshness (2026-05-17):** `commandMap` and per-domain clients are split out of the monolithic `client.ts`; the public import path is unchanged.
+> **Doc freshness (2026-05-30):** `commandMap` and per-domain clients are split out of the monolithic `client.ts`; the public import path is unchanged.
 
 - Source: `packages/ts-api/src/{client,types,index,commandMap,events,normalizeError}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`
 - Depends on: `@tauri-apps/api` (peer/dev only at the import path).
