@@ -528,7 +528,7 @@ pub async fn fs_stat(
 
 ### IPC commands (RC)
 
-The authoritative registry is [api-reference.md](api-reference.md) (**37 commands** as of 2026-05-17). Highlights:
+The authoritative registry is [api-reference.md](api-reference.md) (**77 commands** as of 2026-05-30). Highlights:
 
 ```text
 # Filesystem & listing
