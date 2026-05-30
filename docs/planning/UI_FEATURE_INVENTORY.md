@@ -386,7 +386,7 @@ Example: `Ready · 2 selected · 8 items · 82.3 MB selected · No errors`
 
 ---
 
-## 13. Implementation snapshot (2026-05-29)
+## 13. Implementation snapshot (2026-05-30)
 
 ### Delivered after Sprint 5 (codebase)
 

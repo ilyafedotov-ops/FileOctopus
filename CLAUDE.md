@@ -64,14 +64,20 @@ The trust boundary is the IPC layer. Read these together to understand a feature
 - **`telemetry`** — `tracing` + `tracing-subscriber` init and thin `info/debug/error` helpers.
 - **`platform`**, **`config`** — currently empty crates reserved for future platform abstractions.
 - **`test-support`** — `fileoctopus-test-tree` binary that materializes large directory trees for the perf protocol.
+- **`git-intel`** — Git repository discovery and file status decoration (`GitDiscover`, `GitStatusForDirectory`).
+- **`terminal-core`** — PTY management for embedded terminal (local + SSH sessions).
+- **`remote-core`** — shared traits and types for remote providers (`RemoteConnector`, `RemoteSession`, `AuthSecrets`).
+- **`provider-sftp`**, **`provider-smb`**, **`provider-s3`** — VFS provider implementations for SFTP, SMB, and S3 protocols.
+- **`provider-gdrive`**, **`provider-dropbox`**, **`provider-onedrive`** — cloud provider connectors with OAuth authentication.
+- **`plugin-core`** — plugin manifest schema, sandboxed execution, and install/enable/disable lifecycle.
 
 ### Tauri shell (`apps/desktop-tauri/`)
 
-`src-tauri/src/lib.rs` is the thin entrypoint: it builds `AppCore::boot()`, manages plugin state, and registers handlers. Commands live in `commands/{app_info,fs,folder_size,recursive_search,watch,preferences,autostart,navigation,file_operations,diagnostics}.rs`. Shared infrastructure is in `state.rs` (watch/metadata/listing state) and `emit.rs` (job + directory event emitters). `fs_list_start` returns a `sessionId` immediately, then streams `DirectoryBatchEventDto` events through a tokio mpsc channel into `app.emit(DIRECTORY_BATCH_EVENT, ...)`. Job event emission goes through `app_ipc::job_event_name` / `job_event_payload`.
+`src-tauri/src/lib.rs` is the thin entrypoint: it builds `AppCore::boot()`, manages plugin state, and registers handlers. Commands live in `commands/{app_info,fs,folder_size,recursive_search,watch,preferences,autostart,navigation,file_operations,diagnostics,acl,compare,plugin,sync,terminal,content_search,git,network}.rs`. Shared infrastructure is in `state.rs` (watch/metadata/listing state) and `emit.rs` (job + directory event emitters). `fs_list_start` returns a `sessionId` immediately, then streams `DirectoryBatchEventDto` events through a tokio mpsc channel into `app.emit(DIRECTORY_BATCH_EVENT, ...)`. Job event emission goes through `app_ipc::job_event_name` / `job_event_payload`.
 
 ### Frontend (`packages/`, `apps/desktop-tauri/src/`)
 
-- **`@fileoctopus/ts-api`** (`packages/ts-api/`) — typed IPC client. `FileOctopusClient` (in `client.ts`) composes per-domain clients in `clients/{fs,fileOperations,jobs,history,diagnostics,preferences,autostart,navigation}.ts`. Transports live in `transports/{tauri,preview}.ts`. Error normalisation in `normalizeError.ts`. `commandMap.ts` translates dotted IPC names to Tauri command names — if you add a command, update both sides. Public surface is unchanged — all consumers still import from `@fileoctopus/ts-api`.
+- **`@fileoctopus/ts-api`** (`packages/ts-api/`) — typed IPC client. `FileOctopusClient` (in `client.ts`) composes per-domain clients in `clients/{fs,fileOperations,jobs,history,diagnostics,preferences,autostart,navigation,git,network,plugin,terminal}.ts`. Transports live in `transports/{tauri,preview}.ts`. Error normalisation in `normalizeError.ts`. `commandMap.ts` translates dotted IPC names to Tauri command names — if you add a command, update both sides. Public surface is unchanged — all consumers still import from `@fileoctopus/ts-api`.
 - **`@fileoctopus/frontend`** (`packages/frontend/`) — `FileOctopusApp` (`FileOctopusShell` alias) in `app/FileOctopusApp.tsx`: providers (`ShellProvider`, `JobsProvider`, `ModalsProvider`), shell layout, `commands/{registry,dispatch,paletteEntries}`, `state/{paneReducer,slices,layoutStore}`, `jobs/` activity rail, regional CSS under `styles/regions/`. `panelStore.ts` delegates to slice reducers. File-op handlers: `hooks/useFileOpHandlers.ts` → `hooks/fileOps/*`. See `docs/architecture/modules/frontend.md`.
 - **`@fileoctopus/ui`** — shared primitives.
 - **`@fileoctopus/desktop-tauri`** — the Vite/Tauri shell; the React shell is mounted from `apps/desktop-tauri/src/`. `pnpm dev` builds `ts-api`, `ui`, `frontend` in order before launching `tauri dev`, so workspace changes must be rebuilt to be picked up.

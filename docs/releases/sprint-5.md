@@ -17,6 +17,6 @@
 - Command palette and first-run overlay are not included in this release
 - No column-view or drag-and-drop support
 
-## Post–Sprint 5 progress (2026-05-16)
+## Post–Sprint 5 progress (2026-05-30)
 
-Subsequent work on `main` added: command palette (Ctrl/Cmd+P), text preview panel, column view, internal drag-and-drop, split-ratio persistence, full details columns (including permissions/owner), filesystem watcher, and expanded settings. Compress/extract archives, embedded terminal, and Git integration remain MVP gaps. See [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
+Subsequent work on `main` added: command palette (Ctrl/Cmd+P), text preview panel, column view, internal drag-and-drop, split-ratio persistence, full details columns (including permissions/owner), filesystem watcher, expanded settings, compress/extract archives, embedded terminal (local + SSH), Git integration, cloud providers (Google Drive, Dropbox, OneDrive with OAuth), plugin marketplace, ACL editor, file diff/merge, SMB/S3 remote providers, sync directories, tag/label system, saved searches, archive browsing, audio/video preview, checksum verification, dual pane vertical split, storage gauge, and content search. See [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
