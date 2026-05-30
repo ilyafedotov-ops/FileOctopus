@@ -1,6 +1,6 @@
 # FileOctopus — Cron Status
 
-Last run: 2026-05-29 (CI/CD Cycle)
+Last run: 2026-05-30 (CI/CD Cycle)
 
 ## Health Gate
 
@@ -8,7 +8,7 @@ Last run: 2026-05-29 (CI/CD Cycle)
 | ----------------------------- | ---------------------- |
 | `pnpm typecheck`              | ✅ clean               |
 | `cargo check`                 | ✅ clean               |
-| `pnpm test` (frontend)        | ✅ 845/845 (118 files) |
+| `pnpm test` (frontend)        | ✅ 877/877 (122 files) |
 | `cargo test`                  | ✅ all pass            |
 | `pnpm lint`                   | ✅ clean               |
 | `cargo fmt --check`           | ✅ clean               |
@@ -17,39 +17,25 @@ Last run: 2026-05-29 (CI/CD Cycle)
 
 ## Work Completed
 
-### Commit `1d0b4c7` — fix: resolve clippy warnings in fs-core
+### Commit `24eedde` — feat: per-pane layout persistence for sort, viewMode, showHidden, and column widths (CMD-7)
 
-- Fixed 9 clippy warnings in `compare.rs` (unused vars i, j, context_count) and `sync.rs` (unused params left_uri, right_uri, recursive, ld, rd)
-- Prefix with underscore to suppress warnings for parameters needed by future recursive sync
+- Each pane independently persists sort field/direction, view mode, show-hidden state, and column widths/visibility to localStorage using per-pane keys
+- `sortFilterSlice`: `setSort`/`setViewMode`/`toggleHidden` write to `fileoctopus.sort.<panelId>`, `fileoctopus.viewMode.<panelId>`, `fileoctopus.showHidden.<panelId>`
+- `sortFilterSlice`: `hydratePreferences` reads per-pane values from localStorage, falling back to global preferences when per-pane values are absent
+- `columnWidths.ts`: `storedColumnWidths`/`storedVisibleColumns` accept optional `panelId` parameter
+- `columnWidths.ts`: `persistColumnWidths`/`persistVisibleColumns` accept optional `panelId` parameter
+- `FilePanel.tsx`: passes `panelId` to all stored/persist column functions
+- 8 new tests: per-pane sort, viewMode, showHidden, column widths, hydratePreferences with fallback
+- 877/877 tests pass, typecheck clean, lint clean
 
-### Commit `9018ac4` — feat: wire SyncDirectoriesDialog into shell command system (CMD-5)
-
-- Registered `tools.syncDirectories` command in registryData
-- Added `setSyncDirectoriesOpen` to CommandDispatchDeps + dispatch case
-- Added `syncDirectoriesOpen` state to ModalsProvider
-- Added `leftPanelUri`/`rightPanelUri` to ShellLayoutContext for sync dialog
-- Rendered SyncDirectoriesDialog in DialogOverlayGroup with left/right panel URIs
-- Wired through FileOctopusApp → ShellOverlays → DialogOverlayGroup
-- 3 new unit tests (command registration, dispatch, panel state independence)
-- 845/845 tests pass, typecheck clean, clippy clean
-
-### Commit `4d7f12a` — docs: mark CMD-5 done in CRON_TASKS.md
+### Commit `f4708ed` — docs: update CRON_TASKS — CMD-7 done
 
 ## Spec Compliance
 
-| Task                          | Status  | Commit    |
-| ----------------------------- | ------- | --------- |
-| CMD-5 (Directory Sync wiring) | ✅ done | `9018ac4` |
+| Task                  | Status  | Commit    |
+| --------------------- | ------- | --------- |
+| CMD-7 Per-Pane Layout | ✅ done | `24eedde` |
 
-## Remaining Active RC Queue
+## Queue Status
 
-| ID    | Priority | Status  |
-| ----- | -------- | ------- |
-| CMD-6 | P2       | pending |
-| CMD-7 | P2       | pending |
-
-## TDD Evidence
-
-- RED: 3 tests failed (command not registered, dispatch not handling, type missing)
-- GREEN: All 3 tests passed after implementation
-- REFACTOR: Clean wiring across 8 files with no unused code
+Active RC Queue has **zero `pending` rows**. All CMD-\* tasks complete. Queue is empty — audit-only mode for next run unless human reprioritizes.
