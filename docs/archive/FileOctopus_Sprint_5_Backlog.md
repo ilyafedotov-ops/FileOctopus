@@ -1,5 +1,7 @@
 # FileOctopus Sprint 5 Backlog
 
+> **Status (2026-05-30): Historical.** Most Sprint 5 `FO-*` items have shipped on `main` (see [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md)). Sprint 5's "Layout Polish" and "visual coherence" goals are **superseded and extended** by the **[UI Premium Polish & Improvement Plan](../ui-premium-polish-improvement-plan.md)**, which is now the source of truth for premium UI finish. Any remaining or follow-on visual-polish work (toolbar clutter/grouping, loading/empty/error states, theme/density consistency, status-bar accuracy, keyboard discoverability) should be tracked against that plan's `UPP-*` backlog rather than re-opened here. The premium-polish epics map onto the Sprint 5 goals as: toolbar grouping → `UPP-B1/B2`; loading/empty/error states → `UPP-C*`/`PaneStateView` polish; preferences/visual consistency → `UPP-A1`/`UPP-H1`/`UPP-H3`; status bar → §3.6 + status-bar tokenization; keyboard discoverability → `UPP-D2`/§7.
+
 ## Sprint 5 Theme
 
 **Usability, Layout Polish, and Runtime Stabilization**

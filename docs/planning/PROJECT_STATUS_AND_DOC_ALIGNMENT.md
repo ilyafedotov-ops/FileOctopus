@@ -1,19 +1,20 @@
 # FileOctopus — Project Status & Documentation Alignment
 
-**As of:** 2026-05-28
+**As of:** 2026-05-30
 **Purpose:** Single source of truth for how specification documents relate to the running codebase. Use this page before trusting older audit notes, sprint release notes, or inventory “not implemented” lists.
 
 ## Document roles
 
-| Document                                                                  | Role                                          | Trust for “what exists today”                                                                               |
-| ------------------------------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| [API reference](../architecture/api-reference.md)                         | Runtime IPC contract (commands, events, DTOs) | **Highest** — update with every boundary change                                                             |
-| [RC engineering spec](../architecture/rc-engineering-spec.md)             | RC scope, milestones, crate design            | Scope & acceptance criteria; see §1 delivery matrix in spec                                                 |
-| [UI Design Spec](../FileOctopus_UI_Design_and_Layout_Specification-1.md)  | Visual/layout/UX direction post–Sprint 5      | Target UX; partial delivery                                                                                 |
-| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) | Full desktop menu bar + modal catalog         | **Target + status** — in-app `MenuBar` and native Tauri menu are wired; use for remaining modal/menu polish |
-| [UI Feature Inventory](./UI_FEATURE_INVENTORY.md)                         | Checklist of specified UI elements            | Good for coverage matrix; §13 updated from this page                                                        |
-| [E2E audit](../qa/e2e-audit-report.md)                                    | Manual QA snapshot (2026-05-16)               | **Partially stale** — many “missing” items fixed same day                                                   |
-| Gap analysis (`~/.hermes/.../gap-analysis-2026-05.md`)                    | Agent implementation tracker                  | Working notes; sync from this page                                                                          |
+| Document                                                                  | Role                                            | Trust for “what exists today”                                                                                               |
+| ------------------------------------------------------------------------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| [API reference](../architecture/api-reference.md)                         | Runtime IPC contract (commands, events, DTOs)   | **Highest** — update with every boundary change                                                                             |
+| [RC engineering spec](../architecture/rc-engineering-spec.md)             | RC scope, milestones, crate design              | Scope & acceptance criteria; see §1 delivery matrix in spec                                                                 |
+| [UI Design Spec](../FileOctopus_UI_Design_and_Layout_Specification-1.md)  | Visual/layout/UX direction post–Sprint 5        | Target UX; partial delivery                                                                                                 |
+| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md) | Full desktop menu bar + modal catalog           | **Target + status** — in-app `MenuBar` and native Tauri menu are wired; use for remaining modal/menu polish                 |
+| [UI Premium Polish Plan](../ui-premium-polish-improvement-plan.md)        | Premium visual finish, tokens, commander polish | **Source of truth for premium UI polish** — drives chrome tokenization, dialog/menu frames, active-pane, theme parity, a11y |
+| [UI Feature Inventory](./UI_FEATURE_INVENTORY.md)                         | Checklist of specified UI elements              | Good for coverage matrix; §13 updated from this page                                                                        |
+| [E2E audit](../qa/e2e-audit-report.md)                                    | Manual QA snapshot (2026-05-16)                 | **Partially stale** — many “missing” items fixed same day                                                                   |
+| Gap analysis (`~/.hermes/.../gap-analysis-2026-05.md`)                    | Agent implementation tracker                    | Working notes; sync from this page                                                                                          |
 
 ## Engineering milestones (RC spec §5)
 
@@ -100,22 +101,28 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 
 ### Intentionally deferred (RC spec §3.3)
 
-P2P sync, AI search, mobile, etc. Cloud providers, plugins, diff/merge, and ACL editor are now implemented.
+P2P sync, AI search, mobile, etc. Cloud providers, plugins, diff/merge, ACL editor, SMB/S3 providers, tag/label system, saved searches, archive browsing, audio/video preview, and storage gauge are now implemented. Remaining deferred: bulk rename, trash browser/restore, EXIF metadata, rubber-band select.
 
 ## IPC surface vs RC spec §8
 
 The [API reference](../architecture/api-reference.md) is authoritative. Notable **extras** beyond the original MVP minimal list:
 
 - Navigation: favorites, recent, starred, record visit, standard locations
-- FS helpers: `fs_read_text_file`, `fs_compute_hash`, `fs_open_terminal`, watch start/stop, folder size, recursive search, properties, create file, permanent delete, reveal, open default
+- FS helpers: `fs_read_text_file`, `fs_compute_hash`, `fs_open_terminal`, `fs_read_file_as_data_uri`, watch start/stop, folder size, recursive search, properties, create file, permanent delete, reveal, open default
 - Preferences + autostart
 - Diagnostics health + export bundle
+- ACL: `acl_get`, `acl_set`
+- Compare: `compare_files`
+- Plugin: `plugin_list`, `plugin_install`, `plugin_uninstall`, `plugin_toggle`
+- Sync: `sync_directories`
+- Terminal: `terminal_spawn`, `terminal_write`, `terminal_resize`, `terminal_kill`
+- Content search, recursive search, folder size, git status
 
 **Not present:** separate `archive.*` IPC (RC uses `file_operations.*` with `createArchive`/`extractArchive`).
 
 ## Crate layout vs RC spec §6–7
 
-**Present:** `vfs`, `fs-core`, `jobs`, `app-core`, `app-ipc`, `git-intel`, `terminal-core`, `telemetry`, `config`, `platform` (minimal), `test-support`, `apps/cli` (placeholder).
+**Present:** `vfs`, `fs-core`, `jobs`, `app-core`, `app-ipc`, `git-intel`, `terminal-core`, `telemetry`, `config`, `platform` (minimal), `test-support`, `apps/cli` (placeholder), `provider-sftp`, `provider-smb`, `provider-s3`, `provider-gdrive`, `provider-dropbox`, `provider-onedrive`, `remote-core`, `plugin-core`.
 
 **Absent (MVP planned):** `archive-core`, `indexer`, `content-id`.
 
@@ -133,14 +140,14 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 
 ### Architecture & API
 
-| Document                                                           | Status              | Notes                                                                                                   |
-| ------------------------------------------------------------------ | ------------------- | ------------------------------------------------------------------------------------------------------- |
-| [architecture/README.md](../architecture/README.md)                | **Current**         | Links this page                                                                                         |
-| [api-reference.md](../architecture/api-reference.md)               | **Partial**         | Full registry (57 cmds, 2026-05-22); per-command detail sections still sparse for navigation/FS helpers |
-| [rc-engineering-spec.md](../architecture/rc-engineering-spec.md)   | **Target + status** | RC scope; §17 post-RC priorities                                                                        |
-| [mvp-engineering-spec.md](../architecture/mvp-engineering-spec.md) | **Redirect**        | Stub → rc-engineering-spec                                                                              |
-| [pane-lifecycle.md](../architecture/pane-lifecycle.md)             | **Current**         | `requestId`, `loadState`, 30s timeout                                                                   |
-| [modules/\*.md](../architecture/modules/)                          | **Mixed**           | See module table below                                                                                  |
+| Document                                                           | Status              | Notes                                                                                                                                                |
+| ------------------------------------------------------------------ | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [architecture/README.md](../architecture/README.md)                | **Current**         | Links this page                                                                                                                                      |
+| [api-reference.md](../architecture/api-reference.md)               | **Current**         | Full registry (78 cmds, 2026-05-30); per-command detail sections complete for core ops; helper sections for acl/compare/plugin/sync/terminal present |
+| [rc-engineering-spec.md](../architecture/rc-engineering-spec.md)   | **Target + status** | RC scope; §17 post-RC priorities                                                                                                                     |
+| [mvp-engineering-spec.md](../architecture/mvp-engineering-spec.md) | **Redirect**        | Stub → rc-engineering-spec                                                                                                                           |
+| [pane-lifecycle.md](../architecture/pane-lifecycle.md)             | **Current**         | `requestId`, `loadState`, 30s timeout                                                                                                                |
+| [modules/\*.md](../architecture/modules/)                          | **Mixed**           | See module table below                                                                                                                               |
 
 | Module doc                                | Status      | Gap                                                                                     |
 | ----------------------------------------- | ----------- | --------------------------------------------------------------------------------------- |
@@ -167,11 +174,12 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 
 ### Product & UI specs
 
-| Document                                                                                                      | Status                                                              |
-| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| [FileOctopus_UI_Design_and_Layout_Specification-1.md](../FileOctopus_UI_Design_and_Layout_Specification-1.md) | Target + status banner                                              |
-| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md)                                     | Target + status; in-app `MenuBar` and native menu (`menu.rs`) built |
-| [UI_FEATURE_INVENTORY](./UI_FEATURE_INVENTORY.md)                                                             | Current §13                                                         |
+| Document                                                                                                      | Status                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [FileOctopus_UI_Design_and_Layout_Specification-1.md](../FileOctopus_UI_Design_and_Layout_Specification-1.md) | Target + status banner                                                                                                                                |
+| [Menu & Modal Spec](../plans/FileOctopus_Menu_and_Modal_Specification.md)                                     | Target + status; in-app `MenuBar` and native menu (`menu.rs`) built                                                                                   |
+| [UI Premium Polish Plan](../ui-premium-polish-improvement-plan.md)                                            | **Source of truth for premium UI polish** — token consumption, shared dialog/menu frames, active-pane, theme parity, accessibility, visual regression |
+| [UI_FEATURE_INVENTORY](./UI_FEATURE_INVENTORY.md)                                                             | Current §13                                                                                                                                           |
 
 ### Planning & sprint backlogs
 
@@ -215,12 +223,13 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 
 1. After any IPC or UI milestone, update **API reference** and this page’s tables.
 2. Treat **Menu & Modal Spec** as the backlog for remaining menu gaps (native menu, sort submenu parity, stub toolbar items) — in-app `MenuBar` exists.
+   2a. Treat the **[UI Premium Polish Plan](../ui-premium-polish-improvement-plan.md)** as the source of truth for premium UI finish. All menu, modal, toolbar, wizard, settings, and commander-style layout polish work must align with its design principles, token rules (`--fo-*`), and the `UPP-*` backlog. P0 items (chrome tokenization, typography scale, focus ring, active-pane treatment, shared dialog/menu frames, theme parity, accessibility, visual regression) constitute the "production-ready" bar.
 3. Mark **E2E audit** sections with date; link here when bulk fixes land.
 4. Keep **UI Feature Inventory §13** in sync with this page (not the reverse).
 5. Use RC spec §17 and the milestone table above for planning (not the old MVP §17 list).
 
 ## Test signal (2026-05-30)
 
-- `pnpm --filter @fileoctopus/frontend test` — 877 tests across 122 files pass (`vitest run --environment jsdom`)
+- `pnpm --filter @fileoctopus/frontend test` — 1039 tests across 134 files pass (`vitest run --environment jsdom`)
 - `cargo test --workspace` — 479 tests pass across all crates
-- Catalog drift guards: `packages/ts-api/tests/catalogs.test.ts` keeps Rust ↔ TS command/event constants and the 57-command count aligned
+- Catalog drift guards: `packages/ts-api/tests/catalogs.test.ts` keeps Rust ↔ TS command/event constants and the 78-command count aligned
