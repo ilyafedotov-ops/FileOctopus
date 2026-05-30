@@ -1,6 +1,6 @@
 # `apps/desktop-tauri` — Tauri v2 desktop shell
 
-> **Doc freshness (2026-05-17):** Handler bodies live under `src-tauri/src/commands/`; `lib.rs` only boots and registers them. The live command list is in the [API reference catalog](../api-reference.md#full-registry-2026-05-17) (37 commands as of 2026-05-17; re-count with `grep` on `generate_handler!` in `lib.rs` if the doc lags).
+> **Doc freshness (2026-05-30):** Handler bodies live under `src-tauri/src/commands/`; `lib.rs` only boots and registers them. The live command list is in the [API reference catalog](../api-reference.md#full-registry-2026-05-30) (77 commands as of 2026-05-30; re-count with `grep` on `generate_handler!` in `lib.rs` if the doc lags).
 
 The desktop shell is the **only place Rust and TypeScript meet at runtime**. It is a Tauri v2 application that boots `AppCore`, registers the IPC command surface, emits asynchronous events, and hosts the React `FileOctopusShell` component as its only WebView content. The trust boundary documented across the rest of this directory is enforced here.
 
@@ -40,18 +40,26 @@ Boot is fail-fast: if `AppCore::boot()` returns `Err(AppCoreError::…)` the pro
 
 The privileged API is the union of every function listed in `generate_handler!` inside `lib.rs`. Grouping by module file:
 
-| Module file                    | Examples (snake_case)                                                            |
-| ------------------------------ | -------------------------------------------------------------------------------- |
-| `commands/app_info.rs`         | `app_get_info`                                                                   |
-| `commands/fs.rs`               | `fs_stat`, `fs_list_start`, `fs_read_text_file`, `fs_properties`, `fs_reveal`, … |
-| `commands/folder_size.rs`      | `fs_folder_size`, `fs_folder_size_start`                                         |
-| `commands/recursive_search.rs` | `fs_recursive_search`, `fs_recursive_search_start`                               |
-| `commands/watch.rs`            | `fs_watch_start`, `fs_watch_stop`                                                |
-| `commands/preferences.rs`      | `get_preferences`, `set_preference`                                              |
-| `commands/autostart.rs`        | `get_autostart`, `set_autostart`                                                 |
-| `commands/navigation.rs`       | `navigation_record_visit`, `navigation_list_favorites`, …                        |
-| `commands/file_operations.rs`  | `plan_file_operation`, `start_file_operation`, `cancel_job`, …                   |
-| `commands/diagnostics.rs`      | `diagnostics_app_data_health`, `export_diagnostics_bundle`                       |
+| Module file                    | Examples (snake_case)                                                                                     |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| `commands/app_info.rs`         | `app_get_info`                                                                                            |
+| `commands/fs.rs`               | `fs_stat`, `fs_list_start`, `fs_read_text_file`, `fs_properties`, `fs_reveal`, `fs_read_file_as_data_uri` |
+| `commands/folder_size.rs`      | `fs_folder_size`, `fs_folder_size_start`                                                                  |
+| `commands/recursive_search.rs` | `fs_recursive_search`, `fs_recursive_search_start`                                                        |
+| `commands/watch.rs`            | `fs_watch_start`, `fs_watch_stop`                                                                         |
+| `commands/preferences.rs`      | `get_preferences`, `set_preference`                                                                       |
+| `commands/autostart.rs`        | `get_autostart`, `set_autostart`                                                                          |
+| `commands/navigation.rs`       | `navigation_record_visit`, `navigation_list_favorites`, …                                                 |
+| `commands/file_operations.rs`  | `plan_file_operation`, `start_file_operation`, `cancel_job`, …                                            |
+| `commands/diagnostics.rs`      | `diagnostics_app_data_health`, `export_diagnostics_bundle`                                                |
+| `commands/git.rs`              | `git_discover`, `git_status_for_directory`                                                                |
+| `commands/terminal.rs`         | `fs_open_terminal`, `terminal_create`, `terminal_write`, …                                                |
+| `commands/acl.rs`              | `fs_get_acl`, `fs_set_acl`                                                                                |
+| `commands/compare.rs`          | `fs_diff_text`                                                                                            |
+| `commands/sync.rs`             | `fs_sync_directories`                                                                                     |
+| `commands/content_search.rs`   | Content search across files                                                                               |
+| `commands/network.rs`          | `network_connect_server`, `network_disconnect`, …                                                         |
+| `commands/plugin.rs`           | `plugin_list`, `plugin_install`, `plugin_uninstall`, …                                                    |
 
 For dotted IPC names, request/response DTOs, and the authoritative row-by-row registry, see [api-reference.md §Tauri command catalog](../api-reference.md#tauri-command-catalog).
 

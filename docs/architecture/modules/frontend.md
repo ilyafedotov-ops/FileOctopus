@@ -1,6 +1,6 @@
 # `@fileoctopus/frontend` — React shell
 
-> **Doc freshness (2026-05-17):** Shell decomposed from the former monolith (`index.tsx` + `App.css`). Entry is `FileOctopusApp`; styles live in `packages/frontend/src/styles/` and are imported by `apps/desktop-tauri/src/App.css`. For delivery vs UI specs see [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
+> **Doc freshness (2026-05-30):** Shell decomposed from the former monolith (`index.tsx` + `App.css`). Entry is `FileOctopusApp`; styles live in `packages/frontend/src/styles/` and are imported by `apps/desktop-tauri/src/App.css`. For delivery vs UI specs see [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
 
 `packages/frontend` is the **product UI**: dual-pane file manager, sidebar, menu bar, operation toolbar, jobs/activity rail, modals, and command palette. It is a pure React 19 package — no Tauri import. The desktop shell mounts it; Vitest runs against the preview transport in `@fileoctopus/ts-api`.
 
