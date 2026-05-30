@@ -1,8 +1,7 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import type { FavoriteEntryDto } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
-import { useDialogEscape } from "../../hooks/useDialogEscape";
-import { useFocusTrap } from "../../hooks/useFocusTrap";
+import { DialogShell } from "../DialogShell";
 import { localPathFromUri } from "../../utils/paneUtils";
 
 interface ManageFavoritesDialogProps {
@@ -22,9 +21,6 @@ export function ManageFavoritesDialog({
   onRemove,
   onRename,
 }: ManageFavoritesDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  useDialogEscape(open, onClose);
-  useFocusTrap(dialogRef, open);
   const [query, setQuery] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [editLabel, setEditLabel] = useState("");
@@ -41,114 +37,99 @@ export function ManageFavoritesDialog({
     );
   }, [favorites, query]);
 
-  if (!open) {
-    return null;
-  }
-
   return (
-    <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
-      <dialog
-        ref={dialogRef}
-        open
-        role="dialog"
-        className="fo-dialog fo-manage-favorites-dialog"
-        aria-labelledby="manage-favorites-title"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <header className="fo-dialog-header">
-          <div>
-            <h2 id="manage-favorites-title">Manage Favorites</h2>
-            <p>Rename, remove, or open pinned locations.</p>
-          </div>
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-            Close
-          </Button>
-        </header>
-        <div className="fo-dialog-body">
-          <label className="fo-dialog-field">
-            <span>Search</span>
-            <input
-              aria-label="Search favorites"
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Filter by name or path"
-            />
-          </label>
-          <ul className="fo-favorites-manage-list">
-            {filtered.length === 0 ? (
-              <li className="fo-favorites-manage-empty">No favorites match.</li>
-            ) : (
-              filtered.map((item) => (
-                <li key={item.id} className="fo-favorites-manage-item">
-                  {editingId === item.id ? (
-                    <input
-                      aria-label="Favorite label"
-                      value={editLabel}
-                      onChange={(event) => setEditLabel(event.target.value)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          const label = editLabel.trim();
-                          if (label) {
-                            onRename(item.id, label);
-                          }
-                          setEditingId(null);
-                        }
-                        if (event.key === "Escape") {
-                          setEditingId(null);
-                        }
-                      }}
-                      onBlur={() => {
+    <DialogShell
+      open={open}
+      onClose={onClose}
+      title="Manage Favorites"
+      titleId="manage-favorites-title"
+      subtitle="Rename, remove, or open pinned locations."
+      className="fo-manage-favorites-dialog"
+    >
+      <div className="fo-dialog-body">
+        <label className="fo-dialog-field">
+          <span>Search</span>
+          <input
+            aria-label="Search favorites"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Filter by name or path"
+          />
+        </label>
+        <ul className="fo-favorites-manage-list">
+          {filtered.length === 0 ? (
+            <li className="fo-favorites-manage-empty">No favorites match.</li>
+          ) : (
+            filtered.map((item) => (
+              <li key={item.id} className="fo-favorites-manage-item">
+                {editingId === item.id ? (
+                  <input
+                    aria-label="Favorite label"
+                    value={editLabel}
+                    onChange={(event) => setEditLabel(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
                         const label = editLabel.trim();
-                        if (label && label !== item.label) {
+                        if (label) {
                           onRename(item.id, label);
                         }
                         setEditingId(null);
-                      }}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      className="fo-favorites-manage-open"
-                      onClick={() => {
-                        onNavigate(item.uri);
-                        onClose();
-                      }}
-                    >
-                      <span className="fo-favorites-manage-label">
-                        {item.label}
-                      </span>
-                      <span className="fo-favorites-manage-path">
-                        {localPathFromUri(item.uri)}
-                      </span>
-                    </button>
-                  )}
-                  <div className="fo-favorites-manage-actions">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setEditingId(item.id);
-                        setEditLabel(item.label);
-                      }}
-                    >
-                      Rename
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onRemove(item.id)}
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                </li>
-              ))
-            )}
-          </ul>
-        </div>
-      </dialog>
-    </div>
+                      }
+                      if (event.key === "Escape") {
+                        setEditingId(null);
+                      }
+                    }}
+                    onBlur={() => {
+                      const label = editLabel.trim();
+                      if (label && label !== item.label) {
+                        onRename(item.id, label);
+                      }
+                      setEditingId(null);
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="fo-favorites-manage-open"
+                    onClick={() => {
+                      onNavigate(item.uri);
+                      onClose();
+                    }}
+                  >
+                    <span className="fo-favorites-manage-label">
+                      {item.label}
+                    </span>
+                    <span className="fo-favorites-manage-path">
+                      {localPathFromUri(item.uri)}
+                    </span>
+                  </button>
+                )}
+                <div className="fo-favorites-manage-actions">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setEditingId(item.id);
+                      setEditLabel(item.label);
+                    }}
+                  >
+                    Rename
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onRemove(item.id)}
+                  >
+                    Remove
+                  </Button>
+                </div>
+              </li>
+            ))
+          )}
+        </ul>
+      </div>
+    </DialogShell>
   );
 }

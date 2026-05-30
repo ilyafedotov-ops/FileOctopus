@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import type { PluginClient, InstalledPluginDto } from "@fileoctopus/ts-api";
+import { DialogShell } from "../DialogShell";
 
 interface PluginManagerDialogProps {
   open: boolean;
@@ -53,109 +54,91 @@ export function PluginManagerDialog({
     }
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fo-dialog-backdrop" onClick={onClose}>
-      <dialog
-        open
-        role="dialog"
-        className="fo-dialog fo-plugin-manager-dialog"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="fo-dialog-header">
-          <h2>Plugin Manager</h2>
-          <button
-            type="button"
-            className="fo-ui-icon-btn"
-            aria-label="Close"
-            onClick={onClose}
-          >
-            ✕
-          </button>
-        </div>
+    <DialogShell
+      open={open}
+      onClose={onClose}
+      title="Plugin Manager"
+      className="fo-plugin-manager-dialog"
+    >
+      <div className="fo-dialog-content">
+        {loading && <div className="fo-plugin-loading">Loading plugins…</div>}
+        {error && (
+          <div className="fo-plugin-error" role="alert">
+            {error}
+          </div>
+        )}
 
-        <div className="fo-dialog-content">
-          {loading && <div className="fo-plugin-loading">Loading plugins…</div>}
-          {error && (
-            <div className="fo-plugin-error" role="alert">
-              {error}
-            </div>
-          )}
+        {!loading && plugins.length === 0 && (
+          <div className="fo-plugin-empty">
+            <p>No plugins installed</p>
+            <p className="fo-plugin-empty-hint">
+              Install plugins by copying them to ~/.fileoctopus/plugins/
+            </p>
+          </div>
+        )}
 
-          {!loading && plugins.length === 0 && (
-            <div className="fo-plugin-empty">
-              <p>No plugins installed</p>
-              <p className="fo-plugin-empty-hint">
-                Install plugins by copying them to ~/.fileoctopus/plugins/
-              </p>
-            </div>
-          )}
-
-          {!loading && plugins.length > 0 && (
-            <div className="fo-plugin-list">
-              {plugins.map((plugin) => (
-                <div key={plugin.manifest.id} className="fo-plugin-card">
-                  <div className="fo-plugin-card-header">
-                    <span className="fo-plugin-name">
-                      {plugin.manifest.name}
-                    </span>
-                    <span className="fo-plugin-version">
-                      {plugin.manifest.version}
-                    </span>
-                  </div>
-                  <div className="fo-plugin-description">
-                    {plugin.manifest.description}
-                  </div>
-                  <div className="fo-plugin-meta">
-                    <span className="fo-plugin-author">
-                      by {plugin.manifest.author}
-                    </span>
-                    {plugin.enabled ? (
-                      <span className="fo-plugin-status fo-plugin-status-enabled">
-                        Enabled
-                      </span>
-                    ) : (
-                      <span className="fo-plugin-status fo-plugin-status-disabled">
-                        Disabled
-                      </span>
-                    )}
-                  </div>
-                  {plugin.manifest.permissions.length > 0 && (
-                    <div className="fo-plugin-permissions">
-                      {plugin.manifest.permissions.map((p) => (
-                        <span key={p} className="fo-plugin-permission-tag">
-                          {p}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="fo-plugin-actions">
-                    <button
-                      type="button"
-                      className="fo-ui-btn fo-ui-btn--sm"
-                      aria-label={plugin.enabled ? "Disable" : "Enable"}
-                      onClick={() =>
-                        handleToggle(plugin.manifest.id, !plugin.enabled)
-                      }
-                    >
-                      {plugin.enabled ? "Disable" : "Enable"}
-                    </button>
-                    <button
-                      type="button"
-                      className="fo-ui-btn fo-ui-btn--sm fo-ui-btn--danger"
-                      aria-label="Uninstall"
-                      onClick={() => handleUninstall(plugin.manifest.id)}
-                    >
-                      Uninstall
-                    </button>
-                  </div>
+        {!loading && plugins.length > 0 && (
+          <div className="fo-plugin-list">
+            {plugins.map((plugin) => (
+              <div key={plugin.manifest.id} className="fo-plugin-card">
+                <div className="fo-plugin-card-header">
+                  <span className="fo-plugin-name">{plugin.manifest.name}</span>
+                  <span className="fo-plugin-version">
+                    {plugin.manifest.version}
+                  </span>
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </dialog>
-    </div>
+                <div className="fo-plugin-description">
+                  {plugin.manifest.description}
+                </div>
+                <div className="fo-plugin-meta">
+                  <span className="fo-plugin-author">
+                    by {plugin.manifest.author}
+                  </span>
+                  {plugin.enabled ? (
+                    <span className="fo-plugin-status fo-plugin-status-enabled">
+                      Enabled
+                    </span>
+                  ) : (
+                    <span className="fo-plugin-status fo-plugin-status-disabled">
+                      Disabled
+                    </span>
+                  )}
+                </div>
+                {plugin.manifest.permissions.length > 0 && (
+                  <div className="fo-plugin-permissions">
+                    {plugin.manifest.permissions.map((p) => (
+                      <span key={p} className="fo-plugin-permission-tag">
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div className="fo-plugin-actions">
+                  <button
+                    type="button"
+                    className="fo-ui-btn fo-ui-btn--sm"
+                    aria-label={plugin.enabled ? "Disable" : "Enable"}
+                    onClick={() =>
+                      handleToggle(plugin.manifest.id, !plugin.enabled)
+                    }
+                  >
+                    {plugin.enabled ? "Disable" : "Enable"}
+                  </button>
+                  <button
+                    type="button"
+                    className="fo-ui-btn fo-ui-btn--sm fo-ui-btn--danger"
+                    aria-label="Uninstall"
+                    onClick={() => handleUninstall(plugin.manifest.id)}
+                  >
+                    Uninstall
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </DialogShell>
   );
 }
