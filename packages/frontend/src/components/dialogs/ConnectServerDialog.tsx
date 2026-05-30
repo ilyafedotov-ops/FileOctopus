@@ -3,13 +3,15 @@ import type {
   NetworkProfileDto,
 } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
-import { useEffect, useRef, useState } from "react";
-import { useDialogEscape } from "../../hooks/useDialogEscape";
-import { useFocusTrap } from "../../hooks/useFocusTrap";
+import { useEffect, useState } from "react";
+import { WizardShell } from "../WizardShell";
 
 type SchemeType = "sftp" | "ssh" | "smb" | "s3" | "webdav";
 type AuthKindType = "password" | "privateKey" | "accessKey";
 type WizardStep = "target" | "credentials" | "test" | "save";
+
+const STEP_ORDER: WizardStep[] = ["target", "credentials", "test", "save"];
+const STEP_LABELS = ["Target", "Credentials", "Test", "Save"];
 
 interface ConnectServerDialogProps {
   open: boolean;
@@ -60,9 +62,6 @@ export function ConnectServerDialog({
   onSave,
   onForgetFingerprint,
 }: ConnectServerDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null);
-  useDialogEscape(open, onClose);
-  useFocusTrap(dialogRef, open);
   const [label, setLabel] = useState("");
   const [scheme, setScheme] = useState<SchemeType>("sftp");
   const [host, setHost] = useState("");
@@ -116,50 +115,7 @@ export function ConnectServerDialog({
     setScheme(newScheme);
     setPort(String(defaultPort(newScheme)));
     setAuthKind(defaultAuthKind(newScheme));
-    if (newScheme === "s3") {
-      setDefaultPath("/");
-    } else if (newScheme === "smb" || newScheme === "webdav") {
-      setDefaultPath("/");
-    }
-  }
-
-  function handleNextStep() {
-    setError(null);
-    if (step === "target") {
-      if (!label.trim() || !host.trim()) {
-        setError("Label and host are required.");
-        return;
-      }
-      setStep("credentials");
-      return;
-    }
-    if (step === "credentials") {
-      setStep("test");
-      return;
-    }
-    if (step === "test") {
-      setTestStatus("Connection details are ready to save.");
-      setStep("save");
-    }
-  }
-
-  function handlePreviousStep() {
-    setError(null);
-    if (step === "credentials") {
-      setStep("target");
-      return;
-    }
-    if (step === "test") {
-      setStep("credentials");
-      return;
-    }
-    if (step === "save") {
-      setStep("test");
-    }
-  }
-
-  if (!open) {
-    return null;
+    setDefaultPath("/");
   }
 
   const showPasswordField = authKind === "password" || authKind === "accessKey";
@@ -190,17 +146,57 @@ export function ConnectServerDialog({
         : scheme === "webdav"
           ? "/remote.php/dav/files/user"
           : "/home/deploy";
-  const stepIndex = ["target", "credentials", "test", "save"].indexOf(step);
-  const primaryLabel =
-    step === "save"
-      ? saving
-        ? "Saving…"
-        : editingProfile
-          ? "Save changes"
-          : "Save connection"
-      : step === "test"
-        ? "Test"
-        : "Next";
+  const stepIndex = STEP_ORDER.indexOf(step);
+
+  function credentialsError(): string | null {
+    const trimmedUsername = username.trim();
+    if (scheme !== "s3" && !trimmedUsername) {
+      return "Username is required.";
+    }
+    if (authKind === "privateKey" && !privateKeyPath.trim()) {
+      return "Private key path is required.";
+    }
+    if (showPasswordField && !editingProfile && !password) {
+      return `${passwordLabel} is required for a new server.`;
+    }
+    return null;
+  }
+
+  function handleNextStep() {
+    setError(null);
+    if (step === "target") {
+      if (!label.trim() || !host.trim()) {
+        setError("Label and host are required.");
+        return;
+      }
+      const parsedPort = Number(port);
+      if (!Number.isFinite(parsedPort) || parsedPort <= 0) {
+        setError("Enter a valid port.");
+        return;
+      }
+      setStep("credentials");
+      return;
+    }
+    if (step === "credentials") {
+      const credError = credentialsError();
+      if (credError) {
+        setError(credError);
+        return;
+      }
+      setStep("test");
+      return;
+    }
+    if (step === "test") {
+      setTestStatus("Connection details are ready to save.");
+      setStep("save");
+    }
+  }
+
+  function handlePreviousStep() {
+    setError(null);
+    const prev = STEP_ORDER[Math.max(0, stepIndex - 1)];
+    setStep(prev);
+  }
 
   async function handleSubmit() {
     const trimmedLabel = label.trim();
@@ -212,27 +208,22 @@ export function ConnectServerDialog({
       setError("Label and host are required.");
       return;
     }
-
     if (scheme !== "s3" && !trimmedUsername) {
       setError("Username is required.");
       return;
     }
-
     if (!Number.isFinite(parsedPort) || parsedPort <= 0) {
       setError("Enter a valid port.");
       return;
     }
-
     if (authKind === "privateKey" && !privateKeyPath.trim()) {
       setError("Private key path is required.");
       return;
     }
-
     if (showPasswordField && !editingProfile && !password) {
       setError(`${passwordLabel} is required for a new server.`);
       return;
     }
-
     if (
       showPasswordField &&
       editingProfile &&
@@ -274,188 +265,196 @@ export function ConnectServerDialog({
     }
   }
 
+  const primaryLabel =
+    step === "save"
+      ? saving
+        ? "Saving…"
+        : editingProfile
+          ? "Save changes"
+          : "Save connection"
+      : step === "test"
+        ? "Test"
+        : "Next";
+
   return (
-    <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
-      <dialog
-        ref={dialogRef}
-        open
-        role="dialog"
-        className="fo-dialog fo-connect-server-dialog"
-        aria-labelledby="connect-server-title"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <header className="fo-dialog-header">
-          <div>
-            <h2 id="connect-server-title">
-              {editingProfile ? "Edit Server" : "Add Server"}
-            </h2>
-            <p>
-              Save a remote connection profile. Credentials stay in the OS
-              keychain.
-            </p>
-          </div>
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-            Close
-          </Button>
-        </header>
-        <div className="fo-dialog-body fo-connect-server-form">
-          <div className="fo-connect-stepper" aria-label="Connection steps">
-            {["Target", "Credentials", "Test", "Save"].map((item, index) => (
-              <button
-                key={item}
-                type="button"
-                className={
-                  index === stepIndex
-                    ? "fo-connect-step fo-connect-step-active"
-                    : "fo-connect-step"
-                }
-                onClick={() =>
-                  setStep(
-                    ["target", "credentials", "test", "save"][
-                      index
-                    ] as WizardStep,
-                  )
-                }
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-          <label className="fo-dialog-field">
-            <span>Label</span>
-            <input
-              value={label}
-              onChange={(event) => setLabel(event.target.value)}
-              placeholder={
-                scheme === "s3"
-                  ? "Production S3"
-                  : scheme === "smb"
-                    ? "File Server"
-                    : "Production SFTP"
-              }
-            />
-          </label>
-          <label className="fo-dialog-field">
-            <span>Protocol</span>
-            <select
-              value={scheme}
-              disabled={editingProfile !== null}
-              onChange={(event) =>
-                handleSchemeChange(event.target.value as SchemeType)
-              }
-            >
-              <option value="sftp">SFTP files + SSH terminal</option>
-              <option value="ssh">SSH terminal only</option>
-              <option value="smb">SMB / CIFS share</option>
-              <option value="s3">S3 object storage</option>
-              <option value="webdav">WebDAV</option>
-            </select>
-          </label>
-          <label className="fo-dialog-field">
-            <span>{hostLabel}</span>
-            <input
-              value={host}
-              onChange={(event) => setHost(event.target.value)}
-              placeholder={hostPlaceholder}
-            />
-          </label>
-          <label className="fo-dialog-field">
-            <span>Port</span>
-            <input
-              value={port}
-              onChange={(event) => setPort(event.target.value)}
-              inputMode="numeric"
-            />
-          </label>
-          <label className="fo-dialog-field">
-            <span>{usernameLabel}</span>
-            <input
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-              placeholder={usernamePlaceholder}
-            />
-          </label>
-          {authKinds.length > 1 ? (
+    <WizardShell
+      open={open}
+      onClose={onClose}
+      title={editingProfile ? "Edit Server" : "Add Server"}
+      subtitle="Save a remote connection profile. Credentials stay in the OS keychain."
+      className="fo-connect-server-dialog"
+      steps={STEP_LABELS}
+      currentStep={stepIndex}
+      onStepSelect={(index) => {
+        setError(null);
+        setStep(STEP_ORDER[index]);
+      }}
+      onBack={handlePreviousStep}
+      onPrimary={() => {
+        if (step === "save") {
+          void handleSubmit();
+        } else {
+          handleNextStep();
+        }
+      }}
+      primaryLabel={primaryLabel}
+      primaryDisabled={saving}
+      error={error}
+    >
+      <div className="fo-connect-server-form">
+        {step === "target" ? (
+          <>
             <label className="fo-dialog-field">
-              <span>Authentication</span>
+              <span>Label</span>
+              <input
+                value={label}
+                onChange={(event) => setLabel(event.target.value)}
+                placeholder={
+                  scheme === "s3"
+                    ? "Production S3"
+                    : scheme === "smb"
+                      ? "File Server"
+                      : "Production SFTP"
+                }
+              />
+            </label>
+            <label className="fo-dialog-field">
+              <span>Protocol</span>
               <select
-                value={authKind}
+                value={scheme}
+                disabled={editingProfile !== null}
                 onChange={(event) =>
-                  setAuthKind(event.target.value as AuthKindType)
+                  handleSchemeChange(event.target.value as SchemeType)
                 }
               >
-                <option value="password">Password</option>
-                <option value="privateKey">Private key</option>
+                <option value="sftp">SFTP files + SSH terminal</option>
+                <option value="ssh">SSH terminal only</option>
+                <option value="smb">SMB / CIFS share</option>
+                <option value="s3">S3 object storage</option>
+                <option value="webdav">WebDAV</option>
               </select>
             </label>
-          ) : null}
-          {showPasswordField ? (
             <label className="fo-dialog-field">
-              <span>{passwordLabel}</span>
+              <span>{hostLabel}</span>
               <input
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                placeholder={
-                  editingProfile
-                    ? editingProfile.hasStoredSecret
-                      ? "Leave blank to keep existing"
-                      : `Enter ${passwordLabel.toLowerCase()} to save in keychain`
-                    : ""
-                }
+                value={host}
+                onChange={(event) => setHost(event.target.value)}
+                placeholder={hostPlaceholder}
               />
-              {editingProfile && !editingProfile.hasStoredSecret ? (
-                <span className="fo-settings-hint">
-                  Credentials were not saved yet. Enter your{" "}
-                  {passwordLabel.toLowerCase()} to connect.
-                </span>
-              ) : null}
             </label>
-          ) : null}
-          {showPrivateKeyField ? (
-            <>
+            <label className="fo-dialog-field">
+              <span>Port</span>
+              <input
+                value={port}
+                onChange={(event) => setPort(event.target.value)}
+                inputMode="numeric"
+              />
+            </label>
+            {showDefaultPath || showBucketField ? (
               <label className="fo-dialog-field">
-                <span>Private key path</span>
+                <span>{defaultPathLabel}</span>
                 <input
-                  value={privateKeyPath}
-                  onChange={(event) => setPrivateKeyPath(event.target.value)}
-                  placeholder="/Users/you/.ssh/id_ed25519"
+                  value={defaultPath}
+                  onChange={(event) => setDefaultPath(event.target.value)}
+                  placeholder={defaultPathPlaceholder}
                 />
               </label>
+            ) : null}
+          </>
+        ) : null}
+
+        {step === "credentials" ? (
+          <>
+            <label className="fo-dialog-field">
+              <span>{usernameLabel}</span>
+              <input
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder={usernamePlaceholder}
+              />
+            </label>
+            {authKinds.length > 1 ? (
               <label className="fo-dialog-field">
-                <span>Key passphrase</span>
+                <span>Authentication</span>
+                <select
+                  value={authKind}
+                  onChange={(event) =>
+                    setAuthKind(event.target.value as AuthKindType)
+                  }
+                >
+                  <option value="password">Password</option>
+                  <option value="privateKey">Private key</option>
+                </select>
+              </label>
+            ) : null}
+            {showPasswordField ? (
+              <label className="fo-dialog-field">
+                <span>{passwordLabel}</span>
                 <input
                   type="password"
-                  value={passphrase}
-                  onChange={(event) => setPassphrase(event.target.value)}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                   placeholder={
-                    editingProfile ? "Leave blank to keep existing" : ""
+                    editingProfile
+                      ? editingProfile.hasStoredSecret
+                        ? "Leave blank to keep existing"
+                        : `Enter ${passwordLabel.toLowerCase()} to save in keychain`
+                      : ""
                   }
                 />
+                {editingProfile && !editingProfile.hasStoredSecret ? (
+                  <span className="fo-settings-hint">
+                    Credentials were not saved yet. Enter your{" "}
+                    {passwordLabel.toLowerCase()} to connect.
+                  </span>
+                ) : null}
               </label>
-            </>
-          ) : null}
-          {showDefaultPath ? (
-            <label className="fo-dialog-field">
-              <span>{defaultPathLabel}</span>
-              <input
-                value={defaultPath}
-                onChange={(event) => setDefaultPath(event.target.value)}
-                placeholder={defaultPathPlaceholder}
-              />
-            </label>
-          ) : null}
-          {showBucketField ? (
-            <label className="fo-dialog-field">
-              <span>{defaultPathLabel}</span>
-              <input
-                value={defaultPath}
-                onChange={(event) => setDefaultPath(event.target.value)}
-                placeholder={defaultPathPlaceholder}
-              />
-            </label>
-          ) : null}
-          {editingProfile?.hostKeyFingerprint ? (
+            ) : null}
+            {showPrivateKeyField ? (
+              <>
+                <label className="fo-dialog-field">
+                  <span>Private key path</span>
+                  <input
+                    value={privateKeyPath}
+                    onChange={(event) => setPrivateKeyPath(event.target.value)}
+                    placeholder="/Users/you/.ssh/id_ed25519"
+                  />
+                </label>
+                <label className="fo-dialog-field">
+                  <span>Key passphrase</span>
+                  <input
+                    type="password"
+                    value={passphrase}
+                    onChange={(event) => setPassphrase(event.target.value)}
+                    placeholder={
+                      editingProfile ? "Leave blank to keep existing" : ""
+                    }
+                  />
+                </label>
+              </>
+            ) : null}
+          </>
+        ) : null}
+
+        {step === "test" || step === "save" ? (
+          <dl className="fo-detail-grid fo-connect-summary">
+            <dt>Label</dt>
+            <dd>{label || "—"}</dd>
+            <dt>Protocol</dt>
+            <dd>{scheme.toUpperCase()}</dd>
+            <dt>{hostLabel}</dt>
+            <dd>
+              {host || "—"}:{port}
+            </dd>
+            <dt>{usernameLabel}</dt>
+            <dd>{username || "—"}</dd>
+            <dt>{defaultPathLabel}</dt>
+            <dd>{defaultPath || "/"}</dd>
+          </dl>
+        ) : null}
+
+        {step === "test" || step === "save" ? (
+          editingProfile?.hostKeyFingerprint ? (
             <div className="fo-dialog-field fo-dialog-field-static">
               <span>Pinned host key</span>
               <code
@@ -488,34 +487,11 @@ export function ConnectServerDialog({
               No host key pinned yet. The fingerprint shown by the server on the
               next connect will be remembered.
             </p>
-          ) : null}
-          {testStatus ? <p className="fo-settings-hint">{testStatus}</p> : null}
-          {error ? <p className="fo-dialog-error">{error}</p> : null}
-        </div>
-        <footer className="fo-dialog-footer">
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Cancel
-          </Button>
-          {step !== "target" ? (
-            <Button type="button" variant="ghost" onClick={handlePreviousStep}>
-              Back
-            </Button>
-          ) : null}
-          <Button
-            type="button"
-            disabled={saving}
-            onClick={() => {
-              if (step === "save") {
-                void handleSubmit();
-              } else {
-                handleNextStep();
-              }
-            }}
-          >
-            {primaryLabel}
-          </Button>
-        </footer>
-      </dialog>
-    </div>
+          ) : null
+        ) : null}
+
+        {testStatus ? <p className="fo-settings-hint">{testStatus}</p> : null}
+      </div>
+    </WizardShell>
   );
 }

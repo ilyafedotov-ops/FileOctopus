@@ -92,6 +92,15 @@ describe("ConnectServerDialog", () => {
     expect(portField.value).toBe("443");
     expect(defaultPathField.value).toBe("/");
 
+    // Advance to the Credentials step to inspect the auth fields.
+    fireEvent.change(within(dialog()).getByLabelText("Label"), {
+      target: { value: "Office" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("Host"), {
+      target: { value: "files.example.com" },
+    });
+    fireEvent.click(nextButton());
+
     // The Authentication select is only rendered when there is more than one
     // valid auth kind. WebDAV only supports password auth, so the select must
     // not be in the DOM.
@@ -117,12 +126,18 @@ describe("ConnectServerDialog", () => {
     const onSave = vi.fn().mockResolvedValue({ id: "new-profile" });
     render(<ConnectServerDialog {...baseProps({ onSave })} />);
 
+    // Target step fields.
     fireEvent.change(within(dialog()).getByLabelText("Label"), {
       target: { value: "Prod" },
     });
     fireEvent.change(within(dialog()).getByLabelText("Host"), {
       target: { value: "prod.example.com" },
     });
+
+    // Step 1 → 2 (Target → Credentials)
+    fireEvent.click(footerButton("Next"));
+
+    // Credentials step fields.
     fireEvent.change(within(dialog()).getByLabelText("Username"), {
       target: { value: "deploy" },
     });
@@ -130,8 +145,6 @@ describe("ConnectServerDialog", () => {
       target: { value: "hunter2" },
     });
 
-    // Step 1 → 2 (Target → Credentials)
-    fireEvent.click(footerButton("Next"));
     // Step 2 → 3 (Credentials → Test)
     fireEvent.click(footerButton("Next"));
     // Step 3 → 4 (Test → Save)
