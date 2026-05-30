@@ -15,10 +15,9 @@ interface ToastStackProps {
 }
 
 export function ToastStack({ toasts, onDismiss }: ToastStackProps) {
-  if (toasts.length === 0) {
-    return null;
-  }
-
+  // The live region stays mounted even when empty so screen readers announce
+  // toasts inserted into it; tearing the region down per-toast can suppress
+  // announcements (UPP-I1). Empty renders no visible content.
   return (
     <div
       className="fo-toast-stack"
@@ -29,7 +28,8 @@ export function ToastStack({ toasts, onDismiss }: ToastStackProps) {
         <div
           key={toast.id}
           className={`fo-toast fo-toast-${toast.tone}`}
-          role="status"
+          // Errors are urgent → assertive alert; success/info are polite status.
+          role={toast.tone === "error" ? "alert" : "status"}
         >
           <div className="fo-toast-body">
             <strong>{toast.title}</strong>
