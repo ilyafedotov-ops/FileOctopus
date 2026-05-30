@@ -219,8 +219,8 @@ Legend: **Current** = matches codebase; **Target** = spec/backlog; **Stale** = o
 4. Keep **UI Feature Inventory §13** in sync with this page (not the reverse).
 5. Use RC spec §17 and the milestone table above for planning (not the old MVP §17 list).
 
-## Test signal (2026-05-28)
+## Test signal (2026-05-30)
 
-- `pnpm --filter @fileoctopus/frontend test` — 810 tests across 114 files pass (`vitest run --environment jsdom`)
-- `cargo test --workspace` — 432 tests pass across all crates
+- `pnpm --filter @fileoctopus/frontend test` — 877 tests across 122 files pass (`vitest run --environment jsdom`)
+- `cargo test --workspace` — 479 tests pass across all crates
 - Catalog drift guards: `packages/ts-api/tests/catalogs.test.ts` keeps Rust ↔ TS command/event constants and the 57-command count aligned
