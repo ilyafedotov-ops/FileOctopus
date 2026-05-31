@@ -25,22 +25,17 @@ impl DropboxProvider {
 
     async fn session_for(&self, uri: &ResourceUri) -> Result<(String, DropboxSession), VfsError> {
         let profile_id = Self::profile_id_for_uri(uri)?;
-        let session = self
+        let dbx_session = self
             .sessions
-            .session_for_profile(&profile_id)
+            .typed_session_for(&profile_id, "dropbox", |session: &DropboxSession| {
+                DropboxSession::new(
+                    session.access_token().to_string(),
+                    session.profile_id().to_string(),
+                )
+            })
             .await
             .map_err(VfsError::from)?;
-        let dbx_session = session
-            .as_any()
-            .downcast_ref::<DropboxSession>()
-            .ok_or_else(|| VfsError::internal("invalid dropbox session handle"))?;
-        Ok((
-            profile_id,
-            DropboxSession::new(
-                dbx_session.access_token().to_string(),
-                dbx_session.profile_id().to_string(),
-            ),
-        ))
+        Ok((profile_id, dbx_session))
     }
 }
 

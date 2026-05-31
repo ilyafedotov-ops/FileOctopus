@@ -1,7 +1,8 @@
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc,
+    Arc, Condvar, Mutex,
 };
+use std::time::Duration;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -147,9 +148,15 @@ impl CancellationToken {
     }
 }
 
+#[derive(Default)]
+struct PauseInner {
+    paused: Mutex<bool>,
+    cvar: Condvar,
+}
+
 #[derive(Clone, Default)]
 pub struct PauseToken {
-    paused: Arc<AtomicBool>,
+    inner: Arc<PauseInner>,
 }
 
 impl PauseToken {
@@ -158,20 +165,32 @@ impl PauseToken {
     }
 
     pub fn pause(&self) {
-        self.paused.store(true, Ordering::SeqCst);
+        *self.inner.paused.lock().expect("pause lock poisoned") = true;
     }
 
     pub fn resume(&self) {
-        self.paused.store(false, Ordering::SeqCst);
+        let mut paused = self.inner.paused.lock().expect("pause lock poisoned");
+        *paused = false;
+        self.inner.cvar.notify_all();
     }
 
     pub fn is_paused(&self) -> bool {
-        self.paused.load(Ordering::SeqCst)
+        *self.inner.paused.lock().expect("pause lock poisoned")
     }
 
+    /// Block the calling thread while paused, returning as soon as the job is
+    /// resumed (via condvar notification) or cancelled. The bounded wait only
+    /// caps how quickly cancellation is observed; resume wakes the waiter
+    /// immediately without polling.
     pub fn wait_while_paused(&self, cancel: &CancellationToken) {
-        while self.paused.load(Ordering::SeqCst) && !cancel.is_cancelled() {
-            std::thread::sleep(std::time::Duration::from_millis(50));
+        let mut paused = self.inner.paused.lock().expect("pause lock poisoned");
+        while *paused && !cancel.is_cancelled() {
+            let (next, _timed_out) = self
+                .inner
+                .cvar
+                .wait_timeout(paused, Duration::from_millis(100))
+                .expect("pause lock poisoned");
+            paused = next;
         }
     }
 }
@@ -231,6 +250,30 @@ mod tests {
 
         token.resume();
         handle.join().expect("wait should complete");
+    }
+
+    #[test]
+    fn pause_token_wait_resume_wakes_promptly() {
+        let token = PauseToken::new();
+        let cancel = CancellationToken::new();
+        token.pause();
+
+        let token_clone = token.clone();
+        let cancel_clone = cancel.clone();
+        let handle = std::thread::spawn(move || {
+            token_clone.wait_while_paused(&cancel_clone);
+        });
+
+        // Give the waiter time to block on the condvar, then resume and
+        // assert it wakes well before the 100ms cancel-poll timeout.
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        let start = std::time::Instant::now();
+        token.resume();
+        handle.join().expect("wait should complete on resume");
+        assert!(
+            start.elapsed() < std::time::Duration::from_millis(80),
+            "resume should wake the waiter via notification, not the poll timeout"
+        );
     }
 
     #[test]

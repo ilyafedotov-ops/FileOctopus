@@ -329,6 +329,29 @@ impl ConnectionSessionManager {
             })
     }
 
+    /// Fetch the live session for `profile_id` and project it to a typed
+    /// session handle. Centralises the `session_for_profile` + `downcast_ref`
+    /// boilerplate (and its "invalid session handle" error) that every remote
+    /// VFS provider would otherwise repeat. `scheme` is only used to label the
+    /// downcast-failure error; `project` borrows the concrete session and
+    /// returns whatever owned handle the caller needs.
+    pub async fn typed_session_for<T, R>(
+        &self,
+        profile_id: &str,
+        scheme: &str,
+        project: impl FnOnce(&T) -> R,
+    ) -> Result<R, RemoteError>
+    where
+        T: 'static,
+    {
+        let session = self.session_for_profile(profile_id).await?;
+        let typed = session
+            .as_any()
+            .downcast_ref::<T>()
+            .ok_or_else(|| RemoteError::Internal(format!("invalid {scheme} session handle")))?;
+        Ok(project(typed))
+    }
+
     pub async fn touch_session(&self, profile_id: &str) {
         if let Some(handle) = self.sessions.write().await.get_mut(profile_id) {
             handle.last_used = Instant::now();

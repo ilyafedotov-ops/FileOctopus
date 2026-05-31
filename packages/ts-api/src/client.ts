@@ -67,16 +67,9 @@ export class FileOctopusClient {
 export function createFileOctopusClient(transport?: IpcTransport) {
   let resolved = transport;
   if (!resolved) {
-    const inTauri = isTauriRuntime();
-    const globalRecord = globalThis as Record<string, unknown>;
-    console.warn(
-      `[fileoctopus:client] transport selection: tauri=${inTauri} hasInternals=${"__TAURI_INTERNALS__" in globalRecord} keys=${
-        Object.keys(globalRecord)
-          .filter((k) => k.startsWith("__TAURI"))
-          .join(",") || "(none)"
-      }`,
-    );
-    resolved = inTauri ? createTauriTransport() : createPreviewTransport();
+    resolved = isTauriRuntime()
+      ? createTauriTransport()
+      : createPreviewTransport();
   }
   return new FileOctopusClient(resolved);
 }

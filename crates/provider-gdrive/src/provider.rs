@@ -25,22 +25,17 @@ impl GDriveProvider {
 
     async fn session_for(&self, uri: &ResourceUri) -> Result<(String, GDriveSession), VfsError> {
         let profile_id = Self::profile_id_for_uri(uri)?;
-        let session = self
+        let gdrive_session = self
             .sessions
-            .session_for_profile(&profile_id)
+            .typed_session_for(&profile_id, "gdrive", |session: &GDriveSession| {
+                GDriveSession::new(
+                    session.access_token().to_string(),
+                    session.profile_id().to_string(),
+                )
+            })
             .await
             .map_err(VfsError::from)?;
-        let gdrive_session = session
-            .as_any()
-            .downcast_ref::<GDriveSession>()
-            .ok_or_else(|| VfsError::internal("invalid gdrive session handle"))?;
-        Ok((
-            profile_id,
-            GDriveSession::new(
-                gdrive_session.access_token().to_string(),
-                gdrive_session.profile_id().to_string(),
-            ),
-        ))
+        Ok((profile_id, gdrive_session))
     }
 }
 

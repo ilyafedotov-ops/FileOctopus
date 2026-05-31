@@ -31,16 +31,11 @@ impl SftpProvider {
 
     async fn session_for(&self, uri: &ResourceUri) -> Result<(String, SftpSession), VfsError> {
         let profile_id = Self::profile_id_for_uri(uri)?;
-        let session = self
+        let sftp_session = self
             .sessions
-            .session_for_profile(&profile_id)
+            .typed_session_for(&profile_id, "sftp", SftpSession::clone_handle)
             .await
             .map_err(VfsError::from)?;
-        let sftp_session = session
-            .as_any()
-            .downcast_ref::<SftpSession>()
-            .ok_or_else(|| VfsError::internal("invalid sftp session handle"))?
-            .clone_handle();
         Ok((profile_id, sftp_session))
     }
 

@@ -30,16 +30,11 @@ impl SmbProvider {
 
     async fn session_for(&self, uri: &ResourceUri) -> Result<(String, SmbSession), VfsError> {
         let profile_id = Self::profile_id_for_uri(uri)?;
-        let session = self
+        let smb_session = self
             .sessions
-            .session_for_profile(&profile_id)
+            .typed_session_for(&profile_id, "smb", SmbSession::clone_handle)
             .await
             .map_err(VfsError::from)?;
-        let smb_session = session
-            .as_any()
-            .downcast_ref::<SmbSession>()
-            .ok_or_else(|| VfsError::internal("invalid smb session handle"))?
-            .clone_handle();
         Ok((profile_id, smb_session))
     }
 

@@ -25,22 +25,17 @@ impl OneDriveProvider {
 
     async fn session_for(&self, uri: &ResourceUri) -> Result<(String, OneDriveSession), VfsError> {
         let profile_id = Self::profile_id_for_uri(uri)?;
-        let session = self
+        let od_session = self
             .sessions
-            .session_for_profile(&profile_id)
+            .typed_session_for(&profile_id, "onedrive", |session: &OneDriveSession| {
+                OneDriveSession::new(
+                    session.access_token().to_string(),
+                    session.profile_id().to_string(),
+                )
+            })
             .await
             .map_err(VfsError::from)?;
-        let od_session = session
-            .as_any()
-            .downcast_ref::<OneDriveSession>()
-            .ok_or_else(|| VfsError::internal("invalid onedrive session handle"))?;
-        Ok((
-            profile_id,
-            OneDriveSession::new(
-                od_session.access_token().to_string(),
-                od_session.profile_id().to_string(),
-            ),
-        ))
+        Ok((profile_id, od_session))
     }
 }
 
