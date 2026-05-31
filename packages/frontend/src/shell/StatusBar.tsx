@@ -76,6 +76,13 @@ export function StatusBar({
         </>
       )}
       <span className="fo-status-spacer" />
+      <span className="fo-sr-only" role="status" aria-live="polite">
+        {activeJobCount > 0
+          ? `${activeJobCount} active job${activeJobCount === 1 ? "" : "s"}${operationError ? ", errors detected" : ""}`
+          : operationError
+            ? "No active jobs, errors detected"
+            : "No active jobs"}
+      </span>
       <button
         type="button"
         className="fo-status-segment fo-status-button"

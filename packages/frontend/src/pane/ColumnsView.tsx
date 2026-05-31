@@ -261,10 +261,12 @@ function uriStack(activeUri: string, rootUriValue: string): string[] {
   const path = activeUri.replace("local://", "");
   const parts = path.split("/").filter(Boolean);
   const stack = [rootUriValue];
-  let current = "local://";
+  let current = rootUriValue;
 
   for (const part of parts) {
-    current = `${current.replace(/\/$/, "")}/${part}`;
+    current = current.endsWith("/")
+      ? `${current}${part}`
+      : `${current}/${part}`;
     stack.push(current);
   }
 

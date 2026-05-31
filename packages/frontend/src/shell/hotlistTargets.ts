@@ -56,6 +56,17 @@ function locationName(uri: string): string {
   return name || path || uri;
 }
 
+function addStructuralTarget(
+  targets: HotlistTarget[],
+  seen: Set<string>,
+  target: HotlistTarget,
+) {
+  if (seen.has(target.uri)) {
+    return;
+  }
+  targets.push(target);
+}
+
 function addTarget(
   targets: HotlistTarget[],
   seen: Set<string>,
@@ -93,7 +104,7 @@ export function buildHotlistTargets({
   const resolvedHomeLabel = homeLocation?.name ?? "Home";
 
   if (upUri) {
-    addTarget(targets, seen, {
+    addStructuralTarget(targets, seen, {
       id: "parent",
       kind: "parent",
       label: "..",
@@ -103,7 +114,7 @@ export function buildHotlistTargets({
     });
   }
 
-  addTarget(targets, seen, {
+  addStructuralTarget(targets, seen, {
     id: "home",
     kind: "home",
     label: resolvedHomeLabel,

@@ -38,19 +38,19 @@ function statusLabel(status: string): string {
 function statusColor(status: string): string {
   switch (status) {
     case "onlyLeft":
-      return "var(--fo-accent, #4a9eff)";
+      return "var(--fo-accent)";
     case "onlyRight":
-      return "var(--fo-accent, #4a9eff)";
+      return "var(--fo-accent)";
     case "same":
-      return "var(--fo-muted-text, #888)";
+      return "var(--fo-muted-text)";
     case "newerLeft":
-      return "var(--fo-warning, #e8a317)";
+      return "var(--fo-warning-text, var(--fo-warning, #e8a317))";
     case "newerRight":
-      return "var(--fo-warning, #e8a317)";
+      return "var(--fo-warning-text, var(--fo-warning, #e8a317))";
     case "different":
-      return "var(--fo-danger, #e04040)";
+      return "var(--fo-danger)";
     default:
-      return "var(--fo-text, #333)";
+      return "var(--fo-text)";
   }
 }
 

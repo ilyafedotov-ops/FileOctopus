@@ -5,6 +5,7 @@ export const COMMAND_REGISTRY = [
     group: "navigation",
     shortcutMac: "⌥←",
     shortcutWin: "Alt+←",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "nav.forward",
@@ -12,6 +13,7 @@ export const COMMAND_REGISTRY = [
     group: "navigation",
     shortcutMac: "⌥→",
     shortcutWin: "Alt+→",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "nav.up",
@@ -19,6 +21,7 @@ export const COMMAND_REGISTRY = [
     group: "navigation",
     shortcutMac: "Backspace",
     shortcutWin: "Backspace",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "nav.refresh",
@@ -26,36 +29,43 @@ export const COMMAND_REGISTRY = [
     group: "navigation",
     shortcutMac: "⌘R",
     shortcutWin: "Ctrl+R",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "nav.home",
     label: "Home",
     group: "navigation",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "nav.root",
     label: "Root",
     group: "navigation",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "nav.volumePicker",
     label: "Drives",
     group: "navigation",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "nav.networkLocations",
     label: "Network",
     group: "navigation",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "nav.addServer",
     label: "Add Server…",
     group: "navigation",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "nav.connectServer",
     label: "Connect Server…",
     group: "navigation",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "nav.goToLocation",
@@ -63,56 +73,67 @@ export const COMMAND_REGISTRY = [
     group: "navigation",
     shortcutMac: "⌘L",
     shortcutWin: "Ctrl+L",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "nav.manageFavorites",
     label: "Manage Favorites…",
     group: "navigation",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "nav.addFavorite",
     label: "Add to Favorites",
     group: "navigation",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "nav.openUri",
     label: "Open Location",
     group: "navigation",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "nav.revealUri",
     label: "Reveal in File Manager",
     group: "navigation",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "nav.removeFavorite",
     label: "Remove Favorite",
     group: "navigation",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "nav.renameFavorite",
     label: "Rename Favorite",
     group: "navigation",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "nav.recentLocations",
     label: "Recent Locations…",
     group: "navigation",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "nav.clearRecentLocations",
     label: "Clear Recent Locations…",
     group: "navigation",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "nav.clearRecent",
     label: "Clear Recent",
     group: "navigation",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "nav.removeRecent",
     label: "Remove Recent",
     group: "navigation",
+    surfaces: ["context"],
   },
   {
     id: "create.folder",
@@ -120,11 +141,13 @@ export const COMMAND_REGISTRY = [
     group: "creation",
     shortcutMac: "F7",
     shortcutWin: "F7",
+    surfaces: ["toolbar", "menu", "fkey", "palette", "context"],
   },
   {
     id: "create.file",
     label: "New File",
     group: "creation",
+    surfaces: ["toolbar", "menu", "palette", "context"],
   },
   {
     id: "op.copy",
@@ -132,6 +155,7 @@ export const COMMAND_REGISTRY = [
     group: "operation",
     shortcutMac: "⌘C",
     shortcutWin: "Ctrl+C",
+    surfaces: ["toolbar", "menu", "palette", "context"],
   },
   {
     id: "op.cut",
@@ -139,6 +163,7 @@ export const COMMAND_REGISTRY = [
     group: "operation",
     shortcutMac: "⌘X",
     shortcutWin: "Ctrl+X",
+    surfaces: ["toolbar", "menu", "palette", "context"],
   },
   {
     id: "op.paste",
@@ -146,6 +171,7 @@ export const COMMAND_REGISTRY = [
     group: "operation",
     shortcutMac: "⌘V",
     shortcutWin: "Ctrl+V",
+    surfaces: ["toolbar", "menu", "palette", "context"],
   },
   {
     id: "op.copyTo",
@@ -153,6 +179,7 @@ export const COMMAND_REGISTRY = [
     group: "operation",
     shortcutMac: "F5",
     shortcutWin: "F5",
+    surfaces: ["toolbar", "menu", "fkey", "palette", "context"],
   },
   {
     id: "op.moveTo",
@@ -160,6 +187,7 @@ export const COMMAND_REGISTRY = [
     group: "operation",
     shortcutMac: "F6",
     shortcutWin: "F6",
+    surfaces: ["toolbar", "menu", "fkey", "palette", "context"],
   },
   {
     id: "op.rename",
@@ -167,6 +195,7 @@ export const COMMAND_REGISTRY = [
     group: "operation",
     shortcutMac: "F2",
     shortcutWin: "F2",
+    surfaces: ["toolbar", "menu", "fkey", "palette", "context"],
   },
   {
     id: "op.trash",
@@ -174,6 +203,7 @@ export const COMMAND_REGISTRY = [
     group: "operation",
     shortcutMac: "F8",
     shortcutWin: "F8",
+    surfaces: ["toolbar", "menu", "fkey", "palette", "context"],
   },
   {
     id: "op.deletePermanent",
@@ -182,6 +212,7 @@ export const COMMAND_REGISTRY = [
     shortcutMac: "⇧Delete",
     shortcutWin: "Shift+Delete",
     destructive: true,
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "op.properties",
@@ -189,11 +220,13 @@ export const COMMAND_REGISTRY = [
     group: "operation",
     shortcutMac: "⌥Return",
     shortcutWin: "Alt+Enter",
+    surfaces: ["toolbar", "menu", "palette", "context"],
   },
   {
     id: "op.reveal",
     label: "Reveal in System File Manager",
     group: "operation",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "op.open",
@@ -201,6 +234,7 @@ export const COMMAND_REGISTRY = [
     group: "operation",
     shortcutMac: "Return",
     shortcutWin: "Enter",
+    surfaces: ["toolbar", "menu", "palette", "context"],
   },
   {
     id: "op.view",
@@ -208,6 +242,7 @@ export const COMMAND_REGISTRY = [
     group: "operation",
     shortcutMac: "F3",
     shortcutWin: "F3",
+    surfaces: ["toolbar", "menu", "fkey", "palette", "context"],
   },
   {
     id: "op.edit",
@@ -215,76 +250,91 @@ export const COMMAND_REGISTRY = [
     group: "operation",
     shortcutMac: "F4",
     shortcutWin: "F4",
+    surfaces: ["toolbar", "menu", "fkey", "palette", "context"],
   },
   {
     id: "op.openDefault",
     label: "Open With Default App",
     group: "operation",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "op.compress",
     label: "Pack",
     group: "operation",
+    surfaces: ["toolbar", "menu", "palette", "context"],
   },
   {
     id: "op.extract",
     label: "Unpack",
     group: "operation",
+    surfaces: ["toolbar", "menu", "palette", "context"],
   },
   {
     id: "op.checksum",
     label: "Checksum…",
     group: "operation",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "op.openTerminal",
     label: "Open Terminal",
     group: "operation",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "op.openTerminalExternal",
     label: "Open External Terminal",
     group: "operation",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "view.toggleTerminal",
     label: "Toggle Terminal Panel",
     group: "view",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "op.calculateSize",
     label: "Calculate Size",
     group: "operation",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "op.toggleStarred",
     label: "Toggle Star",
     group: "operation",
+    surfaces: ["toolbar", "menu", "palette", "context"],
   },
   {
     id: "view.details",
     label: "Details",
     group: "view",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "view.list",
     label: "List",
     group: "view",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "view.compact",
     label: "Compact",
     group: "view",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "view.icons",
     label: "Icons",
     group: "view",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "view.columns",
     label: "Columns",
     group: "view",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "view.toggleHidden",
@@ -292,51 +342,61 @@ export const COMMAND_REGISTRY = [
     group: "view",
     shortcutMac: "⌘. or ⌘H",
     shortcutWin: "Ctrl+. or Ctrl+H",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "view.toggleSidebar",
     label: "Toggle Sidebar",
     group: "view",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "view.toggleDualPane",
     label: "Toggle Dual Pane",
     group: "view",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "view.toggleStatusBar",
     label: "Toggle Status Bar",
     group: "view",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "view.toggleToolbar",
     label: "Toggle Toolbar",
     group: "view",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "view.toggleActivity",
     label: "Jobs & Activity",
     group: "view",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "view.sort",
     label: "Sort",
     group: "view",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "view.sortAscending",
     label: "Sort Ascending",
     group: "view",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "view.sortDescending",
     label: "Sort Descending",
     group: "view",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "preferences.theme",
     label: "Theme",
     group: "app",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "preferences.cycleTheme",
@@ -344,26 +404,31 @@ export const COMMAND_REGISTRY = [
     group: "app",
     shortcutMac: "⌘⇧T",
     shortcutWin: "Ctrl+Shift+T",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "preferences.accentColor",
     label: "Accent Color",
     group: "app",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "preferences.fontScale",
     label: "Font Size",
     group: "app",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "preferences.iconScale",
     label: "Icon Size",
     group: "app",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "preferences.density",
     label: "Density",
     group: "app",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "layout.switchPane",
@@ -371,11 +436,13 @@ export const COMMAND_REGISTRY = [
     group: "view",
     shortcutMac: "Tab",
     shortcutWin: "Tab",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "layout.equalizePanes",
     label: "Equalize Panes",
     group: "view",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "layout.swapPanes",
@@ -383,11 +450,13 @@ export const COMMAND_REGISTRY = [
     group: "view",
     shortcutMac: "⌘U",
     shortcutWin: "Ctrl+U",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "layout.togglePaneDirection",
     label: "Toggle Split Direction",
     group: "view",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "search.recursive",
@@ -395,6 +464,7 @@ export const COMMAND_REGISTRY = [
     group: "view",
     shortcutMac: "⌘F",
     shortcutWin: "Ctrl+F",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "search.focusFilter",
@@ -402,6 +472,7 @@ export const COMMAND_REGISTRY = [
     group: "view",
     shortcutMac: "⌘⇧F",
     shortcutWin: "Ctrl+Shift+F",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "selection.selectAll",
@@ -409,6 +480,7 @@ export const COMMAND_REGISTRY = [
     group: "selection",
     shortcutMac: "⌘A",
     shortcutWin: "Ctrl+A",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "selection.clear",
@@ -416,41 +488,49 @@ export const COMMAND_REGISTRY = [
     group: "selection",
     shortcutMac: "Escape",
     shortcutWin: "Escape",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "selection.invert",
     label: "Invert Selection",
     group: "selection",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "clipboard.copyPath",
     label: "Copy Full Path",
     group: "clipboard",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "clipboard.copyName",
     label: "Copy File Name",
     group: "clipboard",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "clipboard.copyParent",
     label: "Copy Parent Folder Path",
     group: "clipboard",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "clipboard.copyUri",
     label: "Copy Resource URI",
     group: "clipboard",
+    surfaces: ["menu", "palette", "context"],
   },
   {
     id: "clipboard.clear",
     label: "Clear File Clipboard",
     group: "clipboard",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "app.customizeToolbar",
     label: "Customize Button Bar",
     group: "app",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "app.settings",
@@ -458,6 +538,7 @@ export const COMMAND_REGISTRY = [
     group: "app",
     shortcutMac: "⌘,",
     shortcutWin: "Ctrl+,",
+    surfaces: ["toolbar", "menu", "fkey", "palette"],
   },
   {
     id: "app.shortcuts",
@@ -465,11 +546,13 @@ export const COMMAND_REGISTRY = [
     group: "app",
     shortcutMac: "⌘/",
     shortcutWin: "Ctrl+/",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "app.diagnostics",
     label: "Diagnostics",
     group: "app",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "app.commandPalette",
@@ -477,16 +560,19 @@ export const COMMAND_REGISTRY = [
     group: "app",
     shortcutMac: "⌘P",
     shortcutWin: "Ctrl+P",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "app.about",
     label: "About FileOctopus",
     group: "app",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "app.operationHistory",
     label: "Operation History…",
     group: "app",
+    surfaces: ["menu", "palette"],
   },
   {
     id: "tools.multiRename",
@@ -494,11 +580,13 @@ export const COMMAND_REGISTRY = [
     group: "tools",
     shortcutMac: "⌘M",
     shortcutWin: "Ctrl+M",
+    surfaces: ["toolbar", "menu", "palette", "context"],
   },
   {
     id: "tools.syncDirectories",
     label: "Synchronize Directories…",
     group: "tools",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "tools.openHotlist",
@@ -506,10 +594,12 @@ export const COMMAND_REGISTRY = [
     group: "tools",
     shortcutMac: "⌘D",
     shortcutWin: "Ctrl+D",
+    surfaces: ["toolbar", "menu", "palette"],
   },
   {
     id: "tools.manageHotlist",
     label: "Manage Hotlist…",
     group: "tools",
+    surfaces: ["menu", "palette"],
   },
 ] as const;

@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
+import { MenuSurface } from "@fileoctopus/ui";
 import type { PanelId, SortField, ViewMode } from "../panelStore";
 import type { TagColor } from "../utils/tagStore";
 import { buildBreadcrumbMenu } from "../menus/context/buildBreadcrumbMenu";
@@ -219,7 +220,7 @@ export function ContextMenu({
       onKeyDown={handleKeyDown}
       role="presentation"
     >
-      <div
+      <MenuSurface
         ref={menuRef}
         className="fo-context-menu"
         role="menu"
@@ -232,7 +233,7 @@ export function ContextMenu({
         onClick={(event) => event.stopPropagation()}
       >
         {content}
-      </div>
+      </MenuSurface>
     </div>
   );
 

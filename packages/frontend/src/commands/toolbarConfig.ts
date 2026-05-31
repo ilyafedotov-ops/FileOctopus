@@ -1,7 +1,7 @@
 import type { CommandId } from "./types";
-import { commandTargets } from "./bindings";
 import {
   COMMAND_DEFINITIONS,
+  commandsForSurface,
   formatCommandShortcut,
   getCommand,
 } from "./registry";
@@ -97,6 +97,9 @@ export function toolbarCommandMeta(commandId: CommandId): ToolbarCommandMeta {
 
 export function customizableToolbarCommands(): ToolbarCommandMeta[] {
   const seen = new Set<CommandId>();
+  const toolbarCommandIds = new Set(
+    commandsForSurface("toolbar").map((cmd) => cmd.id),
+  );
   return COMMAND_DEFINITIONS.filter((command) => {
     if (FIXED_NAV_COMMANDS.has(command.id)) {
       return false;
@@ -113,8 +116,7 @@ export function customizableToolbarCommands(): ToolbarCommandMeta[] {
     ) {
       return false;
     }
-    const targets = commandTargets(command.id);
-    return targets.includes("toolbar") || targets.includes("palette");
+    return toolbarCommandIds.has(command.id);
   })
     .map((command) => toolbarCommandMeta(command.id))
     .filter((meta) => {
