@@ -29,7 +29,7 @@
   padding: 2px 5px 0 2px;
   color: var(--fo-muted-text);
   font-family: var(--fo-mono, monospace);
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
   font-weight: 600;
 }
 
@@ -50,7 +50,7 @@
   border-right: 1px solid var(--fo-editor-bg);
   background: var(--fo-tab-bg);
   color: var(--fo-muted-text);
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
   cursor: pointer;
   white-space: nowrap;
   max-width: 160px;
@@ -99,7 +99,7 @@
 .fo-tab--new {
   flex: 0 0 auto;
   padding: 2px 6px;
-  font-size: 14px;
+  font-size: var(--fo-font-size-xl);
   font-weight: 400;
   opacity: 1;
   border-radius: 0;
@@ -141,7 +141,7 @@
   padding: 0;
   background: var(--fo-editor-bg);
   border-bottom: 1px solid var(--fo-panel-bg);
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
   font-weight: 700;
 }
 
@@ -176,7 +176,7 @@
   padding: 0 6px;
   overflow: hidden;
   color: var(--fo-muted-text);
-  font-size: 11px;
+  font-size: var(--fo-font-size-sm);
   font-weight: 700;
   line-height: 1;
   white-space: nowrap;
@@ -192,7 +192,7 @@
 
 .fo-git-branch-mark {
   flex: 0 0 auto;
-  font-size: 9px;
+  font-size: var(--fo-font-size-xs);
   font-weight: 800;
   text-transform: uppercase;
   opacity: 0.75;
@@ -281,7 +281,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: var(--fo-font-size-sm);
   font-weight: 700;
 }
 
@@ -312,7 +312,7 @@
   border-top: 1px solid var(--fo-border);
   background: var(--fo-tab-bg);
   color: var(--fo-text);
-  font-size: 11px;
+  font-size: var(--fo-font-size-sm);
   font-weight: 700;
 }
 
@@ -412,10 +412,10 @@
   border-width: 1px;
   border-style: solid;
   border-color: var(--fo-border);
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   background: var(--fo-border);
   color: var(--fo-text);
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
   cursor: pointer;
 }
 
@@ -442,7 +442,7 @@
   place-items: center;
   min-width: 20px;
   color: var(--fo-text);
-  font-size: 10px;
+  font-size: var(--fo-font-size-xs);
   font-weight: 800;
   line-height: 1;
 }
@@ -456,7 +456,7 @@
 .fo-operation-toolbar .fo-toolbar-meta {
   margin-left: auto;
   color: var(--fo-muted-text);
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
   white-space: nowrap;
 }
 
@@ -472,7 +472,7 @@
   font-family:
     ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
     monospace;
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
 }
 
 .fo-breadcrumb {
@@ -484,7 +484,7 @@
   border-width: 1px;
   border-style: solid;
   border-color: var(--fo-border);
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   background: var(--fo-border);
   padding: 0;
 }
@@ -516,7 +516,7 @@
   border-right: 1px solid var(--fo-editor-bg);
   background: var(--fo-accent);
   color: var(--fo-on-accent);
-  font-size: 11px;
+  font-size: var(--fo-font-size-sm);
   font-weight: 700;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -582,7 +582,7 @@
   background: var(--fo-danger-bg);
   color: var(--fo-danger-text);
   padding: 2px 4px;
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
 }
 
 .fo-panel-error span {
@@ -658,7 +658,7 @@
   min-height: 94px;
   padding: 8px 7px;
   border: 1px solid var(--fo-border);
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   background: var(--fo-panel-bg);
   cursor: default;
   transform: none !important;
@@ -701,7 +701,7 @@
 
 .fo-view-icons .fo-row-text {
   width: 100%;
-  font-size: 11px;
+  font-size: var(--fo-font-size-sm);
   font-weight: 600;
   text-align: center;
   white-space: normal;
@@ -733,9 +733,9 @@
   align-items: center;
   gap: 8px;
   padding: 4px 8px;
-  border-radius: 3px;
+  border-radius: var(--fo-radius-2xs);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
   user-select: none;
 }
 
@@ -748,7 +748,7 @@
   display: inline-block;
   width: 14px;
   text-align: center;
-  font-size: 11px;
+  font-size: var(--fo-font-size-sm);
 }
 
 .fo-column-button {
@@ -763,7 +763,7 @@
   padding: 0 8px;
   background: var(--fo-panel-bg);
   color: var(--fo-text);
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
   font-weight: 500;
 }
 
@@ -833,7 +833,7 @@
   white-space: nowrap;
   padding: 1px 8px;
   border-right: 1px solid var(--fo-panel-bg);
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
 }
 
 .fo-view-icons .fo-row > span {
@@ -852,7 +852,7 @@
 
 .fo-row-hash {
   font-family: var(--fo-mono, monospace);
-  font-size: 11px;
+  font-size: var(--fo-font-size-sm);
   color: var(--fo-muted-text);
   min-width: 120px;
   letter-spacing: 0.3px;
@@ -874,7 +874,7 @@
 
 .fo-row-selected {
   background: var(--fo-accent-soft);
-  color: var(--fo-on-accent);
+  color: var(--fo-on-accent-soft);
 }
 
 .fo-row-focused {
@@ -889,7 +889,7 @@
 }
 
 .fo-row-selected.fo-row-parent .fo-row-text {
-  color: var(--fo-on-accent);
+  color: var(--fo-on-accent-soft);
   font-style: normal;
 }
 
@@ -911,7 +911,7 @@
 
 .fo-row-selected .fo-row-icon,
 .fo-row-selected .fo-row-text {
-  color: var(--fo-on-accent);
+  color: var(--fo-on-accent-soft);
 }
 
 .fo-row-icon svg {
@@ -936,7 +936,7 @@
   height: 16px;
   margin-left: 2px;
   color: var(--fo-muted-text);
-  font-size: 10px;
+  font-size: var(--fo-font-size-xs);
   font-weight: 800;
   line-height: 1;
   background: var(--fo-panel-bg);
@@ -968,9 +968,9 @@
 }
 
 .fo-row-selected .fo-row-git-badge {
-  color: var(--fo-on-accent);
+  color: var(--fo-on-accent-soft);
   background: transparent;
-  border-color: var(--fo-on-accent);
+  border-color: var(--fo-on-accent-soft);
 }
 
 .fo-row-symlink-badge {
@@ -982,13 +982,13 @@
   height: 16px;
   margin-left: 2px;
   color: var(--fo-muted-text);
-  font-size: 11px;
+  font-size: var(--fo-font-size-sm);
   font-weight: 600;
   line-height: 1;
 }
 
 .fo-row-selected .fo-row-symlink-badge {
-  color: var(--fo-on-accent);
+  color: var(--fo-on-accent-soft);
 }
 
 .fo-row-network-badge {
@@ -1001,7 +1001,7 @@
   margin-left: 4px;
   padding: 0 4px;
   color: var(--fo-muted-text);
-  font-size: 9px;
+  font-size: var(--fo-font-size-xs);
   font-weight: 800;
   line-height: 1;
   background: var(--fo-panel-bg);
@@ -1025,9 +1025,9 @@
 }
 
 .fo-row-selected .fo-row-network-badge {
-  color: var(--fo-on-accent);
+  color: var(--fo-on-accent-soft);
   background: transparent;
-  border-color: var(--fo-on-accent);
+  border-color: var(--fo-on-accent-soft);
 }
 
 .fo-row-tag-badge {
@@ -1084,7 +1084,7 @@
 }
 
 .fo-column-sort {
-  font-size: 10px;
+  font-size: var(--fo-font-size-xs);
   line-height: 1;
 }
 
@@ -1110,7 +1110,7 @@
 }
 
 .fo-empty-directory-text {
-  font-size: 14px;
+  font-size: var(--fo-font-size-xl);
 }
 
 .fo-empty-directory-actions {
@@ -1125,7 +1125,7 @@
   border-radius: var(--fo-radius-sm);
   background: var(--fo-surface);
   color: var(--fo-text);
-  font-size: 13px;
+  font-size: var(--fo-font-size-lg);
   cursor: pointer;
   transition:
     background 0.15s,
@@ -1149,7 +1149,7 @@
 }
 
 .fo-file-skeleton-row {
-  border-radius: 6px;
+  border-radius: var(--fo-radius-sm);
   background: linear-gradient(
     90deg,
     var(--fo-strip-bg) 0%,
@@ -1167,7 +1167,7 @@
 
 .fo-file-skeleton-card {
   height: 88px;
-  border-radius: 8px;
+  border-radius: var(--fo-radius-sm-wide);
   background: linear-gradient(
     90deg,
     var(--fo-strip-bg) 0%,
@@ -1192,10 +1192,10 @@
   place-content: center;
   gap: 4px;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: var(--fo-radius-md);
   background: color-mix(in srgb, var(--fo-accent-soft) 92%, transparent);
   color: var(--fo-text);
-  font-size: 13px;
+  font-size: var(--fo-font-size-lg);
   font-weight: 600;
   text-align: center;
   pointer-events: none;
@@ -1203,7 +1203,7 @@
 
 .fo-panel-drop-path {
   color: var(--fo-muted-text);
-  font-size: 11px;
+  font-size: var(--fo-font-size-sm);
   font-weight: 500;
   word-break: break-all;
 }
@@ -1211,7 +1211,7 @@
 .fo-pane-state-loading-label {
   margin: 0 0 4px;
   color: var(--fo-muted-text);
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
   font-weight: 600;
   text-align: center;
 }
@@ -1253,7 +1253,7 @@
 .fo-pane-label {
   flex: 0 0 auto;
   color: var(--fo-muted-text);
-  font-size: 10px;
+  font-size: var(--fo-font-size-xs);
   font-weight: 700;
 }
 
@@ -1313,14 +1313,14 @@
   gap: 2px;
   padding: 2px;
   border: 1px solid var(--fo-border);
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   background: var(--fo-panel-bg);
 }
 
 .fo-panel-nav .fo-ui-icon-btn {
   min-width: 34px;
   padding: 0 6px;
-  font-size: 10px;
+  font-size: var(--fo-font-size-xs);
 }
 
 .fo-operation-toolbar .fo-ui-btn,
@@ -1333,7 +1333,7 @@
   border-width: 1px;
   border-style: solid;
   border-color: transparent;
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   background: transparent;
   color: var(--fo-text);
   box-shadow: none;
@@ -1357,7 +1357,7 @@
 .fo-breadcrumb .fo-ui-btn {
   min-height: 16px;
   padding: 0 0.25rem;
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
 }
 
 .fo-panel-title-row > div {
@@ -1381,7 +1381,7 @@
   border-radius: 0;
   background: var(--fo-editor-bg);
   color: var(--fo-text);
-  font-size: 12px;
+  font-size: var(--fo-font-size-md);
   font-weight: 700;
 }
 
@@ -1509,13 +1509,13 @@
 }
 
 .fo-toolbar-group-nav .fo-toolbar-nav-btn .fo-toolbar-label-compact {
-  font-size: 11px;
+  font-size: var(--fo-font-size-sm);
 }
 
 .fo-toolbar-glyph {
   min-width: 14px;
   color: var(--fo-text);
-  font-size: 13px;
+  font-size: var(--fo-font-size-lg);
   font-weight: 800;
   line-height: 1;
   text-align: center;
@@ -1570,7 +1570,7 @@
 .fo-toolbar-meta {
   margin-left: auto;
   color: var(--fo-muted-text);
-  font-size: 11px;
+  font-size: var(--fo-font-size-sm);
   white-space: nowrap;
 }
 
@@ -1579,7 +1579,7 @@
   gap: 4px;
   padding: 8px;
   border: 1px dashed var(--fo-border);
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   background: var(--fo-panel-bg);
 }
 
@@ -1592,6 +1592,75 @@
   display: flex;
   gap: 4px;
 }
+
+/* --- UPP-C4: Pane state variants --- */
+
+.fo-pane-state-loading {
+  align-items: center;
+  justify-content: center;
+  border-style: none;
+}
+
+.fo-pane-state-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--fo-border);
+  border-top-color: var(--fo-accent);
+  border-radius: 50%;
+  animation: fo-spin 0.8s linear infinite;
+}
+
+@keyframes fo-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.fo-pane-state-empty {
+  align-items: center;
+  justify-content: center;
+  border-style: dashed;
+  color: var(--fo-muted-text);
+}
+
+.fo-pane-state-error {
+  align-items: center;
+  justify-content: center;
+  border-color: var(--fo-danger-border, var(--fo-border));
+  background: var(--fo-danger-bg, var(--fo-panel-bg));
+  color: var(--fo-danger-text, var(--fo-text));
+}
+
+.fo-pane-state-message {
+  font-size: var(--fo-font-size-sm);
+  color: var(--fo-muted-text);
+}
+
+.fo-pane-state-details {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.fo-pane-state-details summary {
+  cursor: pointer;
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-pane-state-details pre {
+  margin: 4px 0 0;
+  padding: 4px 6px;
+  background: var(--fo-surface-elevated, var(--fo-panel-bg));
+  border: 1px solid var(--fo-border);
+  border-radius: var(--fo-radius-xs);
+  font-size: var(--fo-font-size-xs);
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* --- End UPP-C4 --- */
 
 .fo-workspace[data-layout-tier="xs"]
   .fo-panel-filter-row
@@ -1739,7 +1808,7 @@
 
 .fo-plugin-status {
   padding: 1px 6px;
-  border-radius: 3px;
+  border-radius: var(--fo-radius-2xs);
   font-size: 0.85em;
 }
 
@@ -1764,7 +1833,7 @@
   font-size: 0.75em;
   padding: 1px 6px;
   border: 1px solid var(--fo-border);
-  border-radius: 3px;
+  border-radius: var(--fo-radius-2xs);
   color: var(--fo-muted-text);
 }
 

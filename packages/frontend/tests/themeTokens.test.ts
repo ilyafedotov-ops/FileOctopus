@@ -464,8 +464,7 @@ describe("Design token architecture", () => {
   });
 
   it("dialog chrome follows VS Code workbench styling", () => {
-    expect(dialogsContent).toContain("--fo-classic-face: #252526");
-    expect(dialogsContent).toContain("--fo-classic-title: #007acc");
+    expect(shellContent).toContain("--fo-classic-title: #007acc");
     expect(dialogsContent).toContain("border-radius: 0");
     expect(dialogsContent).toContain(
       "box-shadow: 0 12px 32px var(--fo-dialog-shadow)",

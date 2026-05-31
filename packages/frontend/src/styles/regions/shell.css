@@ -187,15 +187,15 @@
 }
 
 .fo-window-dot-red {
-  background: #ff5f57;
+  background: var(--fo-window-dot-red);
 }
 
 .fo-window-dot-yellow {
-  background: #ffbd2e;
+  background: var(--fo-window-dot-yellow);
 }
 
 .fo-window-dot-green {
-  background: #28c840;
+  background: var(--fo-window-dot-green);
 }
 
 .fo-brand-product {
@@ -742,7 +742,7 @@
   display: inline-block;
   width: 40px;
   height: 6px;
-  border-radius: 3px;
+  border-radius: var(--fo-radius-2xs);
   background: rgb(255 255 255 / 20%);
   overflow: hidden;
   flex-shrink: 0;
@@ -751,7 +751,7 @@
 .fo-storage-gauge-fill {
   display: block;
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--fo-radius-2xs);
   background: var(--fo-accent, #4a9eff);
 }
 
@@ -792,6 +792,20 @@
   --fo-commander-keycap-bg: #00b8b8;
   --fo-commander-keycap-fg: #00102a;
   --fo-commander-keycap-border: #5fefef;
+}
+
+/* ── Light: Win98-style classic tokens for dialogs, properties, etc. ── */
+:root[data-theme="light"] .fo-shell {
+  --fo-classic-face: #dfdfdf;
+  --fo-classic-window: #ffffff;
+  --fo-classic-light: #ffffff;
+  --fo-classic-shadow: #808080;
+  --fo-classic-dark: #404040;
+  --fo-classic-black: #000000;
+  --fo-classic-title: #000080;
+  --fo-classic-title-end: #000080;
+  --fo-classic-text: #000000;
+  --fo-classic-muted: #666666;
 }
 
 :root[data-theme="dark"] .fo-shell {

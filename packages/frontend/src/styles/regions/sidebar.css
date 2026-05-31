@@ -135,12 +135,16 @@
   width: 100%;
   padding: 4px 8px;
   border: 1px solid var(--fo-accent);
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   background: var(--fo-input-bg, var(--fo-control-bg));
   color: var(--fo-text);
   font-size: inherit;
   outline: none;
   box-sizing: border-box;
+}
+
+.fo-sidebar-rename-input:focus-visible {
+  box-shadow: var(--fo-focus-ring);
 }
 
 .fo-sidebar-menu {

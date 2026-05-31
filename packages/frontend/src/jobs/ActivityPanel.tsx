@@ -132,7 +132,11 @@ export function ActivityPanel({
       />
       <div className="fo-activity-body">
         {tab === "activity" ? (
-          <section className="fo-activity-cards" aria-label="Active jobs">
+          <section
+            className="fo-activity-cards"
+            aria-label="Active jobs"
+            aria-live="polite"
+          >
             <h3 className="fo-activity-section-title">Active Jobs</h3>
             {activityCards.length === 0 ? (
               <div className="fo-empty-inline">No active jobs</div>

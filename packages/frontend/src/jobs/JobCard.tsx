@@ -42,7 +42,10 @@ export function JobCard({
   const resumable = job.status === "paused";
 
   return (
-    <article className={`fo-job-card fo-job-card-${tone}`}>
+    <article
+      className={`fo-job-card fo-job-card-${tone}`}
+      aria-label={`${jobTitle(job)}, ${percent}% complete, ${job.status}`}
+    >
       <div className="fo-job-card-title">
         <span className="fo-job-card-heading">
           {operationIcon(job.operationKind)}

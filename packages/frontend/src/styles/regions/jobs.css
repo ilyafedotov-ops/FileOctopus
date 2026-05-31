@@ -166,7 +166,7 @@
 .fo-job-card {
   padding: 8px;
   border: 1px solid var(--fo-border);
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   background: var(--fo-app-bg);
 }
 
@@ -246,14 +246,14 @@
 .fo-job-card-bar {
   height: 6px;
   margin-top: 8px;
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   background: var(--fo-border);
   overflow: hidden;
 }
 
 .fo-job-card-bar > div {
   height: 100%;
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   background: var(--fo-accent);
 }
 
@@ -348,12 +348,12 @@
   min-width: 0;
   padding: 0;
   border: 0;
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   background: transparent;
   box-shadow: none;
 }
 
 .fo-workspace[data-layout="medium"] .fo-activity-collapsed .fo-ui-btn {
-  border-radius: 2px;
+  border-radius: var(--fo-radius-xs);
   box-shadow: var(--fo-elevation-popover);
 }

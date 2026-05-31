@@ -66,6 +66,7 @@
   --fo-accent: #007acc;
   --fo-accent-soft: #094771;
   --fo-on-accent: #ffffff;
+  --fo-on-accent-soft: var(--fo-on-accent);
   --fo-shell-shadow: rgb(0 0 0 / 32%);
   --fo-sidebar-width: 240px;
   --fo-activity-width: 320px;
@@ -128,7 +129,7 @@
   --fo-dark-control-bg: #3c3c3c;
   --fo-dark-control-border: #3c3c3c;
   --fo-dark-accent-soft: #094771;
-  --fo-dark-muted-text: #969696;
+  --fo-dark-muted-text: #a0a0a0;
   --fo-dark-danger-bg: #5a1d1d;
   --fo-dark-danger-border: #be1100;
   --fo-dark-danger-text: #f48771;
@@ -257,6 +258,7 @@
   --fo-icon-muted: #424242;
   --fo-chrome-hover-bg: #e0e0e0;
   --fo-chrome-hover-text: #1f1f1f;
+  --fo-on-accent-soft: #1f1f1f;
 
   --fo-syntax-keyword: #0000ff;
   --fo-syntax-string: #a31515;
@@ -383,7 +385,10 @@
   /* Radius tokens (§20.2; UPP-H2)
      xs = crisp commander content/inputs/keycaps; sm = popovers/dialogs. */
   --fo-radius-xs: 2px;
+  --fo-radius-2xs: 3px;
+  --fo-radius-sm-subtle: 4px;
   --fo-radius-sm: 6px;
+  --fo-radius-sm-wide: 8px;
   --fo-radius-md: 10px;
   --fo-radius-lg: 14px;
 
@@ -403,11 +408,11 @@
   --fo-job-drawer-width: 420px;
 
   /* Typography scale (UPP-H1) — see docs/ui-premium-polish-improvement-plan.md §8.2 */
-  --fo-font-size-xs: 10px;
-  --fo-font-size-sm: 11px;
-  --fo-font-size-md: 12px;
-  --fo-font-size-lg: 13px;
-  --fo-font-size-xl: 15px;
+  --fo-font-size-xs: 11px;
+  --fo-font-size-sm: 12px;
+  --fo-font-size-md: 13px;
+  --fo-font-size-lg: 14px;
+  --fo-font-size-xl: 16px;
   --fo-line-tight: 1.2;
   --fo-line-normal: 1.4;
 
@@ -464,6 +469,11 @@
   --fo-sidebar-width: 248px;
   --fo-toast-width: 360px;
   --fo-job-drawer-width: 420px;
+  --fo-font-size-xs: 12px;
+  --fo-font-size-sm: 13px;
+  --fo-font-size-md: 14px;
+  --fo-font-size-lg: 15px;
+  --fo-font-size-xl: 17px;
 }
 
 :root[data-density="spacious"] {
@@ -475,6 +485,11 @@
   --fo-sidebar-width: 280px;
   --fo-toast-width: 420px;
   --fo-job-drawer-width: 480px;
+  --fo-font-size-xs: 13px;
+  --fo-font-size-sm: 14px;
+  --fo-font-size-md: 15px;
+  --fo-font-size-lg: 16px;
+  --fo-font-size-xl: 18px;
 }
 
 :root {
@@ -488,4 +503,12 @@
   --fo-tag-indigo: #5a67d8;
   --fo-tag-violet: #805ad5;
   --fo-tag-pink: #d53f8c;
+}
+
+/* Window chrome — macOS traffic-light dots.
+   Platform-fixed colors; not theme-dependent. */
+:root {
+  --fo-window-dot-red: #ff5f57;
+  --fo-window-dot-yellow: #ffbd2e;
+  --fo-window-dot-green: #28c840;
 }

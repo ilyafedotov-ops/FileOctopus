@@ -253,7 +253,7 @@ button:disabled {
 
 .fo-command-palette-input input {
   width: 100%;
-  font-size: 14px;
+  font-size: var(--fo-font-size-xl);
   padding: 8px;
   border-width: 2px;
   border-style: solid;
@@ -312,4 +312,55 @@ button:disabled {
     transform: translateX(0);
     opacity: 1;
   }
+}
+
+/* ─── Input primitives (UPP-E3) ─── */
+/* Classic inset-style input — win95/commander aesthetic for dialogs and settings. */
+.fo-input-classic {
+  width: 100%;
+  min-height: 28px;
+  padding: 0.3rem 0.45rem;
+  border-width: 2px;
+  border-style: solid;
+  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
+    var(--fo-classic-light) var(--fo-classic-shadow);
+  border-radius: 0;
+  background: var(--fo-classic-window);
+  color: var(--fo-classic-text);
+  font-size: var(--fo-font-size-lg);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.fo-input-classic:focus-visible {
+  box-shadow: var(--fo-focus-ring);
+  outline: none;
+}
+
+/* Modern flat input — for inline controls, sidebars, special fields. */
+.fo-input-modern {
+  width: 100%;
+  padding: 3px 6px;
+  border: 1px solid var(--fo-border);
+  border-radius: var(--fo-radius-xs);
+  background: var(--fo-input-bg, var(--fo-surface));
+  color: var(--fo-text);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.fo-input-modern:focus-visible {
+  border-color: var(--fo-accent);
+  box-shadow: var(--fo-focus-ring);
+  outline: none;
+}
+
+/* Visually-hidden utility for screen-reader announcements (UPP-I1) */
+.fo-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
