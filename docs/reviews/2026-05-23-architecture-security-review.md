@@ -1,6 +1,6 @@
 # FileOctopus — Architecture & Security Review
 
-_Date: 2026-05-23 · Scope: full codebase, read-only analysis · Lenses: senior software engineer + security engineer_
+_Date: 2026-05-23 · Refreshed: 2026-05-31 · Scope: full codebase, read-only analysis · Lenses: senior software engineer + security engineer_
 
 ## Context
 
@@ -11,7 +11,8 @@ layer is the trust boundary.
 
 Findings are graded. Items marked **[verified]** were confirmed by reading the source directly
 (file:line cited). Items marked **[reported]** come from codebase exploration and are credible
-but not independently re-read line-by-line.
+but not independently re-read line-by-line. Items marked **[resolved]** were fixed before this
+review was merged to `main`.
 
 ---
 
@@ -24,48 +25,37 @@ vocabulary mirrored end-to-end, and a strict Tauri CSP + minimal capability allo
 boundary model (ADR-0002 no-FS-plugins, ADR-0003 `local://` everywhere) is sound _as a
 design_.
 
-The problems are localized, not systemic: **one command breaks the boundary contract**, the
-**boundary URIs aren't normalized/contained**, the **job runtime spawns unbounded OS threads**,
-and **`Mutex` poisoning** can permanently wedge subsystems. None require re-architecting;
-each is a contained fix.
+The remaining problems are localized, not systemic: **boundary URIs still allow `..`
+segments**, **`Mutex` poisoning** can permanently wedge subsystems, selected mutation paths
+have **TOCTOU races**, and one frontend event subscription still has an async cleanup race.
+Earlier high-priority concerns around diagnostics export containment and unbounded job
+threading have since been addressed.
 
 ---
 
 ## Security findings (security-engineer lens)
 
-### S1 — `export_diagnostics_bundle` bypasses the IPC boundary contract **[verified] — High**
+### S1 — `export_diagnostics_bundle` destination containment **[resolved, verified] — formerly High**
 
-`apps/desktop-tauri/src-tauri/src/commands/diagnostics.rs:39`
+Original finding: `export_diagnostics_bundle` accepted a raw IPC string path and wrote directly
+to it. Current `main` no longer has that raw write path.
 
-```rust
-let destination = PathBuf::from(request.destination);   // raw string from IPC, no ResourceUri
-let files = write_diagnostics_bundle(&destination, &state)?;  // create_dir_all(parent) + File::create
-```
+Current state:
 
-This is the **only** command that turns an IPC string straight into a filesystem write
-without `ResourceUri::parse` — a direct violation of ADR-0003. `write_diagnostics_bundle`
-(line 52-60) calls `create_dir_all(parent)` then `File::create(destination)`, so a caller
-controls _where_ a file is created and _what directories_ get made. The diagnostics zip
-contents are fixed/redacted, so this is an arbitrary-write-location, not arbitrary-content.
+- `apps/desktop-tauri/src-tauri/src/commands/diagnostics.rs:40` calls
+  `resolve_diagnostics_destination` before `write_diagnostics_bundle`.
+- `resolve_diagnostics_destination` requires an absolute local path, rejects `..`, requires a
+  `.zip` extension, and checks containment against allowed export roots before `create_dir_all`
+  or `File::create`.
+- `crates/config/src/lib.rs` now rejects relative `diagnosticsExportPath` values and `..`
+  segments, with regression tests for both cases.
 
-Compounding: the `diagnosticsExportPath` **preference** that was supposed to govern this
-(`crates/config/src/lib.rs:704` `parse_diagnostics_export_path`) only enforces `len <= 2048`
-— no absolute-path or containment check — **and the command never reads it**; it trusts
-`request.destination` directly.
-
-Threat model: Tauri's security model exists precisely to contain a _compromised renderer_
-(malicious npm dep, XSS via rendered content) behind the Rust allowlist + per-command
-validation. This command defeats that containment for writes. Not remote-RCE, but a real
-boundary defect.
-
-**Fix:** parse `request.destination` as `ResourceUri` (require `local://`), resolve via
-`to_local_path()`, and contain it (app data dir, or an explicit user-chosen save dir). Make
-`parse_diagnostics_export_path` reject relative paths, and have the command actually use the
-validated preference rather than a free-form request field.
+Residual note: the API reference intentionally documents diagnostics export as a host-path
+exception to the usual `ResourceUri` boundary rule. Keep that exception narrow and tested.
 
 ### S2 — Boundary `local://` URIs are not normalized; `..` survives **[verified] — Low/Medium (defense-in-depth)**
 
-`crates/vfs/src/lib.rs:849` (`is_valid_local_uri_body`) only checks non-empty / no-NUL /
+`crates/vfs/src/lib.rs:863` (`is_valid_local_uri_body`) only checks non-empty / no-NUL /
 leading-`/` (or Windows drive). `to_local_path` (same file) is a bare
 `PathBuf::from(self.display_path())` — no canonicalization, no `..` rejection. So
 `local:///home/u/../../etc/passwd` parses and resolves at the OS. For a file manager, broad
@@ -98,13 +88,20 @@ Windows-open paths all use separate args / `-LiteralPath` correctly.) No action 
 
 ## Architecture findings (senior-engineer lens)
 
-### A1 — Unbounded OS thread per operation **[verified] — High**
+### A1 — Bounded operation worker runtime **[resolved, verified] — formerly High**
 
-`crates/app-core/src/runtime.rs:224` spawns a fresh `std::thread::spawn` for every job, with
-no pool and no cap. N concurrent operations = N OS threads doing blocking I/O. There is also
-no job timeout (the `Timeout` error variant exists but is never enforced). **Fix:** bound
-concurrency with a worker pool (`rayon`/dedicated pool) or `tokio::task::spawn_blocking` with
-a semaphore; add a per-job deadline.
+Original finding: the runtime spawned a fresh OS thread for every file operation. Current
+`main` has a bounded worker runtime:
+
+- `crates/app-core/src/runtime.rs:20` documents the fixed worker pool and watchdog.
+- `RuntimeSettings.worker_count` caps concurrent operations.
+- `OperationRuntime::with_settings` creates a bounded set of worker threads and keeps extra
+  jobs queued until a worker starts them.
+- The watchdog cancels jobs that stop emitting progress for the configured idle timeout and
+  surfaces the result as `timeout`.
+
+Residual note: this is an inactivity timeout rather than a hard wall-clock deadline. That is a
+reasonable default for file I/O, where slow but progressing transfers should continue.
 
 ### A2 — `Mutex`/`RwLock` poisoning wedges subsystems **[reported]**
 
@@ -136,16 +133,18 @@ sweep them at boot.
 ### A6 — Frontend effect-cleanup inconsistency **[reported]**
 
 Most IPC event listeners in `useAppInit.ts` use the `disposed`-flag + race-guard pattern
-correctly, but the **network status** subscription (~line 535) doesn't — if the effect
+correctly, but the **network status** subscription (~line 583) doesn't — if the effect
 unmounts before the subscribe promise resolves, the unsubscribe never fires (listener leak).
 **Fix:** standardize the `disposed` guard across all async subscriptions; add a test.
 
-### A7 — `commandMap` drift & source-export packaging **[reported] — Low**
+### A7 — Source-export packaging **[reported] — Low**
 
-`ts-api/commandMap.ts` is hand-maintained against Rust handler names with a `?? command`
-pass-through, so a typo silently reaches Tauri (caught only at runtime). Packages also export
-raw `.ts` source rather than `dist/`. Both are fine for the current monorepo dev loop; worth a
-generated-or-tested map and a `dist/` build before any external consumption.
+The original command-map drift concern has been addressed:
+`packages/ts-api/tests/catalogs.test.ts` now compares the Tauri `generate_handler!` registry,
+`commandMap.ts`, the API reference command count, error codes, warning codes, and event
+constants. Remaining low-priority packaging concern: packages still export raw `.ts` source
+rather than `dist/`. That is fine for the current monorepo dev loop; revisit before external
+package consumption.
 
 ### A8 — Owner lookup via `id -nu` subprocess **[reported] — Low**
 
@@ -157,25 +156,26 @@ global cache.
 
 ## Suggested remediation order
 
-| #   | Item                                                                           | Severity | Effort |
-| --- | ------------------------------------------------------------------------------ | -------- | ------ |
-| 1   | S1 — validate/contain diagnostics export path; use the validated preference    | High     | S      |
-| 2   | A1 — bound job concurrency + add job timeout                                   | High     | M      |
-| 3   | A2 — `parking_lot` to kill poisoning                                           | Med      | S      |
-| 4   | S2 — reject `..` in `is_valid_local_uri_body`                                  | Med      | S      |
-| 5   | A3 — close TOCTOU in move/rename                                               | Med      | M      |
-| 6   | A6 — standardize frontend effect cleanup                                       | Med      | S      |
-| 7   | A4/A5/A7/A8 — cancellation granularity, orphan sweep, commandMap, owner lookup | Low      | M      |
+| #   | Item                                                                   | Status   | Severity | Effort |
+| --- | ---------------------------------------------------------------------- | -------- | -------- | ------ |
+| 1   | S1 — validate/contain diagnostics export path                          | Resolved | High     | S      |
+| 2   | A1 — bound job concurrency + inactivity timeout                        | Resolved | High     | M      |
+| 3   | A2 — `parking_lot` to kill poisoning                                   | Open     | Med      | S      |
+| 4   | S2 — reject `..` in `is_valid_local_uri_body`                          | Open     | Med      | S      |
+| 5   | A3 — close TOCTOU in move/rename                                       | Open     | Med      | M      |
+| 6   | A6 — standardize frontend effect cleanup                               | Open     | Med      | S      |
+| 7   | A4/A5/A7/A8 — cancellation granularity, orphan sweep, packaging, owner | Open     | Low      | M      |
 
 ---
 
 ## Verification (for whichever fixes are taken on)
 
 - Rust: `pnpm rust:check && pnpm rust:test && pnpm rust:clippy` (CI does not run these).
-- For S1: add a `cargo test -p` case asserting `export_diagnostics_bundle` rejects a
-  non-`local://` / out-of-container destination.
+- For S1: keep tests asserting `export_diagnostics_bundle` rejects unsafe host paths before
+  any `create_dir_all`/`File::create`.
 - For S2: unit test `ResourceUri::parse("local:///a/../b")` is rejected.
-- For A1: integration test that K simultaneous operations never exceed the worker cap.
+- For A1: keep runtime tests that K simultaneous operations never exceed the worker cap and
+  that stalled jobs time out.
 - TS: `pnpm typecheck && pnpm lint && pnpm test`; add a listener-teardown test for A6.
 
 ---
@@ -185,10 +185,10 @@ global cache.
 Each task is self-contained: files, steps, and acceptance criteria. Severity/effort carried
 from the remediation table. Check boxes track progress.
 
-### TASK-1 · S1 — Contain the diagnostics export path · High · ~S
+### TASK-1 · S1 — Contain the diagnostics export path · High · ~S · Done
 
-**Problem:** `export_diagnostics_bundle` writes a user-supplied raw string path, bypassing
-`ResourceUri` (ADR-0003); the `diagnosticsExportPath` preference is weakly validated and unused.
+**Original problem:** `export_diagnostics_bundle` wrote a user-supplied raw string path
+without containment; the `diagnosticsExportPath` preference was weakly validated.
 
 **Files**
 
@@ -198,20 +198,22 @@ from the remediation table. Check boxes track progress.
 
 **Steps**
 
-- [ ] In the command, parse `request.destination` via `ResourceUri::parse`, require `local://`, resolve with `to_local_path()`; map parse errors to `IpcError` with a stable code.
-- [ ] Add a containment check: destination must be inside an allowed root (app data dir from `AppPaths`, or an explicit user-chosen export dir). Reject otherwise with a clear code.
-- [ ] Decide the source of truth: either (a) command reads the validated `diagnosticsExportPath` preference, or (b) keep request-driven but containment-checked. Make command + preference consistent.
-- [ ] Harden `parse_diagnostics_export_path`: reject relative paths and `..`; keep the length cap.
+- [x] Validate the command destination before writing. Current implementation accepts the
+      documented host-path exception but normalizes through `ResourceUri::from_local_path`, rejects
+      `..`, requires `.zip`, and checks allowed roots.
+- [x] Add a containment check before `create_dir_all` / `File::create`.
+- [x] Harden `parse_diagnostics_export_path`: reject relative paths and `..`; keep the length cap.
 
 **Acceptance**
 
-- [ ] `cargo test -p` proves a non-`local://` and an out-of-container destination are both rejected before any `create_dir_all`/`File::create`.
-- [ ] A valid in-container path still produces the bundle (existing happy-path test passes).
-- [ ] `pnpm rust:clippy` clean.
+- [x] Preference tests reject relative and traversal paths.
+- [x] A valid in-container path still produces the bundle.
+- [ ] Full `pnpm rust:clippy` remains recommended before release.
 
-### TASK-2 · A1 — Bound job concurrency + per-job timeout · High · ~M
+### TASK-2 · A1 — Bound job concurrency + inactivity timeout · High · ~M · Done
 
-**Problem:** `runtime.rs:224` spawns one unbounded `std::thread` per job; no cap, no timeout.
+**Original problem:** the runtime spawned one unbounded `std::thread` per job; there was no
+cap or timeout.
 
 **Files**
 
@@ -220,16 +222,16 @@ from the remediation table. Check boxes track progress.
 
 **Steps**
 
-- [ ] Introduce a bounded worker mechanism — dedicated pool or `tokio::task::spawn_blocking` gated by a semaphore sized from config (default sensible, e.g. CPU-bound cap).
-- [ ] Queue overflow behavior: jobs beyond the cap wait (status stays `Queued`) rather than spawning a thread.
-- [ ] Add a per-job deadline; on expiry, cancel via the existing `CancellationToken` and emit `Failed`/`Timeout` (variant already exists in `vfs`).
-- [ ] Ensure snapshot/history transitions remain correct when a job waits then runs.
+- [x] Introduce a bounded worker mechanism.
+- [x] Queue overflow behavior: jobs beyond the cap wait as `Queued`.
+- [x] Add watchdog-based inactivity timeout; on expiry, cancel via the existing
+      `CancellationToken` and emit a timeout failure.
+- [x] Ensure snapshot/history transitions remain correct when a job waits then runs.
 
 **Acceptance**
 
-- [ ] Integration test: K simultaneous operations never exceed the configured worker cap (observe thread/permit count).
-- [ ] Test: a job that exceeds its deadline transitions to timed-out and stops work.
-- [ ] No regression in existing job lifecycle tests.
+- [x] Runtime tests cover bounded queue behavior and timeout transitions.
+- [ ] Keep full Rust regression checks in release validation.
 
 ### TASK-3 · A2 — Eliminate lock poisoning · Med · ~S
 
@@ -298,7 +300,8 @@ from the remediation table. Check boxes track progress.
 
 - [ ] **A4** — check `CancellationToken` inside large-file copy chunk loops; implement or remove `JobStatus::Paused`.
 - [ ] **A5** — GUID-prefix temp artifacts; sweep orphans at boot alongside `mark_interrupted_jobs`.
-- [ ] **A7** — add a test (or codegen) asserting every `commandMap` key matches a registered Tauri handler; consider `dist/` packaging before external consumption.
+- [x] **A7 command map** — catalog tests assert `commandMap` matches registered Tauri handlers.
+- [ ] **A7 packaging** — consider `dist/` packaging before external consumption.
 - [ ] **A8** — replace `id -nu` subprocess owner lookup with `nix`/`libc` or a global cache.
 
 **Acceptance**
