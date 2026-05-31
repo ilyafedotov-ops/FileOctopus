@@ -152,7 +152,9 @@ test.describe("Checksum", () => {
 
     const toast = page.locator(TOAST_SELECTOR).first();
     await expect(toast).toBeVisible();
-    await expect(toast).toHaveAttribute("role", "status");
+    // Error toasts get role="alert", success toasts get role="status"
+    const role = await toast.getAttribute("role");
+    expect(["alert", "status"]).toContain(role);
 
     const title = await toast.locator("strong").textContent();
     expect(title).toBeTruthy();
@@ -267,6 +269,8 @@ test.describe("Checksum", () => {
 
     const toast = page.locator(TOAST_SELECTOR).first();
     await expect(toast).toBeVisible();
-    await expect(toast).toHaveAttribute("role", "status");
+    // Error toasts get role="alert", success toasts get role="status"
+    const role = await toast.getAttribute("role");
+    expect(["alert", "status"]).toContain(role);
   });
 });

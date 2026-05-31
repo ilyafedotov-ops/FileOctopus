@@ -112,3 +112,109 @@ test.describe("Visual Regression", () => {
     );
   });
 });
+
+// ---------------------------------------------------------------------------
+// Helper: apply theme + density via data attributes on <html>
+// ---------------------------------------------------------------------------
+async function applyThemeAndDensity(
+  page: import("@playwright/test").Page,
+  theme: string,
+  density: string,
+) {
+  await page.evaluate(
+    (opts) => {
+      document.documentElement.dataset.theme = opts.theme;
+      document.documentElement.dataset.density = opts.density;
+    },
+    { theme, density },
+  );
+  await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+  await expect(page.locator("html")).toHaveAttribute("data-density", density);
+}
+
+// ---------------------------------------------------------------------------
+// Commander-blue theme — full shell screenshot
+// ---------------------------------------------------------------------------
+test.describe("Commander-blue theme", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.waitForSelector(".fo-shell");
+    await page.waitForSelector("aside.fo-sidebar", { timeout: 15_000 });
+    await applyThemeAndDensity(page, "commander-blue", "comfortable");
+  });
+
+  test("commander-blue theme — shell", async ({ page }) => {
+    await expect(page.locator(".fo-shell")).toHaveScreenshot(
+      "shell-commander-blue-comfortable.png",
+      SNAPSHOT_OPTS,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Theme × Density matrix — key surfaces
+// ---------------------------------------------------------------------------
+const THEMES = ["light", "dark", "commander-blue"] as const;
+const DENSITIES = ["compact", "comfortable", "spacious"] as const;
+
+type SurfaceDef = {
+  name: string;
+  selector: string;
+  screenshot: (theme: string, density: string) => string;
+};
+
+const SURFACES: SurfaceDef[] = [
+  {
+    name: "shell",
+    selector: ".fo-shell",
+    screenshot: (t, d) => `shell-${t}-${d}.png`,
+  },
+  {
+    name: "sidebar",
+    selector: "aside.fo-sidebar",
+    screenshot: (t, d) => `sidebar-${t}-${d}.png`,
+  },
+  {
+    name: "toolbar",
+    selector: ".fo-operation-toolbar",
+    screenshot: (t, d) => `toolbar-${t}-${d}.png`,
+  },
+  {
+    name: "file table",
+    selector: ".fo-table-shell",
+    screenshot: (t, d) => `file-table-${t}-${d}.png`,
+  },
+  {
+    name: "status bar",
+    selector: "footer.fo-status",
+    screenshot: (t, d) => `status-bar-${t}-${d}.png`,
+  },
+];
+
+for (const theme of THEMES) {
+  for (const density of DENSITIES) {
+    test.describe(`${theme} theme × ${density} density`, () => {
+      test.beforeEach(async ({ page }) => {
+        await page.goto("/");
+        await page.waitForSelector(".fo-shell");
+        await page.waitForSelector("aside.fo-sidebar", {
+          timeout: 15_000,
+        });
+        await applyThemeAndDensity(page, theme, density);
+      });
+
+      test(`key surfaces`, async ({ page }) => {
+        for (const surface of SURFACES) {
+          await test.step(`${surface.name} — ${theme}/${density}`, async () => {
+            const loc = page.locator(surface.selector).first();
+            await expect(loc).toBeVisible();
+            await expect(loc).toHaveScreenshot(
+              surface.screenshot(theme, density),
+              SNAPSHOT_OPTS,
+            );
+          });
+        }
+      });
+    });
+  }
+}

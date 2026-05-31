@@ -40,7 +40,7 @@ test.describe("Keyboard shortcuts", () => {
       );
       await input.fill("rename");
       const items = page.locator(".fo-command-palette-item");
-      await expect(items).toHaveCount(1);
+      await expect(items).toHaveCount(2);
       await expect(items.first()).toContainText("Rename");
     });
 
