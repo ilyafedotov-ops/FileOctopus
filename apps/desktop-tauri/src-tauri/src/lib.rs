@@ -57,7 +57,7 @@ pub fn run() {
                             ("error".to_string(), Some(message))
                         }
                     };
-                    crate::emit::emit_with_eval(
+                    crate::emit::emit_event(
                         &app_handle,
                         NETWORK_STATUS_EVENT,
                         NetworkStatusEventDto {

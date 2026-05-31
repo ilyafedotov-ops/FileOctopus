@@ -6,7 +6,7 @@ The desktop shell is the **only place Rust and TypeScript meet at runtime**. It 
 
 - Frontend entry: `apps/desktop-tauri/src/{main,App,App.css}.tsx`
 - Rust entry: `apps/desktop-tauri/src-tauri/src/lib.rs` (thin; ~70 lines)
-- Command modules: `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,folder_size,recursive_search,watch,preferences,autostart,navigation,file_operations,diagnostics}.rs`
+- Command modules: `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,git,folder_size,recursive_search,content_search,watch,preferences,autostart,navigation,network,file_operations,diagnostics,acl,compare,plugin,sync,terminal}.rs`
 - Shared shell state: `state.rs` (listing sessions, watch handles, metadata jobs), `emit.rs` (directory + job event helpers)
 - Manifest: `apps/desktop-tauri/src-tauri/Cargo.toml` (binary crate `fileoctopus-desktop`)
 - Tauri config: `apps/desktop-tauri/src-tauri/tauri.conf.json`
@@ -53,12 +53,12 @@ The privileged API is the union of every function listed in `generate_handler!` 
 | `commands/file_operations.rs`  | `plan_file_operation`, `start_file_operation`, `cancel_job`, …                                            |
 | `commands/diagnostics.rs`      | `diagnostics_app_data_health`, `export_diagnostics_bundle`                                                |
 | `commands/git.rs`              | `git_discover`, `git_status_for_directory`                                                                |
-| `commands/terminal.rs`         | `fs_open_terminal`, `terminal_create`, `terminal_write`, …                                                |
+| `commands/terminal.rs`         | `terminal_spawn`, `terminal_write`, `terminal_resize`, `terminal_kill`                                    |
 | `commands/acl.rs`              | `fs_get_acl`, `fs_set_acl`                                                                                |
 | `commands/compare.rs`          | `fs_diff_text`                                                                                            |
 | `commands/sync.rs`             | `fs_sync_directories`                                                                                     |
 | `commands/content_search.rs`   | Content search across files                                                                               |
-| `commands/network.rs`          | `network_connect_server`, `network_disconnect`, …                                                         |
+| `commands/network.rs`          | `network_connect`, `network_disconnect`, `network_profiles_list`, …                                       |
 | `commands/plugin.rs`           | `plugin_list`, `plugin_install`, `plugin_uninstall`, …                                                    |
 
 For dotted IPC names, request/response DTOs, and the authoritative row-by-row registry, see [api-reference.md §Tauri command catalog](../api-reference.md#tauri-command-catalog).
@@ -101,8 +101,8 @@ The sink is `Arc<FileOperationEventSink>`; `OperationRuntime::start` clones it i
 
 - `productName: "FileOctopus"`, `identifier: "com.fileoctopus.desktop"`, version pinned to `0.1.0`.
 - `build.beforeDevCommand = "pnpm dev"`, `devUrl = "http://localhost:1420"`, `beforeBuildCommand = "pnpm build"`, `frontendDist = "../dist"`.
-- A single window at 800×600 with title `"FileOctopus"`.
-- `security.csp = null` for now. Hardening the CSP is on the post-MVP backlog.
+- A single undecorated window at 1280×800 with title `"FileOctopus"`.
+- `security.csp` is explicit: self/tauri/ipc/asset sources, data images, inline styles for the current CSS pipeline, and self-only scripts.
 - `bundle.targets = "all"` with bundled icons.
 
 ## Capabilities
@@ -115,11 +115,19 @@ The sink is `Arc<FileOperationEventSink>`; `OperationRuntime::start` clones it i
   "identifier": "default",
   "description": "Capability for the main window",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "autostart:default",
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-start-dragging"
+  ]
 }
 ```
 
-Only `core:default` is granted. There is **no** `tauri-plugin-fs` permission, **no** `tauri-plugin-shell`, **no** `tauri-plugin-dialog`. This is the surface ADR-0002 was written to lock down — every filesystem effect must be a registered command we control, not a plugin-provided capability the frontend could invoke directly.
+The granted permissions cover core IPC/events, autostart, and the custom window controls used by the undecorated title bar. There is **no** `tauri-plugin-fs` permission, **no** `tauri-plugin-shell`, **no** `tauri-plugin-dialog`. This is the surface ADR-0002 was written to lock down — every filesystem effect must be a registered command we control, not a plugin-provided capability the frontend could invoke directly.
 
 Adding a capability requires:
 
@@ -129,11 +137,11 @@ Adding a capability requires:
 
 ## Frontend bridge
 
-`apps/desktop-tauri/src/App.tsx` is one line:
+`apps/desktop-tauri/src/App.tsx` is intentionally thin: it imports shared UI tokens/styles, renders `FileOctopusShell`, and passes window-control callbacks backed by `@tauri-apps/api/window`.
 
 ```tsx
 export default function App() {
-  return <FileOctopusShell />;
+  return <FileOctopusShell onRequestExit={...} onRequestMinimize={...} onRequestToggleMaximize={...} />;
 }
 ```
 

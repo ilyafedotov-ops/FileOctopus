@@ -1,46 +1,32 @@
 # `@fileoctopus/ui` — Shared UI primitives
 
-`packages/ui` is the home for cross-package React primitives. Today it contains only one component, `ShellPanel`, but the package exists to give future shared UI a place to live without forcing every consumer to depend on the full product shell in `@fileoctopus/frontend`.
+`packages/ui` is the home for cross-package React primitives, icons, class-name helpers, and shared design-token CSS. `@fileoctopus/frontend` consumes it broadly for buttons, toolbar controls, menus, breadcrumbs, search inputs, icons, and shared CSS entry points.
 
 - Source: `packages/ui/src/index.tsx`
 - Depends on: `react` (peer).
-- Used by: future product surfaces. **Not currently consumed by `@fileoctopus/frontend`** — the frontend renders its own panel chrome inline. The package is part of the `pnpm dev` build chain (built after `ts-api`, before `frontend`) to keep the dependency graph honest.
+- Used by: `@fileoctopus/frontend` and `apps/desktop-tauri/src/App.tsx` style imports. The package is part of the `pnpm dev` build chain (built after `ts-api`, before `frontend`) so workspace consumers have a stable primitive layer.
 
 ## Public surface
 
-```tsx
-export interface ShellPanelProps {
-  title: string;
-  active?: boolean;
-  children?: ReactNode;
-}
-
-export function ShellPanel({
-  title,
-  active = false,
-  children,
-}: ShellPanelProps): JSX.Element;
-```
-
-Renders a `<section>` with the `fo-panel` / `fo-panel-active` class names (matching the styling in `apps/desktop-tauri/src/App.css`) and a small header that shows the title and `Ready` / `Active` state.
+The package exports shared primitives such as `Button`, `IconButton`, `ToolbarButton`, `DropdownMenu`, `MenuSurface`, `SearchInput`, `BreadcrumbPath`, `Icons`, `cx`, and `fileEntryIcon`. It also exposes `tokens.css` and `components.css` for the desktop shell to import once.
 
 ## Why a separate package
 
-Two reasons it earns its keep even at one component:
+The package earns its keep for two reasons:
 
-1. **Lower bar for cross-shell reuse.** When a CLI inspection UI or a settings shell is added, it can pull in `ShellPanel` (and future siblings) without inheriting the React 19 + Vitest stack of `@fileoctopus/frontend`.
-2. **Stable design tokens.** Centralizing class names like `fo-panel-active` here makes it easier to keep the design system coherent. Today the names are hardcoded; the long-term plan is to thread them through a small token export.
+1. **Lower bar for cross-shell reuse.** Shared primitives can be reused without importing the full product shell in `@fileoctopus/frontend`.
+2. **Stable design tokens.** Centralizing tokens and common component frames keeps menus, dialogs, toolbars, and controls visually coherent across feature work.
 
 ## Conventions
 
 - **Stateless, presentational only.** Components here must not manage state or perform IPC. If you find yourself reaching for `useState` or `@fileoctopus/ts-api`, the component belongs in `@fileoctopus/frontend`.
-- **No global CSS imports.** Class names are emitted as strings; styles live in the consuming app (today: `apps/desktop-tauri/src/App.css`).
+- **CSS entry points stay explicit.** Consumers import `@fileoctopus/ui/tokens.css` and `@fileoctopus/ui/components.css` once at the app boundary.
 - **Forward refs and props.** Future primitives should accept standard HTML props (`...rest`) so consumers can wire ARIA attributes and event handlers without wrappers.
 - **Tree-shakeable exports.** Add each component as a named export; do not introduce default exports or barrel files that defeat tree shaking.
 
 ## Tests
 
-No co-located tests today. Tests will live under `packages/ui/tests/*.test.tsx` (Vitest + `@testing-library/react`) when the package grows.
+Tests live under `packages/ui/tests/*.test.tsx` (Vitest + `@testing-library/react`).
 
 Run with `pnpm --filter @fileoctopus/ui test`.
 

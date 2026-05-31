@@ -11,15 +11,12 @@ import { useNetworkHandlers } from "../hooks/useNetworkHandlers";
 import { useCommandDispatch } from "../hooks/useCommandDispatch";
 import type { CommandEntry } from "../components/CommandPalette";
 import { isPreviewable, isTextPreviewable } from "../components/PreviewPanel";
-import type { FilePanelProps } from "../pane/FilePanel";
 import { ShellLayout } from "../shell/ShellLayout";
 import { buildPaletteEntries } from "../commands/paletteEntries";
-import { buildPaneLocationTargets } from "../navigation/driveTargets";
-import type { FileEntryDto } from "@fileoctopus/ts-api";
-import { isRemoteUri, profileIdFromRemoteUri } from "@fileoctopus/ts-api";
 
 import { hasRunningPaneSessions } from "../terminal/terminalSlice";
 import { DebugConsolePanel } from "../dev/DebugConsolePanel";
+import { buildFilePanelProps } from "./filePanelProps";
 import {
   AppProviders,
   useJobs,
@@ -717,126 +714,33 @@ function FileOctopusAppInner({
     onCustomizeToolbar: () => handleCommandSelect("app.customizeToolbar"),
   });
 
-  function makeFilePanelProps(pid: "left" | "right"): FilePanelProps {
-    const tab = activeTab(state.panels[pid]);
-    const locationTargets = buildPaneLocationTargets({
+  function makeFilePanelProps(pid: "left" | "right") {
+    return buildFilePanelProps(pid, {
+      state,
       locations,
       networkProfiles,
       networkStatuses,
       favorites,
       starred,
       recentEntries: [...recentToday, ...recentWeek],
-    });
-    const runPanel = (
-      commandId: string,
-      context?: import("../commands/invokeContext").CommandInvokeArg,
-    ) => handleCommandSelect(commandId, pid, context);
-
-    return {
-      panelId: pid,
-      title: pid === "left" ? "Left" : "Right",
-      tab,
-      active: state.activePanelId === pid,
-      onActivate: () => dispatch({ type: "setActivePanel", panelId: pid }),
-      onNavigate: (uri) => navigatePanel(pid, uri),
-      locationTargets,
-      onSelect: (entryId) =>
-        dispatch({ type: "setSelection", panelId: pid, entryId }),
-      onEntrySelect: (entryId, mode) =>
-        dispatch({ type: "selectEntry", panelId: pid, entryId, mode }),
-      onCreateFolder: () => runPanel("create.folder"),
-      onCreateFile: () => runPanel("create.file"),
-      onPaste: () => runPanel("op.paste"),
-      onProperties: (entry) => handleCommandSelect("op.properties", pid, entry),
-      onReveal: (entry) => void revealEntry(pid, entry),
-      onRefresh: () => runPanel("nav.refresh"),
-      onMove: (delta) =>
-        dispatch({ type: "moveSelection", panelId: pid, delta }),
-      onSort: (field) => runPanel("view.sort", { sortField: field }),
-      onFilter: (filter) =>
-        dispatch({ type: "setFilter", panelId: pid, filter }),
-      onRecursiveQuery: (query) =>
-        dispatch({ type: "setRecursiveQuery", panelId: pid, query }),
-      onRecursiveSearch: () => void runRecursiveSearch(pid),
-      canPaste: Boolean(clipboard),
-      onEntryActivate: (entry) => activateEntry(pid, entry),
+      clipboard,
       pathFocusToken,
       renameFocusToken,
       filterFocusToken,
       recursiveSearchFocusToken,
       rowHeight,
-      search: search?.panelId === pid ? search : null,
-      onContextMenu: setContextMenu,
-      onBreadcrumbContextMenu: (path, event) => {
-        event.preventDefault();
-        setContextMenu({
-          panelId: pid,
-          x: event.clientX,
-          y: event.clientY,
-          entry: null,
-          breadcrumbPath: path,
-        });
-      },
-      onSubmitInlineRename: (entryUri, newName) => {
-        const entry = tab.entriesById[entryUri];
-        if (entry) {
-          void submitInlineRename(pid, entry, newName);
-        }
-      },
-      onDropFiles: (sourceUris, sourcePanelId, destinationUri, kind) => {
-        if (!sourcePanelId) return;
-        const sourceTab = activeTab(state.panels[sourcePanelId]);
-        const entries = sourceUris
-          .map((uri) => sourceTab.entriesById[uri])
-          .filter(Boolean) as FileEntryDto[];
-        if (entries.length === 0) return;
-        const advancedOptions = preferences?.showAdvancedCopyOptions === true;
-        setDialog({
-          type: "copyMove",
-          panelId: sourcePanelId,
-          kind,
-          entries,
-          destination: destinationUri,
-          conflictPolicy: "fail",
-          advancedOptions,
-          planningEnabled: false,
-          plan: null,
-          planning: false,
-          step: "review",
-          error: null,
-        });
-      },
-      onEditNetworkCredentials: isRemoteUri(tab.uri)
-        ? () => {
-            const profileId = profileIdFromRemoteUri(tab.uri);
-            const profile = networkProfiles.find(
-              (item) => item.id === profileId,
-            );
-            if (profile) {
-              handleCommandSelect("nav.connectServer", pid, {
-                networkProfile: profile,
-              });
-            }
-          }
-        : undefined,
-      panel: state.panels[pid],
-      onSwitchTab: (panelId, tabId) =>
-        dispatch({ type: "switchTab", panelId, tabId }),
-      onCloseTab: (panelId, tabId) =>
-        dispatch({ type: "closeTab", panelId, tabId }),
-      onOpenTab: (panelId) =>
-        dispatch({
-          type: "openTab",
-          panelId,
-          uri: activeTab(state.panels[panelId]).uri,
-        }),
-      onOpenTerminal: () => {
-        dispatch({ type: "setActivePanel", panelId: pid });
-        handleCommandSelect("op.openTerminal", pid);
-      },
-      terminalDisabled: false,
-      fileTypeColorRules: preferences?.fileTypeColorRules,
-    };
+      search,
+      preferences,
+      dispatch,
+      navigatePanel,
+      handleCommandSelect,
+      revealEntry,
+      activateEntry,
+      runRecursiveSearch,
+      setContextMenu,
+      setDialog,
+      submitInlineRename,
+    });
   }
 
   return (

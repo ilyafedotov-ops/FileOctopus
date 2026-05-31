@@ -162,7 +162,7 @@ pub(crate) fn native_menu_command(id: &str) -> Option<NativeMenuCommandEventDto>
 
 pub(crate) fn handle_native_menu_event(app: &AppHandle, id: &str) {
     if let Some(command) = native_menu_command(id) {
-        crate::emit::emit_with_eval(app, NATIVE_MENU_COMMAND_EVENT, command);
+        crate::emit::emit_event(app, NATIVE_MENU_COMMAND_EVENT, command);
     }
 }
 

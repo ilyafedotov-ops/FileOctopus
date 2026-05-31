@@ -11,7 +11,7 @@ use app_ipc::{
 use jobs::JobEvent;
 use tauri::{AppHandle, State};
 
-use crate::emit::emit_with_eval;
+use crate::emit::emit_event;
 use crate::state::{cancel_metadata_job, metadata_job_snapshot, MetadataJobState};
 
 #[tauri::command]
@@ -39,7 +39,7 @@ pub async fn start_file_operation(
     let sink = Arc::new(move |event: JobEvent| {
         let name = job_event_name(&event);
         let payload = job_event_payload(event);
-        emit_with_eval(&sink_app, name, payload);
+        emit_event(&sink_app, name, payload);
     });
     let job = state
         .operations()

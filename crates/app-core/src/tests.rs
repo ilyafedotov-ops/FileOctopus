@@ -204,6 +204,40 @@ fn boot_registers_s3_provider_when_network_is_enabled() {
 }
 
 #[test]
+fn boot_registers_each_cataloged_network_provider_when_network_is_enabled() {
+    let _env_guard = crate::ENV_LOCK.lock().unwrap();
+    let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();
+    std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", "1");
+    let dir = tempfile::tempdir().unwrap();
+    let paths = AppPaths {
+        config_dir: dir.path().join("config"),
+        data_dir: dir.path().join("data"),
+        log_dir: dir.path().join("logs"),
+        history_db: dir.path().join("history.sqlite"),
+        preferences_db: dir.path().join("preferences.sqlite"),
+        navigation_db: dir.path().join("navigation.sqlite"),
+        network_db: dir.path().join("network.sqlite"),
+    };
+    let state = AppCore::boot_with_paths(paths).unwrap();
+
+    for scheme in crate::network_provider_schemes() {
+        let uri = ResourceUri::parse(&format!(
+            "{}://550e8400-e29b-41d4-a716-446655440000/",
+            scheme
+        ))
+        .unwrap();
+        let provider = state.vfs().provider_for(&uri).unwrap();
+        assert_eq!(provider.id().as_str(), scheme);
+    }
+
+    if let Some(value) = previous {
+        std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", value);
+    } else {
+        std::env::remove_var("FILEOCTOPUS_ENABLE_NETWORK");
+    }
+}
+
+#[test]
 fn boot_does_not_register_sftp_provider_when_network_is_disabled() {
     let _env_guard = crate::ENV_LOCK.lock().unwrap();
     let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();

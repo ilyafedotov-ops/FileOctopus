@@ -7,7 +7,7 @@ use chrono::Utc;
 use tauri::{AppHandle, State};
 use vfs::ResourceUri;
 
-use crate::emit::emit_with_eval;
+use crate::emit::emit_event;
 use crate::state::{WatchRuntime, WatchState};
 
 #[tauri::command]
@@ -39,7 +39,7 @@ pub async fn fs_watch_start(
 
             if current != previous {
                 previous = current;
-                emit_with_eval(
+                emit_event(
                     &app,
                     WATCH_CHANGED_EVENT,
                     WatchEventDto {

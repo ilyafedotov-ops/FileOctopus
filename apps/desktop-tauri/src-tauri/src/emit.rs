@@ -37,7 +37,7 @@ fn eval_event_js(event: &str, payload_json: &str) -> String {
     )
 }
 
-fn emit_with_eval_on_webview<S: serde::Serialize + Clone>(
+fn emit_event_on_webview<S: serde::Serialize + Clone>(
     app: &AppHandle,
     window_label: &str,
     event: &str,
@@ -56,7 +56,7 @@ fn emit_with_eval_on_webview<S: serde::Serialize + Clone>(
         let json = match serde_json::to_string(&payload) {
             Ok(j) => j,
             Err(e) => {
-                telemetry::error(&format!("emit_with_eval: failed to serialize {event}: {e}"));
+                telemetry::error(&format!("emit_event: failed to serialize {event}: {e}"));
                 return;
             }
         };
@@ -66,7 +66,7 @@ fn emit_with_eval_on_webview<S: serde::Serialize + Clone>(
         let js = eval_event_js(event, &json);
         if let Err(e) = webview.eval(&js) {
             telemetry::error(&format!(
-                "emit_with_eval: webview.eval failed for {event} on {window_label}: {e}"
+                "emit_event: webview.eval failed for {event} on {window_label}: {e}"
             ));
         }
     }
@@ -79,25 +79,30 @@ fn emit_with_eval_on_webview<S: serde::Serialize + Clone>(
 /// then dispatches a `fo-event-<name>` CustomEvent for redundancy. A
 /// `setTimeout(0)` defers delivery one macrotask so any in-flight `invoke()`
 /// response promise resolves first (avoiding a sessionId race in panel state).
-pub(crate) fn emit_with_eval<S: serde::Serialize + Clone>(
-    app: &AppHandle,
-    event: &str,
-    payload: S,
-) {
-    emit_with_eval_on_webview(app, "main", event, payload);
+pub(crate) fn emit_event<S: serde::Serialize + Clone>(app: &AppHandle, event: &str, payload: S) {
+    emit_event_on_webview(app, "main", event, payload);
 }
 
-pub(crate) fn emit_with_eval_to<S: serde::Serialize + Clone>(
+pub(crate) fn emit_event_to<S: serde::Serialize + Clone>(
     app: &AppHandle,
     window_label: &str,
     event: &str,
     payload: S,
 ) {
-    emit_with_eval_on_webview(app, window_label, event, payload);
+    emit_event_on_webview(app, window_label, event, payload);
 }
 
 pub(crate) fn emit_job(app: &AppHandle, event: JobEvent) {
     let name = job_event_name(&event);
     let payload = job_event_payload(event);
-    emit_with_eval(app, name, payload);
+    emit_event(app, name, payload);
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn exposes_platform_neutral_emit_entrypoint() {
+        let _: fn(&tauri::AppHandle, &str, serde_json::Value) =
+            super::emit_event::<serde_json::Value>;
+    }
 }

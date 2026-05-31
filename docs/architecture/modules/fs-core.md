@@ -1,9 +1,9 @@
 # `fs-core` — Local filesystem provider and operation pipeline
 
-`crates/fs-core` is where FileOctopus actually touches the disk. It supplies the only registered `VfsProvider` today (`LocalFsProvider`) and the planner/executor for every file-mutating operation. Everything privileged that the desktop shell does goes through this crate.
+`crates/fs-core` owns local filesystem I/O plus the provider-neutral planner/executor for file-mutating operations. Local disk access is implemented by `LocalFsProvider`; remote schemes are supplied by provider crates registered in `app-core`. Everything privileged that the desktop shell does goes through Rust commands that call this crate or the VFS registry.
 
 - Source: `crates/fs-core/src/lib.rs`, `crates/fs-core/src/file_ops/{mod,planning,execution,archive,trash,paths,tests}.rs`, plus `metadata.rs`, `search.rs`, `locations.rs`, `external_open.rs`, `direct_ops.rs`, `compare.rs`, `content_search.rs`, `sync.rs`, `vfs_io.rs`
-- Depends on: `vfs`, `jobs`, `chrono`, `filetime`, `uuid`, `tokio` (for `spawn_blocking`).
+- Depends on: `vfs`, `jobs`, `remote-core`, `provider-sftp`, `chrono`, `filetime`, `uuid`, `tokio` (for `spawn_blocking`).
 - Used by: `app-core` (which wraps `OperationRuntime` around the planner/executor), Tauri `commands/*`, and integration tests.
 
 The crate splits **read-side** (`lib.rs`, `LocalFsProvider`) from **mutation-side** (`file_ops/`) and **direct helpers** used by IPC commands that are not planned jobs:
@@ -25,13 +25,19 @@ The crate splits **read-side** (`lib.rs`, `LocalFsProvider`) from **mutation-sid
 impl VfsProvider for LocalFsProvider {
     fn id(&self) -> ProviderId { ProviderId::new("local") }
     fn schemes(&self) -> &'static [&'static str] { &["local"] }
-    fn capabilities(&self) -> ProviderCapabilities { ProviderCapabilities::read_only() }
+    fn capabilities(&self) -> ProviderCapabilities { ProviderCapabilities::read_write() }
     async fn stat(&self, uri: &ResourceUri) -> Result<FileEntry, VfsError>;
     async fn list(&self, uri: &ResourceUri, options: ListOptions, sink: DirectorySink) -> Result<(), VfsError>;
+    async fn create_directory(&self, uri: &ResourceUri) -> Result<(), VfsError>;
+    async fn create_file(&self, uri: &ResourceUri) -> Result<(), VfsError>;
+    async fn rename(&self, from: &ResourceUri, to: &ResourceUri) -> Result<(), VfsError>;
+    async fn remove(&self, uri: &ResourceUri, recursive: bool) -> Result<(), VfsError>;
+    async fn copy_file(&self, source: &ResourceUri, destination: &ResourceUri, on_progress: Box<dyn FnMut(u64) + Send>) -> Result<u64, VfsError>;
+    async fn read_file_prefix(&self, uri: &ResourceUri, max_bytes: u64) -> Result<Vec<u8>, VfsError>;
 }
 ```
 
-`capabilities()` reports `read_only()` even though the workspace supports mutation — mutation does not flow through the provider trait, it flows through `file_ops`. The provider itself is read-only by design; when a second provider needs writes, the trait will grow.
+`capabilities()` reports `read_write()` because single-provider writes now live on the provider trait. The operation pipeline still owns planning, conflict policy, cancellation, progress, and history.
 
 ### Read-side responsibilities
 
@@ -105,7 +111,7 @@ Shape and basename validation reject empty names, names containing `/`, `\`, `\0
 
 Per-kind specifics:
 
-- **Copy** (`execute_copy`) — recreates directory hierarchy with `fs::create_dir_all`, streams files via `copy_file_streaming` (`COPY_BUFFER_SIZE = 64 KiB`), and preserves `mtime` with `filetime`.
+- **Copy** (`execute_copy`) — recreates directory hierarchy through `VfsFilesystem::mkdir`. Local-to-local file copies stream via `copy_file_streaming` (`COPY_BUFFER_SIZE = 64 KiB`) and preserve `mtime` with `filetime`; same-scheme provider copies call the registered provider's `copy_file`; local↔SFTP cross-scheme copies remain the explicit cross-provider bridge.
 - **Move** (`execute_move`) — for single-source moves, tries `fs::rename` first. If the destination is on another device the error is detected and the executor falls back to `execute_copy` + per-source delete. Multi-source moves always go copy+delete.
 - **Rename** (`execute_rename`) — pure `fs::rename`. Returns `DestinationConflict` if the destination already exists; conflict policies do not apply here (the planner enforced that exactly one source / one new name was provided).
 - **CreateDirectory** (`execute_create_directory`) — `fs::create_dir`. Fails if the destination already exists or its parent does not.
@@ -154,3 +160,4 @@ Run with `cargo test -p fs-core`.
 - **No `unwrap`/`expect` on user-reachable paths.** All such cases must map to a `FileOperationError` with a stable `code()`.
 - **Planner is pure.** It may read filesystem metadata, but it must not mutate. The executor is the only place that calls `fs::create_*`, `fs::rename`, `fs::remove_*`, or `move_to_trash`.
 - **Symmetric errors.** Whenever a new failure mode is introduced, extend the appropriate `FileOperationError` variant in `crates/vfs` rather than reusing `Internal`.
+- **Provider-neutral planning.** Same-scheme remote copy planning must use the registered `VfsProvider` for `stat`/`list`; do not add scheme-specific tree walkers for new providers.

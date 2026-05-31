@@ -12,7 +12,7 @@ use jobs::{
 use tauri::{AppHandle, State};
 use vfs::{FileOperationError, FileOperationKind, ResourceUri};
 
-use crate::emit::{emit_job, emit_with_eval};
+use crate::emit::{emit_event, emit_job};
 use crate::state::{
     metadata_job_token, set_metadata_job_status, start_metadata_job, update_metadata_job_progress,
     MetadataJobState,
@@ -82,7 +82,7 @@ pub async fn fs_recursive_search_start(
                     result.matches.len() as u64,
                     0,
                 );
-                emit_with_eval(
+                emit_event(
                     &progress_app,
                     RECURSIVE_SEARCH_MATCH_EVENT,
                     RecursiveSearchMatchEventDto {
@@ -104,7 +104,7 @@ pub async fn fs_recursive_search_start(
                     None,
                     None,
                 );
-                emit_with_eval(
+                emit_event(
                     &app,
                     RECURSIVE_SEARCH_COMPLETED_EVENT,
                     RecursiveSearchCompletedEventDto {

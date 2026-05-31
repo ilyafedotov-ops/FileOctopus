@@ -1,9 +1,8 @@
 //! `VfsFilesystem` orchestrates cross-scheme file operations and exposes
 //! single-URI write helpers as thin facades over `VfsProvider` trait methods.
-//! Per-scheme write logic lives on `LocalFsProvider` and `SftpProvider`;
-//! this file only owns cross-scheme copy orchestration and a handful of
-//! local-only helpers (range reads, atomic writes) that aren't yet on the
-//! trait.
+//! Per-scheme write logic lives on `VfsProvider` implementations; this file
+//! only owns cross-scheme copy orchestration and a handful of local-only
+//! helpers (range reads, atomic writes) that aren't yet on the trait.
 
 use std::fs::{self, File};
 use std::io::{Read, Seek, SeekFrom, Write};
@@ -11,11 +10,16 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use provider_sftp::{
-    download_file_blocking, list_directory_blocking, stat_path_blocking, upload_file_blocking,
-    SftpSession,
+    download_file_blocking, list_directory_blocking, upload_file_blocking, SftpSession,
 };
 use remote_core::ConnectionSessionManager;
-use vfs::{FileKind, FileOperationError, ResourceUri, VfsRegistry};
+use vfs::{DirectoryBatch, FileEntry, FileKind, FileOperationError, ResourceUri, VfsRegistry};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CrossSchemeTransfer {
+    LocalToSftp,
+    SftpToLocal,
+}
 
 #[derive(Clone)]
 pub struct VfsFilesystem {
@@ -48,11 +52,9 @@ impl VfsFilesystem {
                 Ok(())
             }
             scheme if vfs::REMOTE_SCHEMES.contains(&scheme) => {
-                if self.sessions.is_none() {
-                    return Err(FileOperationError::UnsupportedProvider {
-                        scheme: scheme.to_string(),
-                    });
-                }
+                self.registry
+                    .provider_for(uri)
+                    .map_err(FileOperationError::from)?;
                 uri.remote_authority()
                     .ok_or_else(|| FileOperationError::InvalidPath {
                         uri: uri.as_str().to_string(),
@@ -81,11 +83,7 @@ impl VfsFilesystem {
             return Ok(file_kind(&metadata));
         }
 
-        let session = self.sftp_session(uri)?;
-        let remote_path = remote_path(uri)?;
-        let entry =
-            stat_path_blocking(&session, uri, &remote_path).map_err(FileOperationError::from)?;
-        Ok(entry.kind)
+        Ok(self.stat_entry(uri)?.kind)
     }
 
     pub fn file_size(&self, uri: &ResourceUri) -> Result<u64, FileOperationError> {
@@ -95,11 +93,55 @@ impl VfsFilesystem {
             return Ok(metadata.len());
         }
 
-        let session = self.sftp_session(uri)?;
-        let remote_path = remote_path(uri)?;
-        let entry =
-            stat_path_blocking(&session, uri, &remote_path).map_err(FileOperationError::from)?;
-        Ok(entry.size.unwrap_or(0))
+        Ok(self.stat_entry(uri)?.size.unwrap_or(0))
+    }
+
+    fn stat_entry(&self, uri: &ResourceUri) -> Result<FileEntry, FileOperationError> {
+        let provider = self
+            .registry
+            .provider_for(uri)
+            .map_err(FileOperationError::from)?;
+        let uri_clone = uri.clone();
+        block_on_vfs(async move { provider.stat(&uri_clone).await })
+    }
+
+    fn list_entries(&self, uri: &ResourceUri) -> Result<Vec<FileEntry>, FileOperationError> {
+        let provider = self
+            .registry
+            .provider_for(uri)
+            .map_err(FileOperationError::from)?;
+        let uri_clone = uri.clone();
+        block_on_vfs(async move {
+            let (sender, mut receiver) = tokio::sync::mpsc::channel::<DirectoryBatch>(16);
+            let request_uri = uri_clone.clone();
+            let drain = tokio::spawn(async move {
+                let mut entries = Vec::new();
+                while let Some(batch) = receiver.recv().await {
+                    entries.extend(batch.entries);
+                    if batch.is_complete {
+                        break;
+                    }
+                }
+                entries
+            });
+
+            provider
+                .list(
+                    &request_uri,
+                    vfs::ListOptions {
+                        session_id: vfs::ListSessionId::new("provider-neutral-plan"),
+                        request_id: "provider-neutral-plan".to_string(),
+                        batch_size: 256,
+                        include_hidden: false,
+                        cancel: vfs::ListCancellation::new(),
+                    },
+                    sender,
+                )
+                .await?;
+            drain.await.map_err(|error| vfs::VfsError::Internal {
+                message: format!("provider list drain failed: {error}"),
+            })
+        })
     }
 
     pub fn read_file_prefix(
@@ -318,8 +360,8 @@ impl VfsFilesystem {
         destination: &ResourceUri,
         on_progress: impl FnMut(u64),
     ) -> Result<u64, FileOperationError> {
-        match (source.scheme(), destination.scheme()) {
-            ("local", "sftp") => {
+        match cross_scheme_transfer_for(source, destination)? {
+            CrossSchemeTransfer::LocalToSftp => {
                 let from = source.to_local_path()?;
                 let session = self.sftp_session(destination)?;
                 let dest_path = remote_path(destination)?;
@@ -327,7 +369,7 @@ impl VfsFilesystem {
                 upload_file_blocking(&session, destination, &dest_path, file, on_progress)
                     .map_err(FileOperationError::from)
             }
-            ("sftp", "local") => {
+            CrossSchemeTransfer::SftpToLocal => {
                 let to = destination.to_local_path()?;
                 if let Some(parent) = to.parent() {
                     fs::create_dir_all(parent).map_err(|error| map_local_io(destination, error))?;
@@ -338,9 +380,6 @@ impl VfsFilesystem {
                 download_file_blocking(&session, source, &source_path, file, on_progress)
                     .map_err(FileOperationError::from)
             }
-            (from, to) => Err(FileOperationError::UnsupportedProvider {
-                scheme: format!("{from}->{to}"),
-            }),
         }
     }
 
@@ -400,66 +439,54 @@ impl VfsFilesystem {
             return collect_local_copy_items(source, destination_dir, warnings);
         }
 
-        if source.scheme() == "sftp" && destination_dir.scheme() == "sftp" {
-            return self.collect_sftp_copy_items(source, destination_dir, warnings);
+        if source.scheme() == destination_dir.scheme() {
+            return self.collect_provider_copy_items(source, destination_dir, warnings);
         }
 
-        if source.scheme() == "local" && destination_dir.scheme() == "sftp" {
-            return collect_local_to_remote_copy_items(self, source, destination_dir, warnings);
+        match cross_scheme_transfer_for(source, destination_dir)? {
+            CrossSchemeTransfer::LocalToSftp => {
+                collect_local_to_remote_copy_items(self, source, destination_dir, warnings)
+            }
+            CrossSchemeTransfer::SftpToLocal => {
+                collect_remote_to_local_copy_items(self, source, destination_dir, warnings)
+            }
         }
-
-        if source.scheme() == "sftp" && destination_dir.scheme() == "local" {
-            return collect_remote_to_local_copy_items(self, source, destination_dir, warnings);
-        }
-
-        Err(FileOperationError::UnsupportedProvider {
-            scheme: format!("{}->{}", source.scheme(), destination_dir.scheme()),
-        })
     }
 
-    fn collect_sftp_copy_items(
+    fn collect_provider_copy_items(
         &self,
         source: &ResourceUri,
         destination_dir: &ResourceUri,
         warnings: &mut Vec<vfs::FileOperationWarning>,
     ) -> Result<Vec<vfs::FileOperationItem>, FileOperationError> {
-        let session = self.sftp_session(source)?;
-        let source_path = remote_path(source)?;
         let dest_profile = destination_dir
             .remote_authority()
             .ok_or_else(|| invalid_path(destination_dir))?;
-        let dest_base = remote_path(destination_dir)?;
+        let source_path = remote_path(source)?;
+        let source_name = remote_basename(&source_path, "source");
+        let dest_base = join_remote(&remote_path(destination_dir)?, &source_name);
         let mut items = Vec::new();
-        self.walk_sftp_copy(
-            &session,
-            source,
-            &source_path,
-            dest_profile,
-            &dest_base,
-            &mut items,
-            warnings,
-        )?;
+        self.walk_provider_copy(source, dest_profile, &dest_base, &mut items, warnings)?;
         Ok(items)
     }
 
     #[allow(clippy::too_many_arguments)]
-    fn walk_sftp_copy(
+    fn walk_provider_copy(
         &self,
-        session: &SftpSession,
         source_uri: &ResourceUri,
-        source_path: &str,
         dest_profile: &str,
         dest_path: &str,
         items: &mut Vec<vfs::FileOperationItem>,
         warnings: &mut Vec<vfs::FileOperationWarning>,
     ) -> Result<(), FileOperationError> {
-        let kind = self.stat_kind(source_uri)?;
+        let entry = self.stat_entry(source_uri)?;
+        let kind = entry.kind;
 
         if kind == FileKind::Directory {
-            let entries = list_directory_blocking(session, source_uri, source_path, false)
-                .map_err(FileOperationError::from)?;
-            let dest_uri = ResourceUri::from_remote_profile("sftp", dest_profile, dest_path)
-                .map_err(FileOperationError::from)?;
+            let entries = self.list_entries(source_uri)?;
+            let dest_uri =
+                ResourceUri::from_remote_profile(source_uri.scheme(), dest_profile, dest_path)
+                    .map_err(FileOperationError::from)?;
             items.push(vfs::FileOperationItem {
                 source: Some(source_uri.clone()),
                 destination: Some(dest_uri),
@@ -469,30 +496,24 @@ impl VfsFilesystem {
             });
 
             for entry in entries {
-                let child_source_path = join_remote(source_path, &entry.name);
                 let child_dest_path = join_remote(dest_path, &entry.name);
-                let child_source_uri = ResourceUri::from_remote_profile(
-                    "sftp",
-                    source_uri.remote_authority().unwrap(),
-                    &child_source_path,
-                )
-                .map_err(FileOperationError::from)?;
                 if entry.kind == FileKind::Directory {
-                    self.walk_sftp_copy(
-                        session,
-                        &child_source_uri,
-                        &child_source_path,
+                    self.walk_provider_copy(
+                        &entry.uri,
                         dest_profile,
                         &child_dest_path,
                         items,
                         warnings,
                     )?;
                 } else if entry.kind == FileKind::File {
-                    let child_dest_uri =
-                        ResourceUri::from_remote_profile("sftp", dest_profile, &child_dest_path)
-                            .map_err(FileOperationError::from)?;
+                    let child_dest_uri = ResourceUri::from_remote_profile(
+                        source_uri.scheme(),
+                        dest_profile,
+                        &child_dest_path,
+                    )
+                    .map_err(FileOperationError::from)?;
                     items.push(vfs::FileOperationItem {
-                        source: Some(child_source_uri),
+                        source: Some(entry.uri),
                         destination: Some(child_dest_uri),
                         kind: FileKind::File,
                         size: entry.size,
@@ -501,13 +522,14 @@ impl VfsFilesystem {
                 }
             }
         } else {
-            let dest_uri = ResourceUri::from_remote_profile("sftp", dest_profile, dest_path)
-                .map_err(FileOperationError::from)?;
+            let dest_uri =
+                ResourceUri::from_remote_profile(source_uri.scheme(), dest_profile, dest_path)
+                    .map_err(FileOperationError::from)?;
             items.push(vfs::FileOperationItem {
                 source: Some(source_uri.clone()),
                 destination: Some(dest_uri),
                 kind: FileKind::File,
-                size: self.file_size(source_uri).ok(),
+                size: entry.size,
                 recursive: false,
             });
         }
@@ -628,6 +650,15 @@ fn join_remote(base: &str, name: &str) -> String {
     }
 }
 
+fn remote_basename(path: &str, fallback: &str) -> String {
+    path.trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .filter(|name| !name.is_empty())
+        .unwrap_or(fallback)
+        .to_string()
+}
+
 fn file_kind(metadata: &fs::Metadata) -> FileKind {
     if metadata.file_type().is_symlink() {
         FileKind::Symlink
@@ -649,6 +680,19 @@ fn map_local_io(uri: &ResourceUri, error: std::io::Error) -> FileOperationError 
             uri: uri.as_str().to_string(),
         },
         _ => FileOperationError::io(error.to_string()),
+    }
+}
+
+fn cross_scheme_transfer_for(
+    source: &ResourceUri,
+    destination: &ResourceUri,
+) -> Result<CrossSchemeTransfer, FileOperationError> {
+    match (source.scheme(), destination.scheme()) {
+        ("local", "sftp") => Ok(CrossSchemeTransfer::LocalToSftp),
+        ("sftp", "local") => Ok(CrossSchemeTransfer::SftpToLocal),
+        (from, to) => Err(FileOperationError::UnsupportedProvider {
+            scheme: format!("{from}->{to}"),
+        }),
     }
 }
 
@@ -848,4 +892,30 @@ fn walk_remote_to_local(
         });
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{cross_scheme_transfer_for, CrossSchemeTransfer};
+    use vfs::ResourceUri;
+
+    #[test]
+    fn cross_scheme_transfer_catalog_allows_only_local_sftp_pairs() {
+        let local = ResourceUri::parse("local:///tmp/source.txt").unwrap();
+        let sftp = ResourceUri::parse("sftp://550e8400-e29b-41d4-a716-446655440000/tmp/source.txt")
+            .unwrap();
+        let smb = ResourceUri::parse("smb://550e8400-e29b-41d4-a716-446655440000/share/source.txt")
+            .unwrap();
+
+        assert_eq!(
+            cross_scheme_transfer_for(&local, &sftp).unwrap(),
+            CrossSchemeTransfer::LocalToSftp
+        );
+        assert_eq!(
+            cross_scheme_transfer_for(&sftp, &local).unwrap(),
+            CrossSchemeTransfer::SftpToLocal
+        );
+        assert!(cross_scheme_transfer_for(&local, &smb).is_err());
+        assert!(cross_scheme_transfer_for(&smb, &local).is_err());
+    }
 }

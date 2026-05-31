@@ -127,6 +127,89 @@ impl AppState {
 
 pub struct AppCore;
 
+#[derive(Clone, Copy)]
+enum NetworkProviderKind {
+    Sftp,
+    Smb,
+    S3,
+    GDrive,
+    Dropbox,
+    OneDrive,
+}
+
+const NETWORK_PROVIDERS: &[NetworkProviderKind] = &[
+    NetworkProviderKind::Sftp,
+    NetworkProviderKind::Smb,
+    NetworkProviderKind::S3,
+    NetworkProviderKind::GDrive,
+    NetworkProviderKind::Dropbox,
+    NetworkProviderKind::OneDrive,
+];
+
+#[cfg(test)]
+pub(crate) fn network_provider_schemes() -> impl Iterator<Item = &'static str> {
+    NETWORK_PROVIDERS.iter().map(NetworkProviderKind::scheme)
+}
+
+impl NetworkProviderKind {
+    #[cfg(test)]
+    fn scheme(&self) -> &'static str {
+        match self {
+            Self::Sftp => "sftp",
+            Self::Smb => "smb",
+            Self::S3 => "s3",
+            Self::GDrive => "gdrive",
+            Self::Dropbox => "dropbox",
+            Self::OneDrive => "onedrive",
+        }
+    }
+
+    fn register_connector(&self, registry: &mut RemoteConnectorRegistry) {
+        match self {
+            Self::Sftp => registry.register(Arc::new(SftpConnector::new())),
+            Self::Smb => registry.register(Arc::new(SmbConnector::new())),
+            Self::S3 => registry.register(Arc::new(S3Connector::new())),
+            Self::GDrive => registry.register(Arc::new(GDriveConnector::new())),
+            Self::Dropbox => registry.register(Arc::new(DropboxConnector::new())),
+            Self::OneDrive => registry.register(Arc::new(OneDriveConnector::new())),
+        }
+    }
+
+    fn register_provider(
+        &self,
+        vfs: &VfsRegistry,
+        sessions: Arc<ConnectionSessionManager>,
+    ) -> Result<(), AppCoreError> {
+        let result = match self {
+            Self::Sftp => vfs.register(Arc::new(SftpProvider::new(sessions))),
+            Self::Smb => vfs.register(Arc::new(SmbProvider::new(sessions))),
+            Self::S3 => vfs.register(Arc::new(S3Provider::new(sessions))),
+            Self::GDrive => vfs.register(Arc::new(GDriveProvider::new(sessions))),
+            Self::Dropbox => vfs.register(Arc::new(DropboxProvider::new(sessions))),
+            Self::OneDrive => vfs.register(Arc::new(OneDriveProvider::new(sessions))),
+        };
+
+        result.map_err(|error| AppCoreError::Vfs(error.to_string()))
+    }
+}
+
+fn register_network_connectors(registry: &mut RemoteConnectorRegistry) {
+    for provider in NETWORK_PROVIDERS {
+        provider.register_connector(registry);
+    }
+}
+
+fn register_network_vfs_providers(
+    vfs: &VfsRegistry,
+    sessions: Arc<ConnectionSessionManager>,
+) -> Result<(), AppCoreError> {
+    for provider in NETWORK_PROVIDERS {
+        provider.register_provider(vfs, sessions.clone())?;
+    }
+
+    Ok(())
+}
+
 impl AppCore {
     pub fn boot() -> Result<Arc<AppState>, AppCoreError> {
         let paths = AppPaths::default();
@@ -156,12 +239,7 @@ impl AppCore {
         let network_enabled = is_network_enabled();
         let mut connector_registry = RemoteConnectorRegistry::new();
         if network_enabled {
-            connector_registry.register(Arc::new(SftpConnector::new()));
-            connector_registry.register(Arc::new(SmbConnector::new()));
-            connector_registry.register(Arc::new(S3Connector::new()));
-            connector_registry.register(Arc::new(GDriveConnector::new()));
-            connector_registry.register(Arc::new(DropboxConnector::new()));
-            connector_registry.register(Arc::new(OneDriveConnector::new()));
+            register_network_connectors(&mut connector_registry);
         }
         let connector_registry = Arc::new(tokio::sync::RwLock::new(connector_registry));
         let sessions = Arc::new(ConnectionSessionManager::new(
@@ -174,18 +252,7 @@ impl AppCore {
         vfs.register(Arc::new(LocalFsProvider::new()))
             .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
         if network_enabled {
-            vfs.register(Arc::new(SftpProvider::new(sessions.clone())))
-                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
-            vfs.register(Arc::new(SmbProvider::new(sessions.clone())))
-                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
-            vfs.register(Arc::new(S3Provider::new(sessions.clone())))
-                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
-            vfs.register(Arc::new(GDriveProvider::new(sessions.clone())))
-                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
-            vfs.register(Arc::new(DropboxProvider::new(sessions.clone())))
-                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
-            vfs.register(Arc::new(OneDriveProvider::new(sessions.clone())))
-                .map_err(|error| AppCoreError::Vfs(error.to_string()))?;
+            register_network_vfs_providers(&vfs, sessions.clone())?;
         }
 
         let history = OperationHistoryRepository::new(paths.history_db.clone())

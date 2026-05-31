@@ -20,10 +20,11 @@ use fs_core::{external_open, locations, metadata, vfs_io::VfsFilesystem};
 use tauri::{AppHandle, State};
 use vfs::{FileKind, ListOptions, ListSessionId, ResourceUri, VfsError};
 
-use crate::emit::{emit_job, emit_with_eval};
+use crate::emit::{emit_event, emit_job};
 use crate::state::ListingRegistry;
 
 pub(crate) const LISTING_TIMEOUT: Duration = Duration::from_secs(30);
+const MAX_HASH_BYTES: u64 = 100 * 1024 * 1024;
 
 #[tauri::command]
 pub async fn fs_stat(
@@ -118,10 +119,19 @@ pub async fn fs_compute_hash(
     _state: State<'_, Arc<AppState>>,
 ) -> Result<ComputeHashResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let algorithm = request.algorithm;
+
+    tauri::async_runtime::spawn_blocking(move || compute_hash_blocking(uri, algorithm))
+        .await
+        .map_err(|_| IpcError::internal("compute_hash task join failed"))?
+}
+
+fn compute_hash_blocking(
+    uri: ResourceUri,
+    algorithm: String,
+) -> Result<ComputeHashResponse, IpcError> {
     let path = uri.to_local_path().map_err(IpcError::from)?;
-
     let metadata = std::fs::metadata(&path).map_err(|e| IpcError::io(e.to_string()))?;
-
     if metadata.is_dir() {
         return Err(IpcError::is_directory(
             "cannot compute hash for a directory",
@@ -129,25 +139,22 @@ pub async fn fs_compute_hash(
     }
 
     let file_size = metadata.len();
-
-    // Limit to 100 MB for safety
-    if file_size > 100 * 1024 * 1024 {
+    if file_size > MAX_HASH_BYTES {
         return Err(IpcError::file_too_large(format!(
             "file too large for hash computation ({} bytes, max 100 MB)",
             file_size
         )));
     }
 
-    let algo = request.algorithm.to_lowercase();
+    let algo = algorithm.to_lowercase();
     if algo != "sha256" && algo != "sha-256" {
         return Err(IpcError::unsupported_algorithm(format!(
             "unsupported hash algorithm: {}",
-            request.algorithm
+            algorithm
         )));
     }
 
     let hash = sha256::try_digest(&path).map_err(|e| IpcError::io(e.to_string()))?;
-
     Ok(ComputeHashResponse {
         hash,
         algorithm: "sha256".to_string(),
@@ -213,7 +220,7 @@ pub async fn fs_list_start(
     tauri::async_runtime::spawn(async move {
         while let Some(batch) = receiver.recv().await {
             let dto = DirectoryBatchEventDto::from(batch);
-            emit_with_eval(&events_app, DIRECTORY_BATCH_EVENT, dto);
+            emit_event(&events_app, DIRECTORY_BATCH_EVENT, dto);
         }
     });
 
@@ -237,7 +244,7 @@ pub async fn fs_list_start(
                     error: Some(IpcError::from(error)),
                 };
 
-                emit_with_eval(&listing_app, DIRECTORY_BATCH_EVENT, event);
+                emit_event(&listing_app, DIRECTORY_BATCH_EVENT, event);
             }
             Err(_) => {
                 cancel.cancel();
@@ -252,7 +259,7 @@ pub async fn fs_list_start(
                     error: Some(IpcError::from(VfsError::timeout(&error_uri))),
                 };
 
-                emit_with_eval(&listing_app, DIRECTORY_BATCH_EVENT, event);
+                emit_event(&listing_app, DIRECTORY_BATCH_EVENT, event);
             }
         }
 
@@ -458,11 +465,42 @@ pub async fn fs_read_image_as_data_uri(
 
 #[cfg(test)]
 mod tests {
-    use super::mime_for_extension;
+    use super::{compute_hash_blocking, mime_for_extension};
+    use app_ipc::error_codes;
+    use vfs::ResourceUri;
 
     #[test]
     fn mime_for_extension_maps_pdf() {
         assert_eq!(mime_for_extension(".pdf"), "application/pdf");
+    }
+
+    #[test]
+    fn compute_hash_blocking_returns_sha256_response() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("data.bin");
+        std::fs::write(&path, b"test content").unwrap();
+        let uri = ResourceUri::from_local_path(&path).unwrap();
+
+        let response = compute_hash_blocking(uri, "sha-256".to_string()).unwrap();
+
+        assert_eq!(
+            response.hash,
+            "6ae8a75555209fd6c44157c0aed8016e763ff435a19cf186f76863140143ff72"
+        );
+        assert_eq!(response.algorithm, "sha256");
+        assert_eq!(response.byte_size, 12);
+    }
+
+    #[test]
+    fn compute_hash_blocking_rejects_unsupported_algorithm() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("data.bin");
+        std::fs::write(&path, b"test content").unwrap();
+        let uri = ResourceUri::from_local_path(&path).unwrap();
+
+        let error = compute_hash_blocking(uri, "sha1".to_string()).unwrap_err();
+
+        assert_eq!(error.code, error_codes::UNSUPPORTED_ALGORITHM);
     }
 }
 

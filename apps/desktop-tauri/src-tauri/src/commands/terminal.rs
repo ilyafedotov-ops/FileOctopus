@@ -294,7 +294,7 @@ pub fn start_terminal_event_bridge(app: AppHandle, state: Arc<AppState>) {
         while let Ok(event) = rx.recv() {
             match event {
                 terminal_core::TerminalEvent::Output { id, owner, data } => {
-                    crate::emit::emit_with_eval_to(
+                    crate::emit::emit_event_to(
                         &app,
                         &owner,
                         TERMINAL_OUTPUT_EVENT,
@@ -309,7 +309,7 @@ pub fn start_terminal_event_bridge(app: AppHandle, state: Arc<AppState>) {
                     owner,
                     exit_code,
                 } => {
-                    crate::emit::emit_with_eval_to(
+                    crate::emit::emit_event_to(
                         &app,
                         &owner,
                         TERMINAL_EXIT_EVENT,
