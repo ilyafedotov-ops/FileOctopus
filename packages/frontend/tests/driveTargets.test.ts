@@ -215,3 +215,145 @@ describe("isDriveTargetActive", () => {
     }
   });
 });
+
+import {
+  networkProfileBadge,
+  networkProfileTitle,
+  driveTargetToolbarLabel,
+  networkDriveHotlistTitle,
+} from "../src/navigation/driveTargets";
+
+describe("networkProfileBadge", () => {
+  it("returns warning when hasStoredSecret is false", () => {
+    const p = { ...profile, hasStoredSecret: false };
+    expect(networkProfileBadge(p, undefined)).toBe("warning");
+  });
+
+  it("returns error when status is error", () => {
+    const status: NetworkConnectionStatusDto = {
+      profileId: profile.id,
+      status: "error",
+      message: "connection refused",
+    };
+    expect(networkProfileBadge(profile, status)).toBe("error");
+  });
+
+  it("returns null when hasStoredSecret and no error", () => {
+    const status: NetworkConnectionStatusDto = {
+      profileId: profile.id,
+      status: "connected",
+      message: null,
+    };
+    expect(networkProfileBadge(profile, status)).toBeNull();
+  });
+
+  it("returns null with no status and hasStoredSecret", () => {
+    expect(networkProfileBadge(profile, undefined)).toBeNull();
+  });
+});
+
+describe("networkProfileTitle", () => {
+  it("shows credentials missing when no stored secret", () => {
+    const p = { ...profile, hasStoredSecret: false };
+    expect(networkProfileTitle(p, undefined)).toBe(
+      "Prod (credentials missing)",
+    );
+  });
+
+  it("shows connected when status is connected", () => {
+    const status: NetworkConnectionStatusDto = {
+      profileId: profile.id,
+      status: "connected",
+      message: null,
+    };
+    expect(networkProfileTitle(profile, status)).toBe("Prod (connected)");
+  });
+
+  it("shows error message when status is error", () => {
+    const status: NetworkConnectionStatusDto = {
+      profileId: profile.id,
+      status: "error",
+      message: "timeout",
+    };
+    expect(networkProfileTitle(profile, status)).toBe("Prod (timeout)");
+  });
+
+  it("shows just label when no status and has secret", () => {
+    expect(networkProfileTitle(profile, undefined)).toBe("Prod");
+  });
+
+  it("shows error fallback when status error has no message", () => {
+    const status: NetworkConnectionStatusDto = {
+      profileId: profile.id,
+      status: "error",
+      message: null,
+    };
+    expect(networkProfileTitle(profile, status)).toBe("Prod (error)");
+  });
+});
+
+describe("driveTargetToolbarLabel", () => {
+  it("returns label with SFTP for network target", () => {
+    const targets = buildDriveTargets([], [profile], []);
+    expect(driveTargetToolbarLabel(targets[0])).toBe("Prod (SFTP)");
+  });
+
+  it("returns label for local target", () => {
+    const targets = buildDriveTargets(
+      [location("root", "Macintosh HD", "local:///", "Devices/Volumes")],
+      [],
+      [],
+    );
+    expect(driveTargetToolbarLabel(targets[0])).toBe("Macintosh HD");
+  });
+});
+
+describe("networkDriveHotlistTitle", () => {
+  it("includes path when not root", () => {
+    const p = {
+      ...profile,
+      defaultUri: `sftp://${profile.id}/var/log`,
+    };
+    expect(networkDriveHotlistTitle(p)).toContain("prod.example.com:22");
+  });
+
+  it("omits path when root", () => {
+    const p = {
+      ...profile,
+      defaultUri: `sftp://${profile.id}/`,
+    };
+    const title = networkDriveHotlistTitle(p);
+    expect(title).toBe("prod.example.com:22");
+  });
+});
+
+describe("buildDriveTargets filtering", () => {
+  it("filters out non-sftp/smb/s3 profiles", () => {
+    const webdavProfile = {
+      ...profile,
+      id: "webdav-1",
+      scheme: "webdav" as const,
+      label: "WebDAV",
+    };
+    const targets = buildDriveTargets([], [profile, webdavProfile], []);
+    expect(targets).toHaveLength(1);
+    expect(targets[0].kind).toBe("network");
+  });
+
+  it("returns empty array with no locations or profiles", () => {
+    expect(buildDriveTargets([], [], [])).toEqual([]);
+  });
+
+  it("includes only volume locations, not other sections", () => {
+    const targets = buildDriveTargets(
+      [
+        location("root", "Root", "local:///", "Devices/Volumes"),
+        location("home", "Home", "local:///home", "Favorites"),
+      ],
+      [],
+      [],
+    );
+    expect(targets).toHaveLength(1);
+    expect(targets[0].kind).toBe("local");
+  });
+});

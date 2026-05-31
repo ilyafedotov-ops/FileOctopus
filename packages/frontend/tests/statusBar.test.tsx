@@ -40,8 +40,10 @@ describe("StatusBar", () => {
     );
 
     expect(screen.getByText("Loading…")).toBeTruthy();
-    expect(screen.getByText(/1 active job/)).toBeTruthy();
-    expect(screen.getByText(/Errors/)).toBeTruthy();
+    expect(screen.getAllByText(/1 active job/).length).toBeGreaterThanOrEqual(
+      1,
+    );
+    expect(screen.getAllByText(/Errors/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows empty folder state", () => {

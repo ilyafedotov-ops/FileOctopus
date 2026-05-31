@@ -244,6 +244,13 @@ exports[`visual regression snapshots > matches the shell chrome structure in dar
     <span
       class="fo-status-spacer"
     />
+    <span
+      aria-live="polite"
+      class="fo-sr-only"
+      role="status"
+    >
+      No active jobs
+    </span>
     <button
       class="fo-status-segment fo-status-button"
       title="Open Jobs & Activity panel"
@@ -448,6 +455,13 @@ exports[`visual regression snapshots > matches the shell chrome structure in lig
     <span
       class="fo-status-spacer"
     />
+    <span
+      aria-live="polite"
+      class="fo-sr-only"
+      role="status"
+    >
+      No active jobs
+    </span>
     <button
       class="fo-status-segment fo-status-button"
       title="Open Jobs & Activity panel"

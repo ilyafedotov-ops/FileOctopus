@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   DEFAULT_VISIBLE_COLUMNS,
   DEFAULT_COLUMN_WIDTHS,
+  storedColumnWidths,
   storedVisibleColumns,
   persistVisibleColumns,
   buildVisibleGridTemplate,
@@ -210,5 +211,29 @@ describe("buildVisibleHeaderGridTemplate", () => {
     // 5 columns → 4 resize handles
     const handleCount = result.split(" ").filter((p) => p === "5px").length;
     expect(handleCount).toBe(4);
+  });
+});
+
+describe("storedColumnWidths / storedVisibleColumns readStorage error handling", () => {
+  it("storedColumnWidths returns defaults when localStorage.getItem throws", () => {
+    const spy = vi
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(() => {
+        throw new Error("SecurityError");
+      });
+    const result = storedColumnWidths();
+    expect(result).toEqual(DEFAULT_COLUMN_WIDTHS);
+    spy.mockRestore();
+  });
+
+  it("storedVisibleColumns returns defaults when localStorage.getItem throws", () => {
+    const spy = vi
+      .spyOn(Storage.prototype, "getItem")
+      .mockImplementation(() => {
+        throw new Error("SecurityError");
+      });
+    const result = storedVisibleColumns();
+    expect(result).toEqual(DEFAULT_VISIBLE_COLUMNS);
+    spy.mockRestore();
   });
 });
