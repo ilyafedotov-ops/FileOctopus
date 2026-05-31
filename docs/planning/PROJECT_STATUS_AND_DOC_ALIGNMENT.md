@@ -1,6 +1,6 @@
 # FileOctopus — Project Status & Documentation Alignment
 
-**As of:** 2026-05-30
+**As of:** 2026-05-31
 **Purpose:** Single source of truth for how specification documents relate to the running codebase. Use this page before trusting older audit notes, sprint release notes, or inventory “not implemented” lists.
 
 ## Document roles
@@ -67,6 +67,7 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 - **ColumnsView reliability** — shared client routing with request correlation + timeout
 - **Performance smoke** — `pnpm perf:smoke` command
 - **Command registry refactor** — derive `CommandId` from as-const registry, dispatch exhaustiveness test
+- **Command surface model** — declarative `surfaces[]` on all 78 commands, `commandsForSurface()` in registry, toolbar migrated to surface-aware filtering; 11 unit tests
 - **Git branch + status badges** — local repositories show an active-pane branch pill and compact row badges from `git.statusForDirectory`
 - **Diagnostics export location preference** — Settings exposes `diagnosticsExportPath`, persisted through preferences and used by the diagnostics dialog
 - **Checksum verification UI** — Properties supports on-demand SHA-256 plus expected-hash match/mismatch state
@@ -97,7 +98,7 @@ Performance targets (MVP-PERF-\*) and release checklist (§16) remain **not form
 || -------------------------- | ----------------- | ----------------------------------------------------------------------- |
 || EXIF metadata display | UI §Preview | Properties dialog EXIF tab — post-RC visual expansion |
 || Rubber-band (lasso) select | UI Design Spec | Requires virtual-scroll-aware coordinate math; deferred (P3-6) |
-|| Keyboard-navigable menus | UI Design Spec §5 | Arrow-key navigation in dropdown menus (context menu sort submenu done) |
+||| Keyboard-navigable menus | UI Design Spec §5 | ✅ Done — arrow-key/Home/End/type-ahead in DropdownMenu + ContextMenu (UPP-D2) |
 
 ### Intentionally deferred (RC spec §3.3)
 
