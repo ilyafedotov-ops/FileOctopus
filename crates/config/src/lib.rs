@@ -79,6 +79,7 @@ pub struct UserPreferences {
     pub cache_size_limit: u32,
     pub file_operation_threads: u32,
     pub network_connection_timeout: u32,
+    pub operation_idle_timeout_secs: u32,
     pub network_auto_reconnect: bool,
     pub network_default_protocol: String,
     pub network_ssh_key_path: String,
@@ -146,6 +147,7 @@ impl Default for UserPreferences {
             cache_size_limit: 256,
             file_operation_threads: 4,
             network_connection_timeout: 30,
+            operation_idle_timeout_secs: 300,
             network_auto_reconnect: true,
             network_default_protocol: "sftp".to_string(),
             network_ssh_key_path: String::new(),
@@ -683,6 +685,10 @@ impl UserPreferences {
                 self.network_connection_timeout.to_string(),
             ),
             (
+                "operationIdleTimeoutSecs",
+                self.operation_idle_timeout_secs.to_string(),
+            ),
+            (
                 "networkAutoReconnect",
                 self.network_auto_reconnect.to_string(),
             ),
@@ -873,6 +879,13 @@ fn apply_value(
                 .parse::<u32>()
                 .map_err(|error| invalid_value(key, error.to_string()))?
                 .clamp(5, 300);
+        }
+        "operationIdleTimeoutSecs" => {
+            let secs = value
+                .parse::<u32>()
+                .map_err(|error| invalid_value(key, error.to_string()))?;
+            preferences.operation_idle_timeout_secs =
+                if secs == 0 { 0 } else { secs.clamp(10, 86400) };
         }
         "networkAutoReconnect" => {
             preferences.network_auto_reconnect = parse_bool(value, key)?;
@@ -1653,5 +1666,57 @@ mod tests {
             .query_row("pragma user_version", [], |row| row.get(0))
             .unwrap();
         assert_eq!(version, SCHEMA_VERSION);
+    }
+
+    #[test]
+    fn defaults_include_operation_idle_timeout() {
+        assert_eq!(UserPreferences::default().operation_idle_timeout_secs, 300);
+    }
+
+    #[test]
+    fn as_rows_serializes_operation_idle_timeout() {
+        let defaults = UserPreferences::default();
+        let rows: std::collections::HashMap<&str, String> =
+            defaults.as_rows().into_iter().collect();
+        assert_eq!(rows["operationIdleTimeoutSecs"], "300");
+    }
+
+    #[test]
+    fn round_trips_and_validates_operation_idle_timeout() {
+        let dir = tempdir().unwrap();
+        let repo = PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
+
+        assert_eq!(
+            repo.set("operationIdleTimeoutSecs", "60")
+                .unwrap()
+                .operation_idle_timeout_secs,
+            60
+        );
+        // 0 means "disabled" and is preserved.
+        assert_eq!(
+            repo.set("operationIdleTimeoutSecs", "0")
+                .unwrap()
+                .operation_idle_timeout_secs,
+            0
+        );
+        // Below the floor is clamped up.
+        assert_eq!(
+            repo.set("operationIdleTimeoutSecs", "5")
+                .unwrap()
+                .operation_idle_timeout_secs,
+            10
+        );
+        // Above the ceiling is clamped down.
+        assert_eq!(
+            repo.set("operationIdleTimeoutSecs", "999999")
+                .unwrap()
+                .operation_idle_timeout_secs,
+            86400
+        );
+        // Non-numeric is rejected.
+        assert!(matches!(
+            repo.set("operationIdleTimeoutSecs", "abc").unwrap_err(),
+            PreferencesError::InvalidValue { .. }
+        ));
     }
 }
