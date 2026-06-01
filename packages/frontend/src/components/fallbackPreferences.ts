@@ -47,6 +47,7 @@ export const FALLBACK_PREFERENCES: UserPreferencesDto = {
   experimentalFeatures: false,
   cacheSizeLimit: 256,
   fileOperationThreads: 4,
+  operationIdleTimeoutSecs: 300,
   networkConnectionTimeout: 30,
   networkAutoReconnect: true,
   networkDefaultProtocol: "sftp",

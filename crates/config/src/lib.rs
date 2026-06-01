@@ -335,25 +335,6 @@ impl PreferencesRepository {
         Ok(())
     }
 
-    fn backfill_v14_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
-        let defaults = UserPreferences::default();
-        let now = chrono_lite_now();
-        let rows = [(
-            "operationIdleTimeoutSecs",
-            defaults.operation_idle_timeout_secs.to_string(),
-        )];
-
-        for (key, value) in rows {
-            connection.execute(
-                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
-                 on conflict(key) do nothing",
-                params![key, value, now],
-            )?;
-        }
-
-        Ok(())
-    }
-
     fn backfill_v3_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
         let defaults = UserPreferences::default();
         let now = chrono_lite_now();
@@ -1510,14 +1491,6 @@ mod tests {
         assert!(!prefs.show_advanced_copy_options);
 
         let connection = Connection::open(&path).unwrap();
-        let stored: String = connection
-            .query_row(
-                "select value from preferences where key = 'operationIdleTimeoutSecs'",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(stored, "300");
         let version: u32 = connection
             .query_row("pragma user_version", [], |row| row.get(0))
             .unwrap();
@@ -1668,14 +1641,6 @@ mod tests {
         assert!(!prefs.show_advanced_copy_options);
 
         let connection = Connection::open(&path).unwrap();
-        let stored: String = connection
-            .query_row(
-                "select value from preferences where key = 'operationIdleTimeoutSecs'",
-                [],
-                |row| row.get(0),
-            )
-            .unwrap();
-        assert_eq!(stored, "300");
         let version: u32 = connection
             .query_row("pragma user_version", [], |row| row.get(0))
             .unwrap();
@@ -1813,6 +1778,14 @@ mod tests {
         assert_eq!(prefs.operation_idle_timeout_secs, 300);
 
         let connection = Connection::open(&path).unwrap();
+        let stored: String = connection
+            .query_row(
+                "select value from preferences where key = 'operationIdleTimeoutSecs'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored, "300");
         let version: u32 = connection
             .query_row("pragma user_version", [], |row| row.get(0))
             .unwrap();
