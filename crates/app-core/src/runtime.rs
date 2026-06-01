@@ -430,6 +430,13 @@ impl OperationRuntime {
         self.idle_timeout_ms.store(ms, Ordering::SeqCst);
     }
 
+    pub fn idle_timeout(&self) -> Option<Duration> {
+        match self.idle_timeout_ms.load(Ordering::SeqCst) {
+            0 => None,
+            ms => Some(Duration::from_millis(ms)),
+        }
+    }
+
     pub fn pause_job(&self, job_id: &str) -> Result<JobSnapshot, FileOperationError> {
         let jobs = self.jobs.lock().map_err(|_| FileOperationError::Internal {
             message: "job registry lock poisoned".to_string(),

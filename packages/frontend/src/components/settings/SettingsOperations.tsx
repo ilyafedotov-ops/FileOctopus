@@ -96,6 +96,32 @@ export function SettingsOperations({
         />
         <span>Show advanced copy options</span>
       </label>
+      <label className="fo-settings-checkbox">
+        <input
+          type="checkbox"
+          checked={preferences.operationIdleTimeoutSecs > 0}
+          onChange={(event) =>
+            onChange(
+              "operationIdleTimeoutSecs",
+              event.target.checked ? "300" : "0",
+            )
+          }
+        />
+        <span>Cancel operations stalled with no progress</span>
+      </label>
+      <label className="fo-settings-field">
+        <span>Inactivity timeout (seconds)</span>
+        <input
+          type="number"
+          min={10}
+          max={86400}
+          value={preferences.operationIdleTimeoutSecs}
+          disabled={preferences.operationIdleTimeoutSecs === 0}
+          onChange={(event) =>
+            onChange("operationIdleTimeoutSecs", event.target.value)
+          }
+        />
+      </label>
     </section>
   );
 }

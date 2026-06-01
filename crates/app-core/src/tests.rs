@@ -239,6 +239,29 @@ fn boot_registers_local_provider() {
 }
 
 #[test]
+fn boot_configures_operation_idle_timeout_from_preferences() {
+    let dir = tempfile::tempdir().unwrap();
+    let paths = AppPaths {
+        config_dir: dir.path().join("config"),
+        data_dir: dir.path().join("data"),
+        log_dir: dir.path().join("logs"),
+        history_db: dir.path().join("history.sqlite"),
+        preferences_db: dir.path().join("preferences.sqlite"),
+        navigation_db: dir.path().join("navigation.sqlite"),
+        network_db: dir.path().join("network.sqlite"),
+    };
+    let preferences = config::PreferencesRepository::new(paths.preferences_db.clone()).unwrap();
+    preferences.set("operationIdleTimeoutSecs", "120").unwrap();
+
+    let state = AppCore::boot_with_paths(paths).unwrap();
+
+    assert_eq!(
+        state.operations().idle_timeout(),
+        Some(Duration::from_secs(120))
+    );
+}
+
+#[test]
 fn boot_registers_smb_provider_when_network_is_enabled() {
     let _env_guard = crate::ENV_LOCK.lock().unwrap();
     let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();

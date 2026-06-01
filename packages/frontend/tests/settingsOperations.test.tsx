@@ -39,6 +39,7 @@ const basePreferences = {
   terminalArgs: "",
   rememberLastUsedPanes: true,
   diagnosticsExportPath: "/tmp/fileoctopus-diagnostics.zip",
+  operationIdleTimeoutSecs: 300,
 };
 
 function renderDialog(overrides: Record<string, unknown> = {}) {
@@ -101,6 +102,16 @@ describe("SettingsDialog — Operations", () => {
     expect(screen.getByText("Show advanced copy options")).toBeTruthy();
   });
 
+  it("shows operation idle timeout input in Operations", () => {
+    renderDialog({ operationIdleTimeoutSecs: 300 });
+    clickOperationsTab();
+
+    const input = screen.getByLabelText(
+      "Inactivity timeout (seconds)",
+    ) as HTMLInputElement;
+    expect(input.value).toBe("300");
+  });
+
   it("shows use trash by default checkbox", () => {
     renderDialog();
     clickOperationsTab();
@@ -131,5 +142,29 @@ describe("SettingsDialog — Operations", () => {
 
     fireEvent.click(screen.getByLabelText("Show advanced copy options"));
     expect(onChange).toHaveBeenCalledWith("showAdvancedCopyOptions", "true");
+  });
+
+  it("editing operation idle timeout fires onChange", () => {
+    const { onChange } = renderDialog({ operationIdleTimeoutSecs: 300 });
+    clickOperationsTab();
+
+    fireEvent.change(screen.getByLabelText("Inactivity timeout (seconds)"), {
+      target: { value: "120" },
+    });
+
+    expect(onChange).toHaveBeenCalledWith("operationIdleTimeoutSecs", "120");
+  });
+
+  it("updates the operation idle timeout", () => {
+    const onChange = vi.fn();
+    render(
+      <SettingsOperations
+        preferences={basePreferences as UserPreferencesDto}
+        onChange={onChange}
+      />,
+    );
+    const input = screen.getByLabelText(/inactivity timeout/i);
+    fireEvent.change(input, { target: { value: "120" } });
+    expect(onChange).toHaveBeenCalledWith("operationIdleTimeoutSecs", "120");
   });
 });

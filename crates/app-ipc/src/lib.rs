@@ -1085,8 +1085,10 @@ mod tests {
 
     #[test]
     fn user_preferences_dto_maps_operation_idle_timeout() {
-        let mut prefs = config::UserPreferences::default();
-        prefs.operation_idle_timeout_secs = 120;
+        let prefs = config::UserPreferences {
+            operation_idle_timeout_secs: 120,
+            ..Default::default()
+        };
         let dto = UserPreferencesDto::from(prefs);
         assert_eq!(dto.operation_idle_timeout_secs, 120);
 
