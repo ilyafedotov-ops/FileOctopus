@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { SettingsDialog } from "../src/components/SettingsDialog";
+import { SettingsOperations } from "../src/components/settings/SettingsOperations";
 import type { UserPreferencesDto } from "@fileoctopus/ts-api";
 
 afterEach(cleanup);
