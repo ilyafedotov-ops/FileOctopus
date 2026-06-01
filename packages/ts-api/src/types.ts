@@ -411,6 +411,7 @@ export interface UserPreferencesDto {
   experimentalFeatures: boolean;
   cacheSizeLimit: number;
   fileOperationThreads: number;
+  operationIdleTimeoutSecs: number;
   networkConnectionTimeout: number;
   networkAutoReconnect: boolean;
   networkDefaultProtocol: string;
