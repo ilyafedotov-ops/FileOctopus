@@ -60,9 +60,10 @@ The trust boundary is the IPC layer. Read these together to understand a feature
   - `runtime.rs` — `OperationRuntime` (planning, job table, history hand-off).
   - `history.rs` — `OperationHistoryRepository`, `OperationHistoryRecord`, SQLite schema/migration.
   - `paths.rs` — `AppPaths`, `AppDataHealth`, default platform paths.
-- **`app-ipc`** — every IPC DTO (`StatRequest`/`Response`, `ListStartRequest`/`Response`, `FileOperationRequestDto`, `FileOperationPlanDto`, `JobSnapshot` wire form, `OperationHistoryRecordDto`, `IpcError`) plus event-name constants (`DIRECTORY_BATCH_EVENT`, `JOB_*_EVENT`). DTOs use `#[serde(rename_all = "camelCase")]`. `IpcError: From<VfsError>` and `From<FileOperationError>` preserve stable error codes.
+- **`app-ipc`** — every IPC DTO (`StatRequest`/`Response`, `ListStartRequest`/`Response`, `FileOperationRequestDto`, `FileOperationPlanDto`, `JobSnapshot` wire form, `OperationHistoryRecordDto`, `IpcError`) plus event-name constants (`DIRECTORY_BATCH_EVENT`, `JOB_*_EVENT`). DTOs use `#[serde(rename_all = "camelCase")]` and are organized into per-domain modules (`fs`, `network`, `search`, `file_operations`, …) re-exported from `lib.rs`, which also holds the conversions and `error_codes`. `IpcError: From<VfsError>` and `From<FileOperationError>` preserve stable error codes.
 - **`telemetry`** — `tracing` + `tracing-subscriber` init and thin `info/debug/error` helpers.
-- **`platform`**, **`config`** — currently empty crates reserved for future platform abstractions.
+- **`config`** — SQLite-backed configuration: `UserPreferences` (with schema migrations), `NetworkProfile`, and the `PreferencesRepository`/`NavigationRepository`/`NetworkProfileRepository` CRUD + caching layers.
+- **`platform`** — thin platform abstractions: `SecretStore` (OS keychain) and `open_external_terminal`.
 - **`test-support`** — `fileoctopus-test-tree` binary that materializes large directory trees for the perf protocol.
 - **`git-intel`** — Git repository discovery and file status decoration (`GitDiscover`, `GitStatusForDirectory`).
 - **`terminal-core`** — PTY management for embedded terminal (local + SSH sessions).

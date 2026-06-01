@@ -7,13 +7,11 @@ import type {
   StarredEntryDto,
   VolumeDto,
 } from "@fileoctopus/ts-api";
-import { Button, cx, Icons } from "@fileoctopus/ui";
+import { Button, Icons } from "@fileoctopus/ui";
 import type { SmartFolder } from "../savedSearches";
 import {
   type ChangeEvent,
   type KeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
-  type ReactNode,
   useCallback,
   useEffect,
   useRef,
@@ -31,6 +29,13 @@ import {
   SidebarVolumeContextMenu,
   SidebarSmartFolderContextMenu,
 } from "./contextMenus";
+
+import { SidebarSection, SidebarEmptyHint, SidebarItem } from "./SidebarItems";
+import {
+  sidebarSectionTitle,
+  emptySectionHint,
+  locationIcon,
+} from "./sidebarHelpers";
 
 const STANDARD_SECTION_ORDER = [
   "Favorites",
@@ -585,120 +590,4 @@ export function Sidebar({
       ) : null}
     </aside>
   );
-}
-
-function SidebarSection({
-  title,
-  action,
-  children,
-}: {
-  title: string;
-  action?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <section className="fo-sidebar-section">
-      <div className="fo-sidebar-section-header">
-        <h2 className="fo-sidebar-section-title">{title}</h2>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
-
-function SidebarEmptyHint({ children }: { children: ReactNode }) {
-  return <p className="fo-sidebar-empty-hint">{children}</p>;
-}
-
-function SidebarItem({
-  icon,
-  label,
-  active,
-  onClick,
-  onContextMenu,
-  indented = false,
-  subdued = false,
-  title,
-  badge,
-  busy = false,
-}: {
-  icon: ReactNode;
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  onContextMenu?: (event: ReactMouseEvent<HTMLButtonElement>) => void;
-  indented?: boolean;
-  subdued?: boolean;
-  title?: string;
-  badge?: "warning" | "error" | null;
-  busy?: boolean;
-}) {
-  return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="sm"
-      className={cx(
-        "fo-sidebar-item",
-        active && "fo-sidebar-active",
-        indented && "fo-sidebar-indented",
-        subdued && "fo-sidebar-subdued",
-        badge === "warning" && "fo-sidebar-warning",
-        badge === "error" && "fo-sidebar-error",
-        busy && "fo-sidebar-busy",
-      )}
-      title={title ?? label}
-      aria-busy={busy || undefined}
-      onClick={onClick}
-      onContextMenu={onContextMenu}
-    >
-      <span className="fo-sidebar-icon" aria-hidden="true">
-        {icon}
-      </span>
-      <span className="fo-sidebar-label">{label}</span>
-    </Button>
-  );
-}
-
-function sidebarSectionTitle(section: string): string {
-  if (section === "Devices/Volumes") {
-    return "Devices / Volumes";
-  }
-
-  return section;
-}
-
-function emptySectionHint(section: string): string {
-  switch (section) {
-    case "Favorites":
-      return "No favorite locations";
-    case "User folders":
-      return "No user folders found";
-    case "Devices/Volumes":
-      return "No mounted volumes";
-    default:
-      return "Nothing here yet";
-  }
-}
-
-function locationIcon(id: string): ReactNode {
-  switch (id) {
-    case "home":
-      return Icons.home();
-    case "desktop":
-      return Icons.desktop();
-    case "documents":
-      return Icons.documents();
-    case "downloads":
-      return Icons.downloads();
-    case "pictures":
-      return Icons.pictures();
-    case "music":
-      return Icons.music();
-    case "videos":
-      return Icons.video();
-    default:
-      return Icons.volume();
-  }
 }
