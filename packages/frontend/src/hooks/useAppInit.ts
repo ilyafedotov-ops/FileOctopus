@@ -1,4 +1,8 @@
 import {
+  isDefaultViewModeDetailsMigrationDone,
+  markDefaultViewModeDetailsMigrationDone,
+} from "./viewModeMigration";
+import {
   useEffect,
   useMemo,
   useRef,
@@ -59,27 +63,6 @@ import {
   mergeResumed,
 } from "../dialogs/OperationDialogView";
 import type { SearchState } from "../pane/PaneFilterBar";
-
-const DEFAULT_VIEW_MODE_DETAILS_MIGRATION_KEY =
-  "fileoctopus.defaultViewModeDetailsMigrated";
-
-function isDefaultViewModeDetailsMigrationDone(): boolean {
-  try {
-    return (
-      localStorage.getItem(DEFAULT_VIEW_MODE_DETAILS_MIGRATION_KEY) === "true"
-    );
-  } catch {
-    return false;
-  }
-}
-
-function markDefaultViewModeDetailsMigrationDone() {
-  try {
-    localStorage.setItem(DEFAULT_VIEW_MODE_DETAILS_MIGRATION_KEY, "true");
-  } catch {
-    return;
-  }
-}
 
 async function resolveStartupUri(
   client: FileOctopusClient,
