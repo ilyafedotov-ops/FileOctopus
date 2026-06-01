@@ -57,6 +57,8 @@ pub struct UserPreferencesDto {
     pub cache_size_limit: u32,
     #[serde(default)]
     pub file_operation_threads: u32,
+    #[serde(default = "default_operation_idle_timeout")]
+    pub operation_idle_timeout_secs: u32,
     #[serde(default = "default_network_timeout")]
     pub network_connection_timeout: u32,
     #[serde(default = "default_true")]

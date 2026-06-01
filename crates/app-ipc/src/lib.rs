@@ -65,6 +65,9 @@ pub use terminal::*;
 fn default_network_timeout() -> u32 {
     30
 }
+fn default_operation_idle_timeout() -> u32 {
+    300
+}
 fn default_true() -> bool {
     true
 }
@@ -334,6 +337,7 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             experimental_features: value.experimental_features,
             cache_size_limit: value.cache_size_limit,
             file_operation_threads: value.file_operation_threads,
+            operation_idle_timeout_secs: value.operation_idle_timeout_secs,
             network_connection_timeout: value.network_connection_timeout,
             network_auto_reconnect: value.network_auto_reconnect,
             network_default_protocol: value.network_default_protocol,
@@ -1077,6 +1081,17 @@ mod tests {
             IpcError::git_command_failed("x").code,
             error_codes::GIT_COMMAND_FAILED
         );
+    }
+
+    #[test]
+    fn user_preferences_dto_maps_operation_idle_timeout() {
+        let mut prefs = config::UserPreferences::default();
+        prefs.operation_idle_timeout_secs = 120;
+        let dto = UserPreferencesDto::from(prefs);
+        assert_eq!(dto.operation_idle_timeout_secs, 120);
+
+        let json = serde_json::to_string(&dto).unwrap();
+        assert!(json.contains("\"operationIdleTimeoutSecs\":120"));
     }
 
     #[test]

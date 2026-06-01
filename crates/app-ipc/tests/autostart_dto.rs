@@ -53,3 +53,17 @@ fn preferences_dto_includes_new_fields() {
     assert_eq!(dto.terminal_shell, "/bin/zsh");
     assert_eq!(dto.terminal_args, "-l");
 }
+
+#[test]
+fn user_preferences_dto_maps_operation_idle_timeout() {
+    let prefs = config::UserPreferences {
+        operation_idle_timeout_secs: 120,
+        ..Default::default()
+    };
+
+    let dto = UserPreferencesDto::from(prefs);
+
+    assert_eq!(dto.operation_idle_timeout_secs, 120);
+    let json = serde_json::to_string(&dto).unwrap();
+    assert!(json.contains("\"operationIdleTimeoutSecs\":120"));
+}
