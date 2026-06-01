@@ -16,7 +16,7 @@ pub use network::{
     UpdateNetworkProfile,
 };
 
-pub const SCHEMA_VERSION: u32 = 13;
+pub const SCHEMA_VERSION: u32 = 14;
 
 #[derive(Debug, Error)]
 pub enum PreferencesError {
@@ -292,6 +292,11 @@ impl PreferencesRepository {
             connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
         }
 
+        if user_version < 14 {
+            self.backfill_v14_keys(&connection)?;
+            connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
         Ok(())
     }
 
@@ -299,6 +304,44 @@ impl PreferencesRepository {
         let defaults = UserPreferences::default();
         let now = chrono_lite_now();
         let rows = [("paneDirection", defaults.pane_direction.clone())];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
+        }
+
+        Ok(())
+    }
+
+    fn backfill_v14_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [(
+            "operationIdleTimeoutSecs",
+            defaults.operation_idle_timeout_secs.to_string(),
+        )];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
+        }
+
+        Ok(())
+    }
+
+    fn backfill_v14_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [(
+            "operationIdleTimeoutSecs",
+            defaults.operation_idle_timeout_secs.to_string(),
+        )];
 
         for (key, value) in rows {
             connection.execute(
@@ -1467,6 +1510,14 @@ mod tests {
         assert!(!prefs.show_advanced_copy_options);
 
         let connection = Connection::open(&path).unwrap();
+        let stored: String = connection
+            .query_row(
+                "select value from preferences where key = 'operationIdleTimeoutSecs'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored, "300");
         let version: u32 = connection
             .query_row("pragma user_version", [], |row| row.get(0))
             .unwrap();
@@ -1617,6 +1668,14 @@ mod tests {
         assert!(!prefs.show_advanced_copy_options);
 
         let connection = Connection::open(&path).unwrap();
+        let stored: String = connection
+            .query_row(
+                "select value from preferences where key = 'operationIdleTimeoutSecs'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(stored, "300");
         let version: u32 = connection
             .query_row("pragma user_version", [], |row| row.get(0))
             .unwrap();
@@ -1718,5 +1777,45 @@ mod tests {
             repo.set("operationIdleTimeoutSecs", "abc").unwrap_err(),
             PreferencesError::InvalidValue { .. }
         ));
+    }
+
+    #[test]
+    fn migrates_v13_database_to_current_schema_with_idle_timeout_default() {
+        let dir = tempdir().unwrap();
+        let path = dir.path().join("preferences.sqlite");
+        {
+            let connection = Connection::open(&path).unwrap();
+            connection
+                .execute(
+                    "create table if not exists preferences (
+                        key text primary key,
+                        value text not null,
+                        updated_at text not null
+                    )",
+                    [],
+                )
+                .unwrap();
+            connection
+                .execute(
+                    "insert into preferences (key, value, updated_at) values
+                        ('theme', 'dark', '0')",
+                    [],
+                )
+                .unwrap();
+            connection
+                .pragma_update(None, "user_version", 13u32)
+                .unwrap();
+        }
+
+        let repo = PreferencesRepository::new(path.clone()).unwrap();
+        let prefs = repo.get_all().unwrap();
+        assert_eq!(prefs.theme, "dark");
+        assert_eq!(prefs.operation_idle_timeout_secs, 300);
+
+        let connection = Connection::open(&path).unwrap();
+        let version: u32 = connection
+            .query_row("pragma user_version", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(version, SCHEMA_VERSION);
     }
 }
