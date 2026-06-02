@@ -105,8 +105,26 @@ describe("terminal automation commands", () => {
 
     expect(deps.requestTerminalCommand).toHaveBeenCalledWith(
       "Run command in active terminal",
+      expect.any(Function),
     );
     expect(deps.runTerminalCommand).toHaveBeenCalledWith("pnpm lint");
+  });
+
+  it("supports modal terminal command requests", () => {
+    let submit: ((command: string) => void) | null = null;
+    const deps = createDeps({
+      requestTerminalCommand: vi.fn((_label, onSubmit) => {
+        submit = onSubmit;
+        return null;
+      }),
+    });
+
+    expect(dispatchCommand("terminal.runCommand", deps)).toBe(true);
+    expect(deps.runTerminalCommand).not.toHaveBeenCalled();
+
+    submit?.("pnpm test");
+
+    expect(deps.runTerminalCommand).toHaveBeenCalledWith("pnpm test");
   });
 
   it("spawns in the active folder and runs the prompted command", () => {

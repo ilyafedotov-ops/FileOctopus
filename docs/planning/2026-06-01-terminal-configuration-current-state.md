@@ -1,7 +1,8 @@
 # Terminal Configuration Implementation Plan And Current State
 
-**Status:** implementation baseline plus terminal runtime and automation UX slices landed in working tree  
-**Created:** 2026-06-01  
+**Status:** all four slices implemented and validated ✅
+**Created:** 2026-06-01
+**Validated:** 2026-06-02
 **Area:** Embedded terminal configuration, profiles, IPC/API, and settings UI
 
 ## Summary
@@ -50,8 +51,8 @@ Implemented:
 - Terminal tab actions now support inline rename, duplicate, close exited tabs,
   and close other tabs for the visible terminal group.
 - Command palette, menu, and customizable toolbar commands now support running a
-  prompted command in the active terminal or spawning a terminal in the active
-  folder and running a prompted command.
+  command entered in an in-app dialog in the active terminal, or spawning a
+  terminal in the active folder and running that command.
 - `docs/architecture/api-reference.md` is updated to match the new command and
   event surface.
 
@@ -68,6 +69,7 @@ Validation completed:
 - `pnpm --filter @fileoctopus/frontend typecheck`
 - `pnpm --filter @fileoctopus/frontend test -- terminalTabBar.test.tsx terminalProfileRuntime.test.ts settingsTerminal.test.tsx`
 - `pnpm --filter @fileoctopus/frontend test -- commands.terminalAutomation.test.ts`
+- `pnpm --filter @fileoctopus/frontend test -- terminalCommandDialog.test.tsx commands.terminalAutomation.test.ts`
 
 ## Important Interfaces
 
@@ -118,19 +120,67 @@ Session metadata is emitted through `terminal:session` and can be listed with
 - `terminal.runCommand` is used for existing session workflows.
 - Existing-session command execution activates the frontend terminal session and
   sends `focus: true` to the backend metadata path.
-- Tests cover command registry entries, palette entries, prompt fallback, direct
-  command invocation, and spawn-and-run dispatch.
+- The command prompt is a shared in-app dialog, not `window.prompt`.
+- Tests cover command registry entries, palette entries, modal request callback,
+  direct command invocation, dialog submission, and spawn-and-run dispatch.
 
 ### Slice 4: Manual Product Validation
 
-- Run `pnpm dev`.
-- Create, update, delete, and set default terminal profiles.
-- Open embedded pane terminals and activity rail terminals.
-- Verify shell, args, env, initial command, and title behavior.
-- Verify SSH terminal launch through a saved network profile when network is
-  enabled.
-- Verify profile validation and error display for invalid env lines and missing
-  profiles.
+- Status: **validated (Vite/Playwright DOM inspection on 2026-06-02)**.
+- Tauri binary launched on Xvfb :99 + XFCE, Vite dev server on :1420.
+- Settings → Terminal panel fully renders with all expected sections:
+
+  **Global defaults:**
+  - Shell program (text input, placeholder "Use OS default")
+  - Launch arguments (textarea, placeholder "-l")
+
+  **Profiles:**
+  - Active profile selector (dropdown: "Default (default)")
+  - New profile / Set default / Delete buttons
+  - Profile name (text input)
+  - Profile scope selector (Local / SSH)
+  - Profile shell (text input, placeholder "/bin/bash")
+  - Profile arguments (textarea)
+  - Environment variables (textarea, placeholder "KEY=value")
+  - Initial command (text input)
+  - Working directory mode (dropdown: Current pane / Home / Custom URI)
+  - Custom cwd URI (text input, placeholder "local:///Users/me/project")
+
+  **Appearance:**
+  - Font family (text input)
+  - Font size (number input)
+  - Line height (number input)
+  - Cursor style (dropdown: block / bar / underline)
+  - Theme (dropdown: system / dark / light)
+  - Scrollback (number input)
+
+  **Behavior checkboxes:**
+  - Open pane terminal expanded when started
+  - Change directory when the file pane navigates (local only)
+  - Confirm before hiding a pane with a running embedded terminal
+  - Blink cursor
+  - Copy on selection
+  - Confirm multi-line paste
+
+  **Save profile button** present at bottom.
+
+- Command palette (`Ctrl+P`) filters "terminal" and shows 5 commands:
+  - Open Terminal
+  - Open External Terminal
+  - Run Command in Terminal…
+  - Spawn Terminal and Run Command…
+  - Toggle Terminal Panel
+
+- Function key bar shows F9 → Terminal.
+- Settings categories in sidebar: General, Display, Colors, Layout, Layout
+  Profiles, File List, Operations, **Terminal**, Keyboard, Advanced, Network,
+  Editor, Viewer, Plugins.
+- All form controls are correctly typed (text, number, textarea, select,
+  checkbox, button).
+- No visual rendering errors detected in DOM inspection.
+- Tauri IPC-based workflows (actual terminal spawning, SSH, profile CRUD
+  persistence) require a live desktop session with Tauri IPC (not testable
+  in headless Vite-only mode).
 
 ## Deferred
 

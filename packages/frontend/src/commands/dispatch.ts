@@ -102,7 +102,10 @@ export interface CommandDispatchDeps {
   openEmbeddedTerminal: (panelId: PanelId) => void;
   openTerminalExternal: (panelId: PanelId) => void;
   togglePaneTerminal: (panelId: PanelId) => void;
-  requestTerminalCommand?: (label: string) => string | null;
+  requestTerminalCommand?: (
+    label: string,
+    onSubmit?: (command: string) => void,
+  ) => string | null;
   runTerminalCommand?: (command: string) => void;
   spawnAndRunTerminalCommand?: (panelId: PanelId, command: string) => void;
   calculateSize: (
@@ -137,9 +140,10 @@ function terminalCommandFromOptions(
   deps: CommandDispatchDeps,
   options: DispatchCommandOptions | undefined,
   label: string,
+  onSubmit: (command: string) => void,
 ): string | null {
   const command =
-    options?.terminalCommand ?? deps.requestTerminalCommand?.(label);
+    options?.terminalCommand ?? deps.requestTerminalCommand?.(label, onSubmit);
   const trimmed = command?.trim() ?? "";
   return trimmed ? trimmed : null;
 }
@@ -450,6 +454,7 @@ export function dispatchCommand(
         deps,
         options,
         "Run command in active terminal",
+        deps.runTerminalCommand,
       );
       if (!command) {
         return true;
@@ -465,6 +470,7 @@ export function dispatchCommand(
         deps,
         options,
         "Spawn terminal and run command",
+        (command) => deps.spawnAndRunTerminalCommand?.(panelId, command),
       );
       if (!command) {
         return true;
