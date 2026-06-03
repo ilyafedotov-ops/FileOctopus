@@ -28,6 +28,7 @@ pub const TERMINAL_EXIT_EVENT: &str = "terminal:exit";
 pub const NATIVE_MENU_COMMAND_EVENT: &str = "nativeMenu:command";
 pub const CONTENT_SEARCH_MATCH_EVENT: &str = "fs:contentSearch:match";
 pub const CONTENT_SEARCH_COMPLETED_EVENT: &str = "fs:contentSearch:completed";
+pub const DIAGNOSTICS_LOG_EVENT: &str = "diagnostics:log";
 
 mod acl;
 pub use acl::*;

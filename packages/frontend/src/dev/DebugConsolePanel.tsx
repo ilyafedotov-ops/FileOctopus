@@ -3,14 +3,21 @@ import {
   clearDebugLog,
   getDebugLog,
   installConsoleCapture,
+  pushBackendLog,
   subscribeDebugLog,
   type DebugLogEntry,
   type DebugLogLevel,
+  type DebugLogSource,
 } from "./debugLogStore";
+import { useModals } from "../app/providers/ModalsProvider";
+import { useShell } from "../app/providers/ShellProvider";
 
 installConsoleCapture();
 
 const LEVEL_COLOR: Record<DebugLogLevel, string> = {
+  trace: "#7d8694",
+  debug: "#7aa2c4",
+  info: "#5fb37a",
   log: "#9ab",
   warn: "#e4b343",
   error: "#e35757",
@@ -22,11 +29,16 @@ function formatTime(timestamp: number): string {
 }
 
 export function DebugConsolePanel() {
-  const [visible, setVisible] = useState(false);
+  const { debugConsoleOpen, setDebugConsoleOpen } = useModals();
+  const { client } = useShell();
   const [entries, setEntries] = useState<DebugLogEntry[]>(() => getDebugLog());
   const [filter, setFilter] = useState("");
   const [levelFilter, setLevelFilter] = useState<DebugLogLevel | "all">("all");
+  const [sourceFilter, setSourceFilter] = useState<DebugLogSource | "all">(
+    "all",
+  );
   const [autoScroll, setAutoScroll] = useState(true);
+  const [streamError, setStreamError] = useState<string | null>(null);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => subscribeDebugLog(setEntries), []);
@@ -40,12 +52,50 @@ export function DebugConsolePanel() {
       if (isToggle) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        setVisible((value) => !value);
+        setDebugConsoleOpen((value) => !value);
       }
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, []);
+  }, [setDebugConsoleOpen]);
+
+  // Stream backend (Rust) log records while the console is open.
+  useEffect(() => {
+    if (!debugConsoleOpen) {
+      return;
+    }
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    setStreamError(null);
+
+    client.diagnostics
+      .onLogRecord((record) => pushBackendLog(record))
+      .then((fn) => {
+        if (cancelled) {
+          fn();
+          return;
+        }
+        unlisten = fn;
+        return client.diagnostics.startLogStream();
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setStreamError(
+            error instanceof Error
+              ? error.message
+              : "Failed to start backend log stream",
+          );
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      unlisten?.();
+      void client.diagnostics.stopLogStream().catch(() => {
+        /* noop */
+      });
+    };
+  }, [debugConsoleOpen, client]);
 
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -53,12 +103,18 @@ export function DebugConsolePanel() {
       if (levelFilter !== "all" && entry.level !== levelFilter) {
         return false;
       }
+      if (sourceFilter !== "all" && entry.source !== sourceFilter) {
+        return false;
+      }
       if (!q) {
         return true;
       }
-      return entry.message.toLowerCase().includes(q);
+      return (
+        entry.message.toLowerCase().includes(q) ||
+        (entry.target?.toLowerCase().includes(q) ?? false)
+      );
     });
-  }, [entries, filter, levelFilter]);
+  }, [entries, filter, levelFilter, sourceFilter]);
 
   useEffect(() => {
     if (!autoScroll) {
@@ -70,7 +126,7 @@ export function DebugConsolePanel() {
     }
   }, [filtered, autoScroll]);
 
-  if (!visible) {
+  if (!debugConsoleOpen) {
     return null;
   }
 
@@ -78,7 +134,7 @@ export function DebugConsolePanel() {
     const text = filtered
       .map(
         (entry) =>
-          `[${formatTime(entry.timestamp)}] [${entry.level}] ${entry.message}`,
+          `[${formatTime(entry.timestamp)}] [${entry.source}] [${entry.level}]${entry.target ? ` ${entry.target}` : ""} ${entry.message}`,
       )
       .join("\n");
     try {
@@ -88,15 +144,24 @@ export function DebugConsolePanel() {
     }
   };
 
+  const controlStyle = {
+    background: "rgba(255,255,255,0.06)",
+    border: "1px solid rgba(255,255,255,0.1)",
+    borderRadius: 4,
+    color: "inherit",
+    padding: "2px 6px",
+    font: "inherit",
+  } as const;
+
   return (
     <div
       style={{
         position: "fixed",
         right: 16,
         bottom: 16,
-        width: 720,
+        width: 760,
         maxWidth: "calc(100vw - 32px)",
-        height: 360,
+        height: 380,
         maxHeight: "calc(100vh - 32px)",
         background: "rgba(20, 22, 28, 0.96)",
         color: "#dadada",
@@ -127,34 +192,35 @@ export function DebugConsolePanel() {
           placeholder="Filter…"
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
-          style={{
-            flex: 1,
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 4,
-            color: "inherit",
-            padding: "2px 6px",
-            font: "inherit",
-          }}
+          style={{ ...controlStyle, flex: 1 }}
         />
+        <select
+          value={sourceFilter}
+          onChange={(event) =>
+            setSourceFilter(event.target.value as DebugLogSource | "all")
+          }
+          aria-label="Source filter"
+          style={controlStyle}
+        >
+          <option value="all">all sources</option>
+          <option value="backend">backend</option>
+          <option value="frontend">frontend</option>
+        </select>
         <select
           value={levelFilter}
           onChange={(event) =>
             setLevelFilter(event.target.value as DebugLogLevel | "all")
           }
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 4,
-            color: "inherit",
-            padding: "2px 4px",
-            font: "inherit",
-          }}
+          aria-label="Level filter"
+          style={controlStyle}
         >
-          <option value="all">all</option>
-          <option value="log">log</option>
-          <option value="warn">warn</option>
+          <option value="all">all levels</option>
           <option value="error">error</option>
+          <option value="warn">warn</option>
+          <option value="info">info</option>
+          <option value="log">log</option>
+          <option value="debug">debug</option>
+          <option value="trace">trace</option>
         </select>
         <label
           style={{
@@ -174,50 +240,37 @@ export function DebugConsolePanel() {
         <button
           type="button"
           onClick={() => void copyAll()}
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 4,
-            color: "inherit",
-            padding: "2px 8px",
-            font: "inherit",
-            cursor: "pointer",
-          }}
+          style={{ ...controlStyle, cursor: "pointer" }}
         >
           Copy
         </button>
         <button
           type="button"
           onClick={() => clearDebugLog()}
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 4,
-            color: "inherit",
-            padding: "2px 8px",
-            font: "inherit",
-            cursor: "pointer",
-          }}
+          style={{ ...controlStyle, cursor: "pointer" }}
         >
           Clear
         </button>
         <button
           type="button"
-          onClick={() => setVisible(false)}
+          onClick={() => setDebugConsoleOpen(false)}
           aria-label="Close debug console"
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            borderRadius: 4,
-            color: "inherit",
-            padding: "2px 8px",
-            font: "inherit",
-            cursor: "pointer",
-          }}
+          style={{ ...controlStyle, cursor: "pointer" }}
         >
           ×
         </button>
       </div>
+      {streamError ? (
+        <div
+          style={{
+            padding: "4px 8px",
+            color: "#e35757",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
+          }}
+        >
+          {streamError}
+        </div>
+      ) : null}
       <div
         ref={scrollerRef}
         style={{
@@ -247,6 +300,16 @@ export function DebugConsolePanel() {
               </span>
               <span
                 style={{
+                  color: entry.source === "backend" ? "#8a7bd8" : "#5f7d94",
+                  marginRight: 8,
+                  textTransform: "uppercase",
+                  fontSize: 10,
+                }}
+              >
+                {entry.source === "backend" ? "rust" : "ui"}
+              </span>
+              <span
+                style={{
                   color: LEVEL_COLOR[entry.level],
                   marginRight: 8,
                   textTransform: "uppercase",
@@ -255,6 +318,11 @@ export function DebugConsolePanel() {
               >
                 {entry.level}
               </span>
+              {entry.target ? (
+                <span style={{ color: "#7d8694", marginRight: 8 }}>
+                  {entry.target}
+                </span>
+              ) : null}
               <span>{entry.message}</span>
             </div>
           ))
@@ -268,7 +336,8 @@ export function DebugConsolePanel() {
           background: "rgba(255,255,255,0.02)",
         }}
       >
-        {filtered.length} / {entries.length} entries · toggle with{" "}
+        {filtered.length} / {entries.length} entries · streaming backend +
+        frontend logs · toggle with{" "}
         <kbd style={{ color: "#dadada" }}>⌘/Ctrl + Opt + L</kbd>
       </div>
     </div>

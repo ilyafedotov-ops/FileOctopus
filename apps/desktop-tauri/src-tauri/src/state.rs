@@ -16,6 +16,14 @@ pub(crate) struct WatchState {
     pub(crate) current: Mutex<Option<WatchRuntime>>,
 }
 
+/// Tracks whether the single backend log-stream forwarding task has been
+/// spawned. Streaming itself is toggled via `telemetry::set_streaming`; this
+/// guard only ensures we never spawn more than one forwarder.
+#[derive(Default)]
+pub(crate) struct LogStreamState {
+    pub(crate) task_started: std::sync::atomic::AtomicBool,
+}
+
 pub(crate) struct WatchRuntime {
     pub(crate) stop: Arc<std::sync::atomic::AtomicBool>,
     pub(crate) handle: std::thread::JoinHandle<()>,

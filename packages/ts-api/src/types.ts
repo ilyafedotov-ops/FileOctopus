@@ -124,6 +124,13 @@ export interface NativeMenuCommandEventDto {
   preferenceValue?: string | null;
 }
 
+export interface LogRecordDto {
+  level: string;
+  target: string;
+  message: string;
+  timestampMs: number;
+}
+
 export interface ClearOperationHistoryResponse {
   deletedCount: number;
 }

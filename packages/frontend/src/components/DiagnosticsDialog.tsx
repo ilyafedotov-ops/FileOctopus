@@ -20,6 +20,7 @@ interface DiagnosticsDialogProps {
   onDestinationChange: (value: string) => void;
   onRefresh: () => void;
   onExport: () => void;
+  onOpenLiveConsole?: () => void;
 }
 
 function DetailRow({ label, value }: { label: string; value: ReactNode }) {
@@ -44,6 +45,7 @@ export function DiagnosticsDialog({
   onDestinationChange,
   onRefresh,
   onExport,
+  onOpenLiveConsole,
 }: DiagnosticsDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   useDialogEscape(open, onClose);
@@ -118,6 +120,23 @@ export function DiagnosticsDialog({
               </dl>
             </section>
           ) : null}
+
+          <section className="fo-dialog-section" aria-label="Live logs">
+            <h3 className="fo-dialog-section-title">Live logs</h3>
+            <p>
+              Open the debug console to watch backend and frontend log output in
+              real time.
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              disabled={!onOpenLiveConsole}
+              onClick={() => onOpenLiveConsole?.()}
+            >
+              Open live console
+            </Button>
+          </section>
 
           <section className="fo-dialog-section" aria-label="Export">
             <h3 className="fo-dialog-section-title">Export bundle</h3>

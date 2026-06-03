@@ -4921,6 +4921,8 @@ dependencies = [
 name = "telemetry"
 version = "0.1.0"
 dependencies = [
+ "serde",
+ "tokio",
  "tracing",
  "tracing-appender",
  "tracing-subscriber",

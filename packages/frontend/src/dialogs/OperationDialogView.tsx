@@ -81,6 +81,7 @@ export type OperationDialog =
       loading: boolean;
       folderSizeJobId: string | null;
       error: string | null;
+      focusPermissions?: boolean;
     }
   | {
       type: "selectionProperties";
@@ -509,6 +510,7 @@ export function OperationDialogView({
         <PropertiesDialog
           open
           fs={fs}
+          focusPermissions={dialog.focusPermissions}
           state={{
             panelId: dialog.panelId,
             entry: dialog.entry,

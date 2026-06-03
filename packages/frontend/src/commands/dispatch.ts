@@ -37,6 +37,7 @@ export interface CommandDispatchDeps {
   setToolbarCustomizeOpen: (open: boolean) => void;
   setShortcutsOpen: (open: boolean) => void;
   setDiagnosticsOpen: (open: boolean) => void;
+  setDebugConsoleOpen: (open: boolean) => void;
   setHelpOpen: (open: boolean) => void;
   setAboutOpen: (open: boolean) => void;
   setGoToLocationOpen: (open: boolean) => void;
@@ -78,6 +79,7 @@ export interface CommandDispatchDeps {
   handleProperties: (
     panelId: PanelId,
     entry: FileEntryDto | null,
+    focusPermissions?: boolean,
   ) => Promise<void>;
   setOperationError: (error: string | null) => void;
   copySelectionToFileClipboard: (
@@ -159,6 +161,9 @@ export function dispatchCommand(
       return true;
     case "app.diagnostics":
       deps.setDiagnosticsOpen(true);
+      return true;
+    case "app.debugConsole":
+      deps.setDebugConsoleOpen(true);
       return true;
     case "app.documentation":
       deps.setHelpOpen(true);
@@ -416,6 +421,9 @@ export function dispatchCommand(
     }
     case "op.properties":
       void deps.handleProperties(panelId, selectedEntry);
+      return true;
+    case "op.permissions":
+      void deps.handleProperties(panelId, selectedEntry, true);
       return true;
     case "op.compress":
       void deps.handleCompress(panelId);

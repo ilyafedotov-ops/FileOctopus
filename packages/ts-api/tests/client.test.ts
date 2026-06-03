@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  DIAGNOSTICS_LOG_EVENT,
   DIRECTORY_BATCH_EVENT,
   FOLDER_SIZE_COMPLETED_EVENT,
   FileOctopusClient,
@@ -447,6 +448,42 @@ describe("FileOctopusClient", () => {
       "diagnostics.exportBundle",
     ]);
     expect(events).toEqual(["job-1"]);
+  });
+
+  it("routes diagnostics log streaming through the diagnostics client", async () => {
+    const calls: string[] = [];
+    let subscribedEvent = "";
+    const transport: IpcTransport = {
+      async invoke<TResponse>(command: string) {
+        calls.push(command);
+        return undefined as unknown as TResponse;
+      },
+      async listen(event, handler) {
+        subscribedEvent = event;
+        handler({
+          level: "INFO",
+          target: "fs_core::listing",
+          message: "listed 3 entries",
+          timestampMs: 1000,
+        });
+        return () => undefined;
+      },
+    };
+    const client = new FileOctopusClient(transport);
+    const records: string[] = [];
+
+    await client.diagnostics.onLogRecord((record) =>
+      records.push(`${record.level}:${record.message}`),
+    );
+    await client.diagnostics.startLogStream();
+    await client.diagnostics.stopLogStream();
+
+    expect(subscribedEvent).toBe(DIAGNOSTICS_LOG_EVENT);
+    expect(records).toEqual(["INFO:listed 3 entries"]);
+    expect(calls).toEqual([
+      "diagnostics.startLogStream",
+      "diagnostics.stopLogStream",
+    ]);
   });
 
   it("routes preferences through the preferences client", async () => {
