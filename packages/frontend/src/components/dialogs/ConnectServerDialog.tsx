@@ -1,10 +1,20 @@
 import type {
+  FsClient,
   NetworkConnectionDraftDto,
   NetworkProfileDto,
 } from "@fileoctopus/ts-api";
+import { remotePathFromUri, rootUriForUri } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import { useEffect, useState } from "react";
 import { WizardShell } from "../WizardShell";
+import { PathBrowseField } from "../PathBrowseField";
+import { DialogShell } from "../DialogShell";
+import { FolderTree } from "../../dialogs/FolderTree";
+import {
+  pickLocalPath as defaultPickLocalPath,
+  SSH_KEY_FILTERS,
+  type LocalPathPicker,
+} from "../../utils/pathPicker";
 
 type SchemeType = "sftp" | "ssh" | "smb" | "s3" | "webdav";
 type AuthKindType = "password" | "privateKey" | "accessKey";
@@ -32,7 +42,16 @@ interface ConnectServerDialogProps {
     passphrase: string;
   }) => Promise<NetworkProfileDto>;
   onForgetFingerprint?: (profileId: string) => Promise<void>;
+  onTest?: (profileId: string) => Promise<{ ok: boolean; message: string }>;
+  pickLocalPath?: LocalPathPicker;
+  fs?: FsClient;
 }
+
+type TestState =
+  | { status: "idle" }
+  | { status: "testing" }
+  | { status: "success"; message: string }
+  | { status: "error"; message: string };
 
 function defaultPort(scheme: SchemeType): number {
   if (scheme === "sftp" || scheme === "ssh") return 22;
@@ -61,6 +80,9 @@ export function ConnectServerDialog({
   onClose,
   onSave,
   onForgetFingerprint,
+  onTest,
+  pickLocalPath = defaultPickLocalPath,
+  fs,
 }: ConnectServerDialogProps) {
   const [label, setLabel] = useState("");
   const [scheme, setScheme] = useState<SchemeType>("sftp");
@@ -73,9 +95,20 @@ export function ConnectServerDialog({
   const [password, setPassword] = useState("");
   const [passphrase, setPassphrase] = useState("");
   const [step, setStep] = useState<WizardStep>("target");
-  const [testStatus, setTestStatus] = useState<string | null>(null);
+  const [testState, setTestState] = useState<TestState>({ status: "idle" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
+  const [remotePathPickerOpen, setRemotePathPickerOpen] = useState(false);
+
+  const clearFieldError = (field: string) => {
+    setInvalidFields((current) => {
+      if (!current.has(field)) return current;
+      const next = new Set(current);
+      next.delete(field);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!open) {
@@ -107,8 +140,10 @@ export function ConnectServerDialog({
     setPassword("");
     setPassphrase("");
     setStep("target");
-    setTestStatus(null);
+    setTestState({ status: "idle" });
     setError(null);
+    setInvalidFields(new Set());
+    setRemotePathPickerOpen(false);
   }, [editingProfile, initialDraft, open]);
 
   function handleSchemeChange(newScheme: SchemeType) {
@@ -147,6 +182,27 @@ export function ConnectServerDialog({
           ? "/remote.php/dav/files/user"
           : "/home/deploy";
   const stepIndex = STEP_ORDER.indexOf(step);
+  const canBrowseRemoteDefaultPath =
+    Boolean(fs) &&
+    editingProfile !== null &&
+    showDefaultPath &&
+    (scheme === "sftp" || scheme === "smb" || scheme === "webdav");
+  const remoteDefaultPathRootUri =
+    editingProfile && canBrowseRemoteDefaultPath
+      ? rootUriForUri(editingProfile.defaultUri)
+      : null;
+
+  async function browsePrivateKeyPath() {
+    const selected = await pickLocalPath({
+      kind: "file",
+      currentPath: privateKeyPath,
+      title: "Choose private key",
+      filters: SSH_KEY_FILTERS,
+    });
+    if (selected) {
+      setPrivateKeyPath(selected);
+    }
+  }
 
   function credentialsError(): string | null {
     const trimmedUsername = username.trim();
@@ -165,32 +221,67 @@ export function ConnectServerDialog({
   function handleNextStep() {
     setError(null);
     if (step === "target") {
-      if (!label.trim() || !host.trim()) {
-        setError("Label and host are required.");
-        return;
-      }
+      const invalid = new Set<string>();
+      if (!label.trim()) invalid.add("label");
+      if (!host.trim()) invalid.add("host");
       const parsedPort = Number(port);
-      if (!Number.isFinite(parsedPort) || parsedPort <= 0) {
-        setError("Enter a valid port.");
+      if (!Number.isFinite(parsedPort) || parsedPort <= 0) invalid.add("port");
+      if (invalid.size > 0) {
+        setInvalidFields(invalid);
+        setError(
+          invalid.has("port") && invalid.size === 1
+            ? "Enter a valid port."
+            : "Label and host are required.",
+        );
         return;
       }
+      setInvalidFields(new Set());
       setStep("credentials");
       return;
     }
     if (step === "credentials") {
+      const invalid = new Set<string>();
+      if (scheme !== "s3" && !username.trim()) invalid.add("username");
+      if (authKind === "privateKey" && !privateKeyPath.trim())
+        invalid.add("privateKey");
+      if (showPasswordField && !editingProfile && !password)
+        invalid.add("password");
       const credError = credentialsError();
       if (credError) {
+        setInvalidFields(invalid);
         setError(credError);
         return;
       }
+      setInvalidFields(new Set());
       setStep("test");
       return;
     }
     if (step === "test") {
-      setTestStatus("Connection details are ready to save.");
       setStep("save");
     }
   }
+
+  async function runTest() {
+    if (!onTest || !editingProfile?.id) return;
+    setTestState({ status: "testing" });
+    try {
+      const result = await onTest(editingProfile.id);
+      setTestState({
+        status: result.ok ? "success" : "error",
+        message: result.message,
+      });
+    } catch (testError) {
+      setTestState({
+        status: "error",
+        message:
+          testError instanceof Error
+            ? testError.message
+            : "Connection test failed.",
+      });
+    }
+  }
+
+  const canRunTest = Boolean(onTest) && editingProfile !== null;
 
   function handlePreviousStep() {
     setError(null);
@@ -272,9 +363,7 @@ export function ConnectServerDialog({
         : editingProfile
           ? "Save changes"
           : "Save connection"
-      : step === "test"
-        ? "Test"
-        : "Next";
+      : "Next";
 
   return (
     <WizardShell
@@ -308,7 +397,14 @@ export function ConnectServerDialog({
               <span>Label</span>
               <input
                 value={label}
-                onChange={(event) => setLabel(event.target.value)}
+                aria-invalid={invalidFields.has("label") || undefined}
+                className={
+                  invalidFields.has("label") ? "fo-field-invalid" : undefined
+                }
+                onChange={(event) => {
+                  setLabel(event.target.value);
+                  clearFieldError("label");
+                }}
                 placeholder={
                   scheme === "s3"
                     ? "Production S3"
@@ -338,7 +434,14 @@ export function ConnectServerDialog({
               <span>{hostLabel}</span>
               <input
                 value={host}
-                onChange={(event) => setHost(event.target.value)}
+                aria-invalid={invalidFields.has("host") || undefined}
+                className={
+                  invalidFields.has("host") ? "fo-field-invalid" : undefined
+                }
+                onChange={(event) => {
+                  setHost(event.target.value);
+                  clearFieldError("host");
+                }}
                 placeholder={hostPlaceholder}
               />
             </label>
@@ -346,19 +449,44 @@ export function ConnectServerDialog({
               <span>Port</span>
               <input
                 value={port}
-                onChange={(event) => setPort(event.target.value)}
+                aria-invalid={invalidFields.has("port") || undefined}
+                className={
+                  invalidFields.has("port") ? "fo-field-invalid" : undefined
+                }
+                onChange={(event) => {
+                  setPort(event.target.value);
+                  clearFieldError("port");
+                }}
                 inputMode="numeric"
               />
             </label>
             {showDefaultPath || showBucketField ? (
-              <label className="fo-dialog-field">
-                <span>{defaultPathLabel}</span>
-                <input
+              canBrowseRemoteDefaultPath ? (
+                <PathBrowseField
+                  className="fo-dialog-field"
+                  label={defaultPathLabel}
                   value={defaultPath}
-                  onChange={(event) => setDefaultPath(event.target.value)}
                   placeholder={defaultPathPlaceholder}
+                  browseLabel="Browse default path"
+                  onChange={setDefaultPath}
+                  onBrowse={() => setRemotePathPickerOpen(true)}
                 />
-              </label>
+              ) : (
+                <label className="fo-dialog-field">
+                  <span>{defaultPathLabel}</span>
+                  <input
+                    aria-label={defaultPathLabel}
+                    value={defaultPath}
+                    onChange={(event) => setDefaultPath(event.target.value)}
+                    placeholder={defaultPathPlaceholder}
+                  />
+                  {showDefaultPath ? (
+                    <span className="fo-settings-hint">
+                      Save the connection before browsing remote folders.
+                    </span>
+                  ) : null}
+                </label>
+              )
             ) : null}
           </>
         ) : null}
@@ -369,7 +497,14 @@ export function ConnectServerDialog({
               <span>{usernameLabel}</span>
               <input
                 value={username}
-                onChange={(event) => setUsername(event.target.value)}
+                aria-invalid={invalidFields.has("username") || undefined}
+                className={
+                  invalidFields.has("username") ? "fo-field-invalid" : undefined
+                }
+                onChange={(event) => {
+                  setUsername(event.target.value);
+                  clearFieldError("username");
+                }}
                 placeholder={usernamePlaceholder}
               />
             </label>
@@ -393,7 +528,16 @@ export function ConnectServerDialog({
                 <input
                   type="password"
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  aria-invalid={invalidFields.has("password") || undefined}
+                  className={
+                    invalidFields.has("password")
+                      ? "fo-field-invalid"
+                      : undefined
+                  }
+                  onChange={(event) => {
+                    setPassword(event.target.value);
+                    clearFieldError("password");
+                  }}
                   placeholder={
                     editingProfile
                       ? editingProfile.hasStoredSecret
@@ -412,14 +556,15 @@ export function ConnectServerDialog({
             ) : null}
             {showPrivateKeyField ? (
               <>
-                <label className="fo-dialog-field">
-                  <span>Private key path</span>
-                  <input
-                    value={privateKeyPath}
-                    onChange={(event) => setPrivateKeyPath(event.target.value)}
-                    placeholder="/Users/you/.ssh/id_ed25519"
-                  />
-                </label>
+                <PathBrowseField
+                  className="fo-dialog-field"
+                  label="Private key path"
+                  value={privateKeyPath}
+                  placeholder="/Users/you/.ssh/id_ed25519"
+                  browseLabel="Browse private key path"
+                  onChange={setPrivateKeyPath}
+                  onBrowse={() => void browsePrivateKeyPath()}
+                />
                 <label className="fo-dialog-field">
                   <span>Key passphrase</span>
                   <input
@@ -490,8 +635,97 @@ export function ConnectServerDialog({
           ) : null
         ) : null}
 
-        {testStatus ? <p className="fo-settings-hint">{testStatus}</p> : null}
+        {step === "test" ? (
+          <div className="fo-connect-test">
+            {canRunTest ? (
+              <>
+                <div className="fo-connect-test-row">
+                  <Button
+                    type="button"
+                    variant="default"
+                    size="sm"
+                    disabled={testState.status === "testing"}
+                    onClick={() => void runTest()}
+                  >
+                    {testState.status === "testing"
+                      ? "Testing…"
+                      : "Run connection test"}
+                  </Button>
+                  {testState.status === "testing" ? (
+                    <span
+                      className="fo-connect-test-spinner"
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                </div>
+                {testState.status === "success" ? (
+                  <p
+                    className="fo-connect-test-card fo-connect-test-card--ok"
+                    role="status"
+                  >
+                    {testState.message}
+                  </p>
+                ) : testState.status === "error" ? (
+                  <p
+                    className="fo-connect-test-card fo-connect-test-card--error"
+                    role="alert"
+                  >
+                    {testState.message}
+                  </p>
+                ) : (
+                  <p className="fo-settings-hint">
+                    Verify the server is reachable with the saved credentials
+                    before saving.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="fo-settings-hint">
+                Save the connection to run a live test with these credentials.
+              </p>
+            )}
+          </div>
+        ) : testState.status === "success" ? (
+          <p
+            className="fo-connect-test-card fo-connect-test-card--ok"
+            role="status"
+          >
+            {testState.message}
+          </p>
+        ) : testState.status === "error" ? (
+          <p
+            className="fo-connect-test-card fo-connect-test-card--error"
+            role="status"
+          >
+            {testState.message}
+          </p>
+        ) : null}
       </div>
+      <DialogShell
+        open={remotePathPickerOpen && remoteDefaultPathRootUri !== null}
+        onClose={() => setRemotePathPickerOpen(false)}
+        title="Choose Default Path"
+        subtitle={editingProfile?.label}
+        size="md"
+        className="fo-remote-path-picker-dialog"
+      >
+        <div className="fo-dialog-body">
+          {fs && remoteDefaultPathRootUri ? (
+            <FolderTree
+              fs={fs}
+              rootUri={remoteDefaultPathRootUri}
+              rootLabel="/"
+              onSelect={(uri) => {
+                const selectedPath = remotePathFromUri(uri);
+                if (selectedPath) {
+                  setDefaultPath(selectedPath);
+                }
+                setRemotePathPickerOpen(false);
+              }}
+            />
+          ) : null}
+        </div>
+      </DialogShell>
     </WizardShell>
   );
 }

@@ -266,6 +266,109 @@ describe("SettingsDialog", () => {
     );
   });
 
+  it("uses a save picker for the diagnostics export path", async () => {
+    const onChange = vi.fn();
+    const pickLocalPath = vi
+      .fn()
+      .mockResolvedValue("/Users/ilya/Desktop/fileoctopus-diagnostics.zip");
+    render(
+      <SettingsDialog
+        open
+        preferences={makePreferences()}
+        autostart={null}
+        onClose={() => {}}
+        onChange={onChange}
+        onSetAutostart={async () => {}}
+        pickLocalPath={pickLocalPath}
+      />,
+    );
+    fireEvent.click(navButton("General"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Browse diagnostics export path" }),
+    );
+    await vi.waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith(
+        "diagnosticsExportPath",
+        "/Users/ilya/Desktop/fileoctopus-diagnostics.zip",
+      );
+    });
+    expect(pickLocalPath).toHaveBeenCalledWith({
+      kind: "save",
+      currentPath: "/tmp/fileoctopus-diagnostics.zip",
+      title: "Choose diagnostics export path",
+    });
+  });
+
+  it("does not change diagnostics path when the save picker is cancelled", async () => {
+    const onChange = vi.fn();
+    render(
+      <SettingsDialog
+        open
+        preferences={makePreferences()}
+        autostart={null}
+        onClose={() => {}}
+        onChange={onChange}
+        onSetAutostart={async () => {}}
+        pickLocalPath={vi.fn().mockResolvedValue(null)}
+      />,
+    );
+    fireEvent.click(navButton("General"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Browse diagnostics export path" }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("uses file pickers for terminal shell and default SSH key path", async () => {
+    const onChange = vi.fn();
+    const pickLocalPath = vi
+      .fn()
+      .mockResolvedValueOnce("/bin/zsh")
+      .mockResolvedValueOnce("/Users/ilya/.ssh/id_ed25519");
+    render(
+      <SettingsDialog
+        open
+        preferences={makePreferences()}
+        autostart={null}
+        onClose={() => {}}
+        onChange={onChange}
+        onSetAutostart={async () => {}}
+        pickLocalPath={pickLocalPath}
+      />,
+    );
+
+    fireEvent.click(navButton("Terminal"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Browse shell program" }),
+    );
+    await vi.waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith("terminalShell", "/bin/zsh");
+    });
+
+    fireEvent.click(navButton("Network"));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Browse default SSH key path" }),
+    );
+    await vi.waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith(
+        "networkSshKeyPath",
+        "/Users/ilya/.ssh/id_ed25519",
+      );
+    });
+    expect(pickLocalPath).toHaveBeenNthCalledWith(1, {
+      kind: "file",
+      currentPath: "",
+      title: "Choose shell program",
+    });
+    expect(pickLocalPath).toHaveBeenNthCalledWith(2, {
+      kind: "file",
+      currentPath: "",
+      title: "Choose default SSH key",
+      filters: [{ name: "SSH keys", extensions: ["pem", "key"] }],
+    });
+  });
+
   describe("Keyboard tab", () => {
     it("shows Keyboard nav button", () => {
       render(
@@ -320,6 +423,77 @@ describe("SettingsDialog", () => {
       expect(screen.getByText("Show Hidden Files")).toBeTruthy();
       const kbds = screen.getAllByRole("presentation");
       expect(kbds.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("navigation polish", () => {
+    function renderDialog(onChange = vi.fn()) {
+      render(
+        <SettingsDialog
+          open
+          preferences={makePreferences()}
+          autostart={null}
+          onClose={() => {}}
+          onChange={onChange}
+          onSetAutostart={async () => {}}
+        />,
+      );
+    }
+
+    it("highlights the matched substring in nav labels when searching", () => {
+      renderDialog();
+      fireEvent.change(screen.getByLabelText("Search settings"), {
+        target: { value: "net" },
+      });
+      const nav = screen.getByRole("navigation", { name: "Settings sections" });
+      const mark = nav.querySelector("mark.fo-settings-nav-match");
+      expect(mark).not.toBeNull();
+      expect(mark?.textContent?.toLowerCase()).toBe("net");
+    });
+
+    it("shows an empty state when no settings match the search", () => {
+      renderDialog();
+      fireEvent.change(screen.getByLabelText("Search settings"), {
+        target: { value: "zzzzz-no-match" },
+      });
+      expect(screen.getByText("No matching settings.")).toBeTruthy();
+    });
+
+    it("renders a live appearance preview on the Display panel", () => {
+      renderDialog();
+      fireEvent.click(navButton("Display"));
+      expect(
+        screen.getByRole("img", {
+          name: "Live preview of the current appearance settings",
+        }),
+      ).toBeTruthy();
+    });
+  });
+
+  describe("keyboard reset confirmation", () => {
+    it("requires confirmation before resetting all shortcuts", () => {
+      const onChange = vi.fn();
+      render(
+        <SettingsDialog
+          open
+          preferences={makePreferences({ customShortcuts: '{"copy":"x"}' })}
+          autostart={null}
+          onClose={() => {}}
+          onChange={onChange}
+          onSetAutostart={async () => {}}
+        />,
+      );
+      fireEvent.click(navButton("Keyboard"));
+      fireEvent.click(
+        screen.getByRole("button", { name: "Reset all to defaults" }),
+      );
+
+      // A confirmation dialog appears; nothing reset yet.
+      expect(screen.getByText("Reset all shortcuts?")).toBeTruthy();
+      expect(onChange).not.toHaveBeenCalledWith("customShortcuts", "");
+
+      fireEvent.click(screen.getByRole("button", { name: "Reset all" }));
+      expect(onChange).toHaveBeenCalledWith("customShortcuts", "");
     });
   });
 });

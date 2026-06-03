@@ -420,6 +420,7 @@ function FileOctopusAppInner({
     deleteProfile,
     saveProfile,
     forgetFingerprint,
+    testConnection,
     busyProfileIds,
   } = useNetworkHandlers({
     client,
@@ -823,6 +824,7 @@ function FileOctopusAppInner({
       deleteProfile={deleteProfile}
       saveProfile={saveProfile}
       forgetFingerprint={forgetFingerprint}
+      testConnection={testConnection}
       refreshNetworkProfiles={refreshNetworkProfiles}
       openProfileTerminalTab={openProfileTerminalTab}
       dialog={dialog}

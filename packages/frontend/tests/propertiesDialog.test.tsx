@@ -145,3 +145,47 @@ describe("PropertiesDialog checksum section", () => {
     );
   });
 });
+
+describe("PropertiesDialog hero thumbnail", () => {
+  const imageEntry: FileEntryDto = {
+    uri: "local:///tmp/pic.png",
+    name: "pic.png",
+    kind: "file",
+  } as FileEntryDto;
+
+  const imageProperties: PathPropertiesDto = {
+    uri: "local:///tmp/pic.png",
+    name: "pic.png",
+    kind: "file",
+    size: 1024,
+    isHidden: false,
+    isSymlink: false,
+    readonly: false,
+    warnings: [],
+  } as PathPropertiesDto;
+
+  it("renders an image thumbnail for previewable images", async () => {
+    const readFileAsDataUri = vi.fn().mockResolvedValue({
+      dataUri: "data:image/png;base64,iVBORw0KGgo=",
+      byteSize: 1024,
+    });
+    const fs = makeFs({ readFileAsDataUri });
+    renderDialog(fs, imageEntry, imageProperties);
+
+    await waitFor(() =>
+      expect(readFileAsDataUri).toHaveBeenCalledWith(
+        expect.objectContaining({ uri: "local:///tmp/pic.png" }),
+      ),
+    );
+    const img = await screen.findByAltText("pic.png");
+    expect((img as HTMLImageElement).src).toContain("data:image/png");
+  });
+
+  it("does not request a thumbnail for non-image files", () => {
+    const readFileAsDataUri = vi.fn();
+    const fs = makeFs({ readFileAsDataUri });
+    renderDialog(fs, fileEntry, fileProperties);
+    expect(readFileAsDataUri).not.toHaveBeenCalled();
+    expect(screen.queryByAltText("file.txt")).toBeNull();
+  });
+});

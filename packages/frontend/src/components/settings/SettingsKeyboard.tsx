@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { UserPreferencesDto } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
+import { DialogShell } from "../DialogShell";
 import { COMMAND_REGISTRY } from "../../commands/registryData";
 import {
   parseKeyCombo,
@@ -192,8 +193,11 @@ export function SettingsKeyboard({
     [preferences.customShortcuts, onChange],
   );
 
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false);
+
   const handleResetAll = useCallback(() => {
     onChange("customShortcuts", "");
+    setConfirmResetOpen(false);
   }, [onChange]);
 
   const filteredEntries = filter
@@ -336,10 +340,48 @@ export function SettingsKeyboard({
         </div>
       )}
       <div className="fo-settings-field">
-        <Button type="button" size="sm" onClick={handleResetAll}>
+        <Button
+          type="button"
+          size="sm"
+          onClick={() => setConfirmResetOpen(true)}
+        >
           Reset all to defaults
         </Button>
       </div>
+      <DialogShell
+        open={confirmResetOpen}
+        onClose={() => setConfirmResetOpen(false)}
+        title="Reset all shortcuts?"
+        size="sm"
+        closeOnBackdrop={false}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirmResetOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={handleResetAll}
+            >
+              Reset all
+            </Button>
+          </>
+        }
+      >
+        <div className="fo-dialog-body">
+          <p>
+            This clears every custom keyboard shortcut and restores the
+            defaults. This cannot be undone.
+          </p>
+        </div>
+      </DialogShell>
     </section>
   );
 }

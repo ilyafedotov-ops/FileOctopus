@@ -1,14 +1,32 @@
 import type { UserPreferencesDto } from "@fileoctopus/ts-api";
+import { PathBrowseField } from "../PathBrowseField";
+import {
+  pickLocalPath as defaultPickLocalPath,
+  type LocalPathPicker,
+} from "../../utils/pathPicker";
 
 interface SettingsTerminalProps {
   preferences: UserPreferencesDto;
   onChange: (key: string, value: string) => void;
+  pickLocalPath?: LocalPathPicker;
 }
 
 export function SettingsTerminal({
   preferences,
   onChange,
+  pickLocalPath = defaultPickLocalPath,
 }: SettingsTerminalProps) {
+  async function browseShellProgram() {
+    const selected = await pickLocalPath({
+      kind: "file",
+      currentPath: preferences.terminalShell,
+      title: "Choose shell program",
+    });
+    if (selected) {
+      onChange("terminalShell", selected);
+    }
+  }
+
   return (
     <section
       className="fo-settings-section"
@@ -19,14 +37,15 @@ export function SettingsTerminal({
       <p className="fo-settings-description">
         Shell program, arguments, and pane terminal behavior.
       </p>
-      <label className="fo-settings-field">
-        <span>Shell program</span>
-        <input
-          value={preferences.terminalShell}
-          placeholder="Use OS default"
-          onChange={(event) => onChange("terminalShell", event.target.value)}
-        />
-      </label>
+      <PathBrowseField
+        className="fo-settings-field"
+        label="Shell program"
+        value={preferences.terminalShell}
+        placeholder="Use OS default"
+        browseLabel="Browse shell program"
+        onChange={(value) => onChange("terminalShell", value)}
+        onBrowse={() => void browseShellProgram()}
+      />
       <label className="fo-settings-field">
         <span>Launch arguments</span>
         <textarea

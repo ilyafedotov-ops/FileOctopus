@@ -12,6 +12,8 @@ export interface DialogShellProps {
   titleId?: string;
   /** Optional supporting line under the title. */
   subtitle?: ReactNode;
+  /** Optional leading icon rendered in a `.fo-dialog-icon` badge before the title. */
+  icon?: ReactNode;
   /** Width preset: maps to `.fo-dialog--{size}`. */
   size?: "sm" | "md" | "lg";
   /** Extra class names for the dialog element. */
@@ -41,6 +43,7 @@ export function DialogShell({
   title,
   titleId,
   subtitle,
+  icon,
   size,
   className,
   footer,
@@ -75,9 +78,16 @@ export function DialogShell({
         onClick={(event) => event.stopPropagation()}
       >
         <header className="fo-dialog-header">
-          <div>
-            <h2 id={headingId}>{title}</h2>
-            {subtitle ? <p>{subtitle}</p> : null}
+          <div className="fo-dialog-titleblock">
+            {icon ? (
+              <span className="fo-dialog-icon" aria-hidden="true">
+                {icon}
+              </span>
+            ) : null}
+            <div>
+              <h2 id={headingId}>{title}</h2>
+              {subtitle ? <p>{subtitle}</p> : null}
+            </div>
           </div>
           {showClose ? (
             <Button

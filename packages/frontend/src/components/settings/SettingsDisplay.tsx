@@ -1,5 +1,6 @@
 import type { UserPreferencesDto } from "@fileoctopus/ts-api";
 import { selectableThemes } from "../../themeRegistry";
+import { SettingsPreview } from "./SettingsPreview";
 
 interface SettingsDisplayProps {
   preferences: UserPreferencesDto;
@@ -20,6 +21,7 @@ export function SettingsDisplay({
       <p className="fo-settings-description">
         Theme, density, font size, and icon size.
       </p>
+      <SettingsPreview caption="Preview" />
       <label className="fo-settings-field">
         <span>Theme</span>
         <select

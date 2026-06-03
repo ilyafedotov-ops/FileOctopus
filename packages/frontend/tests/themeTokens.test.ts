@@ -334,6 +334,28 @@ describe("Design token architecture", () => {
     }
   });
 
+  it("defines and uses Premium Workbench dialog tokens", () => {
+    for (const token of [
+      "--fo-workbench-dialog-bg",
+      "--fo-workbench-dialog-panel-bg",
+      "--fo-workbench-dialog-field-bg",
+      "--fo-workbench-dialog-border",
+      "--fo-workbench-dialog-muted-border",
+      "--fo-workbench-dialog-active-bg",
+    ]) {
+      expect(
+        tokensContent.indexOf(token) !== -1,
+        `Premium Workbench dialog token ${token} missing from tokens.css`,
+      ).toBe(true);
+      expect(
+        dialogsContent.indexOf(`var(${token})`) !== -1,
+        `dialogs.css should consume Premium Workbench dialog token ${token}`,
+      ).toBe(true);
+    }
+    expect(dialogsContent).toContain("border-radius: var(--fo-radius-sm-wide)");
+    expect(dialogsContent).toContain(".fo-path-input-row");
+  });
+
   it("jobs.css uses semantic tokens instead of hardcoded hex", () => {
     const matches = jobsContent.match(/#[0-9a-fA-F]{3,8}\b/g);
     expect(
@@ -410,6 +432,22 @@ describe("Design token architecture", () => {
     expect(baseContent).toMatch(/transition-duration:\s*0\.01ms\s*!important/);
   });
 
+  it("dialog entrance motion uses motion tokens and is reduced-motion safe", () => {
+    // Entrance keyframes exist for the dialog + backdrop.
+    expect(dialogsContent).toContain("@keyframes fo-dialog-in");
+    expect(dialogsContent).toContain("@keyframes fo-dialog-backdrop-in");
+    // The animation is driven by the shared motion tokens (so the global
+    // prefers-reduced-motion guard in base.css collapses it).
+    expect(dialogsContent).toMatch(
+      /animation:\s*fo-dialog-in\s+var\(--fo-motion-med\)\s+var\(--fo-motion-ease\)/,
+    );
+    // Backdrop blur is an opt-in token, default off (no forced dimming change).
+    expect(dialogsContent).toContain(
+      "backdrop-filter: var(--fo-dialog-backdrop-blur, none)",
+    );
+    expect(tokensContent).toContain("--fo-dialog-backdrop-blur: none;");
+  });
+
   it("accent color variants are defined", () => {
     const accents = [
       "indigo",
@@ -465,12 +503,10 @@ describe("Design token architecture", () => {
 
   it("dialog chrome follows VS Code workbench styling", () => {
     expect(shellContent).toContain("--fo-classic-title: #007acc");
-    expect(dialogsContent).toContain("border-radius: 0");
-    expect(dialogsContent).toContain(
-      "box-shadow: 0 12px 32px var(--fo-dialog-shadow)",
-    );
+    expect(dialogsContent).toContain("border-radius: var(--fo-radius-sm-wide)");
+    expect(dialogsContent).toContain("box-shadow: var(--fo-elevation-modal)");
     expect(dialogsContent).toMatch(
-      /border:\s*1px solid var\(--fo-dialog-border\)/,
+      /border:\s*1px solid var\(--fo-workbench-dialog-border\)/,
     );
     expect(sharedContent).toContain(
       ".fo-command-palette {\n  max-width: 520px;\n  width: 90vw;\n  padding: 0;\n  border-radius: 0;",

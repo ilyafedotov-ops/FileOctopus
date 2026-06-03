@@ -2,12 +2,18 @@ import type {
   AutostartStatusDto,
   UserPreferencesDto,
 } from "@fileoctopus/ts-api";
+import { PathBrowseField } from "../PathBrowseField";
+import {
+  pickLocalPath as defaultPickLocalPath,
+  type LocalPathPicker,
+} from "../../utils/pathPicker";
 
 interface SettingsGeneralProps {
   preferences: UserPreferencesDto;
   autostart: AutostartStatusDto | null;
   onChange: (key: string, value: string) => void;
   onSetAutostart: (enabled: boolean) => Promise<void>;
+  pickLocalPath?: LocalPathPicker;
 }
 
 export function SettingsGeneral({
@@ -15,7 +21,19 @@ export function SettingsGeneral({
   autostart,
   onChange,
   onSetAutostart,
+  pickLocalPath = defaultPickLocalPath,
 }: SettingsGeneralProps) {
+  async function browseDiagnosticsPath() {
+    const selected = await pickLocalPath({
+      kind: "save",
+      currentPath: preferences.diagnosticsExportPath,
+      title: "Choose diagnostics export path",
+    });
+    if (selected) {
+      onChange("diagnosticsExportPath", selected);
+    }
+  }
+
   return (
     <section
       className="fo-settings-section"
@@ -40,17 +58,14 @@ export function SettingsGeneral({
           Autostart is not supported on this platform.
         </p>
       )}
-      <label className="fo-settings-field">
-        <span>Diagnostics export path</span>
-        <input
-          type="text"
-          value={preferences.diagnosticsExportPath}
-          onChange={(event) =>
-            onChange("diagnosticsExportPath", event.target.value)
-          }
-          aria-label="Diagnostics export path"
-        />
-      </label>
+      <PathBrowseField
+        className="fo-settings-field"
+        label="Diagnostics export path"
+        value={preferences.diagnosticsExportPath}
+        browseLabel="Browse diagnostics export path"
+        onChange={(value) => onChange("diagnosticsExportPath", value)}
+        onBrowse={() => void browseDiagnosticsPath()}
+      />
     </section>
   );
 }

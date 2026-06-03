@@ -27,6 +27,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri = { version = "2", features = [] }
 tauri-plugin-autostart = "2"
+tauri-plugin-dialog = "2"
 remote-core = { path = "../../../crates/remote-core" }
 platform = { path = "../../../crates/platform" }
 telemetry = { path = "../../../crates/telemetry" }

@@ -264,6 +264,14 @@
   color: var(--fo-classic-title);
 }
 
+.fo-properties-thumb {
+  width: 3.2rem;
+  height: 3.2rem;
+  object-fit: contain;
+  border: 1px solid var(--fo-classic-shadow);
+  background: var(--fo-classic-window);
+}
+
 .fo-properties-heading {
   display: grid;
   gap: 0.15rem;
@@ -405,6 +413,73 @@
   text-transform: uppercase;
 }
 
+.fo-properties-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--fo-spacing-sm);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.fo-properties-section-chevron {
+  display: inline-flex;
+  align-items: center;
+  color: var(--fo-icon-muted);
+}
+
+.fo-properties-section-body {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.fo-properties-hash {
+  display: flex;
+  align-items: center;
+  gap: var(--fo-spacing-md);
+  min-width: 0;
+}
+
+.fo-properties-hash .fo-properties-value--mono {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Selection properties — file-type distribution bar. */
+.fo-selection-typebar {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 1px;
+  height: 8px;
+  margin-bottom: var(--fo-spacing-sm);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.fo-selection-typebar-seg {
+  min-width: 2px;
+  height: 100%;
+}
+
+.fo-selection-type-value {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-selection-type-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+}
+
 .fo-properties-value--mono {
   display: block;
   font-family: var(--fo-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
@@ -540,6 +615,26 @@
   background: var(--fo-danger-bg);
 }
 
+@keyframes fo-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes fo-dialog-backdrop-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .fo-dialog-backdrop {
   position: fixed;
   inset: var(--fo-titlebar-height, 50px) 0 0;
@@ -547,6 +642,8 @@
   display: grid;
   place-items: center;
   background: transparent;
+  backdrop-filter: var(--fo-dialog-backdrop-blur, none);
+  animation: fo-dialog-backdrop-in var(--fo-motion-fast) var(--fo-motion-ease);
 }
 
 .fo-dialog,
@@ -561,11 +658,12 @@ dialog.fo-dialog {
   margin: 0;
   overflow: auto;
   padding: 0;
-  border: 1px solid var(--fo-dialog-border);
-  border-radius: 0;
-  background: var(--fo-classic-face);
-  color: var(--fo-classic-text);
-  box-shadow: 0 12px 32px var(--fo-dialog-shadow);
+  border: 1px solid var(--fo-workbench-dialog-border);
+  border-radius: var(--fo-radius-sm-wide);
+  background: var(--fo-workbench-dialog-bg);
+  color: var(--fo-text);
+  box-shadow: var(--fo-elevation-modal);
+  animation: fo-dialog-in var(--fo-motion-med) var(--fo-motion-ease);
 }
 
 dialog.fo-dialog[open] {
@@ -579,6 +677,10 @@ dialog.fo-dialog[open] {
 
 .fo-settings-dialog {
   width: min(48rem, calc(100vw - 2rem));
+  /* Stable height so switching categories never resizes/recenters the dialog;
+     the content panel scrolls internally instead. */
+  height: min(42rem, calc(100dvh - var(--fo-titlebar-height, 50px) - 16px));
+  overflow: hidden;
 }
 
 .fo-diagnostics-dialog,
@@ -592,13 +694,13 @@ dialog.fo-dialog[open] {
   flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin-bottom: 0;
-  min-height: 26px;
-  padding: 3px 4px 3px 6px;
-  border: 0;
-  background: var(--fo-control-bg);
-  color: var(--fo-classic-light);
+  min-height: 48px;
+  padding: 0.7rem 0.85rem;
+  border-bottom: 1px solid var(--fo-workbench-dialog-border);
+  background: var(--fo-workbench-dialog-panel-bg);
+  color: var(--fo-text);
 }
 
 .fo-dialog-titleblock {
@@ -612,13 +714,13 @@ dialog.fo-dialog[open] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 28px;
+  height: 28px;
   flex: 0 0 auto;
-  border: 1px solid var(--fo-classic-light);
-  border-radius: 0;
-  background: var(--fo-classic-face);
-  color: var(--fo-classic-title);
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-active-bg);
+  color: var(--fo-accent);
 }
 
 .fo-dialog > header:not(.fo-dialog-header) {
@@ -638,21 +740,25 @@ dialog.fo-dialog[open] {
 
 .fo-dialog-header h2 {
   margin: 0;
-  color: var(--fo-classic-light);
-  font-size: var(--fo-font-size-md);
-  font-weight: 500;
-  line-height: 1;
+  color: var(--fo-text);
+  font-size: var(--fo-font-size-xl);
+  font-weight: 750;
+  line-height: var(--fo-line-tight);
 }
 
 .fo-dialog-header p {
-  display: none;
+  display: block;
+  margin: 0.25rem 0 0;
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-md);
+  line-height: var(--fo-line-normal);
 }
 
 .fo-dialog-body {
   display: grid;
   align-content: start;
-  gap: 0.65rem;
-  padding: 0.65rem;
+  gap: 0.8rem;
+  padding: 0.9rem;
   flex: 0 0 auto;
   min-height: 0;
 }
@@ -660,35 +766,33 @@ dialog.fo-dialog[open] {
 .fo-dialog-form {
   flex: 0 0 auto;
   display: grid;
-  gap: 0.65rem;
+  gap: 0.8rem;
   margin: 0;
-  padding: 0.65rem;
+  padding: 0.9rem;
 }
 
 .fo-dialog-field {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.45rem;
 }
 
-.fo-dialog-field > span {
-  color: var(--fo-classic-text);
+.fo-dialog-field > span,
+.fo-dialog-field > label {
+  color: var(--fo-text);
   font-size: var(--fo-font-size-md);
-  font-weight: 400;
+  font-weight: 700;
 }
 
 .fo-dialog-field input,
 .fo-dialog-field select,
 .fo-dialog-field textarea {
   width: 100%;
-  min-height: 28px;
-  padding: 0.3rem 0.45rem;
-  border-width: 2px;
-  border-style: solid;
-  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
-    var(--fo-classic-light) var(--fo-classic-shadow);
-  border-radius: 0;
-  background: var(--fo-classic-window);
-  color: var(--fo-classic-text);
+  min-height: 34px;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-field-bg);
+  color: var(--fo-text);
   font-size: var(--fo-font-size-lg);
 }
 
@@ -701,12 +805,27 @@ dialog.fo-dialog[open] {
 
 /* Wizard step indicator (UPP-F1). Numbered chips that read as todo / active /
    done; fully token-driven so it tracks theme + density. */
+.fo-wizard-progress {
+  height: 3px;
+  margin: 0.85rem 0.85rem 0;
+  border-radius: 999px;
+  background: var(--fo-workbench-dialog-active-bg);
+  overflow: hidden;
+}
+
+.fo-wizard-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--fo-accent);
+  transition: width var(--fo-motion-med) var(--fo-motion-ease);
+}
+
 .fo-wizard-steps {
   display: flex;
   align-items: center;
-  gap: var(--fo-spacing-xs);
-  margin: 0 0 var(--fo-spacing-md);
-  padding: 0;
+  gap: var(--fo-spacing-sm);
+  margin: 0;
+  padding: 0.6rem 0.85rem 0;
   list-style: none;
 }
 
@@ -722,15 +841,19 @@ dialog.fo-dialog[open] {
   gap: var(--fo-spacing-sm);
   width: 100%;
   min-width: 0;
-  min-height: 28px;
-  padding: 0 var(--fo-spacing-md);
-  border: 1px solid var(--fo-border);
-  border-radius: var(--fo-radius-xs);
-  background: var(--fo-surface);
+  min-height: 36px;
+  padding: 0 var(--fo-spacing-lg);
+  border: 1px solid var(--fo-workbench-dialog-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-panel-bg);
   color: var(--fo-muted-text);
   font-size: var(--fo-font-size-sm);
   text-align: left;
   cursor: default;
+  transition:
+    border-color var(--fo-motion-fast) var(--fo-motion-ease),
+    background var(--fo-motion-fast) var(--fo-motion-ease),
+    color var(--fo-motion-fast) var(--fo-motion-ease);
 }
 
 .fo-wizard-step-btn:not(:disabled) {
@@ -741,13 +864,16 @@ dialog.fo-dialog[open] {
   display: inline-grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 999px;
-  background: var(--fo-control-bg);
+  background: var(--fo-workbench-dialog-active-bg);
   color: var(--fo-muted-text);
   font-size: var(--fo-font-size-xs);
   font-weight: 700;
+  transition:
+    background var(--fo-motion-fast) var(--fo-motion-ease),
+    color var(--fo-motion-fast) var(--fo-motion-ease);
 }
 
 .fo-wizard-step-label {
@@ -760,7 +886,8 @@ dialog.fo-dialog[open] {
 .fo-wizard-step-active .fo-wizard-step-btn {
   border-color: var(--fo-accent);
   color: var(--fo-text);
-  box-shadow: inset 0 0 0 1px var(--fo-accent);
+  background: var(--fo-workbench-dialog-active-bg);
+  box-shadow: inset 3px 0 0 var(--fo-accent);
 }
 
 .fo-wizard-step-active .fo-wizard-step-index {
@@ -770,11 +897,16 @@ dialog.fo-dialog[open] {
 
 .fo-wizard-step-done .fo-wizard-step-btn {
   color: var(--fo-text);
+  border-color: color-mix(
+    in srgb,
+    var(--fo-accent) 40%,
+    var(--fo-workbench-dialog-border)
+  );
 }
 
 .fo-wizard-step-done .fo-wizard-step-index {
-  background: var(--fo-accent-soft);
-  color: var(--fo-text);
+  background: var(--fo-accent);
+  color: var(--fo-on-accent);
 }
 
 .fo-connect-stepper {
@@ -802,6 +934,57 @@ dialog.fo-dialog[open] {
   color: var(--fo-on-accent);
   background: var(--fo-accent);
   border-color: var(--fo-accent);
+}
+
+/* Inline field validation — danger border + tint on flagged inputs. */
+.fo-dialog-field input.fo-field-invalid,
+.fo-dialog-field select.fo-field-invalid,
+.fo-dialog-field textarea.fo-field-invalid {
+  border-color: var(--fo-danger-border);
+  background: var(--fo-danger-bg);
+}
+
+/* Connect wizard — live connection test panel. */
+.fo-connect-test {
+  display: grid;
+  gap: var(--fo-spacing-md);
+}
+
+.fo-connect-test-row {
+  display: flex;
+  align-items: center;
+  gap: var(--fo-spacing-md);
+}
+
+.fo-connect-test-spinner {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  border: 2px solid var(--fo-workbench-dialog-muted-border);
+  border-top-color: var(--fo-accent);
+  border-radius: 999px;
+  animation: fo-properties-spin 0.7s linear infinite;
+}
+
+.fo-connect-test-card {
+  margin: 0;
+  padding: var(--fo-spacing-md) var(--fo-spacing-lg);
+  border: 1px solid var(--fo-border);
+  border-radius: var(--fo-radius-sm);
+  font-size: var(--fo-font-size-sm);
+  line-height: var(--fo-line-normal);
+}
+
+.fo-connect-test-card--ok {
+  border-color: var(--fo-success-border);
+  background: var(--fo-success-bg);
+  color: var(--fo-text);
+}
+
+.fo-connect-test-card--error {
+  border-color: var(--fo-danger-border);
+  background: var(--fo-danger-bg);
+  color: var(--fo-danger-text);
 }
 
 .fo-dialog-section-title {
@@ -832,8 +1015,9 @@ dialog.fo-dialog[open] {
   align-items: center;
   justify-content: flex-end;
   gap: 0.35rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid var(--fo-classic-shadow);
+  padding: 0.75rem 0.85rem;
+  border-top: 1px solid var(--fo-workbench-dialog-border);
+  background: var(--fo-workbench-dialog-panel-bg);
 }
 
 .fo-dialog-form .fo-dialog-footer,
@@ -1138,94 +1322,226 @@ dialog.fo-dialog[open] {
 
 .fo-settings-layout {
   display: grid;
-  grid-template-columns: minmax(9rem, 11rem) minmax(0, 1fr);
-  align-items: start;
-  gap: 0.65rem;
+  grid-template-columns: minmax(11rem, 13rem) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0.9rem;
   min-width: 0;
-  padding: 0.65rem;
-  flex: 0 0 auto;
+  min-height: 0;
+  padding: 0.9rem;
+  /* Fill the space below the header and clip; inner columns scroll. */
+  flex: 1 1 auto;
+  overflow: hidden;
 }
 
 .fo-settings-nav {
   display: grid;
   align-content: start;
-  gap: 0.2rem;
-  padding: 0.25rem;
-  border-width: 2px;
-  border-style: solid;
-  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
-    var(--fo-classic-light) var(--fo-classic-shadow);
-  border-radius: 0;
-  background: var(--fo-classic-face);
+  gap: 0.25rem;
+  padding: 0.35rem;
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--fo-workbench-dialog-border);
+  border-radius: var(--fo-radius-sm-wide);
+  background: var(--fo-workbench-dialog-panel-bg);
 }
 
 .fo-settings-nav button {
+  display: flex;
+  align-items: center;
   justify-content: flex-start;
-  min-height: 28px;
-  border-color: var(--fo-classic-face);
-  border-radius: 0;
+  gap: var(--fo-spacing-md);
+  min-height: 34px;
+  padding: 0 0.6rem;
+  border-color: transparent;
+  border-radius: var(--fo-radius-sm);
   background: transparent;
-  color: var(--fo-classic-text);
+  color: var(--fo-muted-text);
   font-size: var(--fo-font-size-md);
   font-weight: 700;
   text-align: left;
+  transition:
+    background var(--fo-motion-fast) var(--fo-motion-ease),
+    color var(--fo-motion-fast) var(--fo-motion-ease);
 }
 
 .fo-settings-nav button:hover {
-  background: var(--fo-classic-title);
-  color: var(--fo-classic-light);
+  background: var(--fo-workbench-dialog-active-bg);
+  color: var(--fo-text);
 }
 
-.fo-settings-nav span {
+.fo-settings-nav-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  color: var(--fo-icon-muted);
+}
+
+.fo-settings-nav-active .fo-settings-nav-icon {
+  color: var(--fo-accent);
+}
+
+.fo-settings-nav-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-settings-nav-match {
+  border-radius: var(--fo-radius-2xs);
+  padding: 0 1px;
+  background: var(--fo-accent-soft);
+  color: var(--fo-text);
+}
+
+.fo-settings-nav-empty {
+  margin: 0;
   padding: 0.55rem 0.65rem;
-  border-radius: 0;
-  color: var(--fo-classic-muted);
-  font-size: var(--fo-font-size-md);
-  font-weight: 700;
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
 }
 
 .fo-settings-nav-active {
-  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
-    var(--fo-classic-light) var(--fo-classic-shadow) !important;
-  background: var(--fo-classic-title) !important;
-  color: var(--fo-classic-light) !important;
-  box-shadow: none;
+  border-color: var(--fo-accent) !important;
+  background: var(--fo-workbench-dialog-active-bg) !important;
+  color: var(--fo-text) !important;
+  box-shadow: inset 3px 0 0 var(--fo-accent);
 }
 
 .fo-settings-content {
   display: grid;
   align-content: start;
-  gap: 0.75rem;
+  gap: 0.9rem;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Live appearance preview (Display / Colors panels). */
+.fo-settings-preview {
+  display: grid;
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-settings-preview-caption {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fo-settings-preview-frame {
+  display: grid;
+  gap: var(--fo-spacing-md);
+  padding: var(--fo-spacing-lg);
+  border: 1px solid var(--fo-workbench-dialog-border);
+  border-radius: var(--fo-radius-sm-wide);
+  background: var(--fo-workspace-bg);
+}
+
+.fo-settings-preview-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--fo-spacing-md);
+  padding-bottom: var(--fo-spacing-md);
+  border-bottom: 1px solid var(--fo-border);
+}
+
+.fo-settings-preview-path {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fo-secondary-text);
+  font-size: var(--fo-font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-settings-preview-list {
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.fo-settings-preview-row {
+  display: flex;
+  align-items: center;
+  gap: var(--fo-spacing-md);
+  min-height: var(--fo-row-height);
+  padding: 0 var(--fo-spacing-md);
+  border-radius: var(--fo-radius-2xs);
+  color: var(--fo-text);
+  font-size: var(--fo-font-size-md);
+}
+
+.fo-settings-preview-row--hover {
+  background: var(--fo-row-hover-bg);
+}
+
+.fo-settings-preview-row--selected {
+  background: var(--fo-accent-soft);
+  color: var(--fo-on-accent-soft);
+}
+
+.fo-settings-preview-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-settings-preview-meta {
+  flex: 0 0 auto;
+  color: var(--fo-secondary-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-settings-preview-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  color: var(--fo-icon-muted);
+}
+
+.fo-settings-preview-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fo-spacing-sm);
+  padding-top: var(--fo-spacing-md);
+  border-top: 1px solid var(--fo-border);
 }
 
 .fo-settings-section {
   display: grid;
   align-content: start;
-  gap: 0.55rem;
-  padding: 0.65rem;
-  border-width: 2px;
-  border-style: solid;
-  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
-    var(--fo-classic-light) var(--fo-classic-shadow);
-  border-radius: 0;
-  background: var(--fo-classic-face);
+  gap: 0.7rem;
+  padding: 0.9rem;
+  border: 1px solid var(--fo-workbench-dialog-border);
+  border-radius: var(--fo-radius-sm-wide);
+  background: var(--fo-workbench-dialog-panel-bg);
 }
 
 .fo-settings-section h3 {
   margin: 0;
-  color: var(--fo-classic-text);
-  font-size: var(--fo-font-size-lg);
+  color: var(--fo-text);
+  font-size: var(--fo-font-size-xl);
+  line-height: var(--fo-line-tight);
 }
 
 .fo-dialog label.fo-settings-field,
 .fo-settings-field {
   display: grid;
-  gap: 0.35rem;
+  gap: 0.45rem;
 }
 
-.fo-settings-field span {
-  color: var(--fo-classic-text);
+.fo-settings-field span,
+.fo-settings-field label {
+  color: var(--fo-text);
   font-size: var(--fo-font-size-md);
   font-weight: 700;
 }
@@ -1234,22 +1550,19 @@ dialog.fo-dialog[open] {
 .fo-settings-field input,
 .fo-settings-field textarea {
   width: 100%;
-  min-height: 28px;
-  padding: 0.3rem 0.45rem;
-  border-width: 2px;
-  border-style: solid;
-  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
-    var(--fo-classic-light) var(--fo-classic-shadow);
-  border-radius: 0;
-  background: var(--fo-classic-window);
-  color: var(--fo-classic-text);
+  min-height: 34px;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-field-bg);
+  color: var(--fo-text);
   font-family: inherit;
   font-size: var(--fo-font-size-lg);
 }
 
 .fo-settings-field select {
   padding-right: 2rem;
-  background: var(--fo-classic-window)
+  background: var(--fo-workbench-dialog-field-bg)
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b95a8' d='M2.5 4.5 6 8l3.5-3.5'/%3E%3C/svg%3E")
     no-repeat right 0.55rem center;
   appearance: none;
@@ -1268,15 +1581,39 @@ dialog.fo-dialog[open] {
   outline: none;
 }
 
+.fo-path-input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 36px;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.fo-path-input-row input {
+  min-width: 0;
+}
+
+.fo-path-input-row button {
+  min-width: 36px;
+  min-height: 34px;
+  border-color: var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-active-bg);
+}
+
+.fo-path-input-row button:hover:not(:disabled) {
+  border-color: var(--fo-accent);
+  background: var(--fo-accent-soft);
+}
+
 .fo-dialog label.fo-settings-checkbox,
 .fo-settings-checkbox {
   display: flex;
   align-items: flex-start;
   gap: 0.6rem;
   margin: 0;
-  padding: 0.5rem 0;
-  border: none;
-  border-radius: 0;
+  padding: 0.6rem;
+  border: 1px solid var(--fo-workbench-dialog-border);
+  border-radius: var(--fo-radius-sm);
   background: transparent;
   cursor: pointer;
   user-select: none;
@@ -1285,13 +1622,13 @@ dialog.fo-dialog[open] {
 }
 
 .fo-settings-section .fo-settings-checkbox + .fo-settings-checkbox {
-  border-top: 1px solid var(--fo-classic-shadow);
+  border-top-color: var(--fo-workbench-dialog-border);
 }
 
 .fo-settings-checkbox span {
   flex: 1;
   min-width: 0;
-  color: var(--fo-classic-text);
+  color: var(--fo-text);
   font-size: var(--fo-font-size-lg);
   font-weight: 500;
   line-height: 1.35;
@@ -1342,20 +1679,20 @@ dialog.fo-dialog[open] {
 
 .fo-settings-nav-wrapper {
   display: grid;
-  align-content: start;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
   gap: 0.3rem;
+  min-height: 0;
 }
 
 .fo-settings-search input {
   width: 100%;
-  padding: 3px 6px;
-  border-width: 2px;
-  border-style: solid;
-  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
-    var(--fo-classic-light) var(--fo-classic-shadow);
-  border-radius: 0;
-  background: var(--fo-classic-face);
-  color: var(--fo-classic-text);
+  min-height: 34px;
+  padding: 0.4rem 0.65rem;
+  border: 1px solid var(--fo-workbench-dialog-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-field-bg);
+  color: var(--fo-text);
   font-size: var(--fo-font-size-md);
   font-family: inherit;
   box-sizing: border-box;
@@ -1367,7 +1704,7 @@ dialog.fo-dialog[open] {
 }
 
 .fo-settings-search input::placeholder {
-  color: var(--fo-classic-muted);
+  color: var(--fo-muted-text);
 }
 
 .fo-settings-description {
@@ -1375,6 +1712,31 @@ dialog.fo-dialog[open] {
   color: var(--fo-muted-text);
   font-size: var(--fo-font-size-md);
   line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .fo-settings-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .fo-settings-nav {
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  }
+
+  .fo-wizard-steps {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .fo-path-input-row {
+    grid-template-columns: 1fr;
+  }
+
+  .fo-path-input-row button {
+    width: 100%;
+  }
 }
 
 /* ─── Preview Panel ─── */

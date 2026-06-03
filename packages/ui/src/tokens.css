@@ -432,6 +432,10 @@
   --fo-motion-med: 200ms;
   --fo-motion-ease: cubic-bezier(0.2, 0, 0.2, 1);
 
+  /* Dialog backdrop blur — opt-in per theme; default off keeps the established
+     transparent (non-dimming) backdrop unchanged. */
+  --fo-dialog-backdrop-blur: none;
+
   /* Status surface tokens (UPP-H1) — derived from the theme's status color +
      surface so success/warning chips adapt to every theme automatically,
      mirroring the explicit --fo-danger-bg/-border pair. */
@@ -447,6 +451,12 @@
     var(--fo-warning) 55%,
     var(--fo-surface)
   );
+  --fo-workbench-dialog-bg: #15171c;
+  --fo-workbench-dialog-panel-bg: #1e232b;
+  --fo-workbench-dialog-field-bg: #111318;
+  --fo-workbench-dialog-border: #303642;
+  --fo-workbench-dialog-muted-border: #465163;
+  --fo-workbench-dialog-active-bg: #2b3340;
 }
 
 :root[data-density="compact"] {

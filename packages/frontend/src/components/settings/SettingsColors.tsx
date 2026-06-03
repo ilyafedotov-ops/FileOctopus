@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { UserPreferencesDto } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
+import { SettingsPreview } from "./SettingsPreview";
 import {
   DEFAULT_FILE_TYPE_COLORS,
   parseFileTypeColorRules,
@@ -106,6 +107,7 @@ export function SettingsColors({ preferences, onChange }: SettingsColorsProps) {
       <p className="fo-settings-description">
         Accent color selection for the interface.
       </p>
+      <SettingsPreview caption="Preview" />
       <fieldset className="fo-settings-fieldset">
         <legend>Accent color</legend>
         <div

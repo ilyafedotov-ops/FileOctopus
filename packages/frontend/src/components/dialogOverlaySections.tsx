@@ -317,6 +317,7 @@ export function DialogOverlaySectionOperations(props: DialogOverlayGroupProps) {
     deleteProfile,
     saveProfile,
     forgetFingerprint,
+    testConnection,
     onOpenProfileTerminal,
     onNavigateActivePane,
     setDialog,
@@ -401,6 +402,8 @@ export function DialogOverlaySectionOperations(props: DialogOverlayGroupProps) {
         }}
         onSave={saveProfile}
         onForgetFingerprint={forgetFingerprint}
+        onTest={testConnection}
+        fs={fs}
       />
       <RemoveServerDialog
         open={removeServerProfile !== null}

@@ -1,14 +1,34 @@
 import type { UserPreferencesDto } from "@fileoctopus/ts-api";
+import { PathBrowseField } from "../PathBrowseField";
+import {
+  pickLocalPath as defaultPickLocalPath,
+  SSH_KEY_FILTERS,
+  type LocalPathPicker,
+} from "../../utils/pathPicker";
 
 interface SettingsNetworkProps {
   preferences: UserPreferencesDto;
   onChange: (key: string, value: string) => void;
+  pickLocalPath?: LocalPathPicker;
 }
 
 export function SettingsNetwork({
   preferences,
   onChange,
+  pickLocalPath = defaultPickLocalPath,
 }: SettingsNetworkProps) {
+  async function browseSshKeyPath() {
+    const selected = await pickLocalPath({
+      kind: "file",
+      currentPath: preferences.networkSshKeyPath ?? "",
+      title: "Choose default SSH key",
+      filters: SSH_KEY_FILTERS,
+    });
+    if (selected) {
+      onChange("networkSshKeyPath", selected);
+    }
+  }
+
   return (
     <section
       className="fo-settings-section"
@@ -71,18 +91,15 @@ export function SettingsNetwork({
       <p className="fo-settings-hint">
         Default protocol when creating new network connections.
       </p>
-      <label className="fo-settings-field">
-        <span>Default SSH key path</span>
-        <input
-          type="text"
-          aria-label="Default SSH key path"
-          value={preferences.networkSshKeyPath}
-          placeholder="~/.ssh/id_rsa"
-          onChange={(event) =>
-            onChange("networkSshKeyPath", event.target.value)
-          }
-        />
-      </label>
+      <PathBrowseField
+        className="fo-settings-field"
+        label="Default SSH key path"
+        value={preferences.networkSshKeyPath ?? ""}
+        placeholder="~/.ssh/id_rsa"
+        browseLabel="Browse default SSH key path"
+        onChange={(value) => onChange("networkSshKeyPath", value)}
+        onBrowse={() => void browseSshKeyPath()}
+      />
       <p className="fo-settings-hint">
         Default path to the SSH private key for SFTP and SSH connections.
       </p>

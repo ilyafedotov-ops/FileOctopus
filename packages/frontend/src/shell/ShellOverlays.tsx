@@ -151,6 +151,7 @@ export function ShellOverlays() {
         deleteProfile={ctx.deleteProfile}
         saveProfile={ctx.saveProfile}
         forgetFingerprint={ctx.forgetFingerprint}
+        testConnection={ctx.testConnection}
         onOpenProfileTerminal={(profile) =>
           void ctx.openProfileTerminalTab(profile)
         }

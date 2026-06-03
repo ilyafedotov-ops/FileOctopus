@@ -83,6 +83,14 @@ export function WizardShell({
         </>
       }
     >
+      <div className="fo-wizard-progress" aria-hidden="true">
+        <div
+          className="fo-wizard-progress-fill"
+          style={{
+            width: `${(currentStep / Math.max(1, steps.length - 1)) * 100}%`,
+          }}
+        />
+      </div>
       <ol className="fo-wizard-steps" aria-label="Steps">
         {steps.map((label, index) => {
           const state =
@@ -105,7 +113,7 @@ export function WizardShell({
                 onClick={() => onStepSelect?.(index)}
               >
                 <span className="fo-wizard-step-index" aria-hidden="true">
-                  {index + 1}
+                  {state === "done" ? "✓" : index + 1}
                 </span>
                 <span className="fo-wizard-step-label">{label}</span>
               </button>

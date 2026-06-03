@@ -67,6 +67,28 @@ export function useNetworkHandlers({
     [client, refreshNetworkProfiles, setOperationError, withBusy],
   );
 
+  // Non-destructive connectivity check for the connect wizard: establishes a
+  // real session via the existing connect() command, then tears it down. Errors
+  // are returned to the caller (the wizard surfaces them inline) rather than
+  // pushed to the global operation-error banner.
+  const testConnection = useCallback(
+    async (profileId: string): Promise<{ ok: boolean; message: string }> => {
+      try {
+        await client.network.connect({ id: profileId });
+        try {
+          await client.network.disconnect({ id: profileId });
+        } catch {
+          // ignore disconnect failure — the connect already proved reachability
+        }
+        await refreshNetworkProfiles();
+        return { ok: true, message: "Connection succeeded." };
+      } catch (error) {
+        return { ok: false, message: normalizeIpcError(error).message };
+      }
+    },
+    [client, refreshNetworkProfiles],
+  );
+
   const deleteProfile = useCallback(
     async (profileId: string) => {
       setOperationError(null);
@@ -190,6 +212,7 @@ export function useNetworkHandlers({
     deleteProfile,
     saveProfile,
     forgetFingerprint,
+    testConnection,
     busyProfileIds,
   };
 }

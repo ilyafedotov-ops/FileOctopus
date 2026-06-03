@@ -10,10 +10,11 @@ import type {
   FsClient,
   PathPropertiesDto,
 } from "@fileoctopus/ts-api";
-import { Button, fileEntryIcon } from "@fileoctopus/ui";
+import { Badge, Button, fileEntryIcon } from "@fileoctopus/ui";
 import type { PanelId } from "../../panelStore";
 import { propertyType, localPathFromUri } from "../../utils/paneUtils";
 import { formatDate, formatSize } from "../../pane/fileTableUtils";
+import { isImagePreviewable } from "../PreviewPanel";
 import { AclEditor } from "./AclEditor";
 
 export interface PropertiesDialogState {
@@ -65,6 +66,27 @@ export function PropertiesDialog({
   const [hashError, setHashError] = useState<string | null>(null);
   const [expectedHash, setExpectedHash] = useState("");
   const [verified, setVerified] = useState<"match" | "mismatch" | null>(null);
+  const [thumbUri, setThumbUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    const entry = state.entry;
+    if (!fs || !entry || !isImagePreviewable(entry)) {
+      setThumbUri(null);
+      return;
+    }
+    let cancelled = false;
+    setThumbUri(null);
+    fs.readFileAsDataUri({ uri: entry.uri, maxBytes: 4 * 1024 * 1024 })
+      .then((response) => {
+        if (!cancelled) setThumbUri(response.dataUri);
+      })
+      .catch(() => {
+        if (!cancelled) setThumbUri(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [fs, state.entry?.uri]);
 
   useEffect(() => {
     if (!fs || !state.entry || state.entry.kind === "directory") {
@@ -104,9 +126,17 @@ export function PropertiesDialog({
       {properties ? (
         <>
           <div className="fo-properties-hero">
-            <span className="fo-properties-icon" aria-hidden="true">
-              {entryForIcon ? fileEntryIcon(entryForIcon) : null}
-            </span>
+            {thumbUri ? (
+              <img
+                className="fo-properties-thumb"
+                src={thumbUri}
+                alt={properties.name}
+              />
+            ) : (
+              <span className="fo-properties-icon" aria-hidden="true">
+                {entryForIcon ? fileEntryIcon(entryForIcon) : null}
+              </span>
+            )}
             <div className="fo-properties-heading">
               <strong title={properties.name}>{properties.name}</strong>
               <span>{propertyType(properties)}</span>
@@ -155,7 +185,7 @@ export function PropertiesDialog({
             </dl>
           </PropertiesSection>
 
-          <PropertiesSection title="Dates">
+          <PropertiesSection title="Dates" collapsible>
             <dl className="fo-properties-grid">
               <PropertiesRow
                 label="Created"
@@ -172,7 +202,7 @@ export function PropertiesDialog({
             </dl>
           </PropertiesSection>
 
-          <PropertiesSection title="Attributes">
+          <PropertiesSection title="Attributes" collapsible>
             <dl className="fo-properties-grid">
               <PropertiesRow label="Flags" value={formatFlags(properties)} />
               {state.entry?.permissions ? (
@@ -197,7 +227,7 @@ export function PropertiesDialog({
           </PropertiesSection>
 
           {properties.kind !== "directory" ? (
-            <PropertiesSection title="Checksum">
+            <PropertiesSection title="Checksum" collapsible>
               <dl className="fo-properties-grid">
                 <PropertiesRow
                   label="SHA-256"
@@ -209,11 +239,24 @@ export function PropertiesDialog({
                     ) : hashError ? (
                       <span className="fo-properties-error">{hashError}</span>
                     ) : hash ? (
-                      <span
-                        className="fo-properties-value fo-properties-value--mono"
-                        title={hash}
-                      >
-                        {hash}
+                      <span className="fo-properties-hash">
+                        <span
+                          className="fo-properties-value fo-properties-value--mono"
+                          title={hash}
+                        >
+                          {hash}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          aria-label="Copy SHA-256"
+                          onClick={() =>
+                            void navigator.clipboard.writeText(hash)
+                          }
+                        >
+                          Copy
+                        </Button>
                       </span>
                     ) : (
                       "—"
@@ -250,20 +293,12 @@ export function PropertiesDialog({
                     {verified === "match" ? (
                       <PropertiesRow
                         label="Verification"
-                        value={
-                          <span className="fo-properties-badge fo-properties-badge--success">
-                            Match ✓
-                          </span>
-                        }
+                        value={<Badge tone="success">Match ✓</Badge>}
                       />
                     ) : verified === "mismatch" ? (
                       <PropertiesRow
                         label="Verification"
-                        value={
-                          <span className="fo-properties-badge fo-properties-badge--error">
-                            Mismatch ✗
-                          </span>
-                        }
+                        value={<Badge tone="danger">Mismatch ✗</Badge>}
                       />
                     ) : null}
                   </>
@@ -272,7 +307,11 @@ export function PropertiesDialog({
             </PropertiesSection>
           ) : null}
 
-          <PropertiesSection title="Permissions">
+          <PropertiesSection
+            title="Permissions"
+            collapsible
+            defaultOpen={false}
+          >
             <AclEditor
               uri={properties.uri}
               fs={fs}

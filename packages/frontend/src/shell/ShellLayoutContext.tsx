@@ -114,6 +114,9 @@ export interface ShellLayoutContextValue {
   disconnectProfile: (profileId: string) => Promise<void>;
   deleteProfile: (profileId: string) => Promise<void>;
   forgetFingerprint: (profileId: string) => Promise<void>;
+  testConnection: (
+    profileId: string,
+  ) => Promise<{ ok: boolean; message: string }>;
   saveProfile: (payload: {
     id?: string;
     scheme: "sftp" | "ssh" | "smb" | "s3" | "webdav";

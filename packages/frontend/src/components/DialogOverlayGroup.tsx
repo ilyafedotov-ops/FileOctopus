@@ -120,6 +120,9 @@ export interface DialogOverlayGroupProps {
   forgetFingerprint: (profileId: string) => Promise<void>;
   disconnectProfile: (profileId: string) => Promise<void>;
   deleteProfile: (profileId: string) => Promise<void>;
+  testConnection: (
+    profileId: string,
+  ) => Promise<{ ok: boolean; message: string }>;
   saveProfile: (payload: {
     id?: string;
     scheme: "sftp" | "ssh" | "smb" | "s3" | "webdav";

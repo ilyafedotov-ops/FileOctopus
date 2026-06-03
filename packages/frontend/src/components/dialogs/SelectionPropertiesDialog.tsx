@@ -51,6 +51,18 @@ function commonParentPath(entries: FileEntryDto[]): string | null {
   return common || null;
 }
 
+const TYPE_BAR_COLORS = [
+  "var(--fo-tag-blue)",
+  "var(--fo-tag-green)",
+  "var(--fo-tag-violet)",
+  "var(--fo-tag-orange)",
+  "var(--fo-tag-teal)",
+  "var(--fo-tag-pink)",
+  "var(--fo-tag-amber)",
+  "var(--fo-tag-red)",
+  "var(--fo-tag-indigo)",
+];
+
 function typeBreakdown(
   entries: FileEntryDto[],
 ): { label: string; count: number }[] {
@@ -128,8 +140,42 @@ export function SelectionPropertiesDialog({
       </Section>
 
       <Section title="Types">
-        {breakdown.map(({ label, count }) => (
-          <Row key={label} label={label} value={String(count)} />
+        {itemCount > 0 ? (
+          <div
+            className="fo-selection-typebar"
+            role="img"
+            aria-label="File type distribution"
+          >
+            {breakdown.map(({ label, count }, index) => (
+              <span
+                key={label}
+                className="fo-selection-typebar-seg"
+                style={{
+                  width: `${(count / itemCount) * 100}%`,
+                  background: TYPE_BAR_COLORS[index % TYPE_BAR_COLORS.length],
+                }}
+                title={`${label}: ${count}`}
+              />
+            ))}
+          </div>
+        ) : null}
+        {breakdown.map(({ label, count }, index) => (
+          <Row
+            key={label}
+            label={label}
+            value={
+              <span className="fo-selection-type-value">
+                <span
+                  className="fo-selection-type-dot"
+                  style={{
+                    background: TYPE_BAR_COLORS[index % TYPE_BAR_COLORS.length],
+                  }}
+                  aria-hidden="true"
+                />
+                {String(count)}
+              </span>
+            }
+          />
         ))}
       </Section>
 

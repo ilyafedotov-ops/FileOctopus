@@ -147,12 +147,16 @@ describe("ConnectServerDialog", () => {
 
     // Step 2 → 3 (Credentials → Test)
     fireEvent.click(footerButton("Next"));
-    // Step 3 → 4 (Test → Save)
-    fireEvent.click(footerButton("Test"));
 
+    // The Test step explains a live test needs a saved connection.
     expect(
-      within(dialog()).getByText("Connection details are ready to save."),
+      within(dialog()).getByText(
+        "Save the connection to run a live test with these credentials.",
+      ),
     ).toBeTruthy();
+
+    // Step 3 → 4 (Test → Save)
+    fireEvent.click(footerButton("Next"));
 
     // Final step shows "Save connection" instead of "Next".
     fireEvent.click(footerButton("Save connection"));
@@ -168,6 +172,97 @@ describe("ConnectServerDialog", () => {
       password: "hunter2",
       defaultPath: "/",
     });
+  });
+
+  it("uses a file picker for private key authentication", async () => {
+    const pickLocalPath = vi
+      .fn()
+      .mockResolvedValue("/Users/ilya/.ssh/id_ed25519");
+    render(
+      <ConnectServerDialog {...baseProps()} pickLocalPath={pickLocalPath} />,
+    );
+
+    fireEvent.change(within(dialog()).getByLabelText("Label"), {
+      target: { value: "Prod" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("Host"), {
+      target: { value: "prod.example.com" },
+    });
+    fireEvent.click(footerButton("Next"));
+    fireEvent.change(within(dialog()).getByLabelText("Authentication"), {
+      target: { value: "privateKey" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Browse private key path" }),
+    );
+
+    await vi.waitFor(() => {
+      expect(
+        (
+          within(dialog()).getByLabelText(
+            "Private key path",
+          ) as HTMLInputElement
+        ).value,
+      ).toBe("/Users/ilya/.ssh/id_ed25519");
+    });
+    expect(pickLocalPath).toHaveBeenCalledWith({
+      kind: "file",
+      currentPath: "",
+      title: "Choose private key",
+      filters: [{ name: "SSH keys", extensions: ["pem", "key"] }],
+    });
+  });
+
+  it("does not update private key path when the picker is cancelled", async () => {
+    render(
+      <ConnectServerDialog
+        {...baseProps()}
+        pickLocalPath={vi.fn().mockResolvedValue(null)}
+      />,
+    );
+
+    fireEvent.change(within(dialog()).getByLabelText("Label"), {
+      target: { value: "Prod" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("Host"), {
+      target: { value: "prod.example.com" },
+    });
+    fireEvent.click(footerButton("Next"));
+    fireEvent.change(within(dialog()).getByLabelText("Authentication"), {
+      target: { value: "privateKey" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Browse private key path" }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(
+      (within(dialog()).getByLabelText("Private key path") as HTMLInputElement)
+        .value,
+    ).toBe("");
+  });
+
+  it("still requires a private key path when private-key auth is selected", () => {
+    render(<ConnectServerDialog {...baseProps()} />);
+
+    fireEvent.change(within(dialog()).getByLabelText("Label"), {
+      target: { value: "Prod" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("Host"), {
+      target: { value: "prod.example.com" },
+    });
+    fireEvent.click(footerButton("Next"));
+    fireEvent.change(within(dialog()).getByLabelText("Username"), {
+      target: { value: "deploy" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("Authentication"), {
+      target: { value: "privateKey" },
+    });
+    fireEvent.click(footerButton("Next"));
+
+    expect(
+      within(dialog()).getByText("Private key path is required."),
+    ).toBeTruthy();
   });
 
   it("supports going back to a previous wizard step", () => {
@@ -259,5 +354,95 @@ describe("ConnectServerDialog", () => {
 
     expect(labelField.value).toBe("Existing");
     expect(hostField.value).toBe("existing.example.com");
+  });
+
+  function existingProfile(
+    overrides: Partial<NetworkProfileDto> = {},
+  ): NetworkProfileDto {
+    return {
+      id: "550e8400-e29b-41d4-a716-446655440000",
+      label: "Existing",
+      scheme: "sftp",
+      host: "existing.example.com",
+      port: 22,
+      username: "deploy",
+      authKind: "password",
+      privateKeyPath: null,
+      defaultPath: "/var/www",
+      defaultUri: "sftp://550e8400-e29b-41d4-a716-446655440000/var/www",
+      hostKeyFingerprint: null,
+      sortOrder: 0,
+      lastConnectedAt: null,
+      lastError: null,
+      hasStoredSecret: true,
+      createdAt: "2026-05-19T00:00:00Z",
+      updatedAt: "2026-05-19T00:00:00Z",
+      ...overrides,
+    };
+  }
+
+  it("flags empty label and host inline on the Target step", () => {
+    render(<ConnectServerDialog {...baseProps()} />);
+
+    fireEvent.click(footerButton("Next"));
+
+    const labelField = within(dialog()).getByLabelText(
+      "Label",
+    ) as HTMLInputElement;
+    const hostField = within(dialog()).getByLabelText(
+      "Host",
+    ) as HTMLInputElement;
+    expect(labelField.getAttribute("aria-invalid")).toBe("true");
+    expect(hostField.getAttribute("aria-invalid")).toBe("true");
+
+    // Typing clears the field-level invalid marker.
+    fireEvent.change(labelField, { target: { value: "Prod" } });
+    expect(labelField.getAttribute("aria-invalid")).toBeNull();
+  });
+
+  it("runs a real connection test and shows success", async () => {
+    const onTest = vi
+      .fn()
+      .mockResolvedValue({ ok: true, message: "All good." });
+    render(
+      <ConnectServerDialog
+        {...baseProps({ editingProfile: existingProfile() })}
+        onTest={onTest}
+      />,
+    );
+
+    // Target → Credentials → Test
+    fireEvent.click(footerButton("Next"));
+    fireEvent.click(footerButton("Next"));
+
+    fireEvent.click(
+      within(dialog()).getByRole("button", { name: "Run connection test" }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(onTest).toHaveBeenCalledWith("550e8400-e29b-41d4-a716-446655440000");
+    expect(within(dialog()).getByText("All good.")).toBeTruthy();
+  });
+
+  it("surfaces a failed connection test inline", async () => {
+    const onTest = vi
+      .fn()
+      .mockResolvedValue({ ok: false, message: "Host unreachable." });
+    render(
+      <ConnectServerDialog
+        {...baseProps({ editingProfile: existingProfile() })}
+        onTest={onTest}
+      />,
+    );
+
+    fireEvent.click(footerButton("Next"));
+    fireEvent.click(footerButton("Next"));
+    fireEvent.click(
+      within(dialog()).getByRole("button", { name: "Run connection test" }),
+    );
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    const alert = within(dialog()).getByRole("alert");
+    expect(alert.textContent).toContain("Host unreachable.");
   });
 });

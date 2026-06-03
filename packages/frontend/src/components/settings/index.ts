@@ -1,4 +1,5 @@
 export { SettingsTree } from "./SettingsTree";
+export { SettingsPreview } from "./SettingsPreview";
 export { SettingsGeneral } from "./SettingsGeneral";
 export { SettingsDisplay } from "./SettingsDisplay";
 export { SettingsColors } from "./SettingsColors";

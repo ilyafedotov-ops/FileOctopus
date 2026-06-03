@@ -27,6 +27,11 @@ function installWebStorage(): void {
     configurable: true,
     writable: true,
   });
+  Object.defineProperty(globalThis, "Storage", {
+    value: window.Storage,
+    configurable: true,
+    writable: true,
+  });
 }
 
 installWebStorage();

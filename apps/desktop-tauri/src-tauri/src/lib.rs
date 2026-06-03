@@ -15,6 +15,7 @@ pub fn run() {
     let plugin_state = PluginState::new(app_state.paths());
 
     tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
