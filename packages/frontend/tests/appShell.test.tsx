@@ -92,6 +92,7 @@ const appPreferences: UserPreferencesDto = {
   rightDefaultViewMode: "details",
   leftDefaultSortField: "name",
   rightDefaultSortField: "name",
+  popupNotifications: true,
 };
 const preferencesGet = vi.fn(async () => ({
   preferences: appPreferences,

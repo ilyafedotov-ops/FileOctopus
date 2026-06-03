@@ -1,11 +1,12 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import type { FileOctopusState, PanelAction } from "../../panelStore";
-import { applyBatch, updatePanel } from "../../panelStore";
+import { applyBatch, renameEntryInState, updatePanel } from "../../panelStore";
 type ListingAction = Extract<
   PanelAction,
   | { type: "startRequest" }
   | { type: "startSession" }
   | { type: "applyBatch" }
+  | { type: "renameEntry" }
   | { type: "setPaneError" }
   | { type: "setArchiveEntries" }
 >;
@@ -15,6 +16,7 @@ export function isListingAction(action: PanelAction): action is ListingAction {
     action.type === "startSession" ||
     action.type === "startRequest" ||
     action.type === "applyBatch" ||
+    action.type === "renameEntry" ||
     action.type === "setPaneError" ||
     action.type === "setArchiveEntries"
   );
@@ -57,6 +59,13 @@ export function reduceListing(
       }));
     case "applyBatch":
       return applyBatch(state, action.batch);
+    case "renameEntry":
+      return renameEntryInState(
+        state,
+        action.oldUri,
+        action.newUri,
+        action.name,
+      );
     case "setPaneError":
       return updatePanel(state, action.panelId, (tab) => ({
         ...tab,

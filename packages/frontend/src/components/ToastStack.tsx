@@ -5,6 +5,7 @@ export interface ToastMessage {
   tone: "success" | "error" | "info";
   title: string;
   detail?: string;
+  popup?: boolean;
   actionLabel?: string;
   onAction?: () => void;
 }

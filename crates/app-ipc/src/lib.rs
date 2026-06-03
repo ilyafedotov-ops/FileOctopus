@@ -314,6 +314,7 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             status_bar_visible: value.status_bar_visible,
             toolbar_visible: value.toolbar_visible,
             toolbar_entries: value.toolbar_entries,
+            popup_notifications: value.popup_notifications,
             pane_mode: value.pane_mode,
             pane_direction: value.pane_direction,
             job_drawer_behavior: value.job_drawer_behavior,

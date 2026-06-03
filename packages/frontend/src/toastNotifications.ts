@@ -31,3 +31,22 @@ export function mergeToast(
     ],
   };
 }
+
+export function mergeNotification(
+  current: ToastMessage[],
+  notification: ToastInput,
+  createId: () => string,
+): { notifications: ToastMessage[]; notificationId: string } {
+  const notificationId = createId();
+  return {
+    notificationId,
+    notifications: [...current, { ...notification, id: notificationId }],
+  };
+}
+
+export function shouldShowPopupNotification(
+  popupNotifications: boolean | undefined,
+  notification: ToastInput,
+): boolean {
+  return popupNotifications === true && notification.popup !== false;
+}

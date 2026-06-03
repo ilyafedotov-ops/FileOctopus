@@ -359,7 +359,14 @@ describe("useMutationHandlers", () => {
       undefined,
       "renamed.txt",
     );
+    expect(deps.dispatch).toHaveBeenCalledWith({
+      type: "renameEntry",
+      oldUri: entry.uri,
+      newUri: "local:///renamed.txt",
+      name: "renamed.txt",
+    });
     expect(deps.setDialog).toHaveBeenCalledWith(null);
+    expect(deps.refreshVisiblePanels).not.toHaveBeenCalled();
   });
 
   it("submitRename shows error for invalid name", async () => {
@@ -550,7 +557,13 @@ describe("useMutationHandlers", () => {
       undefined,
       "renamed.txt",
     );
-    expect(deps.refreshVisiblePanels).toHaveBeenCalled();
+    expect(deps.dispatch).toHaveBeenCalledWith({
+      type: "renameEntry",
+      oldUri: entry.uri,
+      newUri: "local:///renamed.txt",
+      name: "renamed.txt",
+    });
+    expect(deps.refreshVisiblePanels).not.toHaveBeenCalled();
   });
 
   it("submitInlineRename skips when name unchanged", async () => {

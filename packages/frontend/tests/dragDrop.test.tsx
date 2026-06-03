@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { render, fireEvent, cleanup } from "@testing-library/react";
+import { render, fireEvent, cleanup, screen } from "@testing-library/react";
 
 const listStart = vi.fn(async () => ({ requestId: "r1", sessionId: "s1" }));
 const onDirectoryBatch = vi.fn(async () => () => undefined);
@@ -213,6 +213,26 @@ function makeTab(overrides: Partial<PanelTabState> = {}): PanelTabState {
     hashMap: {},
     ...overrides,
   } as PanelTabState;
+}
+
+function makeEntry(name = "file.txt") {
+  return {
+    uri: `local:///home/user/${name}`,
+    name,
+    extension: "txt",
+    kind: "file",
+    size: 12,
+    modifiedAt: null,
+    createdAt: null,
+    isHidden: false,
+    isSymlink: false,
+    providerId: "local",
+    canRead: true,
+    canList: false,
+    canWrite: true,
+    canDelete: true,
+    canRename: true,
+  } as const;
 }
 
 const defaultTab = makeTab();
@@ -440,5 +460,39 @@ describe("FilePanel drag & drop", () => {
       "local:///home/user",
       "move",
     );
+  });
+});
+
+describe("FilePanel inline rename focus", () => {
+  it("does not enter rename mode when selection changes with a stale rename token", () => {
+    const file = makeEntry("alpha.txt");
+    const emptyTab = makeTab({
+      entriesById: { [file.uri]: file },
+      orderedEntryIds: [file.uri],
+    });
+    const selectedTab = makeTab({
+      entriesById: { [file.uri]: file },
+      orderedEntryIds: [file.uri],
+      selectedIds: [file.uri],
+      selectedId: file.uri,
+      focusedId: file.uri,
+      anchorId: file.uri,
+    });
+    const props = makeProps({
+      tab: emptyTab,
+      panel: makePanel(),
+      renameFocusToken: 1,
+    });
+    const { rerender } = renderFilePanel(props);
+
+    rerender(
+      <ShellProvider>
+        <StubTerminalProvider>
+          <FilePanel {...props} tab={selectedTab} />
+        </StubTerminalProvider>
+      </ShellProvider>,
+    );
+
+    expect(screen.queryByLabelText("Rename alpha.txt")).toBeNull();
   });
 });

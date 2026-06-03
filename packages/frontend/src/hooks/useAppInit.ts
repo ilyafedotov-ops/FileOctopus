@@ -18,6 +18,7 @@ import {
 import type {
   AutostartStatusDto,
   AppInfoResponse,
+  FileOperationKind,
   JobSnapshot,
   StarredEntryDto,
   UserPreferencesDto,
@@ -63,6 +64,23 @@ import {
   mergeResumed,
 } from "../dialogs/OperationDialogView";
 import type { SearchState } from "../pane/PaneFilterBar";
+
+function shouldPopupOperationCompleted(kind: FileOperationKind): boolean {
+  return (
+    kind !== "rename" &&
+    kind !== "createFile" &&
+    kind !== "createDirectory" &&
+    kind !== "deleteToTrash" &&
+    kind !== "deletePermanently" &&
+    kind !== "writeTextFile"
+  );
+}
+
+export function shouldRefreshOperationCompleted(
+  kind: FileOperationKind,
+): boolean {
+  return kind !== "rename";
+}
 
 async function resolveStartupUri(
   client: FileOctopusClient,
@@ -387,8 +405,11 @@ export function useAppInit({
           tone: "success",
           title: "Operation completed",
           detail: event.operationKind,
+          popup: shouldPopupOperationCompleted(event.operationKind),
         });
-        refreshVisiblePanels();
+        if (shouldRefreshOperationCompleted(event.operationKind)) {
+          refreshVisiblePanels();
+        }
         void refreshHistory();
       }),
       client.fileOperations.onJobFailed((event) => {

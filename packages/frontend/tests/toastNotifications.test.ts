@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { mergeToast } from "../src/toastNotifications";
+import {
+  mergeNotification,
+  mergeToast,
+  shouldShowPopupNotification,
+} from "../src/toastNotifications";
 
 describe("mergeToast", () => {
   it("appends a new toast when none match", () => {
@@ -47,5 +51,56 @@ describe("mergeToast", () => {
     );
 
     expect(result.toasts.map((toast) => toast.id)).toEqual(["b", "c", "d"]);
+  });
+});
+
+describe("mergeNotification", () => {
+  it("appends every notification without collapsing matching titles", () => {
+    const first = mergeNotification(
+      [],
+      { tone: "success", title: "Operation completed", detail: "copy" },
+      () => "notification-1",
+    );
+    const second = mergeNotification(
+      first.notifications,
+      { tone: "success", title: "Operation completed", detail: "move" },
+      () => "notification-2",
+    );
+
+    expect(second.notificationId).toBe("notification-2");
+    expect(second.notifications.map((item) => item.detail)).toEqual([
+      "copy",
+      "move",
+    ]);
+  });
+});
+
+describe("shouldShowPopupNotification", () => {
+  it("requires popup notifications to be enabled", () => {
+    expect(
+      shouldShowPopupNotification(false, {
+        tone: "success",
+        title: "Operation completed",
+      }),
+    ).toBe(false);
+  });
+
+  it("allows popup notifications when enabled", () => {
+    expect(
+      shouldShowPopupNotification(true, {
+        tone: "error",
+        title: "Operation failed",
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps center-only notifications out of popups", () => {
+    expect(
+      shouldShowPopupNotification(true, {
+        tone: "success",
+        title: "Operation completed",
+        popup: false,
+      }),
+    ).toBe(false);
   });
 });

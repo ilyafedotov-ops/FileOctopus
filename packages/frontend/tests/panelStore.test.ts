@@ -71,6 +71,33 @@ describe("panel store", () => {
     expect(activeTab(state.panels.right).orderedEntryIds).toEqual([]);
   });
 
+  it("renames an entry in place and keeps it selected", () => {
+    let state = createInitialState("local:///tmp", "local:///other");
+    const oldEntry = entry("old.txt");
+    state.panels.left.tabs.main.entriesById[oldEntry.uri] = oldEntry;
+    state.panels.left.tabs.main.orderedEntryIds = [oldEntry.uri];
+    state.panels.left.tabs.main.selectedIds = [oldEntry.uri];
+    state.panels.left.tabs.main.selectedId = oldEntry.uri;
+    state.panels.left.tabs.main.focusedId = oldEntry.uri;
+    state.panels.left.tabs.main.anchorId = oldEntry.uri;
+
+    state = panelReducer(state, {
+      type: "renameEntry",
+      oldUri: oldEntry.uri,
+      newUri: "local:///tmp/new.txt",
+      name: "new.txt",
+    });
+
+    const tab = activeTab(state.panels.left);
+    expect(tab.entriesById[oldEntry.uri]).toBeUndefined();
+    expect(tab.entriesById["local:///tmp/new.txt"]?.name).toBe("new.txt");
+    expect(tab.orderedEntryIds).toEqual(["local:///tmp/new.txt"]);
+    expect(tab.selectedIds).toEqual(["local:///tmp/new.txt"]);
+    expect(tab.selectedId).toBe("local:///tmp/new.txt");
+    expect(tab.focusedId).toBe("local:///tmp/new.txt");
+    expect(tab.anchorId).toBe("local:///tmp/new.txt");
+  });
+
   it("ignores stale directory batches by session and request id", () => {
     let state = createInitialState("local:///left", "local:///right");
 

@@ -70,6 +70,19 @@ export function SettingsLayout({
         />
         <span>Show pane toolbar</span>
       </label>
+      <label className="fo-settings-checkbox">
+        <input
+          type="checkbox"
+          checked={preferences.popupNotifications === true}
+          onChange={(event) =>
+            onChange(
+              "popupNotifications",
+              event.target.checked ? "true" : "false",
+            )
+          }
+        />
+        <span>Show popup notifications</span>
+      </label>
       {onCustomizeToolbar ? (
         <div className="fo-settings-field">
           <Button

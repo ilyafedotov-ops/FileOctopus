@@ -36,6 +36,7 @@ function makePreferences(
     statusBarVisible: true,
     toolbarVisible: true,
     toolbarEntries: "",
+    popupNotifications: false,
     paneMode: "dual",
     jobDrawerBehavior: "manual",
     showAdvancedCopyOptions: false,
@@ -132,6 +133,23 @@ describe("SettingsDialog", () => {
     fireEvent.click(navButton("Layout"));
     fireEvent.click(screen.getByLabelText("Show sidebar"));
     expect(onChange).toHaveBeenCalledWith("sidebarVisible", "false");
+  });
+
+  it("fires onChange for popupNotifications", () => {
+    const onChange = vi.fn();
+    render(
+      <SettingsDialog
+        open
+        preferences={makePreferences()}
+        autostart={null}
+        onClose={() => {}}
+        onChange={onChange}
+        onSetAutostart={async () => {}}
+      />,
+    );
+    fireEvent.click(navButton("Layout"));
+    fireEvent.click(screen.getByLabelText("Show popup notifications"));
+    expect(onChange).toHaveBeenCalledWith("popupNotifications", "true");
   });
 
   it("fires onChange for pane mode and job drawer behavior", () => {
