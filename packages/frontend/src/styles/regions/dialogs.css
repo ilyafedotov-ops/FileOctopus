@@ -3408,3 +3408,122 @@ dialog.fo-dialog[open] {
   min-width: 80px;
   font-size: var(--fo-font-size-md);
 }
+
+.fo-documentation-dialog {
+  width: min(58rem, calc(100vw - 2rem));
+  height: min(42rem, calc(100dvh - var(--fo-titlebar-height, 50px) - 16px));
+  overflow: hidden;
+}
+
+.fo-documentation-dialog .fo-dialog-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 0.9rem;
+  overflow: hidden;
+}
+
+.fo-documentation-layout {
+  display: grid;
+  grid-template-columns: minmax(10rem, 12rem) minmax(0, 1fr);
+  gap: 0.9rem;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.fo-documentation-toc {
+  min-height: 0;
+  overflow: auto;
+  border-right: 1px solid var(--fo-subtle-border);
+  padding-right: 0.6rem;
+}
+
+.fo-documentation-toc ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 1px;
+}
+
+.fo-documentation-toc-link {
+  display: block;
+  width: 100%;
+  padding: 0.4rem 0.55rem;
+  border: 0;
+  border-radius: var(--fo-radius-sm-wide);
+  background: transparent;
+  color: var(--fo-text);
+  font-size: var(--fo-font-size-md);
+  text-align: left;
+  cursor: pointer;
+}
+
+.fo-documentation-toc-link:hover {
+  background: var(--fo-control-bg);
+}
+
+.fo-documentation-toc-link:focus-visible {
+  box-shadow: var(--fo-focus-ring);
+  outline: none;
+}
+
+.fo-documentation-content {
+  min-height: 0;
+  overflow: auto;
+  padding-right: 0.4rem;
+  display: grid;
+  gap: 1.2rem;
+  align-content: start;
+}
+
+.fo-documentation-content:focus-visible {
+  outline: none;
+}
+
+.fo-documentation-section {
+  display: grid;
+  gap: 0.5rem;
+  scroll-margin-top: 0.4rem;
+}
+
+.fo-documentation-paragraph {
+  margin: 0;
+  color: var(--fo-text);
+  font-size: var(--fo-font-size-md);
+  line-height: 1.5;
+}
+
+.fo-documentation-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.3rem;
+  color: var(--fo-text);
+  font-size: var(--fo-font-size-md);
+  line-height: 1.45;
+}
+
+.fo-about-lede {
+  margin: 0;
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-md);
+  line-height: 1.5;
+}
+
+.fo-about-datadir {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fo-about-datadir-path {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.fo-about-copyright {
+  margin: 0;
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+}

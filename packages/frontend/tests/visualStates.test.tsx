@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { PaneStateView } from "../src/components/PaneStateView";
 import { DiagnosticsDialog } from "../src/components/DiagnosticsDialog";
 import { AboutDialog } from "../src/components/dialogs/AboutDialog";
+import { DocumentationDialog } from "../src/components/dialogs/DocumentationDialog";
 import { SettingsDialog } from "../src/components/SettingsDialog";
 import { ShortcutsDialog } from "../src/components/ShortcutsDialog";
 import { FileTable } from "../src/pane/FileTable";
@@ -204,13 +205,38 @@ describe("visual state fixtures", () => {
 
   it("renders about dialog", () => {
     const view = renderVisualState(
-      <AboutDialog open appInfo={sampleAppInfo} onClose={noop} />,
+      <AboutDialog
+        open
+        appInfo={sampleAppInfo}
+        onClose={noop}
+        onOpenDocumentation={noop}
+      />,
     );
 
     expect(
       screen.getByRole("dialog", { name: "About FileOctopus" }),
     ).toBeTruthy();
     expect(screen.getByText("0.1.0")).toBeTruthy();
+    view.restore();
+  });
+
+  it("renders documentation dialog with sections and shortcuts", () => {
+    const view = renderVisualState(<DocumentationDialog open onClose={noop} />);
+
+    expect(screen.getByRole("dialog", { name: "Documentation" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Overview" })).toBeTruthy();
+    expect(
+      screen.getByRole("heading", { name: "Keyboard shortcuts" }),
+    ).toBeTruthy();
+    view.restore();
+  });
+
+  it("renders nothing when documentation dialog is closed", () => {
+    const view = renderVisualState(
+      <DocumentationDialog open={false} onClose={noop} />,
+    );
+
+    expect(screen.queryByRole("dialog", { name: "Documentation" })).toBeNull();
     view.restore();
   });
 

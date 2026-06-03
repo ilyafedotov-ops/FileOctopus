@@ -75,7 +75,6 @@ function createMenuBarProps(
     onEqualizePanes: noop,
     onShortcuts: noop,
     onDocumentation: noop,
-    onReportIssue: noop,
     onAbout: noop,
     onSettings: noop,
     onExit: noop,

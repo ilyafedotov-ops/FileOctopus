@@ -162,18 +162,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onSwapPanes: () => runCommand("layout.swapPanes"),
     onEqualizePanes: () => runCommand("layout.equalizePanes"),
     onShortcuts: () => runCommand("app.shortcuts"),
-    onDocumentation: () => {
-      void globalThis.open(
-        "https://github.com/nous-research/fileoctopus",
-        "_blank",
-      );
-    },
-    onReportIssue: () => {
-      void globalThis.open(
-        "https://github.com/nous-research/fileoctopus/issues",
-        "_blank",
-      );
-    },
+    onDocumentation: () => runCommand("app.documentation"),
     onAbout: () => runCommand("app.about"),
     onSettings: () => runCommand("app.settings"),
     onExit: () => {

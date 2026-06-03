@@ -81,7 +81,6 @@ export interface MenuBarProps {
   onEqualizePanes: () => void;
   onShortcuts: () => void;
   onDocumentation: () => void;
-  onReportIssue: () => void;
   onAbout: () => void;
   onSettings: () => void;
   onExit: () => void;

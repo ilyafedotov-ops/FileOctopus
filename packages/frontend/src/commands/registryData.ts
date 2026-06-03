@@ -563,6 +563,12 @@ export const COMMAND_REGISTRY = [
     surfaces: ["menu", "palette"],
   },
   {
+    id: "app.documentation",
+    label: "Documentation",
+    group: "app",
+    surfaces: ["menu", "palette"],
+  },
+  {
     id: "app.about",
     label: "About FileOctopus",
     group: "app",

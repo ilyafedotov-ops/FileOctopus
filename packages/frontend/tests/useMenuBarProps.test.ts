@@ -226,18 +226,12 @@ describe("useMenuBarProps", () => {
     expect(result.current.dualPane).toBe(false);
   });
 
-  it("calls runCommand for onDocumentation opening github", () => {
-    const openFn = vi.fn();
-    const original = globalThis.open;
-    globalThis.open = openFn as unknown as typeof globalThis.open;
-    const params = makeParams();
+  it("calls runCommand for app.documentation on onDocumentation", () => {
+    const runCommand = vi.fn();
+    const params = makeParams({ runCommand });
     const { result } = renderHook(() => useMenuBarProps(params));
     result.current.onDocumentation();
-    expect(openFn).toHaveBeenCalledWith(
-      "https://github.com/nous-research/fileoctopus",
-      "_blank",
-    );
-    globalThis.open = original;
+    expect(runCommand).toHaveBeenCalledWith("app.documentation");
   });
 
   it("passes onCustomizeToolbar through", () => {

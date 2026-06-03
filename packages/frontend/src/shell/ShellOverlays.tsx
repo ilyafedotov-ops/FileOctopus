@@ -86,6 +86,7 @@ export function ShellOverlays() {
         setManageHotlistOpen={ctx.setManageHotlistOpen}
         multiRenameEntries={multiRenameEntries}
         diagnosticsOpen={ctx.diagnosticsOpen}
+        helpOpen={ctx.helpOpen}
         aboutOpen={ctx.aboutOpen}
         goToLocationOpen={ctx.goToLocationOpen}
         manageFavoritesOpen={ctx.manageFavoritesOpen}
@@ -132,6 +133,7 @@ export function ShellOverlays() {
         setShortcutsOpen={ctx.setShortcutsOpen}
         setCommandPaletteOpen={ctx.setCommandPaletteOpen}
         setDiagnosticsOpen={ctx.setDiagnosticsOpen}
+        setHelpOpen={ctx.setHelpOpen}
         setAboutOpen={ctx.setAboutOpen}
         setGoToLocationOpen={ctx.setGoToLocationOpen}
         setManageFavoritesOpen={ctx.setManageFavoritesOpen}

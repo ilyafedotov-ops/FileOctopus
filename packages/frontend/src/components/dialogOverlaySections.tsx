@@ -9,6 +9,7 @@ import { EditorDialog } from "./editor/EditorDialog";
 import { setRememberSessionPaths } from "../pane/sessionPaths";
 import { OperationDialogView } from "../dialogs/OperationDialogView";
 import { AboutDialog } from "./dialogs/AboutDialog";
+import { DocumentationDialog } from "./dialogs/DocumentationDialog";
 import { GoToLocationDialog } from "./dialogs/GoToLocationDialog";
 import { ManageFavoritesDialog } from "./dialogs/ManageFavoritesDialog";
 import { RecentLocationsDialog } from "./dialogs/RecentLocationsDialog";
@@ -48,6 +49,8 @@ export function DialogOverlaySectionWorkspace(props: DialogOverlayGroupProps) {
     editorEntry,
     setEditorOpen,
     refreshActivePane,
+    helpOpen,
+    setHelpOpen,
     aboutOpen,
     settingsPreferenceChange,
     goToLocationInitialUri,
@@ -178,10 +181,15 @@ export function DialogOverlaySectionWorkspace(props: DialogOverlayGroupProps) {
         open={manageHotlistOpen}
         onClose={() => setManageHotlistOpen(false)}
       />
+      <DocumentationDialog open={helpOpen} onClose={() => setHelpOpen(false)} />
       <AboutDialog
         open={aboutOpen}
         appInfo={appInfo}
         onClose={() => setAboutOpen(false)}
+        onOpenDocumentation={() => {
+          setAboutOpen(false);
+          setHelpOpen(true);
+        }}
       />
     </>
   );

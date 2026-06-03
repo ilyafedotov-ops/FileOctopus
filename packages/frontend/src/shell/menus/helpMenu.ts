@@ -14,13 +14,8 @@ export function buildHelpItems(
     },
     {
       id: "documentation",
-      label: "Documentation",
+      label: "Documentation…",
       onSelect: wrap(props.onDocumentation),
-    },
-    {
-      id: "report-issue",
-      label: "Report Issue",
-      onSelect: wrap(props.onReportIssue),
     },
     sep("sep-diag"),
     {

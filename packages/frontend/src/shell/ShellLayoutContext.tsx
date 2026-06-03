@@ -82,6 +82,7 @@ export interface ShellLayoutContextValue {
   editorOpen: boolean;
   editorEntry: FileEntryDto | null;
   diagnosticsOpen: boolean;
+  helpOpen: boolean;
   aboutOpen: boolean;
   goToLocationOpen: boolean;
   manageFavoritesOpen: boolean;
@@ -174,6 +175,7 @@ export interface ShellLayoutContextValue {
   isTextEditable: (entry: FileEntryDto | null) => boolean;
   refreshActivePane: () => void;
   setDiagnosticsOpen: (v: boolean) => void;
+  setHelpOpen: (v: boolean) => void;
   setAboutOpen: (v: boolean) => void;
   setDialog: (d: OperationDialog | null) => void;
   setDiagnosticsDestination: (v: string) => void;

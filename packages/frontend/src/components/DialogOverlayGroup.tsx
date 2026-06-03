@@ -40,6 +40,7 @@ export interface DialogOverlayGroupProps {
   setEditorOpen: (open: boolean) => void;
   refreshActivePane?: () => void;
   diagnosticsOpen: boolean;
+  helpOpen: boolean;
   aboutOpen: boolean;
   goToLocationOpen: boolean;
   manageFavoritesOpen: boolean;
@@ -87,6 +88,7 @@ export interface DialogOverlayGroupProps {
   setShortcutsOpen: (open: boolean) => void;
   setCommandPaletteOpen: (open: boolean) => void;
   setDiagnosticsOpen: (open: boolean) => void;
+  setHelpOpen: (open: boolean) => void;
   setAboutOpen: (open: boolean) => void;
   setGoToLocationOpen: (open: boolean) => void;
   setManageFavoritesOpen: (open: boolean) => void;

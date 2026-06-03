@@ -37,6 +37,7 @@ export interface CommandDispatchDeps {
   setToolbarCustomizeOpen: (open: boolean) => void;
   setShortcutsOpen: (open: boolean) => void;
   setDiagnosticsOpen: (open: boolean) => void;
+  setHelpOpen: (open: boolean) => void;
   setAboutOpen: (open: boolean) => void;
   setGoToLocationOpen: (open: boolean) => void;
   setManageFavoritesOpen: (open: boolean) => void;
@@ -158,6 +159,9 @@ export function dispatchCommand(
       return true;
     case "app.diagnostics":
       deps.setDiagnosticsOpen(true);
+      return true;
+    case "app.documentation":
+      deps.setHelpOpen(true);
       return true;
     case "app.about":
       deps.setAboutOpen(true);
