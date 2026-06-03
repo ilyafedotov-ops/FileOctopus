@@ -68,6 +68,8 @@ function FileOctopusAppInner({
   } = useNavigationData();
   const {
     toasts,
+    notifications,
+    notificationCenterOpen,
     clipboard,
     contextMenu,
     search,
@@ -79,6 +81,8 @@ function FileOctopusAppInner({
     diagnosticsMessage,
     exportingDiagnostics,
     setToasts,
+    setNotifications,
+    setNotificationCenterOpen,
     setClipboard,
     setContextMenu,
     setSearch,
@@ -214,8 +218,10 @@ function FileOctopusAppInner({
     client,
     state,
     dispatch,
+    preferences,
     diagnosticsDestination,
     setToasts,
+    setNotifications,
     setPreferences,
     setDensity,
     setActivityCollapsed,
@@ -884,7 +890,11 @@ function FileOctopusAppInner({
       handleSetAutostart={handleSetAutostart}
       handleCommandSelect={handleCommandSelect}
       toasts={toasts}
+      notifications={notifications}
+      notificationCenterOpen={notificationCenterOpen}
       setToasts={setToasts}
+      setNotifications={setNotifications}
+      setNotificationCenterOpen={setNotificationCenterOpen}
       contextMenu={contextMenu}
       setContextMenu={setContextMenu}
       clipboard={clipboard}

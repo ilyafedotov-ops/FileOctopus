@@ -16,7 +16,7 @@ pub use network::{
     UpdateNetworkProfile,
 };
 
-pub const SCHEMA_VERSION: u32 = 14;
+pub const SCHEMA_VERSION: u32 = 15;
 
 #[derive(Debug, Error)]
 pub enum PreferencesError {
@@ -51,6 +51,7 @@ pub struct UserPreferences {
     pub status_bar_visible: bool,
     pub toolbar_visible: bool,
     pub toolbar_entries: String,
+    pub popup_notifications: bool,
     pub pane_mode: String,
     pub pane_direction: String,
     pub job_drawer_behavior: String,
@@ -119,6 +120,7 @@ impl Default for UserPreferences {
             status_bar_visible: true,
             toolbar_visible: true,
             toolbar_entries: String::new(),
+            popup_notifications: false,
             pane_mode: "dual".to_string(),
             pane_direction: "horizontal".to_string(),
             job_drawer_behavior: "manual".to_string(),
@@ -295,6 +297,30 @@ impl PreferencesRepository {
         if user_version < 14 {
             self.backfill_v14_keys(&connection)?;
             connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
+        if user_version < 15 {
+            self.backfill_v15_keys(&connection)?;
+            connection.pragma_update(None, "user_version", SCHEMA_VERSION)?;
+        }
+
+        Ok(())
+    }
+
+    fn backfill_v15_keys(&self, connection: &Connection) -> Result<(), PreferencesError> {
+        let defaults = UserPreferences::default();
+        let now = chrono_lite_now();
+        let rows = [(
+            "popupNotifications",
+            defaults.popup_notifications.to_string(),
+        )];
+
+        for (key, value) in rows {
+            connection.execute(
+                "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
+                 on conflict(key) do nothing",
+                params![key, value, now],
+            )?;
         }
 
         Ok(())
@@ -651,6 +677,7 @@ impl UserPreferences {
             ("statusBarVisible", self.status_bar_visible.to_string()),
             ("toolbarVisible", self.toolbar_visible.to_string()),
             ("toolbarEntries", self.toolbar_entries.clone()),
+            ("popupNotifications", self.popup_notifications.to_string()),
             ("paneMode", self.pane_mode.clone()),
             ("paneDirection", self.pane_direction.clone()),
             ("jobDrawerBehavior", self.job_drawer_behavior.clone()),
@@ -822,6 +849,9 @@ fn apply_value(
         }
         "toolbarEntries" => {
             preferences.toolbar_entries = parse_toolbar_entries(value)?;
+        }
+        "popupNotifications" => {
+            preferences.popup_notifications = parse_bool(value, key)?;
         }
         "paneMode" => {
             preferences.pane_mode = parse_pane_mode(value)?;
@@ -1360,6 +1390,7 @@ mod tests {
         assert_eq!(defaults.pane_mode, "dual");
         assert_eq!(defaults.job_drawer_behavior, "manual");
         assert!(!defaults.activity_panel_visible);
+        assert!(!defaults.popup_notifications);
         assert!(!defaults.show_advanced_copy_options);
     }
 
@@ -1375,6 +1406,7 @@ mod tests {
         assert_eq!(rows["statusBarVisible"], "true");
         assert_eq!(rows["toolbarVisible"], "true");
         assert_eq!(rows["toolbarEntries"], "");
+        assert_eq!(rows["popupNotifications"], "false");
         assert_eq!(rows["paneMode"], "dual");
         assert_eq!(rows["jobDrawerBehavior"], "manual");
         assert_eq!(rows["showAdvancedCopyOptions"], "false");

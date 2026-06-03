@@ -209,7 +209,11 @@ export interface ShellLayoutContextValue {
     context?: import("../commands/invokeContext").CommandInvokeArg,
   ) => void;
   toasts: ToastMessage[];
+  notifications: ToastMessage[];
+  notificationCenterOpen: boolean;
   setToasts: React.Dispatch<React.SetStateAction<ToastMessage[]>>;
+  setNotifications: React.Dispatch<React.SetStateAction<ToastMessage[]>>;
+  setNotificationCenterOpen: React.Dispatch<React.SetStateAction<boolean>>;
   contextMenu: ContextMenuState | null;
   setContextMenu: (m: ContextMenuState | null) => void;
   clipboard: FileClipboardState | null;

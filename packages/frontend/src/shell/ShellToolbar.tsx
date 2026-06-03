@@ -19,6 +19,7 @@ import {
 import { viewModeCommandId } from "../commands/viewModeCommands";
 import { rootUri } from "../utils/paneUtils";
 import { toolbarJobsDisplay } from "../pane/toolbarJobsLabel";
+import { NotificationCenter } from "../components/NotificationCenter";
 
 export function ShellToolbar() {
   const ctx = useShellLayout();
@@ -112,6 +113,11 @@ export function ShellToolbar() {
       : currentTheme === "light"
         ? "Light"
         : "System";
+  const notificationCount = ctx.notifications.length;
+  const notificationLabel =
+    notificationCount === 0
+      ? "Notifications"
+      : `Notifications: ${notificationCount} unread`;
 
   return (
     <>
@@ -186,6 +192,32 @@ export function ShellToolbar() {
             }
           }}
         />
+        <span className="fo-toolbar-separator" aria-hidden="true" />
+        <div className="fo-notification-toolbar">
+          <ToolbarButton
+            onClick={() =>
+              ctx.setNotificationCenterOpen(!ctx.notificationCenterOpen)
+            }
+            title={notificationLabel}
+            aria-label={notificationLabel}
+            className="fo-toolbar-nav-btn fo-notification-button"
+          >
+            {Icons.info()}
+            {notificationCount > 0 ? (
+              <span className="fo-notification-count">{notificationCount}</span>
+            ) : null}
+          </ToolbarButton>
+          <NotificationCenter
+            open={ctx.notificationCenterOpen}
+            notifications={ctx.notifications}
+            onClear={() => ctx.setNotifications([])}
+            onDismiss={(id) =>
+              ctx.setNotifications((current) =>
+                current.filter((notification) => notification.id !== id),
+              )
+            }
+          />
+        </div>
         <span className="fo-toolbar-separator" aria-hidden="true" />
         <ToolbarButton
           onClick={() => handleCommand("preferences.cycleTheme")}

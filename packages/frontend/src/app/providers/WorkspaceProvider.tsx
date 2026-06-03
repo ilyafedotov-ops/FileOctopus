@@ -21,6 +21,8 @@ import { usePreferences } from "./PreferencesProvider";
 
 export interface WorkspaceContextValue extends LayoutFocusStore {
   toasts: ToastMessage[];
+  notifications: ToastMessage[];
+  notificationCenterOpen: boolean;
   clipboard: FileClipboardState | null;
   contextMenu: ContextMenuState | null;
   search: SearchState | null;
@@ -29,6 +31,8 @@ export interface WorkspaceContextValue extends LayoutFocusStore {
   diagnosticsMessage: string | null;
   exportingDiagnostics: boolean;
   setToasts: Dispatch<SetStateAction<ToastMessage[]>>;
+  setNotifications: Dispatch<SetStateAction<ToastMessage[]>>;
+  setNotificationCenterOpen: Dispatch<SetStateAction<boolean>>;
   setClipboard: Dispatch<SetStateAction<FileClipboardState | null>>;
   setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>;
   setSearch: Dispatch<SetStateAction<SearchState | null>>;
@@ -51,6 +55,8 @@ export function useWorkspace(): WorkspaceContextValue {
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const { preferences } = usePreferences();
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [notifications, setNotifications] = useState<ToastMessage[]>([]);
+  const [notificationCenterOpen, setNotificationCenterOpen] = useState(false);
   const [clipboard, setClipboard] = useState<FileClipboardState | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [search, setSearch] = useState<SearchState | null>(null);
@@ -76,6 +82,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const value = useMemo<WorkspaceContextValue>(
     () => ({
       toasts,
+      notifications,
+      notificationCenterOpen,
       clipboard,
       contextMenu,
       search,
@@ -84,6 +92,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       diagnosticsMessage,
       exportingDiagnostics,
       setToasts,
+      setNotifications,
+      setNotificationCenterOpen,
       setClipboard,
       setContextMenu,
       setSearch,
@@ -95,6 +105,8 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }),
     [
       toasts,
+      notifications,
+      notificationCenterOpen,
       clipboard,
       contextMenu,
       search,

@@ -97,6 +97,12 @@ export type PanelAction =
       requestId: string;
     }
   | { type: "applyBatch"; batch: DirectoryBatchEventDto }
+  | {
+      type: "renameEntry";
+      oldUri: string;
+      newUri: string;
+      name: string;
+    }
   | { type: "setSelection"; panelId: PanelId; entryId: string | null }
   | { type: "selectAll"; panelId: PanelId }
   | { type: "invertSelection"; panelId: PanelId }
@@ -395,6 +401,76 @@ export function applyBatch(
       errorCode: batch.error?.code ?? null,
     };
   });
+}
+
+export function renameEntryInState(
+  state: FileOctopusState,
+  oldUri: string,
+  newUri: string,
+  name: string,
+): FileOctopusState {
+  const panels = (Object.keys(state.panels) as PanelId[]).reduce(
+    (nextPanels, panelId) => {
+      const panel = state.panels[panelId];
+      const tabs = Object.entries(panel.tabs).reduce(
+        (nextTabs, [tabId, tab]) => {
+          const entry = tab.entriesById[oldUri];
+          if (!entry) {
+            nextTabs[tabId] = tab;
+            return nextTabs;
+          }
+
+          const entriesById = { ...tab.entriesById };
+          delete entriesById[oldUri];
+          entriesById[newUri] = {
+            ...entry,
+            uri: newUri,
+            name,
+            extension:
+              entry.kind === "directory" ? null : extensionFromName(name),
+          };
+
+          const replaceId = (id: string | null) =>
+            id === oldUri ? newUri : id;
+          nextTabs[tabId] = {
+            ...tab,
+            entriesById,
+            orderedEntryIds: tab.orderedEntryIds.map((id) =>
+              id === oldUri ? newUri : id,
+            ),
+            selectedIds: tab.selectedIds.map((id) =>
+              id === oldUri ? newUri : id,
+            ),
+            selectedId: replaceId(tab.selectedId),
+            focusedId: replaceId(tab.focusedId),
+            anchorId: replaceId(tab.anchorId),
+          };
+          return nextTabs;
+        },
+        {} as PanelState["tabs"],
+      );
+
+      nextPanels[panelId] = {
+        ...panel,
+        tabs,
+      };
+      return nextPanels;
+    },
+    {} as FileOctopusState["panels"],
+  );
+
+  return {
+    ...state,
+    panels,
+  };
+}
+
+function extensionFromName(name: string): string | null {
+  const index = name.lastIndexOf(".");
+  if (index <= 0 || index === name.length - 1) {
+    return null;
+  }
+  return name.slice(index);
 }
 
 export function selectEntry(

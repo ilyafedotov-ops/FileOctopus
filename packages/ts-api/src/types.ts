@@ -384,6 +384,7 @@ export interface UserPreferencesDto {
   statusBarVisible: boolean;
   toolbarVisible: boolean;
   toolbarEntries: string;
+  popupNotifications?: boolean;
   paneMode: string;
   paneDirection: string;
   jobDrawerBehavior: string;

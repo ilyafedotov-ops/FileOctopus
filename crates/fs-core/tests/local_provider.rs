@@ -21,6 +21,9 @@ async fn stat_returns_file_metadata() {
     assert_eq!(entry.kind, FileKind::File);
     assert!(entry.size.unwrap() > 0);
     assert!(entry.capabilities.can_read);
+    assert!(entry.capabilities.can_write);
+    assert!(entry.capabilities.can_delete);
+    assert!(entry.capabilities.can_rename);
 }
 
 #[tokio::test]
@@ -32,6 +35,9 @@ async fn stat_returns_directory_metadata() {
 
     assert_eq!(entry.kind, FileKind::Directory);
     assert!(entry.capabilities.can_list);
+    assert!(entry.capabilities.can_write);
+    assert!(entry.capabilities.can_delete);
+    assert!(entry.capabilities.can_rename);
 }
 
 #[tokio::test]

@@ -61,11 +61,7 @@ impl LocalFsProvider {
         let extension = path
             .extension()
             .map(|value| value.to_string_lossy().to_string());
-        let capabilities = if kind == FileKind::Directory {
-            EntryCapabilities::read_only_directory()
-        } else {
-            EntryCapabilities::read_only_file()
-        };
+        let capabilities = Self::capabilities_for_path(path, kind, &metadata);
         let symlink_target = if is_symlink {
             fs::read_link(path)
                 .ok()
@@ -91,6 +87,36 @@ impl LocalFsProvider {
             capabilities,
             permissions: permissions_string(&metadata),
             owner: owner_string(&metadata, owner_cache),
+        }
+    }
+
+    fn capabilities_for_path(
+        path: &Path,
+        kind: FileKind,
+        metadata: &Metadata,
+    ) -> EntryCapabilities {
+        let can_write = !metadata.permissions().readonly();
+        let can_delete_or_rename = path
+            .parent()
+            .and_then(|parent| fs::metadata(parent).ok())
+            .map(|parent_metadata| !parent_metadata.permissions().readonly())
+            .unwrap_or(can_write);
+
+        match kind {
+            FileKind::Directory => EntryCapabilities {
+                can_read: false,
+                can_list: true,
+                can_write,
+                can_delete: can_delete_or_rename,
+                can_rename: can_delete_or_rename,
+            },
+            _ => EntryCapabilities {
+                can_read: true,
+                can_list: false,
+                can_write,
+                can_delete: can_delete_or_rename,
+                can_rename: can_delete_or_rename,
+            },
         }
     }
 

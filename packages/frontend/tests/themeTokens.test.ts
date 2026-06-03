@@ -215,6 +215,17 @@ describe("Design token architecture", () => {
     }
   });
 
+  it("keeps shell toolbar accessories in the toolbar flex row", () => {
+    expect(
+      /\.fo-workbench-toolbar\s*\{[^}]*display:\s*flex;/s.test(shellContent),
+      "shell toolbar must be a flex row so accessories do not start on new lines",
+    ).toBe(true);
+    expect(
+      /\.fo-notification-toolbar\s*\{[^}]*display:\s*flex;/s.test(shellContent),
+      "notification toolbar must stay inline with toolbar buttons",
+    ).toBe(true);
+  });
+
   it("defines the premium-polish tokens (typography, chrome, focus, motion)", () => {
     const newTokens = [
       "--fo-font-size-xs",

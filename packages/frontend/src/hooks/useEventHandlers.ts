@@ -34,7 +34,11 @@ import type { SearchState } from "../pane/PaneFilterBar";
 import type { ContentSearchState } from "../pane/ContentSearchPanel";
 import type { ToastMessage } from "../components/ToastStack";
 import type { OperationDialog } from "../dialogs/OperationDialogView";
-import { mergeToast } from "../toastNotifications";
+import {
+  mergeNotification,
+  mergeToast,
+  shouldShowPopupNotification,
+} from "../toastNotifications";
 import { createRequestId } from "../paneTypes";
 import { createNavigationController } from "../navigation/navigationController";
 
@@ -42,8 +46,10 @@ export interface UseEventHandlersParams {
   client: FileOctopusClient;
   state: FileOctopusState;
   dispatch: Dispatch<PanelAction>;
+  preferences: UserPreferencesDto | null;
   diagnosticsDestination: string;
   setToasts: Dispatch<SetStateAction<ToastMessage[]>>;
+  setNotifications: Dispatch<SetStateAction<ToastMessage[]>>;
   setPreferences: Dispatch<SetStateAction<UserPreferencesDto | null>>;
   setDensity: Dispatch<SetStateAction<DensityPreference>>;
   setActivityCollapsed: Dispatch<SetStateAction<boolean>>;
@@ -72,8 +78,10 @@ export function useEventHandlers({
   client,
   state,
   dispatch,
+  preferences,
   diagnosticsDestination,
   setToasts,
+  setNotifications,
   setPreferences,
   setDensity,
   setActivityCollapsed,
@@ -123,6 +131,15 @@ export function useEventHandlers({
   } = navigation;
 
   function pushToast(toast: Omit<ToastMessage, "id">) {
+    setNotifications(
+      (current) =>
+        mergeNotification(current, toast, createRequestId).notifications,
+    );
+
+    if (!shouldShowPopupNotification(preferences?.popupNotifications, toast)) {
+      return;
+    }
+
     let toastId = createRequestId();
     setToasts((current) => {
       const merged = mergeToast(current, toast, createRequestId);

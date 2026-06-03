@@ -198,8 +198,14 @@ export function useMutationHandlers(
     );
 
     if (ok) {
+      const tab = activeTab(state.panels[current.panelId]);
+      dispatch({
+        type: "renameEntry",
+        oldUri: current.entry.uri,
+        newUri: joinUri(tab.uri, name),
+        name,
+      });
       setDialog(null);
-      refreshVisiblePanels();
     }
   }
 
@@ -272,7 +278,13 @@ export function useMutationHandlers(
     }
     const ok = await startOperation("rename", [entry.uri], undefined, trimmed);
     if (ok) {
-      refreshVisiblePanels();
+      const tab = activeTab(state.panels[panelId]);
+      dispatch({
+        type: "renameEntry",
+        oldUri: entry.uri,
+        newUri: joinUri(tab.uri, trimmed),
+        name: trimmed,
+      });
     }
   }
 

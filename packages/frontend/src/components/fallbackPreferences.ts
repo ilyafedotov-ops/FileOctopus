@@ -20,6 +20,7 @@ export const FALLBACK_PREFERENCES: UserPreferencesDto = {
   statusBarVisible: true,
   toolbarVisible: true,
   toolbarEntries: "",
+  popupNotifications: false,
   paneMode: "dual",
   paneDirection: "horizontal",
   jobDrawerBehavior: "manual",

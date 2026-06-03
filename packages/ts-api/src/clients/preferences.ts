@@ -37,7 +37,8 @@ export function preferenceValue(
     key === "paneTerminalDefaultOpen" ||
     key === "terminalCdOnNavigate" ||
     key === "confirmClosePaneWithTerminal" ||
-    key === "rememberLastUsedPanes"
+    key === "rememberLastUsedPanes" ||
+    key === "popupNotifications"
   ) {
     return value === "true";
   }

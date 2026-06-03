@@ -11,17 +11,38 @@ vi.mock("@fileoctopus/ui", () => ({
     moon: vi.fn(() => "🌙"),
     sun: vi.fn(() => "☀️"),
     monitor: vi.fn(() => "🖥️"),
+    info: vi.fn(() => "ⓘ"),
   },
   ToolbarButton: ({
     onClick,
     title,
     children,
+    ...props
   }: {
     onClick: () => void;
     title?: string;
     children: React.ReactNode;
+    [key: string]: unknown;
   }) => (
-    <button onClick={onClick} title={title} data-testid="toolbar-btn">
+    <button
+      onClick={onClick}
+      title={title}
+      data-testid="toolbar-btn"
+      {...props}
+    >
+      {children}
+    </button>
+  ),
+  Button: ({
+    onClick,
+    children,
+    disabled,
+  }: {
+    onClick?: () => void;
+    children: React.ReactNode;
+    disabled?: boolean;
+  }) => (
+    <button onClick={onClick} disabled={disabled}>
       {children}
     </button>
   ),
@@ -280,7 +301,11 @@ function makeCtx(
     handleSetAutostart: vi.fn(),
     handleCommandSelect: vi.fn(),
     toasts: [],
+    notifications: [],
+    notificationCenterOpen: false,
     setToasts: vi.fn(),
+    setNotifications: vi.fn(),
+    setNotificationCenterOpen: vi.fn(),
     contextMenu: null,
     setContextMenu: vi.fn(),
     clipboard: null,
@@ -330,49 +355,66 @@ describe("ShellToolbar", () => {
 
   it("renders the theme button", () => {
     renderToolbar();
-    expect(screen.getByTestId("toolbar-btn")).toBeTruthy();
+    expect(screen.getByLabelText("Theme: System")).toBeTruthy();
   });
 
   it("shows system theme icon by default", () => {
     renderToolbar();
-    expect(screen.getByTestId("toolbar-btn").textContent).toContain("🖥️");
+    expect(screen.getByLabelText("Theme: System").textContent).toContain("🖥️");
   });
 
   it("shows dark theme icon when theme is dark", () => {
     renderToolbar({
       preferences: { ...defaultPrefs, theme: "dark" },
     });
-    expect(screen.getByTestId("toolbar-btn").textContent).toContain("🌙");
+    expect(screen.getByLabelText("Theme: Dark").textContent).toContain("🌙");
   });
 
   it("shows light theme icon when theme is light", () => {
     renderToolbar({
       preferences: { ...defaultPrefs, theme: "light" },
     });
-    expect(screen.getByTestId("toolbar-btn").textContent).toContain("☀️");
+    expect(screen.getByLabelText("Theme: Light").textContent).toContain("☀️");
   });
 
   it("shows monitor icon when theme is system", () => {
     renderToolbar({
       preferences: { ...defaultPrefs, theme: "system" },
     });
-    expect(screen.getByTestId("toolbar-btn").textContent).toContain("🖥️");
+    expect(screen.getByLabelText("Theme: System").textContent).toContain("🖥️");
   });
 
   it("uses system theme when preferences is null", () => {
     renderToolbar({ preferences: null });
-    expect(screen.getByTestId("toolbar-btn").textContent).toContain("🖥️");
+    expect(screen.getByLabelText("Theme: System").textContent).toContain("🖥️");
   });
 
   it("clicking theme button calls handleCommandSelect with preferences.cycleTheme", () => {
     const handleCommandSelect = vi.fn();
     renderToolbar({ handleCommandSelect });
-    fireEvent.click(screen.getByTestId("toolbar-btn"));
+    fireEvent.click(screen.getByLabelText("Theme: System"));
     expect(handleCommandSelect).toHaveBeenCalledWith(
       "preferences.cycleTheme",
       "left",
       undefined,
     );
+  });
+
+  it("shows notification count and opens notification center", () => {
+    const setNotificationCenterOpen = vi.fn();
+    renderToolbar({
+      notifications: [
+        { id: "n1", tone: "info", title: "One" },
+        { id: "n2", tone: "error", title: "Two" },
+      ],
+      notificationCenterOpen: false,
+      setNotificationCenterOpen,
+    });
+
+    const button = screen.getByLabelText("Notifications: 2 unread");
+    expect(button.textContent).toContain("2");
+    fireEvent.click(button);
+    expect(setNotificationCenterOpen).toHaveBeenCalledWith(true);
   });
 
   it("shows canGoBack=false when backStack is empty", () => {

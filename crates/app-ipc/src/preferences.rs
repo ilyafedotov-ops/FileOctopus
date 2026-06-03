@@ -24,6 +24,8 @@ pub struct UserPreferencesDto {
     pub toolbar_visible: bool,
     #[serde(default)]
     pub toolbar_entries: String,
+    #[serde(default)]
+    pub popup_notifications: bool,
     pub pane_mode: String,
     pub pane_direction: String,
     pub job_drawer_behavior: String,

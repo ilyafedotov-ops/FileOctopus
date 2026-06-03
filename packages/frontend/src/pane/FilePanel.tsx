@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useShell } from "../app/providers/ShellProvider";
 import { useTerminal } from "../app/providers/TerminalProvider";
 import { useTags } from "../app/TagContext";
@@ -173,6 +173,7 @@ export function FilePanel({
   const selectedEntry =
     displayedEntries.find((entry) => entry.uri === tab.selectedId) ?? null;
   const [inlineRenameUri, setInlineRenameUri] = useState<string | null>(null);
+  const lastRenameFocusTokenRef = useRef(renameFocusToken);
   const [columnWidths, setColumnWidths] = useState<ColumnWidths>(() =>
     storedColumnWidths(panelId),
   );
@@ -219,6 +220,10 @@ export function FilePanel({
   );
 
   useEffect(() => {
+    if (renameFocusToken === lastRenameFocusTokenRef.current) {
+      return;
+    }
+    lastRenameFocusTokenRef.current = renameFocusToken;
     if (renameFocusToken > 0 && active && tab.selectedIds.length === 1) {
       const uri = tab.selectedIds[0];
       if (uri && tab.entriesById[uri]) {
