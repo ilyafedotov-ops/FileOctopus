@@ -4,7 +4,7 @@ import {
   formatContains,
   formatFlags,
 } from "./propertiesDialogParts";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type {
   FileEntryDto,
   FsClient,
@@ -29,6 +29,7 @@ interface PropertiesDialogProps {
   open: boolean;
   state: PropertiesDialogState;
   fs?: FsClient;
+  focusPermissions?: boolean;
   onCopyPath: () => void;
   onReveal: () => void;
 }
@@ -37,6 +38,7 @@ export function PropertiesDialog({
   open,
   state,
   fs,
+  focusPermissions = false,
   onCopyPath,
   onReveal,
 }: PropertiesDialogProps) {
@@ -67,6 +69,13 @@ export function PropertiesDialog({
   const [expectedHash, setExpectedHash] = useState("");
   const [verified, setVerified] = useState<"match" | "mismatch" | null>(null);
   const [thumbUri, setThumbUri] = useState<string | null>(null);
+  const permissionsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (focusPermissions && properties) {
+      permissionsRef.current?.scrollIntoView({ block: "nearest" });
+    }
+  }, [focusPermissions, properties?.uri]);
 
   useEffect(() => {
     const entry = state.entry;
@@ -307,17 +316,15 @@ export function PropertiesDialog({
             </PropertiesSection>
           ) : null}
 
-          <PropertiesSection
-            title="Permissions"
-            collapsible
-            defaultOpen={false}
-          >
-            <AclEditor
-              uri={properties.uri}
-              fs={fs}
-              isDirectory={properties.kind === "directory"}
-            />
-          </PropertiesSection>
+          <div ref={permissionsRef}>
+            <PropertiesSection title="Permissions" collapsible defaultOpen>
+              <AclEditor
+                uri={properties.uri}
+                fs={fs}
+                isDirectory={properties.kind === "directory"}
+              />
+            </PropertiesSection>
+          </div>
 
           {properties.warnings.length > 0 ? (
             <div className="fo-properties-warnings" role="note">

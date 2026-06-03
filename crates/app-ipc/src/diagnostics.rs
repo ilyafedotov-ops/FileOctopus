@@ -33,3 +33,14 @@ pub struct NativeMenuCommandEventDto {
     pub sort_field: Option<String>,
     pub preference_value: Option<String>,
 }
+
+/// A single backend log record streamed to the diagnostics console while live
+/// log streaming is enabled.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LogRecordDto {
+    pub level: String,
+    pub target: String,
+    pub message: String,
+    pub timestamp_ms: u64,
+}

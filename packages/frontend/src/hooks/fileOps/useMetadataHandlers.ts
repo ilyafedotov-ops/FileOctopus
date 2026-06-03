@@ -127,6 +127,7 @@ export function useMetadataHandlers(
   async function handleProperties(
     panelId: PanelId,
     entry: FileEntryDto | null,
+    focusPermissions = false,
   ) {
     let entries = selectedEntries(panelId);
 
@@ -165,6 +166,7 @@ export function useMetadataHandlers(
       loading: true,
       folderSizeJobId: null,
       error: null,
+      focusPermissions,
     });
 
     try {
@@ -182,6 +184,7 @@ export function useMetadataHandlers(
         loading: properties.kind === "directory",
         folderSizeJobId: null,
         error: null,
+        focusPermissions,
       });
 
       if (properties.kind === "directory") {

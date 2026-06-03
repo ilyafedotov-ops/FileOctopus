@@ -3,6 +3,7 @@ import {
   getDebugLog,
   clearDebugLog,
   installConsoleCapture,
+  pushBackendLog,
 } from "../src/dev/debugLogStore";
 
 describe("debugLogStore", () => {
@@ -56,5 +57,39 @@ describe("debugLogStore", () => {
     console.error("Error msg");
     const logs = getDebugLog();
     expect(logs.map((l) => l.level)).toEqual(["log", "warn", "error"]);
+  });
+
+  it("pushBackendLog records backend entries with mapped level and target", () => {
+    pushBackendLog({
+      level: "DEBUG",
+      target: "fs_core::listing",
+      message: "listed entries",
+      timestampMs: 1234,
+    });
+    const logs = getDebugLog();
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({
+      level: "debug",
+      source: "backend",
+      target: "fs_core::listing",
+      message: "listed entries",
+      timestamp: 1234,
+    });
+  });
+
+  it("pushBackendLog falls back to log level for unknown levels", () => {
+    pushBackendLog({
+      level: "WEIRD",
+      target: "x",
+      message: "msg",
+      timestampMs: 0,
+    });
+    expect(getDebugLog()[0].level).toBe("log");
+  });
+
+  it("frontend captures are tagged with the frontend source", () => {
+    installConsoleCapture();
+    console.log("hello");
+    expect(getDebugLog()[0].source).toBe("frontend");
   });
 });

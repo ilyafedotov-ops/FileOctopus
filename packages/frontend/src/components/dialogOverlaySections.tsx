@@ -1,3 +1,4 @@
+import { useModals } from "../app/providers/ModalsProvider";
 import { DiagnosticsDialog } from "./DiagnosticsDialog";
 import { SettingsDialog } from "./SettingsDialog";
 import { ShortcutsDialog } from "./ShortcutsDialog";
@@ -196,6 +197,7 @@ export function DialogOverlaySectionWorkspace(props: DialogOverlayGroupProps) {
 }
 
 export function DialogOverlaySectionNavigation(props: DialogOverlayGroupProps) {
+  const { setDebugConsoleOpen } = useModals();
   const {
     diagnosticsOpen,
     goToLocationOpen,
@@ -296,6 +298,10 @@ export function DialogOverlaySectionNavigation(props: DialogOverlayGroupProps) {
         onDestinationChange={setDiagnosticsDestination}
         onRefresh={() => void refreshDiagnostics()}
         onExport={() => void exportDiagnostics()}
+        onOpenLiveConsole={() => {
+          setDiagnosticsOpen(false);
+          setDebugConsoleOpen(true);
+        }}
       />
     </>
   );

@@ -146,6 +146,28 @@ describe("PropertiesDialog checksum section", () => {
   });
 });
 
+describe("PropertiesDialog permissions section", () => {
+  it("renders the ACL editor expanded by default", async () => {
+    const fs = makeFs();
+    renderDialog(fs, fileEntry, fileProperties);
+
+    await waitFor(() =>
+      expect(fs.getAcl as ReturnType<typeof vi.fn>).toHaveBeenCalledWith({
+        uri: "local:///tmp/file.txt",
+      }),
+    );
+    // The octal input is part of the AclEditor and only rendered once the
+    // Permissions section is open and the ACL has loaded.
+    await waitFor(() =>
+      expect(screen.getByLabelText(/Permission octal notation/i)).toBeTruthy(),
+    );
+    expect(
+      (screen.getByLabelText(/Permission octal notation/i) as HTMLInputElement)
+        .value,
+    ).toBe("644");
+  });
+});
+
 describe("PropertiesDialog hero thumbnail", () => {
   const imageEntry: FileEntryDto = {
     uri: "local:///tmp/pic.png",

@@ -3,16 +3,21 @@ use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 
+use std::sync::atomic::Ordering;
+
 use app_core::{AppPaths, AppState, OperationHistoryRecord};
 use app_ipc::{
     error_codes, AppDataHealthResponse, ExportDiagnosticsBundleRequest,
-    ExportDiagnosticsBundleResponse, IpcError,
+    ExportDiagnosticsBundleResponse, IpcError, LogRecordDto, DIAGNOSTICS_LOG_EVENT,
 };
-use tauri::State;
+use tauri::{AppHandle, State};
+use tokio::sync::broadcast::error::RecvError;
 use vfs::ResourceUri;
 use zip::write::FileOptions;
 
 use crate::commands::app_info::app_get_info;
+use crate::emit::emit_event;
+use crate::state::LogStreamState;
 
 #[tauri::command]
 pub async fn diagnostics_app_data_health(
@@ -30,6 +35,60 @@ pub async fn diagnostics_app_data_health(
         missing_directories: health.missing_directories,
         startup_recovery_count: health.startup_recovery_count,
     })
+}
+
+/// Begin streaming backend log records to the UI. Enables the telemetry
+/// broadcast layer and lazily spawns a single forwarding task that relays each
+/// record to the frontend via the `DIAGNOSTICS_LOG_EVENT` Tauri event.
+#[tauri::command]
+pub async fn diagnostics_start_log_stream(
+    app: AppHandle,
+    log_stream: State<'_, LogStreamState>,
+) -> Result<(), IpcError> {
+    telemetry::set_streaming(true);
+
+    if log_stream
+        .task_started
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_ok()
+    {
+        let mut receiver = telemetry::subscribe();
+        tauri::async_runtime::spawn(async move {
+            loop {
+                match receiver.recv().await {
+                    Ok(record) => {
+                        if !telemetry::streaming_enabled() {
+                            continue;
+                        }
+                        emit_event(
+                            &app,
+                            DIAGNOSTICS_LOG_EVENT,
+                            LogRecordDto {
+                                level: record.level,
+                                target: record.target,
+                                message: record.message,
+                                timestamp_ms: record.timestamp_ms,
+                            },
+                        );
+                    }
+                    Err(RecvError::Lagged(_)) => continue,
+                    Err(RecvError::Closed) => break,
+                }
+            }
+        });
+    }
+
+    Ok(())
+}
+
+/// Stop producing backend log records. The forwarding task stays parked on the
+/// channel, ready to resume when streaming is re-enabled.
+#[tauri::command]
+pub async fn diagnostics_stop_log_stream(
+    _log_stream: State<'_, LogStreamState>,
+) -> Result<(), IpcError> {
+    telemetry::set_streaming(false);
+    Ok(())
 }
 
 #[tauri::command]

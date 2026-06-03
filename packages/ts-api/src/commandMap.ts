@@ -39,6 +39,8 @@ export const commandMap: Record<string, string> = {
   "operationHistory.clear": "clear_operation_history",
   "diagnostics.appDataHealth": "diagnostics_app_data_health",
   "diagnostics.exportBundle": "export_diagnostics_bundle",
+  "diagnostics.startLogStream": "diagnostics_start_log_stream",
+  "diagnostics.stopLogStream": "diagnostics_stop_log_stream",
   "preferences.get": "get_preferences",
   "preferences.set": "set_preference",
   "autostart.get": "get_autostart",

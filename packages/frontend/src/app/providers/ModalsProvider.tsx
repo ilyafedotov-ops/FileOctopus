@@ -24,6 +24,7 @@ export interface ModalsContextValue {
   editorOpen: boolean;
   editorEntry: FileEntryDto | null;
   diagnosticsOpen: boolean;
+  debugConsoleOpen: boolean;
   helpOpen: boolean;
   aboutOpen: boolean;
   goToLocationOpen: boolean;
@@ -59,6 +60,7 @@ export interface ModalsContextValue {
   setEditorOpen: Dispatch<SetStateAction<boolean>>;
   setEditorEntry: Dispatch<SetStateAction<FileEntryDto | null>>;
   setDiagnosticsOpen: Dispatch<SetStateAction<boolean>>;
+  setDebugConsoleOpen: Dispatch<SetStateAction<boolean>>;
   setHelpOpen: Dispatch<SetStateAction<boolean>>;
   setAboutOpen: Dispatch<SetStateAction<boolean>>;
   setGoToLocationOpen: Dispatch<SetStateAction<boolean>>;
@@ -109,6 +111,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorEntry, setEditorEntry] = useState<FileEntryDto | null>(null);
   const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
+  const [debugConsoleOpen, setDebugConsoleOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [goToLocationOpen, setGoToLocationOpen] = useState(false);
@@ -152,6 +155,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       editorOpen,
       editorEntry,
       diagnosticsOpen,
+      debugConsoleOpen,
       helpOpen,
       aboutOpen,
       goToLocationOpen,
@@ -187,6 +191,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       setEditorOpen,
       setEditorEntry,
       setDiagnosticsOpen,
+      setDebugConsoleOpen,
       setHelpOpen,
       setAboutOpen,
       setGoToLocationOpen,
@@ -224,6 +229,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       editorOpen,
       editorEntry,
       diagnosticsOpen,
+      debugConsoleOpen,
       helpOpen,
       aboutOpen,
       goToLocationOpen,

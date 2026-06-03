@@ -6,7 +6,7 @@ mod menu;
 mod state;
 
 use commands::plugin::PluginState;
-use state::{ListingRegistry, MetadataJobState, WatchState};
+use state::{ListingRegistry, LogStreamState, MetadataJobState, WatchState};
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -24,6 +24,7 @@ pub fn run() {
         .manage(WatchState::default())
         .manage(MetadataJobState::default())
         .manage(ListingRegistry::default())
+        .manage(LogStreamState::default())
         .manage(plugin_state)
         .on_menu_event(|app, event| {
             menu::handle_native_menu_event(app, event.id().as_ref());
@@ -137,6 +138,8 @@ pub fn run() {
             commands::file_operations::clear_operation_history,
             commands::diagnostics::diagnostics_app_data_health,
             commands::diagnostics::export_diagnostics_bundle,
+            commands::diagnostics::diagnostics_start_log_stream,
+            commands::diagnostics::diagnostics_stop_log_stream,
             commands::terminal::terminal_spawn,
             commands::terminal::terminal_write,
             commands::terminal::terminal_resize,

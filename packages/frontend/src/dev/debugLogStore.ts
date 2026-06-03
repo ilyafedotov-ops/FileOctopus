@@ -1,11 +1,36 @@
-export type DebugLogLevel = "log" | "warn" | "error";
+export type DebugLogLevel =
+  | "trace"
+  | "debug"
+  | "info"
+  | "log"
+  | "warn"
+  | "error";
+
+export type DebugLogSource = "frontend" | "backend";
 
 export interface DebugLogEntry {
   id: number;
   level: DebugLogLevel;
+  source: DebugLogSource;
   timestamp: number;
   message: string;
+  target?: string;
 }
+
+interface BackendLogRecord {
+  level: string;
+  target: string;
+  message: string;
+  timestampMs: number;
+}
+
+const BACKEND_LEVELS: Record<string, DebugLogLevel> = {
+  trace: "trace",
+  debug: "debug",
+  info: "info",
+  warn: "warn",
+  error: "error",
+};
 
 const MAX_ENTRIES = 1000;
 
@@ -36,16 +61,32 @@ function serializeArg(arg: unknown): string {
 
 function appendLogEntry(level: DebugLogLevel, args: unknown[]): void {
   const message = args.map(serializeArg).join(" ");
-  buffer.push({
+  pushEntry({
     id: nextId++,
     level,
+    source: "frontend",
     timestamp: Date.now(),
     message,
   });
+}
+
+function pushEntry(entry: DebugLogEntry): void {
+  buffer.push(entry);
   if (buffer.length > MAX_ENTRIES) {
     buffer.splice(0, buffer.length - MAX_ENTRIES);
   }
   notify();
+}
+
+export function pushBackendLog(record: BackendLogRecord): void {
+  pushEntry({
+    id: nextId++,
+    level: BACKEND_LEVELS[record.level.toLowerCase()] ?? "log",
+    source: "backend",
+    timestamp: record.timestampMs || Date.now(),
+    message: record.message,
+    target: record.target,
+  });
 }
 
 export function subscribeDebugLog(

@@ -16,3 +16,4 @@ export const TERMINAL_EXIT_EVENT = "terminal:exit";
 export const NATIVE_MENU_COMMAND_EVENT = "nativeMenu:command";
 export const CONTENT_SEARCH_MATCH_EVENT = "fs:contentSearch:match";
 export const CONTENT_SEARCH_COMPLETED_EVENT = "fs:contentSearch:completed";
+export const DIAGNOSTICS_LOG_EVENT = "diagnostics:log";
