@@ -46,7 +46,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 
 ### Full registry (2026-05-30)
 
-**89 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
+**90 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
 
 | Tauri command                        | TS dotted name (typical)           | Client area              |
 | ------------------------------------ | ---------------------------------- | ------------------------ |
@@ -120,6 +120,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `network_profile_test`               | `network.profileTest`              | `NetworkClient`          |
 | `network_discover_neighborhood`      | `network.discoverNeighborhood`     | `NetworkClient`          |
 | `network_profile_forget_fingerprint` | `network.profileForgetFingerprint` | `NetworkClient`          |
+| `network_profile_trust_fingerprint`  | `network.profileTrustFingerprint`  | `NetworkClient`          |
 | `network_validate_uri`               | `network.validateUri`              | `NetworkClient`          |
 | `plan_file_operation`                | `fileOperation.plan`               | `FileOperationsClient`   |
 | `start_file_operation`               | `fileOperation.start`              | `FileOperationsClient`   |
@@ -348,6 +349,7 @@ Network commands manage saved SFTP server profiles in `network.sqlite` under the
 | `network_profile_test`               | `network.profileTest`              | Test a saved profile or validate an unsaved draft without persisting transient secrets.                   |
 | `network_discover_neighborhood`      | `network.discoverNeighborhood`     | Lists virtual `network:///` entries for cloud drives, LAN services, saved profiles, and add-connection.   |
 | `network_profile_forget_fingerprint` | `network.profileForgetFingerprint` | Clears pinned host-key fingerprint for `{ id }`.                                                          |
+| `network_profile_trust_fingerprint`  | `network.profileTrustFingerprint`  | Persists an explicitly confirmed OpenSSH-style SHA256 host-key fingerprint for `{ id, fingerprint }`.     |
 | `network_validate_uri`               | `network.validateUri`              | Parse-check a remote `ResourceUri`.                                                                       |
 
 ### `network_profile_forget_fingerprint`
@@ -355,11 +357,18 @@ Network commands manage saved SFTP server profiles in `network.sqlite` under the
 **Request:** `NetworkProfileActionRequest { id: string }`
 **Response:** `OkResponse`
 
-Clears the pinned host-key fingerprint for the given profile. The next successful connect will pin the server's currently-presented SHA256 fingerprint via Trust-On-First-Use.
+Clears the pinned host-key fingerprint for the given profile. Unknown fingerprints must be explicitly trusted through `network_profile_trust_fingerprint`.
+
+### `network_profile_trust_fingerprint`
+
+**Request:** `NetworkProfileTrustFingerprintRequest { id: string, fingerprint: string }`
+**Response:** `OkResponse`
+
+Persists a user-confirmed OpenSSH-style `SHA256:` host-key fingerprint for the given profile. Connect and terminal spawn paths do not auto-pin unknown fingerprints.
 
 ### Host-key TOFU
 
-SFTP sessions and SSH terminal sessions compute the SHA-256 base64 (unpadded) fingerprint of the server's host key on every connect. On first successful authentication, the fingerprint is persisted to the `network_profiles.host_key_fingerprint` column. Subsequent connects compare the observed fingerprint against the pinned value and refuse the connection on mismatch. Users can clear the pin from the Edit Server dialog ("Forget pinned fingerprint"); this restores TOFU on the next connect.
+SFTP sessions and SSH terminal sessions compute the SHA-256 base64 (unpadded) fingerprint of the server's host key on every connect. Unknown fingerprints are not persisted automatically. A caller must explicitly confirm a fingerprint through `network_profile_trust_fingerprint`, which stores it in `network_profiles.host_key_fingerprint`. Subsequent connects compare the observed fingerprint against the pinned value and refuse the connection on mismatch. Users can clear the pin from the Edit Server dialog ("Forget pinned fingerprint"); this returns the profile to an untrusted state until a fingerprint is explicitly confirmed again.
 
 Network profiles support `sftp` and `ssh` schemes. `sftp` profiles are file-capable and can also open SSH terminals. `ssh` profiles are terminal-only: they can be used as `terminal.spawn` `profileId` targets but do not produce browsable `sftp://` `defaultUri` values.
 

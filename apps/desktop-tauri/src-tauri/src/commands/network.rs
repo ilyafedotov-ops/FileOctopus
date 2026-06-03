@@ -13,9 +13,9 @@ use app_ipc::{
     NetworkNeighborhoodRequest, NetworkNeighborhoodResponse, NetworkProfileActionRequest,
     NetworkProfileAddRequest, NetworkProfileDeleteRequest, NetworkProfileDraftDto,
     NetworkProfileDto, NetworkProfileResponse, NetworkProfileSetSecretRequest,
-    NetworkProfileTestRequest, NetworkProfileTestResponse, NetworkProfileUpdateRequest,
-    NetworkProfilesListResponse, NetworkProviderCapabilityDto, NetworkProvidersListResponse,
-    OkResponse,
+    NetworkProfileTestRequest, NetworkProfileTestResponse, NetworkProfileTrustFingerprintRequest,
+    NetworkProfileUpdateRequest, NetworkProfilesListResponse, NetworkProviderCapabilityDto,
+    NetworkProvidersListResponse, OkResponse,
 };
 use config::{AuthKind, NewNetworkProfile, UpdateNetworkProfile};
 use platform::SecretStore;
@@ -599,6 +599,7 @@ pub async fn network_profile_test(
         state.sessions().connect(&id).await.map_err(remote_error)?;
         let profile = state.network().get(&id).map_err(network_error)?;
         let fingerprint = profile.host_key_fingerprint.clone();
+        let observed_fingerprint = state.sessions().observed_host_key_fingerprint(&id).await;
         let resolved_uri = profile_to_dto(profile.clone()).default_uri;
         let ssh_like = matches!(profile.scheme.as_str(), "sftp" | "ssh");
         return Ok(NetworkProfileTestResponse {
@@ -607,7 +608,7 @@ pub async fn network_profile_test(
             message: "Connection test succeeded.".to_string(),
             duration_ms: started.elapsed().as_millis(),
             resolved_uri: (!resolved_uri.is_empty()).then_some(resolved_uri),
-            observed_fingerprint: fingerprint.clone(),
+            observed_fingerprint,
             trust_state: if ssh_like {
                 if fingerprint.is_some() {
                     "trusted"
@@ -915,6 +916,26 @@ pub fn network_profile_forget_fingerprint(
     state
         .network()
         .clear_host_key_fingerprint(&request.id)
+        .map_err(network_error)?;
+    Ok(OkResponse { ok: true })
+}
+
+#[tauri::command]
+pub fn network_profile_trust_fingerprint(
+    request: NetworkProfileTrustFingerprintRequest,
+    state: State<'_, Arc<AppState>>,
+) -> Result<OkResponse, IpcError> {
+    ensure_network_enabled()?;
+    let fingerprint = request.fingerprint.trim();
+    if fingerprint.is_empty() || !fingerprint.starts_with("SHA256:") {
+        return Err(IpcError::new(
+            app_ipc::error_codes::INVALID_REQUEST,
+            "host key fingerprint must be an OpenSSH-style SHA256 fingerprint",
+        ));
+    }
+    state
+        .network()
+        .set_host_key_fingerprint(&request.id, fingerprint)
         .map_err(network_error)?;
     Ok(OkResponse { ok: true })
 }

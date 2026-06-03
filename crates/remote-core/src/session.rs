@@ -158,6 +158,19 @@ impl ConnectionSessionManager {
         self.statuses.read().await.clone()
     }
 
+    pub async fn observed_host_key_fingerprint(&self, profile_id: &str) -> Option<String> {
+        self.sessions
+            .read()
+            .await
+            .get(profile_id)
+            .and_then(|handle| {
+                handle
+                    .inner
+                    .observed_host_key_fingerprint()
+                    .map(str::to_string)
+            })
+    }
+
     pub async fn connect(&self, profile_id: &str) -> Result<(), RemoteError> {
         if self.session_is_alive(profile_id).await {
             return Ok(());
@@ -219,8 +232,6 @@ impl ConnectionSessionManager {
 
         match connector.connect(&profile, &secrets).await {
             Ok(session) => {
-                let observed_fingerprint =
-                    session.observed_host_key_fingerprint().map(str::to_string);
                 let now = Instant::now();
                 self.sessions.write().await.insert(
                     profile_id.to_string(),
@@ -239,11 +250,6 @@ impl ConnectionSessionManager {
                 let _ = self.profiles.set_connection_state(profile_id, true, None);
                 if profile.auth_kind == config::AuthKind::Password {
                     let _ = self.profiles.set_has_stored_secret(profile_id, true);
-                }
-                if let Some(observed) = observed_fingerprint.as_deref() {
-                    if profile.host_key_fingerprint.as_deref() != Some(observed) {
-                        let _ = self.profiles.set_host_key_fingerprint(profile_id, observed);
-                    }
                 }
                 Ok(())
             }

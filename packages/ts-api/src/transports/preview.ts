@@ -347,6 +347,7 @@ export function createPreviewTransport(): IpcTransport {
         command === "navigation.removeRecent" ||
         command === "network.profileDelete" ||
         command === "network.profileSetSecret" ||
+        command === "network.profileTrustFingerprint" ||
         command === "network.connect" ||
         command === "network.disconnect" ||
         command === "network.validateUri"

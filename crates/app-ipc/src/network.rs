@@ -206,6 +206,13 @@ pub struct NetworkProfileSetSecretRequest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct NetworkProfileTrustFingerprintRequest {
+    pub id: String,
+    pub fingerprint: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct NetworkProfileActionRequest {
     pub id: String,
 }

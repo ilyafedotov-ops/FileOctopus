@@ -122,6 +122,7 @@ pub fn run() {
             commands::network::network_profile_delete,
             commands::network::network_profile_set_secret,
             commands::network::network_profile_forget_fingerprint,
+            commands::network::network_profile_trust_fingerprint,
             commands::network::network_profile_test,
             commands::network::network_connect,
             commands::network::network_disconnect,

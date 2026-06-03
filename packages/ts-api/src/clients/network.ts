@@ -11,6 +11,7 @@ import type {
   NetworkProfileResponse,
   NetworkProfileSetSecretRequest,
   NetworkProfileUpdateRequest,
+  NetworkProfileTrustFingerprintRequest,
   NetworkProvidersListResponse,
   NetworkProfilesListResponse,
   NetworkStatusEvent,
@@ -96,6 +97,14 @@ export class NetworkClient {
     request: NetworkProfileActionRequest,
   ): Promise<OkResponse> {
     return this.transport.invoke("network.profileForgetFingerprint", {
+      request,
+    });
+  }
+
+  async trustFingerprint(
+    request: NetworkProfileTrustFingerprintRequest,
+  ): Promise<OkResponse> {
+    return this.transport.invoke("network.profileTrustFingerprint", {
       request,
     });
   }

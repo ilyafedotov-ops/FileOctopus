@@ -341,14 +341,6 @@ async fn terminal_spawn_ssh(
         .map_err(|error| IpcError::terminal_spawn_failed(error.to_string()))?
         .map_err(terminal_ipc_error)?;
 
-    if let Some(observed) = spawned.observed_host_key_fingerprint.as_deref() {
-        if profile.host_key_fingerprint.as_deref() != Some(observed) {
-            let _ = state
-                .network()
-                .set_host_key_fingerprint(profile_id, observed);
-        }
-    }
-
     let initial_command = request
         .initial_command
         .as_deref()

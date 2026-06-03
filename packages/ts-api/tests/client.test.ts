@@ -708,12 +708,20 @@ describe("FileOctopusClient", () => {
     const client = new FileOctopusClient(transport);
     await client.network.listProfiles();
     await client.network.connect({ id: "profile-1" });
+    await client.network.trustFingerprint({
+      id: "profile-1",
+      fingerprint: "SHA256:abc",
+    });
 
     expect(calls.map((call) => call.command)).toEqual([
       "network.profilesList",
       "network.connect",
+      "network.profileTrustFingerprint",
     ]);
     expect(calls[1]?.args).toEqual({ request: { id: "profile-1" } });
+    expect(calls[2]?.args).toEqual({
+      request: { id: "profile-1", fingerprint: "SHA256:abc" },
+    });
   });
 
   it("routes network.discoverNeighborhood through the network client", async () => {

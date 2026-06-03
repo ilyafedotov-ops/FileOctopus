@@ -790,6 +790,11 @@ export interface NetworkProfileSetSecretRequest {
   value: string;
 }
 
+export interface NetworkProfileTrustFingerprintRequest {
+  id: string;
+  fingerprint: string;
+}
+
 export interface NetworkConnectionDraftDto {
   scheme?: string | null;
   host?: string | null;

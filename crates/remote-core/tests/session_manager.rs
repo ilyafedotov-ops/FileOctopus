@@ -15,6 +15,7 @@ use tokio::sync::RwLock;
 #[derive(Default)]
 struct StubSession {
     ping_should_fail: Arc<Mutex<bool>>,
+    observed_fingerprint: Option<String>,
 }
 
 #[async_trait]
@@ -29,6 +30,10 @@ impl RemoteSession for StubSession {
         Ok(())
     }
 
+    fn observed_host_key_fingerprint(&self) -> Option<&str> {
+        self.observed_fingerprint.as_deref()
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
@@ -40,6 +45,7 @@ struct StubConnector {
     disconnects: AtomicUsize,
     next_failure: Mutex<Vec<Arc<Mutex<bool>>>>,
     connect_delay: Mutex<Option<Duration>>,
+    observed_fingerprint: Mutex<Option<String>>,
 }
 
 impl StubConnector {
@@ -51,6 +57,10 @@ impl StubConnector {
 
     fn delay_connects_by(&self, duration: Duration) {
         *self.connect_delay.lock().unwrap() = Some(duration);
+    }
+
+    fn observe_fingerprint(&self, fingerprint: &str) {
+        *self.observed_fingerprint.lock().unwrap() = Some(fingerprint.to_string());
     }
 }
 
@@ -78,6 +88,7 @@ impl RemoteConnector for StubConnector {
             .unwrap_or_else(|| Arc::new(Mutex::new(false)));
         Ok(Arc::new(StubSession {
             ping_should_fail: flag,
+            observed_fingerprint: self.observed_fingerprint.lock().unwrap().clone(),
         }))
     }
 
@@ -244,6 +255,37 @@ async fn connect_emits_status_event() {
 
     assert_eq!(event.profile_id, profile_id);
     assert_eq!(event.status, ConnectionStatus::Connected);
+}
+
+#[tokio::test]
+async fn connect_does_not_auto_trust_observed_fingerprint() {
+    let fixture = Fixture::new();
+    let profile_id = fixture.add_profile();
+    fixture.connector.observe_fingerprint("SHA256:observed");
+    let manager = fixture.manager();
+
+    manager.connect(&profile_id).await.unwrap();
+
+    let profile = fixture.profiles.get(&profile_id).unwrap();
+    assert_eq!(
+        profile.host_key_fingerprint, None,
+        "observed host keys must be persisted only after explicit user confirmation"
+    );
+}
+
+#[tokio::test]
+async fn connect_exposes_observed_fingerprint_for_confirmation() {
+    let fixture = Fixture::new();
+    let profile_id = fixture.add_profile();
+    fixture.connector.observe_fingerprint("SHA256:observed");
+    let manager = fixture.manager();
+
+    manager.connect(&profile_id).await.unwrap();
+
+    assert_eq!(
+        manager.observed_host_key_fingerprint(&profile_id).await,
+        Some("SHA256:observed".to_string())
+    );
 }
 
 #[tokio::test]
