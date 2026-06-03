@@ -1,7 +1,7 @@
 # Welcome Wizard and Network Settings Expansion
 
 Date: 2026-06-02
-Status: Planned
+Status: Done
 
 ## Summary
 
