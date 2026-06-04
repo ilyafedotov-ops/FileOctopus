@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use app_core::AppState;
 use app_ipc::{AclEntry, GetAclRequest, GetAclResponse, IpcError, SetAclRequest, SetAclResponse};
@@ -19,7 +19,7 @@ fn mode_to_octal(mode: u32) -> String {
 #[tauri::command]
 pub async fn fs_get_acl(
     request: GetAclRequest,
-    _state: State<'_, AppState>,
+    _state: State<'_, Arc<AppState>>,
 ) -> Result<GetAclResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri)
         .map_err(|e| IpcError::invalid_request(format!("invalid URI: {e}")))?;
@@ -107,7 +107,7 @@ pub async fn fs_get_acl(
 #[tauri::command]
 pub async fn fs_set_acl(
     request: SetAclRequest,
-    _state: State<'_, AppState>,
+    _state: State<'_, Arc<AppState>>,
 ) -> Result<SetAclResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri)
         .map_err(|e| IpcError::invalid_request(format!("invalid URI: {e}")))?;
