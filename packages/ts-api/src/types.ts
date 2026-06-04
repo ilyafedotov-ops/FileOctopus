@@ -318,10 +318,14 @@ export interface GitStatusForDirectoryResponse {
 export interface TerminalSpawnRequest {
   uri?: string | null;
   profileId?: string | null;
+  terminalProfileId?: string | null;
   cols: number;
   rows: number;
   shell?: string | null;
   args?: string[] | null;
+  env?: TerminalEnvVarDto[] | null;
+  initialCommand?: string | null;
+  title?: string | null;
 }
 
 export interface TerminalSpawnResponse {
@@ -347,6 +351,11 @@ export interface TerminalOkResponse {
   success: boolean;
 }
 
+export interface TerminalEnvVarDto {
+  key: string;
+  value: string;
+}
+
 export interface TerminalOutputEvent {
   sessionId: string;
   data: string;
@@ -355,6 +364,116 @@ export interface TerminalOutputEvent {
 export interface TerminalExitEvent {
   sessionId: string;
   exitCode?: number | null;
+}
+
+export type TerminalProfileScopeDto = "local" | "ssh";
+
+export interface TerminalProfileInputDto {
+  name: string;
+  scope: TerminalProfileScopeDto;
+  shell: string;
+  args: string;
+  env: string;
+  workingDirectoryMode: string;
+  customCwdUri: string;
+  networkProfileId?: string | null;
+  remoteCwd: string;
+  initialCommand: string;
+  fontFamily: string;
+  fontSize: number;
+  lineHeight: number;
+  cursorStyle: string;
+  cursorBlink: boolean;
+  scrollback: number;
+  themeId: string;
+  themeOverrides: string;
+  copyOnSelect: boolean;
+  rightClickAction: string;
+  pasteConfirmation: boolean;
+  linkHandling: string;
+}
+
+export interface TerminalProfileDto extends TerminalProfileInputDto {
+  id: string;
+  sortOrder: number;
+  isDefault: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TerminalProfilesListResponse {
+  profiles: TerminalProfileDto[];
+  defaultProfileId?: string | null;
+}
+
+export interface TerminalProfileResponse {
+  profile: TerminalProfileDto;
+}
+
+export interface TerminalProfileAddRequest {
+  profile: TerminalProfileInputDto;
+}
+
+export interface TerminalProfileUpdateRequest {
+  id: string;
+  profile: TerminalProfileInputDto;
+}
+
+export interface TerminalProfileActionRequest {
+  id: string;
+}
+
+export interface TerminalCapabilitiesResponse {
+  defaultShell: string;
+  defaultArgs: string[];
+  discoveredShells: string[];
+  supportsSsh: boolean;
+  cursorStyles: string[];
+  themeIds: string[];
+}
+
+export type TerminalSessionStatusDto = "starting" | "running" | "exited";
+
+export interface TerminalSessionDto {
+  sessionId: string;
+  status: TerminalSessionStatusDto;
+  title: string;
+  cwdUri?: string | null;
+  terminalProfileId?: string | null;
+  transport: string;
+  cols: number;
+  rows: number;
+  exitCode?: number | null;
+}
+
+export interface TerminalSessionsListResponse {
+  sessions: TerminalSessionDto[];
+}
+
+export interface TerminalSendTextRequest {
+  sessionId: string;
+  text: string;
+}
+
+export interface TerminalRunCommandRequest {
+  sessionId: string;
+  command: string;
+  appendNewline: boolean;
+  focus: boolean;
+}
+
+export interface TerminalSpawnAndRunRequest {
+  uri?: string | null;
+  profileId?: string | null;
+  terminalProfileId?: string | null;
+  cols: number;
+  rows: number;
+  command: string;
+  title?: string | null;
+}
+
+export interface TerminalSessionEventDto extends TerminalSessionDto {
+  kind: string;
 }
 
 export interface ListStartRequest {
@@ -424,6 +543,7 @@ export interface UserPreferencesDto {
   networkAutoReconnect: boolean;
   networkDefaultProtocol: string;
   networkSshKeyPath: string;
+  networkUseSshAgent: boolean;
   editorFontFamily: string;
   editorFontSize: number;
   editorTabSize: number;
@@ -582,8 +702,46 @@ export interface NetworkProfileDto {
   lastConnectedAt: string | null;
   lastError: string | null;
   hasStoredSecret: boolean;
+  options: NetworkProtocolOptionsDto;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface NetworkProtocolOptionsDto {
+  ssh?: SshProtocolOptionsDto;
+  smb?: SmbProtocolOptionsDto;
+  s3?: S3ProtocolOptionsDto;
+}
+
+export interface SshProtocolOptionsDto {
+  useAgent?: boolean | null;
+  sshConfigHost?: string | null;
+  proxyJump?: string | null;
+  proxyCommand?: string | null;
+  keepaliveSecs?: number | null;
+  compression?: boolean | null;
+  addressFamily?: "auto" | "ipv4" | "ipv6" | string | null;
+  terminalInitialCommand?: string | null;
+  terminalEnv?: NetworkEnvVarDto[];
+}
+
+export interface SmbProtocolOptionsDto {
+  workgroup?: string | null;
+  minProtocol?: string | null;
+  signingMode?: "default" | "required" | "disabled" | string | null;
+  sharePath?: string | null;
+}
+
+export interface S3ProtocolOptionsDto {
+  region?: string | null;
+  useTls?: boolean | null;
+  pathStyle?: boolean | null;
+  rootPrefix?: string | null;
+}
+
+export interface NetworkEnvVarDto {
+  name: string;
+  value: string;
 }
 
 export interface NetworkConnectionStatusDto {
@@ -611,6 +769,7 @@ export interface NetworkProfileAddRequest {
   authKind: string;
   privateKeyPath?: string | null;
   defaultPath: string;
+  options?: NetworkProtocolOptionsDto;
 }
 
 export interface NetworkProfileUpdateRequest {
@@ -622,6 +781,7 @@ export interface NetworkProfileUpdateRequest {
   authKind: string;
   privateKeyPath?: string | null;
   defaultPath: string;
+  options?: NetworkProtocolOptionsDto;
 }
 
 export interface NetworkProfileResponse {
@@ -638,11 +798,63 @@ export interface NetworkProfileSetSecretRequest {
   value: string;
 }
 
+export interface NetworkProfileTrustFingerprintRequest {
+  id: string;
+  fingerprint: string;
+}
+
 export interface NetworkConnectionDraftDto {
   scheme?: string | null;
   host?: string | null;
   label?: string | null;
   defaultPath?: string | null;
+}
+
+export interface NetworkProfileDraftDto {
+  label: string;
+  scheme: string;
+  host: string;
+  port: number;
+  username: string;
+  authKind: string;
+  privateKeyPath?: string | null;
+  defaultPath: string;
+  options?: NetworkProtocolOptionsDto;
+}
+
+export interface NetworkProfileTestRequest {
+  id?: string;
+  draft?: NetworkProfileDraftDto;
+  password?: string;
+  passphrase?: string;
+}
+
+export interface NetworkProfileTestResponse {
+  ok: boolean;
+  status: "success" | "warning" | "error";
+  message: string;
+  durationMs: number;
+  resolvedUri: string | null;
+  observedFingerprint: string | null;
+  trustState: "trusted" | "untrusted" | "mismatch" | "notApplicable";
+  warnings: string[];
+}
+
+export interface NetworkProviderCapabilityDto {
+  scheme: string;
+  label: string;
+  category: "server" | "cloud" | "virtual";
+  defaultPort: number | null;
+  authKinds: string[];
+  fileCapable: boolean;
+  terminalCapable: boolean;
+  status: "available" | "unavailable";
+  missingDependency: string | null;
+  supportedOptions: string[];
+}
+
+export interface NetworkProvidersListResponse {
+  providers: NetworkProviderCapabilityDto[];
 }
 
 export interface NetworkProfileActionRequest {

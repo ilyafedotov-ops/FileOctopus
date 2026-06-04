@@ -9,6 +9,7 @@ pub struct AppPaths {
     pub preferences_db: PathBuf,
     pub navigation_db: PathBuf,
     pub network_db: PathBuf,
+    pub terminal_db: PathBuf,
 }
 
 impl AppPaths {
@@ -33,6 +34,10 @@ impl AppPaths {
             std::fs::create_dir_all(parent)?;
         }
 
+        if let Some(parent) = self.terminal_db.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
         Ok(())
     }
 }
@@ -49,6 +54,7 @@ impl Default for AppPaths {
             preferences_db: root.join("preferences.sqlite"),
             navigation_db: root.join("navigation.sqlite"),
             network_db: root.join("network.sqlite"),
+            terminal_db: root.join("terminal.sqlite"),
         }
     }
 }

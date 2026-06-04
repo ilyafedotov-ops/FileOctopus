@@ -2,7 +2,7 @@
 
 This document is the authoritative description of FileOctopus's runtime API surface: the Tauri IPC commands, the events streamed back from Rust, the `@fileoctopus/ts-api` client that wraps them, and the domain types that flow across the boundary. It is the contract every change to filesystem behaviour must respect (see ADR-0002 and ADR-0003).
 
-> **Doc freshness (2026-05-30):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (77 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (14 channels). `packages/ts-api/tests/catalogs.test.ts` now guards the command count, command map, error codes, warning codes, and event constants.
+> **Doc freshness (2026-06-01):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (87 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (19 channels). `packages/ts-api/tests/catalogs.test.ts` now guards the command count, command map, error codes, warning codes, and event constants.
 
 - Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/remote-core/src/lib.rs`, `crates/provider-sftp/src/lib.rs`, `crates/config/src/network.rs`, `crates/platform/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
 - Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError,uri}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
@@ -46,7 +46,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 
 ### Full registry (2026-05-30)
 
-**79 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
+**92 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
 
 | Tauri command                        | TS dotted name (typical)           | Client area              |
 | ------------------------------------ | ---------------------------------- | ------------------------ |
@@ -63,6 +63,16 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `terminal_write`                     | `terminal.write`                   | `TerminalClient`         |
 | `terminal_resize`                    | `terminal.resize`                  | `TerminalClient`         |
 | `terminal_kill`                      | `terminal.kill`                    | `TerminalClient`         |
+| `terminal_capabilities`              | `terminal.capabilities`            | `TerminalClient`         |
+| `terminal_profiles_list`             | `terminal.profilesList`            | `TerminalClient`         |
+| `terminal_profile_add`               | `terminal.profileAdd`              | `TerminalClient`         |
+| `terminal_profile_update`            | `terminal.profileUpdate`           | `TerminalClient`         |
+| `terminal_profile_delete`            | `terminal.profileDelete`           | `TerminalClient`         |
+| `terminal_profile_set_default`       | `terminal.profileSetDefault`       | `TerminalClient`         |
+| `terminal_sessions_list`             | `terminal.sessionsList`            | `TerminalClient`         |
+| `terminal_send_text`                 | `terminal.sendText`                | `TerminalClient`         |
+| `terminal_run_command`               | `terminal.runCommand`              | `TerminalClient`         |
+| `terminal_spawn_and_run`             | `terminal.spawnAndRun`             | `TerminalClient`         |
 | `fs_list_start`                      | `fs.list_start`                    | `FsClient`               |
 | `fs_standard_locations`              | `fs.standard_locations`            | `FsClient`               |
 | `fs_discover_volumes`                | `fs.discover_volumes`              | `FsClient`               |
@@ -99,6 +109,7 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `navigation_clear_recent`            | `navigation.clearRecent`           | `NavigationClient`       |
 | `navigation_remove_recent`           | `navigation.removeRecent`          | `NavigationClient`       |
 | `network_profiles_list`              | `network.profilesList`             | `NetworkClient`          |
+| `network_providers_list`             | `network.providersList`            | `NetworkClient`          |
 | `network_profile_add`                | `network.profileAdd`               | `NetworkClient`          |
 | `network_profile_update`             | `network.profileUpdate`            | `NetworkClient`          |
 | `network_profile_delete`             | `network.profileDelete`            | `NetworkClient`          |
@@ -106,8 +117,10 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `network_connect`                    | `network.connect`                  | `NetworkClient`          |
 | `network_disconnect`                 | `network.disconnect`               | `NetworkClient`          |
 | `network_connection_status`          | `network.connectionStatus`         | `NetworkClient`          |
+| `network_profile_test`               | `network.profileTest`              | `NetworkClient`          |
 | `network_discover_neighborhood`      | `network.discoverNeighborhood`     | `NetworkClient`          |
 | `network_profile_forget_fingerprint` | `network.profileForgetFingerprint` | `NetworkClient`          |
+| `network_profile_trust_fingerprint`  | `network.profileTrustFingerprint`  | `NetworkClient`          |
 | `network_validate_uri`               | `network.validateUri`              | `NetworkClient`          |
 | `plan_file_operation`                | `fileOperation.plan`               | `FileOperationsClient`   |
 | `start_file_operation`               | `fileOperation.start`              | `FileOperationsClient`   |
@@ -197,21 +210,31 @@ Errors arrive on the event stream as `DirectoryBatchEventDto.error` when listing
 
 The `FsClient` exposes several one-shot filesystem helpers. These still cross the Rust trust boundary, so every path argument is a `local://` `ResourceUri`.
 
-| Command                                           | Request                                           | Response                                    | Notes                                                                                                                               |
-| ------------------------------------------------- | ------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `fs_read_text_file` / `fs.read_text_file`         | `{ uri, maxBytes? }`                              | `{ content, truncated, byteSize }`          | Reads up to `maxBytes` bytes, default 1 MiB. Uses lossy UTF-8 decoding. Directories fail with `is_directory`.                       |
-| `fs_read_file_range` / `fs.read_file_range`       | `{ uri, offset, length }`                         | `{ bytesBase64, bytesRead, byteSize, eof }` | Paged binary read for the built-in viewer. `length` capped at 4 MiB. `local://` only; remote schemes return `unsupported_provider`. |
-| `fs_write_text_file` / `fs.write_text_file`       | `{ uri, content, maxBytes? }`                     | `{ byteSize, job }`                         | Atomic temp+rename write for the built-in editor. Default 10 MiB cap. `local://` only. Emits operation job events and history rows. |
-| `fs_compute_hash` / `fs.compute_hash`             | `{ uri, algorithm }`                              | `{ hash, algorithm, byteSize }`             | Supports `sha256` / `sha-256`; files over 100 MiB fail with `file_too_large`.                                                       |
-| `fs_open_terminal` / `fs.open_terminal`           | `{ uri }`                                         | `{ success }`                               | Opens the platform external terminal in an existing local directory; can fail with `no_terminal`.                                   |
-| `terminal_spawn` / `terminal.spawn`               | `{ uri?, profileId?, cols, rows, shell?, args? }` | `{ sessionId }`                             | Spawns a local PTY for `local://` `uri` or an SSH PTY for terminal-capable network `profileId`.                                     |
-| `terminal_write` / `terminal.write`               | `{ sessionId, data }`                             | `{ success }`                               | Writes base64-encoded bytes to the PTY stdin. Applies to local and SSH terminal sessions.                                           |
-| `terminal_resize` / `terminal.resize`             | `{ sessionId, cols, rows }`                       | `{ success }`                               | Resizes the PTY window. Applies to local and SSH terminal sessions.                                                                 |
-| `terminal_kill` / `terminal.kill`                 | `{ sessionId }`                                   | `{ success }`                               | Closes the PTY session. Applies to local and SSH terminal sessions.                                                                 |
-| `fs_standard_locations` / `fs.standard_locations` | none                                              | `{ locations }`                             | Returns standard local locations as `{ id, name, uri, section }`.                                                                   |
-| `fs_open_default` / `fs.open_default`             | `{ uri }`                                         | `{ ok }`                                    | Opens the resource with the OS default application.                                                                                 |
-| `fs_reveal` / `fs.reveal`                         | `{ uri }`                                         | `{ ok }`                                    | Reveals the resource in the platform file manager.                                                                                  |
-| `fs_properties` / `fs.properties`                 | `{ uri, includeFolderSummary? }`                  | `{ properties }`                            | Returns metadata plus optional recursive summary for directories.                                                                   |
+| Command                                                       | Request                                                                                              | Response                                    | Notes                                                                                                                               |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `fs_read_text_file` / `fs.read_text_file`                     | `{ uri, maxBytes? }`                                                                                 | `{ content, truncated, byteSize }`          | Reads up to `maxBytes` bytes, default 1 MiB. Uses lossy UTF-8 decoding. Directories fail with `is_directory`.                       |
+| `fs_read_file_range` / `fs.read_file_range`                   | `{ uri, offset, length }`                                                                            | `{ bytesBase64, bytesRead, byteSize, eof }` | Paged binary read for the built-in viewer. `length` capped at 4 MiB. `local://` only; remote schemes return `unsupported_provider`. |
+| `fs_write_text_file` / `fs.write_text_file`                   | `{ uri, content, maxBytes? }`                                                                        | `{ byteSize, job }`                         | Atomic temp+rename write for the built-in editor. Default 10 MiB cap. `local://` only. Emits operation job events and history rows. |
+| `fs_compute_hash` / `fs.compute_hash`                         | `{ uri, algorithm }`                                                                                 | `{ hash, algorithm, byteSize }`             | Supports `sha256` / `sha-256`; files over 100 MiB fail with `file_too_large`.                                                       |
+| `fs_open_terminal` / `fs.open_terminal`                       | `{ uri }`                                                                                            | `{ success }`                               | Opens the platform external terminal in an existing local directory; can fail with `no_terminal`.                                   |
+| `terminal_spawn` / `terminal.spawn`                           | `{ uri?, profileId?, terminalProfileId?, cols, rows, shell?, args?, env?, initialCommand?, title? }` | `{ sessionId }`                             | Spawns a local PTY for `local://` `uri` or an SSH PTY for terminal-capable network `profileId`.                                     |
+| `terminal_write` / `terminal.write`                           | `{ sessionId, data }`                                                                                | `{ success }`                               | Writes base64-encoded bytes to the PTY stdin. Applies to local and SSH terminal sessions.                                           |
+| `terminal_resize` / `terminal.resize`                         | `{ sessionId, cols, rows }`                                                                          | `{ success }`                               | Resizes the PTY window. Applies to local and SSH terminal sessions.                                                                 |
+| `terminal_kill` / `terminal.kill`                             | `{ sessionId }`                                                                                      | `{ success }`                               | Closes the PTY session. Applies to local and SSH terminal sessions.                                                                 |
+| `terminal_capabilities` / `terminal.capabilities`             | none                                                                                                 | shell/theme/cursor capabilities             | Returns OS default shell metadata, discovered shells, SSH support, and supported terminal appearance options.                       |
+| `terminal_profiles_list` / `terminal.profilesList`            | none                                                                                                 | `{ profiles, defaultProfileId }`            | Lists persisted terminal profiles.                                                                                                  |
+| `terminal_profile_add` / `terminal.profileAdd`                | `{ profile }`                                                                                        | `{ profile }`                               | Creates a terminal profile.                                                                                                         |
+| `terminal_profile_update` / `terminal.profileUpdate`          | `{ id, profile }`                                                                                    | `{ profile }`                               | Updates a terminal profile.                                                                                                         |
+| `terminal_profile_delete` / `terminal.profileDelete`          | `{ id }`                                                                                             | `{ success }`                               | Deletes a non-default terminal profile.                                                                                             |
+| `terminal_profile_set_default` / `terminal.profileSetDefault` | `{ id }`                                                                                             | `{ profile }`                               | Marks a terminal profile as the default.                                                                                            |
+| `terminal_sessions_list` / `terminal.sessionsList`            | none                                                                                                 | `{ sessions }`                              | Lists live terminal sessions owned by the current window.                                                                           |
+| `terminal_send_text` / `terminal.sendText`                    | `{ sessionId, text }`                                                                                | `{ success }`                               | Writes UTF-8 text to a terminal session.                                                                                            |
+| `terminal_run_command` / `terminal.runCommand`                | `{ sessionId, command, appendNewline, focus }`                                                       | `{ success }`                               | Writes a command to an existing session, optionally appending a newline.                                                            |
+| `terminal_spawn_and_run` / `terminal.spawnAndRun`             | `{ uri?, profileId?, terminalProfileId?, cols, rows, command, title? }`                              | `{ sessionId }`                             | Spawns a terminal and runs the supplied command.                                                                                    |
+| `fs_standard_locations` / `fs.standard_locations`             | none                                                                                                 | `{ locations }`                             | Returns standard local locations as `{ id, name, uri, section }`.                                                                   |
+| `fs_open_default` / `fs.open_default`                         | `{ uri }`                                                                                            | `{ ok }`                                    | Opens the resource with the OS default application.                                                                                 |
+| `fs_reveal` / `fs.reveal`                                     | `{ uri }`                                                                                            | `{ ok }`                                    | Reveals the resource in the platform file manager.                                                                                  |
+| `fs_properties` / `fs.properties`                             | `{ uri, includeFolderSummary? }`                                                                     | `{ properties }`                            | Returns metadata plus optional recursive summary for directories.                                                                   |
 
 `PathPropertiesDto` includes `uri`, `name`, `kind`, file `size`, optional `totalSize`/`itemCount`/`fileCount`/`directoryCount`, timestamps, hidden/symlink flags, `symlinkTarget`, `readonly`, and non-fatal `warnings`.
 
@@ -317,6 +340,7 @@ Network commands manage saved SFTP server profiles in `network.sqlite` under the
 | Command                              | TS dotted name                     | Purpose                                                                                                   |
 | ------------------------------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
 | `network_profiles_list`              | `network.profilesList`             | List saved profiles with metadata and `defaultUri` (`sftp://{profileId}{defaultPath}`).                   |
+| `network_providers_list`             | `network.providersList`            | List provider capabilities, supported auth kinds, and unavailable providers.                              |
 | `network_profile_add`                | `network.profileAdd`               | Create a profile row (non-secret fields only).                                                            |
 | `network_profile_update`             | `network.profileUpdate`            | Update label, host, port, username, auth kind, default path.                                              |
 | `network_profile_delete`             | `network.profileDelete`            | Remove profile and keychain entries.                                                                      |
@@ -324,8 +348,10 @@ Network commands manage saved SFTP server profiles in `network.sqlite` under the
 | `network_connect`                    | `network.connect`                  | Eager connect and validate credentials for `{ id }`.                                                      |
 | `network_disconnect`                 | `network.disconnect`               | Drop active session for `{ id }`.                                                                         |
 | `network_connection_status`          | `network.connectionStatus`         | Returns `{ statuses: NetworkConnectionStatusDto[] }` with `connected`, `disconnected`, or `error`.        |
+| `network_profile_test`               | `network.profileTest`              | Test a saved profile or validate an unsaved draft without persisting transient secrets.                   |
 | `network_discover_neighborhood`      | `network.discoverNeighborhood`     | Lists virtual `network:///` entries for cloud drives, LAN services, saved profiles, and add-connection.   |
 | `network_profile_forget_fingerprint` | `network.profileForgetFingerprint` | Clears pinned host-key fingerprint for `{ id }`.                                                          |
+| `network_profile_trust_fingerprint`  | `network.profileTrustFingerprint`  | Persists an explicitly confirmed OpenSSH-style SHA256 host-key fingerprint for `{ id, fingerprint }`.     |
 | `network_validate_uri`               | `network.validateUri`              | Parse-check a remote `ResourceUri`.                                                                       |
 
 ### `network_profile_forget_fingerprint`
@@ -333,11 +359,18 @@ Network commands manage saved SFTP server profiles in `network.sqlite` under the
 **Request:** `NetworkProfileActionRequest { id: string }`
 **Response:** `OkResponse`
 
-Clears the pinned host-key fingerprint for the given profile. The next successful connect will pin the server's currently-presented SHA256 fingerprint via Trust-On-First-Use.
+Clears the pinned host-key fingerprint for the given profile. Unknown fingerprints must be explicitly trusted through `network_profile_trust_fingerprint`.
+
+### `network_profile_trust_fingerprint`
+
+**Request:** `NetworkProfileTrustFingerprintRequest { id: string, fingerprint: string }`
+**Response:** `OkResponse`
+
+Persists a user-confirmed OpenSSH-style `SHA256:` host-key fingerprint for the given profile. Connect and terminal spawn paths do not auto-pin unknown fingerprints.
 
 ### Host-key TOFU
 
-SFTP sessions and SSH terminal sessions compute the SHA-256 base64 (unpadded) fingerprint of the server's host key on every connect. On first successful authentication, the fingerprint is persisted to the `network_profiles.host_key_fingerprint` column. Subsequent connects compare the observed fingerprint against the pinned value and refuse the connection on mismatch. Users can clear the pin from the Edit Server dialog ("Forget pinned fingerprint"); this restores TOFU on the next connect.
+SFTP sessions and SSH terminal sessions compute the SHA-256 base64 (unpadded) fingerprint of the server's host key on every connect. Unknown fingerprints are not persisted automatically. A caller must explicitly confirm a fingerprint through `network_profile_trust_fingerprint`, which stores it in `network_profiles.host_key_fingerprint`. Subsequent connects compare the observed fingerprint against the pinned value and refuse the connection on mismatch. Users can clear the pin from the Edit Server dialog ("Forget pinned fingerprint"); this returns the profile to an untrusted state until a fingerprint is explicitly confirmed again.
 
 Network profiles support `sftp` and `ssh` schemes. `sftp` profiles are file-capable and can also open SSH terminals. `ssh` profiles are terminal-only: they can be used as `terminal.spawn` `profileId` targets but do not produce browsable `sftp://` `defaultUri` values.
 
@@ -364,6 +397,7 @@ Rust pushes events via `app.emit(name, payload)`. The TS client wraps them in `t
 | `fs:contentSearch:completed` (`CONTENT_SEARCH_COMPLETED_EVENT`)     | `ContentSearchCompletedEventDto`   | Content-search metadata job               |
 | `terminal:output` (`TERMINAL_OUTPUT_EVENT`)                         | `TerminalOutputEventDto`           | Local and SSH PTY output chunk            |
 | `terminal:exit` (`TERMINAL_EXIT_EVENT`)                             | `TerminalExitEventDto`             | Local and SSH PTY session exit            |
+| `terminal:session` (`TERMINAL_SESSION_EVENT`)                       | `TerminalSessionEventDto`          | Local and SSH PTY session metadata change |
 | `nativeMenu:command` (`NATIVE_MENU_COMMAND_EVENT`)                  | `NativeMenuCommandEventDto`        | Native Tauri application menu selection   |
 
 Names are exported as constants from both sides (`crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts`, re-exported from the package root). The Rust enum-to-name mapping lives in `app_ipc::job_event_name`; the payload serializer is `app_ipc::job_event_payload`.

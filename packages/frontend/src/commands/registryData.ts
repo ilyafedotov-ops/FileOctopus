@@ -295,6 +295,18 @@ export const COMMAND_REGISTRY = [
     surfaces: ["menu", "palette"],
   },
   {
+    id: "terminal.runCommand",
+    label: "Run Command in Terminal…",
+    group: "tools",
+    surfaces: ["toolbar", "menu", "palette"],
+  },
+  {
+    id: "terminal.spawnAndRun",
+    label: "Spawn Terminal and Run Command…",
+    group: "tools",
+    surfaces: ["toolbar", "menu", "palette"],
+  },
+  {
     id: "view.toggleTerminal",
     label: "Toggle Terminal Panel",
     group: "view",

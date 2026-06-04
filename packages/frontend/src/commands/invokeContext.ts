@@ -9,6 +9,7 @@ export interface CommandInvokeContext {
   sortAscending?: boolean;
   preferenceValue?: string;
   networkProfile?: NetworkProfileDto;
+  terminalCommand?: string;
 }
 
 export type CommandInvokeArg = CommandInvokeContext | FileEntryDto | null;
@@ -22,7 +23,8 @@ function isFileEntryDto(value: unknown): value is FileEntryDto {
     !("sortField" in value) &&
     !("preferenceValue" in value) &&
     !("targetUri" in value) &&
-    !("favoriteId" in value)
+    !("favoriteId" in value) &&
+    !("terminalCommand" in value)
   );
 }
 

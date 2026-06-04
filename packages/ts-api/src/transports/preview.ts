@@ -11,6 +11,9 @@ import type {
   RecursiveSearchCompletedEventDto,
   RecursiveSearchRequest,
   SetPreferenceRequest,
+  TerminalProfileDto,
+  TerminalSessionDto,
+  TerminalSessionEventDto,
   TerminalOutputEvent,
   UserPreferencesDto,
 } from "../types";
@@ -19,6 +22,7 @@ import {
   DIRECTORY_BATCH_EVENT,
   FOLDER_SIZE_COMPLETED_EVENT,
   RECURSIVE_SEARCH_COMPLETED_EVENT,
+  TERMINAL_SESSION_EVENT,
   TERMINAL_OUTPUT_EVENT,
 } from "../events";
 export function createPreviewTransport(): IpcTransport {
@@ -77,6 +81,7 @@ export function createPreviewTransport(): IpcTransport {
     networkAutoReconnect: true,
     networkDefaultProtocol: "sftp",
     networkSshKeyPath: "",
+    networkUseSshAgent: false,
     editorFontFamily: "monospace",
     editorFontSize: 14,
     editorTabSize: 4,
@@ -99,7 +104,43 @@ export function createPreviewTransport(): IpcTransport {
   const terminalOutputHandlers = new Set<
     (payload: TerminalOutputEvent) => void
   >();
+  const terminalSessionHandlers = new Set<
+    (payload: TerminalSessionEventDto) => void
+  >();
   const terminalOutputBuffer: TerminalOutputEvent[] = [];
+  const now = "2026-06-01T00:00:00.000Z";
+  let previewTerminalProfiles: TerminalProfileDto[] = [
+    {
+      id: "preview-default-terminal-profile",
+      name: "Default",
+      scope: "local",
+      shell: "",
+      args: "",
+      env: "",
+      workingDirectoryMode: "currentPane",
+      customCwdUri: "",
+      networkProfileId: null,
+      remoteCwd: "",
+      initialCommand: "",
+      fontFamily: "monospace",
+      fontSize: 13,
+      lineHeight: 1.2,
+      cursorStyle: "block",
+      cursorBlink: true,
+      scrollback: 5000,
+      themeId: "system",
+      themeOverrides: "",
+      copyOnSelect: false,
+      rightClickAction: "contextMenu",
+      pasteConfirmation: true,
+      linkHandling: "openExternal",
+      sortOrder: 0,
+      isDefault: true,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+  const previewTerminalSessions = new Map<string, TerminalSessionDto>();
 
   const emitTerminalOutput = (payload: TerminalOutputEvent) => {
     if (terminalOutputHandlers.size === 0) {
@@ -110,6 +151,12 @@ export function createPreviewTransport(): IpcTransport {
       return;
     }
     for (const handler of terminalOutputHandlers) {
+      handler(payload);
+    }
+  };
+
+  const emitTerminalSession = (payload: TerminalSessionEventDto) => {
+    for (const handler of terminalSessionHandlers) {
       handler(payload);
     }
   };
@@ -203,10 +250,41 @@ export function createPreviewTransport(): IpcTransport {
               lastConnectedAt: null,
               lastError: null,
               hasStoredSecret: false,
+              options: defaultNetworkOptions(),
               createdAt: "2026-01-01T00:00:00Z",
               updatedAt: "2026-01-01T00:00:00Z",
             },
           ],
+        } as TResponse;
+      }
+
+      if (command === "network.providersList") {
+        return { providers: previewNetworkProviders() } as TResponse;
+      }
+
+      if (command === "network.profileTest") {
+        const request = args?.request as
+          | { id?: string; draft?: { scheme?: string; defaultPath?: string } }
+          | undefined;
+        const scheme = request?.draft?.scheme ?? "sftp";
+        const path = request?.draft?.defaultPath ?? "/home/deploy";
+        return {
+          ok: true,
+          status: "success",
+          message: request?.id
+            ? "Preview profile test succeeded."
+            : "Preview draft validation succeeded.",
+          durationMs: 42,
+          resolvedUri: `${scheme}://preview${path.startsWith("/") ? path : `/${path}`}`,
+          observedFingerprint:
+            scheme === "sftp" || scheme === "ssh"
+              ? "SHA256:previewfingerprint"
+              : null,
+          trustState:
+            scheme === "sftp" || scheme === "ssh"
+              ? "untrusted"
+              : "notApplicable",
+          warnings: ["Preview transport does not open sockets."],
         } as TResponse;
       }
 
@@ -255,6 +333,7 @@ export function createPreviewTransport(): IpcTransport {
             lastConnectedAt: null,
             lastError: null,
             hasStoredSecret: false,
+            options: defaultNetworkOptions(),
             createdAt: "2026-01-01T00:00:00Z",
             updatedAt: "2026-01-01T00:00:00Z",
           },
@@ -269,6 +348,7 @@ export function createPreviewTransport(): IpcTransport {
         command === "navigation.removeRecent" ||
         command === "network.profileDelete" ||
         command === "network.profileSetSecret" ||
+        command === "network.profileTrustFingerprint" ||
         command === "network.connect" ||
         command === "network.disconnect" ||
         command === "network.validateUri"
@@ -509,6 +589,31 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "terminal.spawn") {
         const sessionId = `preview-terminal-${++sessionIndex}`;
+        const request = args?.request as
+          | {
+              uri?: string;
+              terminalProfileId?: string | null;
+              cols?: number;
+              rows?: number;
+              title?: string | null;
+            }
+          | undefined;
+        const session: TerminalSessionDto = {
+          sessionId,
+          status: "running",
+          title: request?.title ?? "Preview Terminal",
+          cwdUri: request?.uri ?? "local:///",
+          terminalProfileId:
+            request?.terminalProfileId ??
+            previewTerminalProfiles[0]?.id ??
+            null,
+          transport: "local",
+          cols: request?.cols ?? 80,
+          rows: request?.rows ?? 24,
+          exitCode: null,
+        };
+        previewTerminalSessions.set(sessionId, session);
+        emitTerminalSession({ ...session, kind: "started" });
         globalThis.setTimeout(() => {
           const data = btoa("fileoctopus-preview % ");
           emitTerminalOutput({ sessionId, data });
@@ -531,8 +636,152 @@ export function createPreviewTransport(): IpcTransport {
         return { success: true } as TResponse;
       }
 
+      if (
+        command === "terminal.sendText" ||
+        command === "terminal.runCommand"
+      ) {
+        const request = args?.request as
+          | { sessionId?: string; text?: string; command?: string }
+          | undefined;
+        if (request?.sessionId) {
+          const text = request.text ?? request.command ?? "";
+          globalThis.setTimeout(() => {
+            emitTerminalOutput({
+              sessionId: request.sessionId ?? "",
+              data: btoa(text),
+            });
+          }, 0);
+        }
+        return { success: true } as TResponse;
+      }
+
+      if (command === "terminal.spawnAndRun") {
+        const request = args?.request as
+          | {
+              uri?: string;
+              terminalProfileId?: string | null;
+              cols?: number;
+              rows?: number;
+              command?: string;
+              title?: string | null;
+            }
+          | undefined;
+        const sessionId = `preview-terminal-${++sessionIndex}`;
+        const session: TerminalSessionDto = {
+          sessionId,
+          status: "running",
+          title: request?.title ?? "Preview Command",
+          cwdUri: request?.uri ?? "local:///",
+          terminalProfileId:
+            request?.terminalProfileId ??
+            previewTerminalProfiles[0]?.id ??
+            null,
+          transport: "local",
+          cols: request?.cols ?? 80,
+          rows: request?.rows ?? 24,
+          exitCode: null,
+        };
+        previewTerminalSessions.set(sessionId, session);
+        emitTerminalSession({ ...session, kind: "started" });
+        globalThis.setTimeout(() => {
+          emitTerminalOutput({
+            sessionId,
+            data: btoa(`${request?.command ?? ""}\n`),
+          });
+        }, 0);
+        return { sessionId } as TResponse;
+      }
+
       if (command === "terminal.resize" || command === "terminal.kill") {
         return { success: true } as TResponse;
+      }
+
+      if (command === "terminal.capabilities") {
+        return {
+          defaultShell: "/bin/bash",
+          defaultArgs: ["-l"],
+          discoveredShells: ["/bin/bash", "/bin/zsh"],
+          supportsSsh: true,
+          cursorStyles: ["block", "bar", "underline"],
+          themeIds: ["system", "dark", "light"],
+        } as TResponse;
+      }
+
+      if (command === "terminal.profilesList") {
+        return {
+          profiles: previewTerminalProfiles,
+          defaultProfileId:
+            previewTerminalProfiles.find((profile) => profile.isDefault)?.id ??
+            null,
+        } as TResponse;
+      }
+
+      if (command === "terminal.profileAdd") {
+        const request = args?.request as
+          | {
+              profile?: Omit<
+                TerminalProfileDto,
+                "id" | "sortOrder" | "isDefault" | "createdAt" | "updatedAt"
+              >;
+            }
+          | undefined;
+        const profile: TerminalProfileDto = {
+          ...(request?.profile ?? previewTerminalProfiles[0]),
+          id: `preview-terminal-profile-${++sessionIndex}`,
+          sortOrder: previewTerminalProfiles.length,
+          isDefault: false,
+          createdAt: now,
+          updatedAt: now,
+        } as TerminalProfileDto;
+        previewTerminalProfiles = [...previewTerminalProfiles, profile];
+        return { profile } as TResponse;
+      }
+
+      if (command === "terminal.profileUpdate") {
+        const request = args?.request as
+          | { id?: string; profile?: TerminalProfileDto }
+          | undefined;
+        const existing = previewTerminalProfiles.find(
+          (profile) => profile.id === request?.id,
+        );
+        const profile = {
+          ...(existing ?? previewTerminalProfiles[0]),
+          ...(request?.profile ?? {}),
+          id: request?.id ?? existing?.id ?? "preview-default-terminal-profile",
+          updatedAt: now,
+        } as TerminalProfileDto;
+        previewTerminalProfiles = previewTerminalProfiles.map((item) =>
+          item.id === profile.id ? profile : item,
+        );
+        return { profile } as TResponse;
+      }
+
+      if (command === "terminal.profileDelete") {
+        const request = args?.request as { id?: string } | undefined;
+        previewTerminalProfiles = previewTerminalProfiles.filter(
+          (profile) => profile.id !== request?.id || profile.isDefault,
+        );
+        return { success: true } as TResponse;
+      }
+
+      if (command === "terminal.profileSetDefault") {
+        const request = args?.request as { id?: string } | undefined;
+        previewTerminalProfiles = previewTerminalProfiles.map((profile) => ({
+          ...profile,
+          isDefault: profile.id === request?.id,
+        }));
+        return {
+          profile:
+            previewTerminalProfiles.find(
+              (profile) => profile.id === request?.id,
+            ) ?? previewTerminalProfiles[0],
+        } as TResponse;
+      }
+
+      if (command === "terminal.sessionsList") {
+        return {
+          sessions: Array.from(previewTerminalSessions.values()),
+        } as TResponse;
       }
 
       if (command === "fs.open_terminal") {
@@ -642,6 +891,14 @@ export function createPreviewTransport(): IpcTransport {
         return () => terminalOutputHandlers.delete(typedHandler);
       }
 
+      if (event === TERMINAL_SESSION_EVENT) {
+        const typedHandler = handler as (
+          payload: TerminalSessionEventDto,
+        ) => void;
+        terminalSessionHandlers.add(typedHandler);
+        return () => terminalSessionHandlers.delete(typedHandler);
+      }
+
       if (event !== DIRECTORY_BATCH_EVENT) {
         return () => undefined;
       }
@@ -712,6 +969,104 @@ function previewEntriesForUri(uri: string): FileEntryDto[] {
     entry("Pictures", "directory", null),
     entry("FileOctopus", "directory", null),
     entry("README.md", "file", 8200, "md"),
+  ];
+}
+
+function defaultNetworkOptions() {
+  return {
+    ssh: {
+      terminalEnv: [],
+    },
+    smb: {},
+    s3: {},
+  };
+}
+
+function previewNetworkProviders() {
+  return [
+    {
+      scheme: "sftp",
+      label: "SFTP",
+      category: "server",
+      defaultPort: 22,
+      authKinds: ["password", "privateKey"],
+      fileCapable: true,
+      terminalCapable: true,
+      status: "available",
+      missingDependency: null,
+      supportedOptions: [
+        "useAgent",
+        "sshConfigHost",
+        "proxyJump",
+        "proxyCommand",
+        "keepaliveSecs",
+        "compression",
+        "addressFamily",
+      ],
+    },
+    {
+      scheme: "ssh",
+      label: "SSH",
+      category: "server",
+      defaultPort: 22,
+      authKinds: ["password", "privateKey"],
+      fileCapable: false,
+      terminalCapable: true,
+      status: "available",
+      missingDependency: null,
+      supportedOptions: [
+        "useAgent",
+        "sshConfigHost",
+        "proxyJump",
+        "proxyCommand",
+        "keepaliveSecs",
+        "compression",
+        "addressFamily",
+        "terminalInitialCommand",
+        "terminalEnv",
+      ],
+    },
+    {
+      scheme: "smb",
+      label: "SMB / CIFS",
+      category: "server",
+      defaultPort: 445,
+      authKinds: ["password"],
+      fileCapable: true,
+      terminalCapable: false,
+      status: "available",
+      missingDependency: null,
+      supportedOptions: [
+        "workgroup",
+        "minProtocol",
+        "signingMode",
+        "sharePath",
+      ],
+    },
+    {
+      scheme: "s3",
+      label: "S3",
+      category: "server",
+      defaultPort: 443,
+      authKinds: ["accessKey"],
+      fileCapable: true,
+      terminalCapable: false,
+      status: "available",
+      missingDependency: null,
+      supportedOptions: ["region", "useTls", "pathStyle", "rootPrefix"],
+    },
+    {
+      scheme: "webdav",
+      label: "WebDAV",
+      category: "server",
+      defaultPort: 443,
+      authKinds: ["password"],
+      fileCapable: false,
+      terminalCapable: false,
+      status: "unavailable",
+      missingDependency: "WebDAV provider is not registered yet.",
+      supportedOptions: [],
+    },
   ];
 }
 

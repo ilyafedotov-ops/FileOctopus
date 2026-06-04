@@ -35,10 +35,8 @@ impl SmbSession {
         let mut cmd = Command::new("smbclient");
         cmd.arg(format!("//{}", self.server))
             .arg("-U")
-            .arg(format!(
-                "{}%{}",
-                self.credentials.username, self.credentials.password
-            ))
+            .arg(self.credentials.username.as_str())
+            .env("PASSWD", self.credentials.password.as_str())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
         cmd
@@ -141,5 +139,29 @@ impl RemoteConnector for SmbConnector {
 
     async fn disconnect(&self, _session: Arc<dyn RemoteSession>) -> Result<(), RemoteError> {
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn smbclient_command_does_not_expose_password_in_arguments() {
+        let session = SmbSession::new(
+            "server.local:445".to_string(),
+            "user".to_string(),
+            "secret123".to_string(),
+        );
+        let command = session.smbclient();
+        let args = command
+            .get_args()
+            .map(|arg| arg.to_string_lossy().to_string())
+            .collect::<Vec<_>>();
+
+        assert!(
+            args.iter().all(|arg| !arg.contains("secret123")),
+            "password must not be present in smbclient argv: {args:?}"
+        );
     }
 }

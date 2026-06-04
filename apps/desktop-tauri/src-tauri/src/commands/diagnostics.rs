@@ -215,7 +215,7 @@ pub(crate) fn write_diagnostics_bundle(
         .into_iter()
         .map(redact_history_record)
         .collect::<Vec<_>>();
-    let log_excerpt = read_recent_log_excerpt(&state.paths().log_dir);
+    let log_excerpt = redact_diagnostics_text(&read_recent_log_excerpt(&state.paths().log_dir));
 
     add_archive_file(
         &mut archive,
@@ -329,8 +329,75 @@ pub(crate) fn redact_home(value: &str) -> String {
     value.replace(home.as_ref(), "~")
 }
 
+pub(crate) fn redact_diagnostics_text(value: &str) -> String {
+    let value = redact_home(value);
+    let mut redacted = String::with_capacity(value.len());
+    let mut token = String::new();
+
+    for ch in value.chars() {
+        if ch.is_whitespace() {
+            if !token.is_empty() {
+                redacted.push_str(&redact_diagnostics_token(&token));
+                token.clear();
+            }
+            redacted.push(ch);
+        } else {
+            token.push(ch);
+        }
+    }
+
+    if !token.is_empty() {
+        redacted.push_str(&redact_diagnostics_token(&token));
+    }
+
+    redacted
+}
+
+fn redact_diagnostics_token(token: &str) -> String {
+    let Some((key, value)) = token.split_once('=') else {
+        return token.to_string();
+    };
+    let normalized = key
+        .trim_matches(|ch: char| !ch.is_ascii_alphanumeric() && ch != '_' && ch != '-')
+        .to_ascii_lowercase();
+    let sensitive = matches!(
+        normalized.as_str(),
+        "host"
+            | "hostname"
+            | "password"
+            | "passphrase"
+            | "token"
+            | "access_token"
+            | "refresh_token"
+            | "privatekeypath"
+            | "private_key_path"
+            | "private-key-path"
+    );
+    if sensitive || value.contains("/.ssh/") || value.contains("\\.ssh\\") {
+        format!("{key}=<redacted>")
+    } else {
+        token.to_string()
+    }
+}
+
 pub(crate) fn home_dir() -> Option<PathBuf> {
     std::env::var_os("HOME")
         .or_else(|| std::env::var_os("USERPROFILE"))
         .map(PathBuf::from)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn redacts_sensitive_diagnostics_values() {
+        let input = "connecting to host=prod.example.com token=abc123 password=hunter2 privateKeyPath=/home/ilya/.ssh/id_ed25519";
+        let redacted = redact_diagnostics_text(input);
+
+        assert!(!redacted.contains("abc123"));
+        assert!(!redacted.contains("hunter2"));
+        assert!(!redacted.contains("prod.example.com"));
+        assert!(!redacted.contains("/home/ilya/.ssh/id_ed25519"));
+    }
 }

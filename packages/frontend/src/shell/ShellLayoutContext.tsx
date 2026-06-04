@@ -15,6 +15,7 @@ import type {
   OperationHistoryRecordDto,
   NetworkConnectionStatusDto,
   NetworkConnectionDraftDto,
+  NetworkProtocolOptionsDto,
   NetworkProfileDto,
   RecentEntryDto,
   StarredEntryDto,
@@ -129,6 +130,7 @@ export interface ShellLayoutContextValue {
     authKind: "password" | "privateKey" | "accessKey";
     privateKeyPath: string | null;
     defaultPath: string;
+    options: NetworkProtocolOptionsDto;
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileDto>;

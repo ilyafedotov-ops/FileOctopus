@@ -1,16 +1,31 @@
 import type {
   IpcTransport,
   TerminalExitEvent,
+  TerminalCapabilitiesResponse,
   TerminalKillRequest,
   TerminalOkResponse,
   TerminalOutputEvent,
+  TerminalProfileActionRequest,
+  TerminalProfileAddRequest,
+  TerminalProfileResponse,
+  TerminalProfilesListResponse,
+  TerminalProfileUpdateRequest,
   TerminalResizeRequest,
+  TerminalRunCommandRequest,
+  TerminalSendTextRequest,
+  TerminalSessionEventDto,
+  TerminalSessionsListResponse,
+  TerminalSpawnAndRunRequest,
   TerminalSpawnRequest,
   TerminalSpawnResponse,
   TerminalWriteRequest,
   UnlistenFn,
 } from "../types";
-import { TERMINAL_EXIT_EVENT, TERMINAL_OUTPUT_EVENT } from "../events";
+import {
+  TERMINAL_EXIT_EVENT,
+  TERMINAL_OUTPUT_EVENT,
+  TERMINAL_SESSION_EVENT,
+} from "../events";
 import { requireListen } from "../requireListen";
 
 export class TerminalClient {
@@ -40,11 +55,95 @@ export class TerminalClient {
     });
   }
 
+  async capabilities(): Promise<TerminalCapabilitiesResponse> {
+    return this.transport.invoke<TerminalCapabilitiesResponse>(
+      "terminal.capabilities",
+    );
+  }
+
+  async listProfiles(): Promise<TerminalProfilesListResponse> {
+    return this.transport.invoke<TerminalProfilesListResponse>(
+      "terminal.profilesList",
+    );
+  }
+
+  async addProfile(
+    request: TerminalProfileAddRequest,
+  ): Promise<TerminalProfileResponse> {
+    return this.transport.invoke<TerminalProfileResponse>(
+      "terminal.profileAdd",
+      { request },
+    );
+  }
+
+  async updateProfile(
+    request: TerminalProfileUpdateRequest,
+  ): Promise<TerminalProfileResponse> {
+    return this.transport.invoke<TerminalProfileResponse>(
+      "terminal.profileUpdate",
+      { request },
+    );
+  }
+
+  async deleteProfile(
+    request: TerminalProfileActionRequest,
+  ): Promise<TerminalOkResponse> {
+    return this.transport.invoke<TerminalOkResponse>("terminal.profileDelete", {
+      request,
+    });
+  }
+
+  async setDefaultProfile(
+    request: TerminalProfileActionRequest,
+  ): Promise<TerminalProfileResponse> {
+    return this.transport.invoke<TerminalProfileResponse>(
+      "terminal.profileSetDefault",
+      { request },
+    );
+  }
+
+  async listSessions(): Promise<TerminalSessionsListResponse> {
+    return this.transport.invoke<TerminalSessionsListResponse>(
+      "terminal.sessionsList",
+    );
+  }
+
+  async sendText(
+    request: TerminalSendTextRequest,
+  ): Promise<TerminalOkResponse> {
+    return this.transport.invoke<TerminalOkResponse>("terminal.sendText", {
+      request,
+    });
+  }
+
+  async runCommand(
+    request: TerminalRunCommandRequest,
+  ): Promise<TerminalOkResponse> {
+    return this.transport.invoke<TerminalOkResponse>("terminal.runCommand", {
+      request,
+    });
+  }
+
+  async spawnAndRun(
+    request: TerminalSpawnAndRunRequest,
+  ): Promise<TerminalSpawnResponse> {
+    return this.transport.invoke<TerminalSpawnResponse>(
+      "terminal.spawnAndRun",
+      { request },
+    );
+  }
+
   onOutput(handler: (event: TerminalOutputEvent) => void): Promise<UnlistenFn> {
     return requireListen(this.transport, TERMINAL_OUTPUT_EVENT, handler);
   }
 
   onExit(handler: (event: TerminalExitEvent) => void): Promise<UnlistenFn> {
     return requireListen(this.transport, TERMINAL_EXIT_EVENT, handler);
+  }
+
+  onSession(
+    handler: (event: TerminalSessionEventDto) => void,
+  ): Promise<UnlistenFn> {
+    return requireListen(this.transport, TERMINAL_SESSION_EVENT, handler);
   }
 }

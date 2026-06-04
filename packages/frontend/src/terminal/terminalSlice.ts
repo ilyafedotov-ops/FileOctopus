@@ -1,3 +1,4 @@
+import type { TerminalProfileDto } from "@fileoctopus/ts-api";
 import type { PanelId } from "../panelStore";
 
 export type ActivityRailSegment = "activity" | "history" | "terminal";
@@ -20,6 +21,8 @@ export interface TerminalSession {
   exitCode?: number | null;
   paneId: TerminalPaneId;
   transport?: TerminalTransport;
+  terminalProfileId?: string | null;
+  terminalProfile?: TerminalProfileDto | null;
 }
 
 export interface PaneTerminalChrome {
@@ -53,6 +56,11 @@ export type TerminalAction =
       type: "setSessionExited";
       sessionId: string;
       exitCode?: number | null;
+    }
+  | {
+      type: "renameSession";
+      sessionId: string;
+      label: string;
     }
   | { type: "switchSession"; sessionId: string }
   | { type: "closeSession"; sessionId: string }
@@ -204,6 +212,15 @@ export function terminalReducer(
                 status: "exited",
                 exitCode: action.exitCode,
               }
+            : session,
+        ),
+      };
+    case "renameSession":
+      return {
+        ...state,
+        sessions: state.sessions.map((session) =>
+          session.id === action.sessionId
+            ? { ...session, label: action.label }
             : session,
         ),
       };

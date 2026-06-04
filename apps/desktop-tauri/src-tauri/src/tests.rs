@@ -61,6 +61,7 @@ fn app_paths_under(root: &std::path::Path) -> app_core::AppPaths {
         preferences_db: root.join("preferences.sqlite"),
         navigation_db: root.join("navigation.sqlite"),
         network_db: root.join("network.sqlite"),
+        terminal_db: root.join("terminal.sqlite"),
     }
 }
 

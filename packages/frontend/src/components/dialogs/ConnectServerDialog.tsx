@@ -1,6 +1,7 @@
 import type {
   FsClient,
   NetworkConnectionDraftDto,
+  NetworkProtocolOptionsDto,
   NetworkProfileDto,
 } from "@fileoctopus/ts-api";
 import { remotePathFromUri, rootUriForUri } from "@fileoctopus/ts-api";
@@ -38,6 +39,7 @@ interface ConnectServerDialogProps {
     authKind: AuthKindType;
     privateKeyPath: string | null;
     defaultPath: string;
+    options: NetworkProtocolOptionsDto;
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileDto>;
@@ -92,6 +94,10 @@ export function ConnectServerDialog({
   const [authKind, setAuthKind] = useState<AuthKindType>("password");
   const [privateKeyPath, setPrivateKeyPath] = useState("");
   const [defaultPath, setDefaultPath] = useState("/");
+  const [useAgent, setUseAgent] = useState(false);
+  const [sshConfigHost, setSshConfigHost] = useState("");
+  const [proxyJump, setProxyJump] = useState("");
+  const [keepaliveSecs, setKeepaliveSecs] = useState("");
   const [password, setPassword] = useState("");
   const [passphrase, setPassphrase] = useState("");
   const [step, setStep] = useState<WizardStep>("target");
@@ -137,6 +143,14 @@ export function ConnectServerDialog({
     setDefaultPath(
       editingProfile?.defaultPath ?? initialDraft?.defaultPath ?? "/",
     );
+    setUseAgent(editingProfile?.options?.ssh?.useAgent === true);
+    setSshConfigHost(editingProfile?.options?.ssh?.sshConfigHost ?? "");
+    setProxyJump(editingProfile?.options?.ssh?.proxyJump ?? "");
+    setKeepaliveSecs(
+      editingProfile?.options?.ssh?.keepaliveSecs
+        ? String(editingProfile.options.ssh.keepaliveSecs)
+        : "",
+    );
     setPassword("");
     setPassphrase("");
     setStep("target");
@@ -155,6 +169,7 @@ export function ConnectServerDialog({
 
   const showPasswordField = authKind === "password" || authKind === "accessKey";
   const showPrivateKeyField = authKind === "privateKey";
+  const showSshOptions = scheme === "sftp" || scheme === "ssh";
   const showDefaultPath =
     scheme === "sftp" || scheme === "smb" || scheme === "webdav";
   const showBucketField = scheme === "s3";
@@ -341,6 +356,15 @@ export function ConnectServerDialog({
         privateKeyPath:
           authKind === "privateKey" ? privateKeyPath.trim() : null,
         defaultPath: defaultPath.trim() || "/",
+        options: {
+          ssh: {
+            useAgent,
+            sshConfigHost: sshConfigHost.trim() || null,
+            proxyJump: proxyJump.trim() || null,
+            keepaliveSecs:
+              keepaliveSecs.trim() === "" ? null : Number(keepaliveSecs),
+          },
+        },
         password,
         passphrase,
       });
@@ -574,6 +598,44 @@ export function ConnectServerDialog({
                     placeholder={
                       editingProfile ? "Leave blank to keep existing" : ""
                     }
+                  />
+                </label>
+              </>
+            ) : null}
+            {showSshOptions ? (
+              <>
+                <label className="fo-dialog-checkbox">
+                  <input
+                    type="checkbox"
+                    aria-label="Use SSH agent"
+                    checked={useAgent}
+                    onChange={(event) => setUseAgent(event.target.checked)}
+                  />
+                  <span>Use SSH agent</span>
+                </label>
+                <label className="fo-dialog-field">
+                  <span>SSH config host</span>
+                  <input
+                    value={sshConfigHost}
+                    onChange={(event) => setSshConfigHost(event.target.value)}
+                    placeholder="prod-bastion"
+                  />
+                </label>
+                <label className="fo-dialog-field">
+                  <span>ProxyJump</span>
+                  <input
+                    value={proxyJump}
+                    onChange={(event) => setProxyJump(event.target.value)}
+                    placeholder="bastion.example.com"
+                  />
+                </label>
+                <label className="fo-dialog-field">
+                  <span>Keepalive seconds</span>
+                  <input
+                    value={keepaliveSecs}
+                    onChange={(event) => setKeepaliveSecs(event.target.value)}
+                    inputMode="numeric"
+                    placeholder="30"
                   />
                 </label>
               </>

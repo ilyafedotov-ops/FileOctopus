@@ -9,10 +9,16 @@ import {
   Icons,
   SegmentedControl,
 } from "@fileoctopus/ui";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { useTerminal } from "../app/providers/TerminalProvider";
-import { TerminalTabBar } from "../terminal/TerminalTabBar";
-import { TerminalView } from "../terminal/TerminalView";
+import {
+  TerminalTabBar,
+  type TerminalSearchDirection,
+} from "../terminal/TerminalTabBar";
+import {
+  TerminalView,
+  type TerminalViewHandle,
+} from "../terminal/TerminalView";
 import {
   sessionsForActivityRail,
   type ActivityRailSegment,
@@ -84,10 +90,13 @@ export function ActivityRailPanel({
     terminal,
     setRailSegment,
     closeTerminalTab,
+    renameTerminalTab,
+    duplicateTerminalTab,
     switchTerminalTab,
     openNewTerminalTab,
     markSessionExited,
   } = useTerminal();
+  const terminalRefs = useRef(new Map<string, TerminalViewHandle | null>());
 
   const segment = terminal.segment;
   const header = SEGMENT_HEADERS[segment];
@@ -237,6 +246,21 @@ export function ActivityRailPanel({
                   activeSessionId={terminal.activeSessionId}
                   onSwitch={switchTerminalTab}
                   onClose={closeTerminalTab}
+                  onRename={renameTerminalTab}
+                  onDuplicate={(sessionId) => {
+                    void duplicateTerminalTab(sessionId);
+                  }}
+                  onSearch={(
+                    query: string,
+                    direction: TerminalSearchDirection,
+                  ) => {
+                    const activeSessionId = terminal.activeSessionId;
+                    if (activeSessionId) {
+                      terminalRefs.current
+                        .get(activeSessionId)
+                        ?.search(query, direction);
+                    }
+                  }}
                   onNew={() =>
                     void openNewTerminalTab(activeFolderUri, activePanelId)
                   }
@@ -252,9 +276,13 @@ export function ActivityRailPanel({
                         <div className="fo-empty-inline">Starting shell…</div>
                       ) : (
                         <TerminalView
+                          ref={(handle) => {
+                            terminalRefs.current.set(session.id, handle);
+                          }}
                           client={client}
                           sessionId={session.id}
                           active={session.id === terminal.activeSessionId}
+                          profile={session.terminalProfile ?? null}
                           onExit={(exitCode) => {
                             markSessionExited(session.id, exitCode);
                           }}

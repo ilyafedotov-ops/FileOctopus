@@ -25,6 +25,7 @@ pub const RECURSIVE_SEARCH_MATCH_EVENT: &str = "fs:recursiveSearch:match";
 pub const RECURSIVE_SEARCH_COMPLETED_EVENT: &str = "fs:recursiveSearch:completed";
 pub const TERMINAL_OUTPUT_EVENT: &str = "terminal:output";
 pub const TERMINAL_EXIT_EVENT: &str = "terminal:exit";
+pub const TERMINAL_SESSION_EVENT: &str = "terminal:session";
 pub const NATIVE_MENU_COMMAND_EVENT: &str = "nativeMenu:command";
 pub const CONTENT_SEARCH_MATCH_EVENT: &str = "fs:contentSearch:match";
 pub const CONTENT_SEARCH_COMPLETED_EVENT: &str = "fs:contentSearch:completed";
@@ -216,8 +217,119 @@ impl From<config::NetworkProfile> for NetworkProfileDto {
             last_connected_at: profile.last_connected_at,
             last_error: profile.last_error,
             has_stored_secret: profile.has_stored_secret,
+            options: profile.options.into(),
             created_at: profile.created_at,
             updated_at: profile.updated_at,
+        }
+    }
+}
+
+impl From<config::TerminalProfileScope> for TerminalProfileScopeDto {
+    fn from(value: config::TerminalProfileScope) -> Self {
+        match value {
+            config::TerminalProfileScope::Local => Self::Local,
+            config::TerminalProfileScope::Ssh => Self::Ssh,
+        }
+    }
+}
+
+impl From<TerminalProfileScopeDto> for config::TerminalProfileScope {
+    fn from(value: TerminalProfileScopeDto) -> Self {
+        match value {
+            TerminalProfileScopeDto::Local => Self::Local,
+            TerminalProfileScopeDto::Ssh => Self::Ssh,
+        }
+    }
+}
+
+impl From<config::TerminalProfile> for TerminalProfileDto {
+    fn from(profile: config::TerminalProfile) -> Self {
+        Self {
+            id: profile.id,
+            name: profile.name,
+            scope: profile.scope.into(),
+            shell: profile.shell,
+            args: profile.args,
+            env: profile.env,
+            working_directory_mode: profile.working_directory_mode,
+            custom_cwd_uri: profile.custom_cwd_uri,
+            network_profile_id: profile.network_profile_id,
+            remote_cwd: profile.remote_cwd,
+            initial_command: profile.initial_command,
+            font_family: profile.font_family,
+            font_size: profile.font_size,
+            line_height: profile.line_height,
+            cursor_style: profile.cursor_style,
+            cursor_blink: profile.cursor_blink,
+            scrollback: profile.scrollback,
+            theme_id: profile.theme_id,
+            theme_overrides: profile.theme_overrides,
+            copy_on_select: profile.copy_on_select,
+            right_click_action: profile.right_click_action,
+            paste_confirmation: profile.paste_confirmation,
+            link_handling: profile.link_handling,
+            sort_order: profile.sort_order,
+            is_default: profile.is_default,
+            created_at: profile.created_at,
+            updated_at: profile.updated_at,
+        }
+    }
+}
+
+impl From<TerminalProfileInputDto> for config::NewTerminalProfile {
+    fn from(value: TerminalProfileInputDto) -> Self {
+        Self {
+            name: value.name,
+            scope: value.scope.into(),
+            shell: value.shell,
+            args: value.args,
+            env: value.env,
+            working_directory_mode: value.working_directory_mode,
+            custom_cwd_uri: value.custom_cwd_uri,
+            network_profile_id: value.network_profile_id,
+            remote_cwd: value.remote_cwd,
+            initial_command: value.initial_command,
+            font_family: value.font_family,
+            font_size: value.font_size,
+            line_height: value.line_height,
+            cursor_style: value.cursor_style,
+            cursor_blink: value.cursor_blink,
+            scrollback: value.scrollback,
+            theme_id: value.theme_id,
+            theme_overrides: value.theme_overrides,
+            copy_on_select: value.copy_on_select,
+            right_click_action: value.right_click_action,
+            paste_confirmation: value.paste_confirmation,
+            link_handling: value.link_handling,
+        }
+    }
+}
+
+impl From<TerminalProfileInputDto> for config::UpdateTerminalProfile {
+    fn from(value: TerminalProfileInputDto) -> Self {
+        Self {
+            name: value.name,
+            scope: value.scope.into(),
+            shell: value.shell,
+            args: value.args,
+            env: value.env,
+            working_directory_mode: value.working_directory_mode,
+            custom_cwd_uri: value.custom_cwd_uri,
+            network_profile_id: value.network_profile_id,
+            remote_cwd: value.remote_cwd,
+            initial_command: value.initial_command,
+            font_family: value.font_family,
+            font_size: value.font_size,
+            line_height: value.line_height,
+            cursor_style: value.cursor_style,
+            cursor_blink: value.cursor_blink,
+            scrollback: value.scrollback,
+            theme_id: value.theme_id,
+            theme_overrides: value.theme_overrides,
+            copy_on_select: value.copy_on_select,
+            right_click_action: value.right_click_action,
+            paste_confirmation: value.paste_confirmation,
+            link_handling: value.link_handling,
         }
     }
 }
@@ -344,6 +456,7 @@ impl From<config::UserPreferences> for UserPreferencesDto {
             network_auto_reconnect: value.network_auto_reconnect,
             network_default_protocol: value.network_default_protocol,
             network_ssh_key_path: value.network_ssh_key_path,
+            network_use_ssh_agent: value.network_use_ssh_agent,
             editor_font_family: value.editor_font_family,
             editor_font_size: value.editor_font_size,
             editor_tab_size: value.editor_tab_size,
@@ -803,6 +916,7 @@ mod tests {
                 last_connected_at: None,
                 last_error: None,
                 has_stored_secret: false,
+                options: config::NetworkProtocolOptions::default(),
                 created_at: "1970-01-01T00:00:00Z".to_string(),
                 updated_at: "1970-01-01T00:00:00Z".to_string(),
             };
@@ -834,6 +948,7 @@ mod tests {
             last_connected_at: None,
             last_error: None,
             has_stored_secret: false,
+            options: config::NetworkProtocolOptions::default(),
             created_at: "1970-01-01T00:00:00Z".to_string(),
             updated_at: "1970-01-01T00:00:00Z".to_string(),
         };

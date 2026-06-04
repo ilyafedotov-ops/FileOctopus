@@ -1,8 +1,15 @@
 import type { ReactNode } from "react";
+import { useRef } from "react";
 import type { FileOctopusClient } from "@fileoctopus/ts-api";
 import type { PanelId } from "../panelStore";
-import { TerminalTabBar } from "../terminal/TerminalTabBar";
-import { TerminalView } from "../terminal/TerminalView";
+import {
+  TerminalTabBar,
+  type TerminalSearchDirection,
+} from "../terminal/TerminalTabBar";
+import {
+  TerminalView,
+  type TerminalViewHandle,
+} from "../terminal/TerminalView";
 import type { TerminalSession } from "../terminal/terminalSlice";
 import { sessionsForPane } from "../terminal/terminalSlice";
 
@@ -15,6 +22,8 @@ export interface PaneTerminalRegionProps {
   onSwitch: (sessionId: string) => void;
   onClose: (sessionId: string) => void;
   onNewSession: () => void;
+  onRename: (sessionId: string, label: string) => void;
+  onDuplicate: (sessionId: string) => void;
   onSessionExited: (sessionId: string, exitCode?: number | null) => void;
   tabBarActions?: ReactNode;
 }
@@ -28,9 +37,12 @@ export function PaneTerminalRegion({
   onSwitch,
   onClose,
   onNewSession,
+  onRename,
+  onDuplicate,
   onSessionExited,
   tabBarActions,
 }: PaneTerminalRegionProps) {
+  const terminalRefs = useRef(new Map<string, TerminalViewHandle | null>());
   const paneSessions = sessionsForPane(sessions, paneId);
   if (paneSessions.length === 0) {
     return null;
@@ -54,6 +66,15 @@ export function PaneTerminalRegion({
         onSwitch={onSwitch}
         onClose={onClose}
         onNew={onNewSession}
+        onRename={onRename}
+        onDuplicate={onDuplicate}
+        onSearch={(query: string, direction: TerminalSearchDirection) => {
+          if (resolvedActiveId) {
+            terminalRefs.current
+              .get(resolvedActiveId)
+              ?.search(query, direction);
+          }
+        }}
         actions={tabBarActions}
       />
       <div className="fo-pane-terminal-views">
@@ -67,9 +88,13 @@ export function PaneTerminalRegion({
               <div className="fo-empty-inline">Starting shell…</div>
             ) : (
               <TerminalView
+                ref={(handle) => {
+                  terminalRefs.current.set(session.id, handle);
+                }}
                 client={client}
                 sessionId={session.id}
                 active={panelActive && session.id === resolvedActiveId}
+                profile={session.terminalProfile ?? null}
                 onExit={(exitCode) => onSessionExited(session.id, exitCode)}
               />
             )}

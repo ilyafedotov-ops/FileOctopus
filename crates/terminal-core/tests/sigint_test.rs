@@ -15,6 +15,7 @@ fn drain_into(rx: &Receiver<TerminalEvent>, captured: &Mutex<Vec<u8>>, max_wait:
                 captured.lock().unwrap().extend(&data);
             }
             Ok(TerminalEvent::Exit { .. }) => return,
+            Ok(TerminalEvent::Session { .. }) => {}
             Err(_) => {}
         }
     }
@@ -43,6 +44,7 @@ fn wait_for(
                 captured.lock().unwrap().extend(&data);
             }
             Ok(TerminalEvent::Exit { .. }) => return false,
+            Ok(TerminalEvent::Session { .. }) => {}
             Err(_) => return false,
         }
     }
@@ -57,10 +59,14 @@ fn ctrl_c_interrupts_foreground_command() {
     let id = service
         .spawn(SpawnTerminalRequest {
             cwd,
+            cwd_uri: None,
             cols: 80,
             rows: 24,
             shell: Some("/bin/sh".to_string()),
             args: Some(vec!["-i".to_string()]),
+            env: Vec::new(),
+            terminal_profile_id: None,
+            title: None,
             owner: TEST_OWNER.to_string(),
         })
         .expect("spawn");

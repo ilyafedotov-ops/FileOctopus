@@ -249,6 +249,7 @@ fn boot_configures_operation_idle_timeout_from_preferences() {
         preferences_db: dir.path().join("preferences.sqlite"),
         navigation_db: dir.path().join("navigation.sqlite"),
         network_db: dir.path().join("network.sqlite"),
+        terminal_db: dir.path().join("terminal.sqlite"),
     };
     let preferences = config::PreferencesRepository::new(paths.preferences_db.clone()).unwrap();
     preferences.set("operationIdleTimeoutSecs", "120").unwrap();
@@ -275,6 +276,7 @@ fn boot_registers_smb_provider_when_network_is_enabled() {
         preferences_db: dir.path().join("preferences.sqlite"),
         navigation_db: dir.path().join("navigation.sqlite"),
         network_db: dir.path().join("network.sqlite"),
+        terminal_db: dir.path().join("terminal.sqlite"),
     };
     let state = AppCore::boot_with_paths(paths).unwrap();
     let uri = ResourceUri::parse("smb://550e8400-e29b-41d4-a716-446655440000/share").unwrap();
@@ -303,6 +305,7 @@ fn boot_registers_s3_provider_when_network_is_enabled() {
         preferences_db: dir.path().join("preferences.sqlite"),
         navigation_db: dir.path().join("navigation.sqlite"),
         network_db: dir.path().join("network.sqlite"),
+        terminal_db: dir.path().join("terminal.sqlite"),
     };
     let state = AppCore::boot_with_paths(paths).unwrap();
     let uri = ResourceUri::parse("s3://550e8400-e29b-41d4-a716-446655440000/bucket").unwrap();
@@ -331,6 +334,7 @@ fn boot_registers_each_cataloged_network_provider_when_network_is_enabled() {
         preferences_db: dir.path().join("preferences.sqlite"),
         navigation_db: dir.path().join("navigation.sqlite"),
         network_db: dir.path().join("network.sqlite"),
+        terminal_db: dir.path().join("terminal.sqlite"),
     };
     let state = AppCore::boot_with_paths(paths).unwrap();
 
@@ -365,6 +369,7 @@ fn boot_does_not_register_sftp_provider_when_network_is_disabled() {
         preferences_db: dir.path().join("preferences.sqlite"),
         navigation_db: dir.path().join("navigation.sqlite"),
         network_db: dir.path().join("network.sqlite"),
+        terminal_db: dir.path().join("terminal.sqlite"),
     };
     let state = AppCore::boot_with_paths(paths).unwrap();
     let uri = ResourceUri::parse("sftp://550e8400-e29b-41d4-a716-446655440000/").unwrap();
@@ -396,6 +401,7 @@ fn boot_does_not_register_smb_provider_when_network_is_disabled() {
         preferences_db: dir.path().join("preferences.sqlite"),
         navigation_db: dir.path().join("navigation.sqlite"),
         network_db: dir.path().join("network.sqlite"),
+        terminal_db: dir.path().join("terminal.sqlite"),
     };
     let state = AppCore::boot_with_paths(paths).unwrap();
     let uri = ResourceUri::parse("smb://550e8400-e29b-41d4-a716-446655440000/share").unwrap();
@@ -427,6 +433,7 @@ fn boot_does_not_register_s3_provider_when_network_is_disabled() {
         preferences_db: dir.path().join("preferences.sqlite"),
         navigation_db: dir.path().join("navigation.sqlite"),
         network_db: dir.path().join("network.sqlite"),
+        terminal_db: dir.path().join("terminal.sqlite"),
     };
     let state = AppCore::boot_with_paths(paths).unwrap();
     let uri = ResourceUri::parse("s3://550e8400-e29b-41d4-a716-446655440000/bucket").unwrap();

@@ -69,6 +69,8 @@ pub struct UserPreferencesDto {
     pub network_default_protocol: String,
     #[serde(default)]
     pub network_ssh_key_path: String,
+    #[serde(default)]
+    pub network_use_ssh_agent: bool,
     #[serde(default = "default_editor_font_family")]
     pub editor_font_family: String,
     #[serde(default = "default_editor_font_size")]

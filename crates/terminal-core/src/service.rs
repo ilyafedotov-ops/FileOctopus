@@ -49,10 +49,14 @@ pub struct TerminalSize {
 #[derive(Debug, Clone)]
 pub struct SpawnTerminalRequest {
     pub cwd: PathBuf,
+    pub cwd_uri: Option<String>,
     pub cols: u16,
     pub rows: u16,
     pub shell: Option<String>,
     pub args: Option<Vec<String>>,
+    pub env: Vec<(String, String)>,
+    pub terminal_profile_id: Option<String>,
+    pub title: Option<String>,
     pub owner: String,
 }
 
@@ -76,6 +80,9 @@ pub struct SpawnRemoteTerminalRequest {
     pub expected_host_key_fingerprint: Option<String>,
     pub cols: u16,
     pub rows: u16,
+    pub cwd_uri: Option<String>,
+    pub terminal_profile_id: Option<String>,
+    pub title: Option<String>,
     pub owner: String,
 }
 
@@ -83,6 +90,27 @@ pub struct SpawnRemoteTerminalRequest {
 pub struct SpawnRemoteTerminalResponse {
     pub id: TerminalId,
     pub observed_host_key_fingerprint: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TerminalSessionStatus {
+    Starting,
+    Running,
+    Exited,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TerminalSessionSnapshot {
+    pub id: TerminalId,
+    pub owner: String,
+    pub status: TerminalSessionStatus,
+    pub title: String,
+    pub cwd_uri: Option<String>,
+    pub terminal_profile_id: Option<String>,
+    pub transport: String,
+    pub cols: u16,
+    pub rows: u16,
+    pub exit_code: Option<i32>,
 }
 
 #[derive(Debug, Clone)]
@@ -97,6 +125,10 @@ pub enum TerminalEvent {
         owner: String,
         exit_code: Option<i32>,
     },
+    Session {
+        kind: &'static str,
+        snapshot: TerminalSessionSnapshot,
+    },
 }
 
 struct SessionWriter {
@@ -107,6 +139,7 @@ struct SessionWriter {
 struct SessionState {
     backend: SessionBackend,
     owner: String,
+    metadata: Arc<Mutex<TerminalSessionSnapshot>>,
 }
 
 enum SessionBackend {
@@ -170,6 +203,13 @@ impl TerminalService {
         let id = TerminalId::new();
         let owner = request.owner.clone();
         let shell = request.shell.unwrap_or_else(default_shell);
+        let title = request.title.unwrap_or_else(|| {
+            Path::new(&shell)
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or("Terminal")
+                .to_string()
+        });
         let pty_system = native_pty_system();
         let pair = pty_system
             .openpty(PtySize {
@@ -185,6 +225,9 @@ impl TerminalService {
         let args = request.args.unwrap_or_else(|| shell_login_args(&shell));
         for arg in args {
             command.arg(arg);
+        }
+        for (key, value) in request.env {
+            command.env(key, value);
         }
 
         let PtyPair { master, slave } = pair;
@@ -206,6 +249,18 @@ impl TerminalService {
             writer: Mutex::new(writer),
             alive: AtomicBool::new(true),
         });
+        let metadata = Arc::new(Mutex::new(TerminalSessionSnapshot {
+            id,
+            owner: owner.clone(),
+            status: TerminalSessionStatus::Running,
+            title,
+            cwd_uri: request.cwd_uri,
+            terminal_profile_id: request.terminal_profile_id,
+            transport: "local".to_string(),
+            cols: request.cols,
+            rows: request.rows,
+            exit_code: None,
+        }));
 
         self.sessions.insert(
             id,
@@ -216,12 +271,32 @@ impl TerminalService {
                     child,
                 },
                 owner: owner.clone(),
+                metadata: metadata.clone(),
             },
         );
+        let _ = self.events_tx.send(TerminalEvent::Session {
+            kind: "started",
+            snapshot: metadata
+                .lock()
+                .map(|guard| guard.clone())
+                .unwrap_or_else(|_| TerminalSessionSnapshot {
+                    id,
+                    owner: owner.clone(),
+                    status: TerminalSessionStatus::Running,
+                    title: "Terminal".to_string(),
+                    cwd_uri: None,
+                    terminal_profile_id: None,
+                    transport: "local".to_string(),
+                    cols: request.cols,
+                    rows: request.rows,
+                    exit_code: None,
+                }),
+        });
 
         let events_tx = self.events_tx.clone();
         let session_id = id;
         let writer_for_read = session_writer;
+        let metadata_for_thread = metadata;
 
         std::thread::spawn(move || {
             let mut buffer = [0u8; OUTPUT_CHUNK_BYTES];
@@ -254,11 +329,22 @@ impl TerminalService {
                         .map(|child| child.wait().ok().map(|status| status.exit_code() as i32))
                 })
                 .flatten();
+            let snapshot = metadata_for_thread.lock().ok().map(|mut guard| {
+                guard.status = TerminalSessionStatus::Exited;
+                guard.exit_code = exit_code;
+                guard.clone()
+            });
             let _ = events_tx.send(TerminalEvent::Exit {
                 id: session_id,
                 owner,
                 exit_code,
             });
+            if let Some(snapshot) = snapshot {
+                let _ = events_tx.send(TerminalEvent::Session {
+                    kind: "exited",
+                    snapshot,
+                });
+            }
         });
 
         Ok(id)
@@ -292,20 +378,44 @@ impl TerminalService {
 
         let (commands, rx) = mpsc::channel();
         let alive = Arc::new(AtomicBool::new(true));
+        let metadata = Arc::new(Mutex::new(TerminalSessionSnapshot {
+            id,
+            owner: owner.clone(),
+            status: TerminalSessionStatus::Running,
+            title: request.title.unwrap_or_else(|| request.host.clone()),
+            cwd_uri: request.cwd_uri,
+            terminal_profile_id: request.terminal_profile_id,
+            transport: "ssh".to_string(),
+            cols: request.cols,
+            rows: request.rows,
+            exit_code: None,
+        }));
         let alive_for_thread = alive.clone();
         let events_tx = self.events_tx.clone();
         let session_id = id;
         let thread_owner = owner.clone();
+        let metadata_for_thread = metadata.clone();
 
         std::thread::spawn(move || {
             let exit_code =
                 run_ssh_terminal_loop(&mut channel, rx, &events_tx, session_id, &thread_owner);
             alive_for_thread.store(false, Ordering::SeqCst);
+            let snapshot = metadata_for_thread.lock().ok().map(|mut guard| {
+                guard.status = TerminalSessionStatus::Exited;
+                guard.exit_code = exit_code;
+                guard.clone()
+            });
             let _ = events_tx.send(TerminalEvent::Exit {
                 id: session_id,
                 owner: thread_owner,
                 exit_code,
             });
+            if let Some(snapshot) = snapshot {
+                let _ = events_tx.send(TerminalEvent::Session {
+                    kind: "exited",
+                    snapshot,
+                });
+            }
             drop(session);
         });
 
@@ -314,13 +424,50 @@ impl TerminalService {
             SessionState {
                 backend: SessionBackend::Ssh { commands, alive },
                 owner,
+                metadata: metadata.clone(),
             },
         );
+        let _ = self.events_tx.send(TerminalEvent::Session {
+            kind: "started",
+            snapshot: metadata
+                .lock()
+                .map(|guard| guard.clone())
+                .unwrap_or_else(|_| TerminalSessionSnapshot {
+                    id,
+                    owner: request.owner,
+                    status: TerminalSessionStatus::Running,
+                    title: "SSH".to_string(),
+                    cwd_uri: None,
+                    terminal_profile_id: None,
+                    transport: "ssh".to_string(),
+                    cols: request.cols,
+                    rows: request.rows,
+                    exit_code: None,
+                }),
+        });
 
         Ok(SpawnRemoteTerminalResponse {
             id,
             observed_host_key_fingerprint,
         })
+    }
+
+    pub fn send_text(&self, id: TerminalId, owner: &str, text: &str) -> Result<(), TerminalError> {
+        self.write(id, owner, text.as_bytes())
+    }
+
+    pub fn run_command(
+        &self,
+        id: TerminalId,
+        owner: &str,
+        command: &str,
+        append_newline: bool,
+    ) -> Result<(), TerminalError> {
+        let mut text = command.to_string();
+        if append_newline && !text.ends_with('\n') {
+            text.push('\n');
+        }
+        self.send_text(id, owner, &text)
     }
 
     pub fn write(&self, id: TerminalId, owner: &str, data: &[u8]) -> Result<(), TerminalError> {
@@ -404,6 +551,14 @@ impl TerminalService {
                     .map_err(|_| TerminalError::session_exited())?;
             }
         }
+        if let Ok(mut metadata) = session.metadata.lock() {
+            metadata.cols = size.cols;
+            metadata.rows = size.rows;
+            let _ = self.events_tx.send(TerminalEvent::Session {
+                kind: "updated",
+                snapshot: metadata.clone(),
+            });
+        }
         Ok(())
     }
 
@@ -415,6 +570,7 @@ impl TerminalService {
         if session.owner != owner {
             return Err(TerminalError::not_found());
         }
+        let metadata = session.metadata.clone();
         match session.backend {
             SessionBackend::Local { child, .. } => {
                 if let Ok(mut guard) = child.lock() {
@@ -427,11 +583,26 @@ impl TerminalService {
                 let _ = commands.send(SshTerminalCommand::Kill);
             }
         }
+        if let Ok(mut metadata) = metadata.lock() {
+            metadata.status = TerminalSessionStatus::Exited;
+            let _ = self.events_tx.send(TerminalEvent::Session {
+                kind: "killed",
+                snapshot: metadata.clone(),
+            });
+        }
         Ok(())
     }
 
     pub fn contains(&self, id: TerminalId) -> bool {
         self.sessions.contains_key(&id)
+    }
+
+    pub fn list_sessions(&self, owner: &str) -> Vec<TerminalSessionSnapshot> {
+        self.sessions
+            .iter()
+            .filter(|item| item.owner == owner)
+            .filter_map(|item| item.metadata.lock().ok().map(|guard| guard.clone()))
+            .collect()
     }
 }
 

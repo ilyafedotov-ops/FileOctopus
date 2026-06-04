@@ -59,6 +59,7 @@ function renderTreeItem(
       key={item.id}
       type="button"
       className={isActive ? "fo-settings-nav-active" : undefined}
+      data-active={isActive ? "true" : undefined}
       onClick={() => onSelect(item.id)}
     >
       {icon ? (

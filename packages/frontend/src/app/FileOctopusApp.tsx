@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { activeTab, parentUri, type SortField } from "../panelStore";
 import type { FileOperationPlanDto } from "@fileoctopus/ts-api";
 import { normalizeIpcError } from "@fileoctopus/ts-api";
@@ -13,6 +13,7 @@ import { useFileOpHandlers } from "../hooks/useFileOpHandlers";
 import { useNetworkHandlers } from "../hooks/useNetworkHandlers";
 import { useCommandDispatch } from "../hooks/useCommandDispatch";
 import type { CommandEntry } from "../components/CommandPalette";
+import { TerminalCommandDialog } from "../components/dialogs/TerminalCommandDialog";
 import { isPreviewable, isTextPreviewable } from "../components/PreviewPanel";
 import { ShellLayout } from "../shell/ShellLayout";
 import { buildPaletteEntries } from "../commands/paletteEntries";
@@ -35,6 +36,12 @@ const isProductionBuild = Boolean(
   (import.meta as ImportMeta & { env?: { PROD?: boolean } }).env?.PROD,
 );
 
+interface TerminalCommandRequest {
+  title: string;
+  submitLabel: string;
+  onSubmit: (command: string) => void;
+}
+
 function FileOctopusAppInner({
   onRequestExit,
   onRequestMinimize,
@@ -46,6 +53,8 @@ function FileOctopusAppInner({
 }) {
   const { client, state, dispatch, workspaceRef, hasInitializedRef } =
     useShell();
+  const [terminalCommandRequest, setTerminalCommandRequest] =
+    useState<TerminalCommandRequest | null>(null);
   const { preferences, density, setPreferences, setDensity } = usePreferences();
   const {
     locations,
@@ -104,7 +113,9 @@ function FileOctopusAppInner({
     openEmbeddedTerminal,
     openExternalTerminal,
     openProfileTerminalTab,
+    runCommandInActiveTerminal,
     setRailSegment,
+    spawnAndRunTerminalCommand,
     togglePaneTerminal,
     syncTerminalCwd,
   } = useTerminal();
@@ -660,6 +671,42 @@ function FileOctopusAppInner({
         });
       });
     },
+    requestTerminalCommand: (label, onSubmit) => {
+      if (!onSubmit) {
+        return null;
+      }
+      setTerminalCommandRequest({
+        title: label,
+        submitLabel: label.startsWith("Spawn") ? "Spawn and Run" : "Run",
+        onSubmit,
+      });
+      return null;
+    },
+    runTerminalCommand: (command) => {
+      void runCommandInActiveTerminal(command).catch((error: unknown) => {
+        pushToast({
+          tone: "error",
+          title:
+            error instanceof Error
+              ? error.message
+              : "Failed to run terminal command",
+        });
+      });
+    },
+    spawnAndRunTerminalCommand: (panelId, command) => {
+      const uri = activeTab(state.panels[panelId]).uri;
+      void spawnAndRunTerminalCommand(uri, command, panelId).catch(
+        (error: unknown) => {
+          pushToast({
+            tone: "error",
+            title:
+              error instanceof Error
+                ? error.message
+                : "Failed to spawn terminal command",
+          });
+        },
+      );
+    },
     activityPanelVisible: preferences?.activityPanelVisible ?? false,
     terminalRailSegment: terminal.segment,
     setTerminalRailSegment: setRailSegment,
@@ -883,185 +930,194 @@ function FileOctopusAppInner({
   }
 
   return (
-    <ShellLayout
-      workspaceRef={workspaceRef}
-      handleShellKeyDown={handleShellKeyDown}
-      makeFilePanelProps={makeFilePanelProps}
-      menuBarProps={menuBarProps}
-      windowControls={{
-        onClose: onRequestExit,
-        onMinimize: onRequestMinimize,
-        onToggleMaximize: onRequestToggleMaximize,
-      }}
-      state={state}
-      activeTabUri={activeTab(state.panels[state.activePanelId]).uri}
-      leftPanelUri={activeTab(state.panels.left).uri}
-      rightPanelUri={activeTab(state.panels.right).uri}
-      locations={locations}
-      favorites={favorites}
-      recentToday={recentToday}
-      recentWeek={recentWeek}
-      starred={starred}
-      networkProfiles={networkProfiles}
-      networkStatuses={networkStatuses}
-      preferences={preferences}
-      updatePreference={updatePreference}
-      settingsPreferenceChange={handleSettingsPreferenceChange}
-      closePaneTerminalConfirmOpen={closePaneTerminalConfirmOpen}
-      setClosePaneTerminalConfirmOpen={setClosePaneTerminalConfirmOpen}
-      onConfirmClosePaneWithTerminal={confirmClosePaneWithTerminal}
-      client={client}
-      jobs={jobs}
-      jobMetrics={jobMetrics}
-      history={history}
-      operationError={operationError}
-      activityCollapsed={activityCollapsed}
-      markActivityPinnedOpen={markActivityPinnedOpen}
-      setActivityCollapsed={setActivityCollapsed}
-      refreshHistory={refreshHistory}
-      clearHistory={clearHistory}
-      onCancelJob={cancelActiveJob}
-      settingsOpen={settingsOpen}
-      shortcutsOpen={shortcutsOpen}
-      commandPaletteOpen={commandPaletteOpen}
-      previewOpen={previewOpen}
-      viewerOpen={viewerOpen}
-      viewerEntry={viewerEntry}
-      editorOpen={editorOpen}
-      editorEntry={editorEntry}
-      diagnosticsOpen={diagnosticsOpen}
-      helpOpen={helpOpen}
-      aboutOpen={aboutOpen}
-      goToLocationOpen={goToLocationOpen}
-      manageFavoritesOpen={manageFavoritesOpen}
-      recentLocationsOpen={recentLocationsOpen}
-      clearRecentLocationsOpen={clearRecentLocationsOpen}
-      errorDetailsOpen={errorDetailsOpen}
-      operationHistoryOpen={operationHistoryOpen}
-      volumePickerOpen={volumePickerOpen}
-      networkLocationsOpen={networkLocationsOpen}
-      connectServerOpen={connectServerOpen}
-      connectServerProfile={connectServerProfile}
-      connectServerInitial={connectServerInitial}
-      removeServerProfile={removeServerProfile}
-      busyProfileIds={busyProfileIds}
-      toolbarCustomizeOpen={toolbarCustomizeOpen}
-      setToolbarCustomizeOpen={setToolbarCustomizeOpen}
-      setGoToLocationOpen={setGoToLocationOpen}
-      setManageFavoritesOpen={setManageFavoritesOpen}
-      setRecentLocationsOpen={setRecentLocationsOpen}
-      setClearRecentLocationsOpen={setClearRecentLocationsOpen}
-      setErrorDetailsOpen={setErrorDetailsOpen}
-      setOperationHistoryOpen={setOperationHistoryOpen}
-      setVolumePickerOpen={setVolumePickerOpen}
-      setNetworkLocationsOpen={setNetworkLocationsOpen}
-      setConnectServerOpen={setConnectServerOpen}
-      setConnectServerProfile={setConnectServerProfile}
-      setConnectServerInitial={setConnectServerInitial}
-      setRemoveServerProfile={setRemoveServerProfile}
-      connectProfile={connectProfile}
-      disconnectProfile={disconnectProfile}
-      deleteProfile={deleteProfile}
-      saveProfile={saveProfile}
-      forgetFingerprint={forgetFingerprint}
-      testConnection={testConnection}
-      refreshNetworkProfiles={refreshNetworkProfiles}
-      openProfileTerminalTab={openProfileTerminalTab}
-      dialog={dialog}
-      autostart={autostart}
-      commandEntries={commandEntries}
-      previewEntry={previewEntry}
-      appInfo={appInfo}
-      appHealth={appHealth}
-      diagnosticsDestination={diagnosticsDestination}
-      diagnosticsMessage={diagnosticsMessage}
-      exportingDiagnostics={exportingDiagnostics}
-      isProductionBuild={isProductionBuild}
-      multiRenameOpen={multiRenameOpen}
-      setSettingsOpen={setSettingsOpen}
-      setShortcutsOpen={setShortcutsOpen}
-      setCommandPaletteOpen={setCommandPaletteOpen}
-      setPreviewOpen={setPreviewOpen}
-      setViewerOpen={setViewerOpen}
-      setViewerEntry={setViewerEntry}
-      setEditorOpen={setEditorOpen}
-      setEditorEntry={setEditorEntry}
-      diffOpen={diffOpen}
-      diffLeftUri={diffLeftUri}
-      diffRightUri={diffRightUri}
-      diffLeftName={diffLeftName}
-      diffRightName={diffRightName}
-      setDiffOpen={setDiffOpen}
-      setDiffLeftUri={setDiffLeftUri}
-      setDiffRightUri={setDiffRightUri}
-      setDiffLeftName={setDiffLeftName}
-      setDiffRightName={setDiffRightName}
-      setMultiRenameOpen={setMultiRenameOpen}
-      syncDirectoriesOpen={syncDirectoriesOpen}
-      setSyncDirectoriesOpen={setSyncDirectoriesOpen}
-      hotlistOpen={hotlistOpen}
-      setHotlistOpen={setHotlistOpen}
-      manageHotlistOpen={manageHotlistOpen}
-      setManageHotlistOpen={setManageHotlistOpen}
-      isTextEditable={isTextEditable}
-      refreshActivePane={() => refreshPanel(state.activePanelId)}
-      setDiagnosticsOpen={setDiagnosticsOpen}
-      setHelpOpen={setHelpOpen}
-      setAboutOpen={setAboutOpen}
-      setDialog={setDialog}
-      setDiagnosticsDestination={setDiagnosticsDestination}
-      refreshDiagnostics={refreshDiagnostics}
-      exportDiagnostics={exportDiagnostics}
-      reviewCopyMoveDialog={reviewCopyMoveDialog}
-      submitCreateFolder={submitCreateFolder}
-      submitCreateFile={submitCreateFile}
-      submitRename={submitRename}
-      submitCopyMove={submitCopyMove}
-      submitTrash={submitTrash}
-      submitPermanentDelete={submitPermanentDelete}
-      copyTextFromSelection={copyTextFromSelection}
-      calculateSelectionSize={calculateSelectionSize}
-      revealEntry={revealEntry}
-      handleSetAutostart={handleSetAutostart}
-      handleCommandSelect={handleCommandSelect}
-      toasts={toasts}
-      notifications={notifications}
-      notificationCenterOpen={notificationCenterOpen}
-      setToasts={setToasts}
-      setNotifications={setNotifications}
-      setNotificationCenterOpen={setNotificationCenterOpen}
-      contextMenu={contextMenu}
-      setContextMenu={setContextMenu}
-      clipboard={clipboard}
-      starredUriSet={starredUriSet}
-      dispatch={dispatch}
-      activateEntry={activateEntry}
-      handleRename={handleRename}
-      triggerInlineRename={triggerInlineRename}
-      copySelectionToFileClipboard={copySelectionToFileClipboard}
-      pasteClipboard={pasteClipboard}
-      handleTrash={handleTrash}
-      handleDelete={handleDelete}
-      toggleStarredForEntry={toggleStarredForEntry}
-      handlePermanentDelete={handlePermanentDelete}
-      handleProperties={handleProperties}
-      handleCreateFolder={handleCreateFolder}
-      handleCreateFile={handleCreateFile}
-      refreshPanel={refreshPanel}
-      handleCopyOrMove={handleCopyOrMove}
-      openExternal={openExternal}
-      toggleHidden={toggleHidden}
-      navigatePanel={navigatePanel}
-      navigateOtherPane={(uri) => {
-        const otherPanel: "left" | "right" =
-          state.activePanelId === "left" ? "right" : "left";
-        navigatePanel(otherPanel, uri);
-      }}
-      refreshNavigation={refreshNavigation}
-      setOperationError={setOperationError}
-      runRecursiveSearch={runRecursiveSearch}
-      applySplitRatioFn={applySplitRatio}
-    />
+    <>
+      <ShellLayout
+        workspaceRef={workspaceRef}
+        handleShellKeyDown={handleShellKeyDown}
+        makeFilePanelProps={makeFilePanelProps}
+        menuBarProps={menuBarProps}
+        windowControls={{
+          onClose: onRequestExit,
+          onMinimize: onRequestMinimize,
+          onToggleMaximize: onRequestToggleMaximize,
+        }}
+        state={state}
+        activeTabUri={activeTab(state.panels[state.activePanelId]).uri}
+        leftPanelUri={activeTab(state.panels.left).uri}
+        rightPanelUri={activeTab(state.panels.right).uri}
+        locations={locations}
+        favorites={favorites}
+        recentToday={recentToday}
+        recentWeek={recentWeek}
+        starred={starred}
+        networkProfiles={networkProfiles}
+        networkStatuses={networkStatuses}
+        preferences={preferences}
+        updatePreference={updatePreference}
+        settingsPreferenceChange={handleSettingsPreferenceChange}
+        closePaneTerminalConfirmOpen={closePaneTerminalConfirmOpen}
+        setClosePaneTerminalConfirmOpen={setClosePaneTerminalConfirmOpen}
+        onConfirmClosePaneWithTerminal={confirmClosePaneWithTerminal}
+        client={client}
+        jobs={jobs}
+        jobMetrics={jobMetrics}
+        history={history}
+        operationError={operationError}
+        activityCollapsed={activityCollapsed}
+        markActivityPinnedOpen={markActivityPinnedOpen}
+        setActivityCollapsed={setActivityCollapsed}
+        refreshHistory={refreshHistory}
+        clearHistory={clearHistory}
+        onCancelJob={cancelActiveJob}
+        settingsOpen={settingsOpen}
+        shortcutsOpen={shortcutsOpen}
+        commandPaletteOpen={commandPaletteOpen}
+        previewOpen={previewOpen}
+        viewerOpen={viewerOpen}
+        viewerEntry={viewerEntry}
+        editorOpen={editorOpen}
+        editorEntry={editorEntry}
+        diagnosticsOpen={diagnosticsOpen}
+        helpOpen={helpOpen}
+        aboutOpen={aboutOpen}
+        goToLocationOpen={goToLocationOpen}
+        manageFavoritesOpen={manageFavoritesOpen}
+        recentLocationsOpen={recentLocationsOpen}
+        clearRecentLocationsOpen={clearRecentLocationsOpen}
+        errorDetailsOpen={errorDetailsOpen}
+        operationHistoryOpen={operationHistoryOpen}
+        volumePickerOpen={volumePickerOpen}
+        networkLocationsOpen={networkLocationsOpen}
+        connectServerOpen={connectServerOpen}
+        connectServerProfile={connectServerProfile}
+        connectServerInitial={connectServerInitial}
+        removeServerProfile={removeServerProfile}
+        busyProfileIds={busyProfileIds}
+        toolbarCustomizeOpen={toolbarCustomizeOpen}
+        setToolbarCustomizeOpen={setToolbarCustomizeOpen}
+        setGoToLocationOpen={setGoToLocationOpen}
+        setManageFavoritesOpen={setManageFavoritesOpen}
+        setRecentLocationsOpen={setRecentLocationsOpen}
+        setClearRecentLocationsOpen={setClearRecentLocationsOpen}
+        setErrorDetailsOpen={setErrorDetailsOpen}
+        setOperationHistoryOpen={setOperationHistoryOpen}
+        setVolumePickerOpen={setVolumePickerOpen}
+        setNetworkLocationsOpen={setNetworkLocationsOpen}
+        setConnectServerOpen={setConnectServerOpen}
+        setConnectServerProfile={setConnectServerProfile}
+        setConnectServerInitial={setConnectServerInitial}
+        setRemoveServerProfile={setRemoveServerProfile}
+        connectProfile={connectProfile}
+        disconnectProfile={disconnectProfile}
+        deleteProfile={deleteProfile}
+        saveProfile={saveProfile}
+        forgetFingerprint={forgetFingerprint}
+        testConnection={testConnection}
+        refreshNetworkProfiles={refreshNetworkProfiles}
+        openProfileTerminalTab={openProfileTerminalTab}
+        dialog={dialog}
+        autostart={autostart}
+        commandEntries={commandEntries}
+        previewEntry={previewEntry}
+        appInfo={appInfo}
+        appHealth={appHealth}
+        diagnosticsDestination={diagnosticsDestination}
+        diagnosticsMessage={diagnosticsMessage}
+        exportingDiagnostics={exportingDiagnostics}
+        isProductionBuild={isProductionBuild}
+        multiRenameOpen={multiRenameOpen}
+        setSettingsOpen={setSettingsOpen}
+        setShortcutsOpen={setShortcutsOpen}
+        setCommandPaletteOpen={setCommandPaletteOpen}
+        setPreviewOpen={setPreviewOpen}
+        setViewerOpen={setViewerOpen}
+        setViewerEntry={setViewerEntry}
+        setEditorOpen={setEditorOpen}
+        setEditorEntry={setEditorEntry}
+        diffOpen={diffOpen}
+        diffLeftUri={diffLeftUri}
+        diffRightUri={diffRightUri}
+        diffLeftName={diffLeftName}
+        diffRightName={diffRightName}
+        setDiffOpen={setDiffOpen}
+        setDiffLeftUri={setDiffLeftUri}
+        setDiffRightUri={setDiffRightUri}
+        setDiffLeftName={setDiffLeftName}
+        setDiffRightName={setDiffRightName}
+        setMultiRenameOpen={setMultiRenameOpen}
+        syncDirectoriesOpen={syncDirectoriesOpen}
+        setSyncDirectoriesOpen={setSyncDirectoriesOpen}
+        hotlistOpen={hotlistOpen}
+        setHotlistOpen={setHotlistOpen}
+        manageHotlistOpen={manageHotlistOpen}
+        setManageHotlistOpen={setManageHotlistOpen}
+        isTextEditable={isTextEditable}
+        refreshActivePane={() => refreshPanel(state.activePanelId)}
+        setDiagnosticsOpen={setDiagnosticsOpen}
+        setHelpOpen={setHelpOpen}
+        setAboutOpen={setAboutOpen}
+        setDialog={setDialog}
+        setDiagnosticsDestination={setDiagnosticsDestination}
+        refreshDiagnostics={refreshDiagnostics}
+        exportDiagnostics={exportDiagnostics}
+        reviewCopyMoveDialog={reviewCopyMoveDialog}
+        submitCreateFolder={submitCreateFolder}
+        submitCreateFile={submitCreateFile}
+        submitRename={submitRename}
+        submitCopyMove={submitCopyMove}
+        submitTrash={submitTrash}
+        submitPermanentDelete={submitPermanentDelete}
+        copyTextFromSelection={copyTextFromSelection}
+        calculateSelectionSize={calculateSelectionSize}
+        revealEntry={revealEntry}
+        handleSetAutostart={handleSetAutostart}
+        handleCommandSelect={handleCommandSelect}
+        toasts={toasts}
+        notifications={notifications}
+        notificationCenterOpen={notificationCenterOpen}
+        setToasts={setToasts}
+        setNotifications={setNotifications}
+        setNotificationCenterOpen={setNotificationCenterOpen}
+        contextMenu={contextMenu}
+        setContextMenu={setContextMenu}
+        clipboard={clipboard}
+        starredUriSet={starredUriSet}
+        dispatch={dispatch}
+        activateEntry={activateEntry}
+        handleRename={handleRename}
+        triggerInlineRename={triggerInlineRename}
+        copySelectionToFileClipboard={copySelectionToFileClipboard}
+        pasteClipboard={pasteClipboard}
+        handleTrash={handleTrash}
+        handleDelete={handleDelete}
+        toggleStarredForEntry={toggleStarredForEntry}
+        handlePermanentDelete={handlePermanentDelete}
+        handleProperties={handleProperties}
+        handleCreateFolder={handleCreateFolder}
+        handleCreateFile={handleCreateFile}
+        refreshPanel={refreshPanel}
+        handleCopyOrMove={handleCopyOrMove}
+        openExternal={openExternal}
+        toggleHidden={toggleHidden}
+        navigatePanel={navigatePanel}
+        navigateOtherPane={(uri) => {
+          const otherPanel: "left" | "right" =
+            state.activePanelId === "left" ? "right" : "left";
+          navigatePanel(otherPanel, uri);
+        }}
+        refreshNavigation={refreshNavigation}
+        setOperationError={setOperationError}
+        runRecursiveSearch={runRecursiveSearch}
+        applySplitRatioFn={applySplitRatio}
+      />
+      <TerminalCommandDialog
+        open={terminalCommandRequest !== null}
+        title={terminalCommandRequest?.title ?? "Run Command in Terminal"}
+        submitLabel={terminalCommandRequest?.submitLabel ?? "Run"}
+        onClose={() => setTerminalCommandRequest(null)}
+        onSubmit={(command) => terminalCommandRequest?.onSubmit(command)}
+      />
+    </>
   );
 }
 

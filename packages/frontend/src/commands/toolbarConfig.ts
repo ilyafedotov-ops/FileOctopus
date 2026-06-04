@@ -43,6 +43,8 @@ const TOOLBAR_DESCRIPTIONS: Partial<Record<CommandId, string>> = {
   "search.focusFilter": "Focus quick filter for the active pane",
   "op.openTerminal": "Open embedded terminal in this folder",
   "op.openTerminalExternal": "Open this folder in the system terminal",
+  "terminal.runCommand": "Run a command in the active terminal",
+  "terminal.spawnAndRun": "Spawn a terminal in this folder and run a command",
   "view.toggleActivity": "Open jobs and activity panel",
   "app.settings": "Open application settings",
   "nav.home": "Go to home directory",

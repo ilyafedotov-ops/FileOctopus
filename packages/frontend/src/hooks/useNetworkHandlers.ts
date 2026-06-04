@@ -1,6 +1,9 @@
 import { useCallback, useState } from "react";
 import { normalizeIpcError, type FileOctopusClient } from "@fileoctopus/ts-api";
-import type { NetworkProfileDto } from "@fileoctopus/ts-api";
+import type {
+  NetworkProfileDto,
+  NetworkProtocolOptionsDto,
+} from "@fileoctopus/ts-api";
 
 interface UseNetworkHandlersParams {
   client: FileOctopusClient;
@@ -128,6 +131,7 @@ export function useNetworkHandlers({
       authKind: "password" | "privateKey" | "accessKey";
       privateKeyPath: string | null;
       defaultPath: string;
+      options: NetworkProtocolOptionsDto;
       password: string;
       passphrase: string;
     }) => {
@@ -143,6 +147,7 @@ export function useNetworkHandlers({
               authKind: payload.authKind,
               privateKeyPath: payload.privateKeyPath,
               defaultPath: payload.defaultPath,
+              options: payload.options,
             })
           : await client.network.addProfile({
               label: payload.label,
@@ -153,6 +158,7 @@ export function useNetworkHandlers({
               authKind: payload.authKind,
               privateKeyPath: payload.privateKeyPath,
               defaultPath: payload.defaultPath,
+              options: payload.options,
             });
 
         const profile = response.profile;
