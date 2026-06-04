@@ -10,6 +10,14 @@ export interface CommanderActionsDeps {
   setViewerEntry: (entry: FileEntryDto | null) => void;
   setEditorOpen: (open: boolean) => void;
   setEditorEntry: (entry: FileEntryDto | null) => void;
+  openPreviewInOppositePane?: (
+    sourcePanelId: PanelId,
+    entry: FileEntryDto,
+  ) => void;
+  openEditorInOppositePane?: (
+    sourcePanelId: PanelId,
+    entry: FileEntryDto,
+  ) => void;
   isTextEditable: (entry: FileEntryDto | null) => boolean;
   handleCommandSelect: (id: string, panelId?: PanelId) => void;
   handleCopyOrMove: (panelId: PanelId, mode: "copy" | "move") => void;
@@ -30,6 +38,8 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
     setViewerEntry,
     setEditorOpen,
     setEditorEntry,
+    openPreviewInOppositePane,
+    openEditorInOppositePane,
     isTextEditable,
     handleCommandSelect,
     handleCopyOrMove,
@@ -53,8 +63,12 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
     view: () => {
       if (selectedEntry) {
         setOperationError(null);
-        setViewerEntry(selectedEntry);
-        setViewerOpen(true);
+        if (openPreviewInOppositePane) {
+          openPreviewInOppositePane(panelId, selectedEntry);
+        } else {
+          setViewerEntry(selectedEntry);
+          setViewerOpen(true);
+        }
         return;
       }
       void handleProperties(panelId, selectedEntry);
@@ -65,8 +79,12 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
       }
       if (isTextEditable(selectedEntry)) {
         setOperationError(null);
-        setEditorEntry(selectedEntry);
-        setEditorOpen(true);
+        if (openEditorInOppositePane) {
+          openEditorInOppositePane(panelId, selectedEntry);
+        } else {
+          setEditorEntry(selectedEntry);
+          setEditorOpen(true);
+        }
         return;
       }
       handleCommandSelect("op.openDefault", panelId);

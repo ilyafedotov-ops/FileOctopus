@@ -21,6 +21,8 @@ export function ShellStatusBar() {
     setViewerEntry: ctx.setViewerEntry,
     setEditorOpen: ctx.setEditorOpen,
     setEditorEntry: ctx.setEditorEntry,
+    openPreviewInOppositePane: ctx.openPreviewInOppositePane,
+    openEditorInOppositePane: ctx.openEditorInOppositePane,
     isTextEditable: ctx.isTextEditable,
     handleCommandSelect: ctx.handleCommandSelect,
     handleCopyOrMove: ctx.handleCopyOrMove,

@@ -57,6 +57,7 @@ function makeDeps(
     setRecentWeek: vi.fn(),
     setStarred: vi.fn(),
     setOperationError: vi.fn(),
+    openPreviewInOppositePane: vi.fn(),
     ...overrides,
   };
 }
@@ -321,20 +322,17 @@ describe("createNavigationController", () => {
     );
   });
 
-  it("activateEntry for regular file opens externally", () => {
+  it("activateEntry for regular file opens a preview tab in the opposite pane", () => {
     const deps = makeDeps();
     const ctrl = createNavigationController(deps);
-    ctrl.activateEntry(
-      "left",
-      makeFileEntry({
-        kind: "file",
-        name: "readme.txt",
-        uri: "local:///tmp/readme.txt",
-      }),
-    );
-    expect(deps.client.fs.openPathWithDefaultApp).toHaveBeenCalledWith({
+    const entry = makeFileEntry({
+      kind: "file",
+      name: "readme.txt",
       uri: "local:///tmp/readme.txt",
     });
+    ctrl.activateEntry("left", entry);
+    expect(deps.openPreviewInOppositePane).toHaveBeenCalledWith("left", entry);
+    expect(deps.client.fs.openPathWithDefaultApp).not.toHaveBeenCalled();
   });
 
   it("activateEntry uses targetUri when available", () => {

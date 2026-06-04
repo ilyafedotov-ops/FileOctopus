@@ -48,6 +48,12 @@ import { paneDirectoryCanWrite } from "../navigation/fileMutationState";
 import type { PaneLocationTarget } from "../navigation/driveTargets";
 import type { ContextMenuState } from "../components/ContextMenu";
 import { usePaneGitStatus } from "./usePaneGitStatus";
+import { ViewerContent } from "../components/viewer/ViewerDialog";
+import {
+  detectViewerMode,
+  type ViewerMode,
+} from "../components/viewer/detectViewerMode";
+import { EditorContent } from "../components/editor/EditorDialog";
 
 export type CopyMoveKind = "copy" | "move";
 
@@ -231,6 +237,61 @@ export function FilePanel({
       }
     }
   }, [renameFocusToken, active, tab.selectedIds, tab.entriesById]);
+
+  if (tab.tabKind === "preview" && tab.previewEntry) {
+    return (
+      <section
+        className={active ? "fo-panel fo-panel-active" : "fo-panel"}
+        data-active={active ? "true" : "false"}
+        aria-current={active ? "true" : undefined}
+        onFocus={onActivate}
+      >
+        <TabBar
+          panelId={panelId}
+          panel={panel}
+          onSwitchTab={onSwitchTab}
+          onCloseTab={onCloseTab}
+          onOpenTab={onOpenTab}
+          onOpenTerminal={onOpenTerminal}
+          terminalDisabled={terminalDisabled}
+        />
+        <PreviewTabContent
+          entry={tab.previewEntry}
+          client={client}
+          onClose={() => onCloseTab(panelId, panel.activeTabId)}
+        />
+      </section>
+    );
+  }
+
+  if (tab.tabKind === "editor" && tab.editorEntry) {
+    return (
+      <section
+        className={active ? "fo-panel fo-panel-active" : "fo-panel"}
+        data-active={active ? "true" : "false"}
+        aria-current={active ? "true" : undefined}
+        onFocus={onActivate}
+      >
+        <TabBar
+          panelId={panelId}
+          panel={panel}
+          onSwitchTab={onSwitchTab}
+          onCloseTab={onCloseTab}
+          onOpenTab={onOpenTab}
+          onOpenTerminal={onOpenTerminal}
+          terminalDisabled={terminalDisabled}
+        />
+        <div className="fo-pane-content-tab fo-pane-editor-tab">
+          <EditorContent
+            entry={tab.editorEntry}
+            fs={client.fs}
+            onClose={() => onCloseTab(panelId, panel.activeTabId)}
+            onSaved={onRefresh}
+          />
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section
@@ -435,5 +496,49 @@ export function FilePanel({
         ) : null}
       </div>
     </section>
+  );
+}
+
+function PreviewTabContent({
+  entry,
+  client,
+  onClose,
+}: {
+  entry: FileEntryDto;
+  client: ReturnType<typeof useShell>["client"];
+  onClose: () => void;
+}) {
+  const initialMode = useMemo(() => detectViewerMode(entry), [entry]);
+  const [mode, setMode] = useState<ViewerMode>(initialMode);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
+
+  const openExternally = useCallback(() => {
+    void client.fs
+      .openPathWithDefaultApp({ uri: entry.uri })
+      .catch(() => undefined);
+  }, [client.fs, entry.uri]);
+
+  return (
+    <div className="fo-pane-content-tab fo-pane-preview-tab">
+      <div className="fo-pane-content-actions">
+        <button
+          type="button"
+          className="fo-pane-content-action"
+          onClick={openExternally}
+        >
+          Open externally
+        </button>
+      </div>
+      <ViewerContent
+        entry={entry}
+        fs={client.fs}
+        mode={mode}
+        onModeChange={setMode}
+        onClose={onClose}
+      />
+    </div>
   );
 }

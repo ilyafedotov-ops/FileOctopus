@@ -19,6 +19,40 @@ export function EditorDialog({
   onClose,
   onSaved,
 }: EditorDialogProps) {
+  if (!open || !entry) return null;
+
+  return (
+    <div
+      className="fo-editor-backdrop"
+      role="dialog"
+      aria-label="File editor"
+      aria-modal="true"
+    >
+      <div className="fo-editor-modal">
+        <EditorContent
+          entry={entry}
+          fs={fs}
+          onClose={onClose}
+          onSaved={onSaved}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface EditorContentProps {
+  entry: FileEntryDto;
+  fs: FsClient;
+  onClose: () => void;
+  onSaved?: () => void;
+}
+
+export function EditorContent({
+  entry,
+  fs,
+  onClose,
+  onSaved,
+}: EditorContentProps) {
   const [initialDoc, setInitialDoc] = useState<string | null>(null);
   const [doc, setDoc] = useState("");
   const [loading, setLoading] = useState(false);
@@ -29,16 +63,12 @@ export function EditorDialog({
   const dirty = initialDoc !== null && doc !== initialDoc;
 
   useEffect(() => {
-    if (!open || !entry) {
-      setInitialDoc(null);
-      setDoc("");
-      setError(null);
-      setConfirmClose(false);
-      return;
-    }
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setInitialDoc(null);
+    setDoc("");
+    setConfirmClose(false);
     fs.readTextFile({ uri: entry.uri, maxBytes: 10 * 1024 * 1024 })
       .then((response) => {
         if (cancelled) return;
@@ -61,7 +91,7 @@ export function EditorDialog({
     return () => {
       cancelled = true;
     };
-  }, [entry, fs, open]);
+  }, [entry, fs]);
 
   const requestClose = useCallback(() => {
     if (dirty) {
@@ -88,7 +118,6 @@ export function EditorDialog({
   }, [doc, entry, fs, isRemote, onSaved, saving]);
 
   useEffect(() => {
-    if (!open) return;
     const handler = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -105,76 +134,65 @@ export function EditorDialog({
     };
     window.addEventListener("keydown", handler, true);
     return () => window.removeEventListener("keydown", handler, true);
-  }, [open, requestClose, save]);
-
-  if (!open || !entry) return null;
+  }, [requestClose, save]);
 
   return (
-    <div
-      className="fo-editor-backdrop"
-      role="dialog"
-      aria-label="File editor"
-      aria-modal="true"
-    >
-      <div className="fo-editor-modal">
-        <div className="fo-editor-header">
-          <span className="fo-editor-title">
-            {entry.name}
-            {dirty && <span className="fo-editor-dirty"> •</span>}
-          </span>
-          {isRemote && (
-            <span className="fo-editor-readonly-tag">read-only (remote)</span>
-          )}
-          <button
-            className="fo-editor-save"
-            onClick={() => void save()}
-            disabled={!dirty || saving || isRemote}
-          >
-            {saving ? "Saving…" : "Save"}
-          </button>
-          <button
-            className="fo-editor-close"
-            onClick={requestClose}
-            title="Close (Esc)"
-            aria-label="Close editor"
-          >
-            ✕
-          </button>
-        </div>
-        <div className="fo-editor-body">
-          {loading && <div className="fo-editor-loading">Loading…</div>}
-          {error && <div className="fo-editor-error">{error}</div>}
-          {!loading && initialDoc !== null && (
-            <EditorView
-              key={entry.uri}
-              fileName={entry.name}
-              initialDoc={initialDoc}
-              onChange={setDoc}
-              onSaveRequested={() => void save()}
-            />
-          )}
-        </div>
-        {confirmClose && (
-          <div className="fo-editor-confirm">
-            <div className="fo-editor-confirm-message">
-              You have unsaved changes. Discard and close?
-            </div>
-            <div className="fo-editor-confirm-actions">
-              <button onClick={() => setConfirmClose(false)}>
-                Keep editing
-              </button>
-              <button
-                onClick={() => {
-                  setConfirmClose(false);
-                  onClose();
-                }}
-              >
-                Discard
-              </button>
-            </div>
-          </div>
+    <>
+      <div className="fo-editor-header">
+        <span className="fo-editor-title">
+          {entry.name}
+          {dirty && <span className="fo-editor-dirty"> •</span>}
+        </span>
+        {isRemote && (
+          <span className="fo-editor-readonly-tag">read-only (remote)</span>
+        )}
+        <button
+          className="fo-editor-save"
+          onClick={() => void save()}
+          disabled={!dirty || saving || isRemote}
+        >
+          {saving ? "Saving…" : "Save"}
+        </button>
+        <button
+          className="fo-editor-close"
+          onClick={requestClose}
+          title="Close (Esc)"
+          aria-label="Close editor"
+        >
+          ✕
+        </button>
+      </div>
+      <div className="fo-editor-body">
+        {loading && <div className="fo-editor-loading">Loading…</div>}
+        {error && <div className="fo-editor-error">{error}</div>}
+        {!loading && initialDoc !== null && (
+          <EditorView
+            key={entry.uri}
+            fileName={entry.name}
+            initialDoc={initialDoc}
+            onChange={setDoc}
+            onSaveRequested={() => void save()}
+          />
         )}
       </div>
-    </div>
+      {confirmClose && (
+        <div className="fo-editor-confirm">
+          <div className="fo-editor-confirm-message">
+            You have unsaved changes. Discard and close?
+          </div>
+          <div className="fo-editor-confirm-actions">
+            <button onClick={() => setConfirmClose(false)}>Keep editing</button>
+            <button
+              onClick={() => {
+                setConfirmClose(false);
+                onClose();
+              }}
+            >
+              Discard
+            </button>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

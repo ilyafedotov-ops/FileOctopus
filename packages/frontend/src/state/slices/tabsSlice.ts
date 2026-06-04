@@ -8,12 +8,18 @@ import type { HashState } from "../../pane/hashUtils";
 
 type TabAction = Extract<
   PanelAction,
-  { type: "openTab" } | { type: "closeTab" } | { type: "switchTab" }
+  | { type: "openTab" }
+  | { type: "openPreviewTab" }
+  | { type: "openEditorTab" }
+  | { type: "closeTab" }
+  | { type: "switchTab" }
 >;
 
 export function isTabAction(action: PanelAction): action is TabAction {
   return (
     action.type === "openTab" ||
+    action.type === "openPreviewTab" ||
+    action.type === "openEditorTab" ||
     action.type === "closeTab" ||
     action.type === "switchTab"
   );
@@ -30,7 +36,10 @@ function createFreshTab(uri: string, source?: PanelTabState): PanelTabState {
   const cloneListing = source ? canCloneListing(source, uri) : false;
 
   return {
+    tabKind: "directory",
     uri,
+    previewEntry: null,
+    editorEntry: null,
     entriesById: cloneListing && source ? source.entriesById : {},
     orderedEntryIds: cloneListing && source ? source.orderedEntryIds : [],
     selectedIds: [],
@@ -57,6 +66,39 @@ function createFreshTab(uri: string, source?: PanelTabState): PanelTabState {
   };
 }
 
+function createContentTab(
+  kind: "preview" | "editor",
+  entry: PanelTabState["previewEntry"],
+  source?: PanelTabState,
+): PanelTabState {
+  return {
+    tabKind: kind,
+    uri: entry?.uri ?? "",
+    previewEntry: kind === "preview" ? entry : null,
+    editorEntry: kind === "editor" ? entry : null,
+    entriesById: {},
+    orderedEntryIds: [],
+    selectedIds: [],
+    selectedId: null,
+    focusedId: null,
+    anchorId: null,
+    sessionId: null,
+    activeRequestId: null,
+    loadState: "loaded",
+    error: null,
+    errorCode: null,
+    filter: "",
+    recursiveQuery: "",
+    sort: source?.sort ?? storedSort(),
+    viewMode: source?.viewMode ?? "details",
+    showHidden: source?.showHidden ?? storedShowHidden(),
+    backStack: [],
+    forwardStack: [],
+    hashMap: {} as Record<string, HashState>,
+    backgroundListing: null,
+  };
+}
+
 let _tabCounter = 0;
 function generateTabId(): string {
   _tabCounter += 1;
@@ -72,6 +114,30 @@ export function reduceTab(
       const panel = state.panels[action.panelId];
       const tabId = generateTabId();
       const newTab = createFreshTab(action.uri, panel.tabs[panel.activeTabId]);
+      return {
+        ...state,
+        panels: {
+          ...state.panels,
+          [action.panelId]: {
+            ...panel,
+            activeTabId: tabId,
+            tabs: {
+              ...panel.tabs,
+              [tabId]: newTab,
+            },
+          },
+        },
+      };
+    }
+    case "openPreviewTab":
+    case "openEditorTab": {
+      const panel = state.panels[action.panelId];
+      const tabId = generateTabId();
+      const newTab = createContentTab(
+        action.type === "openPreviewTab" ? "preview" : "editor",
+        action.entry,
+        panel.tabs[panel.activeTabId],
+      );
       return {
         ...state,
         panels: {

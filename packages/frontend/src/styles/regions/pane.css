@@ -120,6 +120,39 @@
   height: 16px;
 }
 
+.fo-pane-content-tab {
+  grid-row: 2 / -1;
+  position: relative;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--fo-surface);
+}
+
+.fo-pane-content-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--fo-border);
+  background: var(--fo-surface-elevated);
+}
+
+.fo-pane-content-action {
+  border: 1px solid var(--fo-border);
+  background: var(--fo-tab-bg);
+  color: var(--fo-text);
+  border-radius: var(--fo-radius-sm-subtle);
+  padding: 4px 10px;
+  font-size: var(--fo-font-size-sm);
+  cursor: pointer;
+}
+
+.fo-pane-content-action:hover {
+  background: var(--fo-tab-hover-bg);
+}
+
 /* UPP-C1: the active pane must be unmistakable (UI spec §3.2). It carries an
    accent frame plus a 2px accent top strip; both are drawn on the panel's own
    background so contrast holds across all themes (incl. commander-blue). The

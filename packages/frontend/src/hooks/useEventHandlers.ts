@@ -105,6 +105,40 @@ export function useEventHandlers({
   syncTerminalCwd,
   onOpenConnectionWizard,
 }: UseEventHandlersParams) {
+  function oppositePanelId(panelId: PanelId): PanelId {
+    return panelId === "left" ? "right" : "left";
+  }
+
+  function ensureDualPaneForContentTab() {
+    if (preferences?.paneMode === "single") {
+      void updatePreference("paneMode", "dual");
+    }
+  }
+
+  function openPreviewInOppositePane(
+    sourcePanelId: PanelId,
+    entry: import("@fileoctopus/ts-api").FileEntryDto,
+  ) {
+    ensureDualPaneForContentTab();
+    dispatch({
+      type: "openPreviewTab",
+      panelId: oppositePanelId(sourcePanelId),
+      entry,
+    });
+  }
+
+  function openEditorInOppositePane(
+    sourcePanelId: PanelId,
+    entry: import("@fileoctopus/ts-api").FileEntryDto,
+  ) {
+    ensureDualPaneForContentTab();
+    dispatch({
+      type: "openEditorTab",
+      panelId: oppositePanelId(sourcePanelId),
+      entry,
+    });
+  }
+
   const navigation = createNavigationController({
     client,
     state,
@@ -117,6 +151,7 @@ export function useEventHandlers({
     setOperationError,
     syncTerminalCwd,
     onOpenConnectionWizard,
+    openPreviewInOppositePane,
   });
 
   const {
@@ -401,6 +436,8 @@ export function useEventHandlers({
     refreshLocations,
     refreshNetworkProfiles,
     activateEntry,
+    openPreviewInOppositePane,
+    openEditorInOppositePane,
     refreshVisiblePanels,
     refreshHistory,
     refreshDiagnostics,
