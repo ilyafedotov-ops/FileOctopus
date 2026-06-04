@@ -25,7 +25,7 @@ export function ShellStatusBar() {
     handleCommandSelect: ctx.handleCommandSelect,
     handleCopyOrMove: ctx.handleCopyOrMove,
     handleCreateFolder: ctx.handleCreateFolder,
-    handleTrash: ctx.handleTrash,
+    handleDelete: ctx.handleDelete,
     handleProperties: ctx.handleProperties,
     setOperationError: ctx.setOperationError,
   });

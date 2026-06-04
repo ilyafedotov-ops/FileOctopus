@@ -28,17 +28,17 @@ export function operationDialogHeading(dialog: OperationDialog): {
       };
     case "copyMove":
       return {
-        title: dialog.kind === "copy" ? "Copy" : "Move",
-        subtitle: selectedItemText(dialog.entries.length),
+        title: `${dialog.kind === "copy" ? "Copy" : "Move"} ${dialog.entries.length} item${dialog.entries.length === 1 ? "" : "s"}`,
+        subtitle: "Choose a destination",
       };
     case "trash":
       return {
-        title: "Move to Trash",
-        subtitle: selectedItemText(dialog.entries.length),
+        title: `Move ${dialog.entries.length} item${dialog.entries.length === 1 ? "" : "s"} to Trash`,
+        subtitle: "",
       };
     case "permanentDelete":
       return {
-        title: "Delete Permanently",
+        title: `Delete ${dialog.entries.length} item${dialog.entries.length === 1 ? "" : "s"} Permanently`,
         subtitle: "This action cannot be undone",
       };
     case "properties":

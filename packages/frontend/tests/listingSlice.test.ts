@@ -153,6 +153,39 @@ describe("reduceListing — startRequest", () => {
       state.panels.right.tabs.main.activeRequestId,
     );
   });
+  it("keeps loaded rows visible during a background refresh", () => {
+    const existing = makeEntry("old.txt", "local:///home/old.txt");
+    const loadedState: FileOctopusState = {
+      ...state,
+      panels: {
+        ...state.panels,
+        left: {
+          ...state.panels.left,
+          tabs: {
+            ...state.panels.left.tabs,
+            main: {
+              ...state.panels.left.tabs.main,
+              entriesById: { [existing.uri]: existing },
+              orderedEntryIds: [existing.uri],
+              loadState: "loaded",
+            },
+          },
+        },
+      },
+    };
+
+    const result = reduceListing(loadedState, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "req-bg",
+      backgroundRefresh: true,
+    });
+    const tab = activeTab(result.panels.left);
+
+    expect(tab.loadState).toBe("loaded");
+    expect(tab.orderedEntryIds).toEqual([existing.uri]);
+    expect(tab.backgroundListing?.requestId).toBe("req-bg");
+  });
 });
 
 describe("reduceListing — startSession", () => {
@@ -263,6 +296,62 @@ describe("reduceListing — applyBatch", () => {
     const result = reduceListing(sessioned, { type: "applyBatch", batch });
     const tab = activeTab(result.panels.left);
     expect(tab.entriesById["local:///home/file.txt"]).toBeDefined();
+  });
+  it("stages background batches and swaps visible rows only when complete", () => {
+    const oldEntry = makeEntry("old.txt", "local:///home/old.txt");
+    const newEntry = makeEntry("new.txt", "local:///home/new.txt");
+    state.panels.left.tabs.main.entriesById = { [oldEntry.uri]: oldEntry };
+    state.panels.left.tabs.main.orderedEntryIds = [oldEntry.uri];
+    state.panels.left.tabs.main.loadState = "loaded";
+
+    const started = reduceListing(state, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "r-bg",
+      backgroundRefresh: true,
+    });
+    const sessioned = reduceListing(started, {
+      type: "startSession",
+      panelId: "left",
+      sessionId: "s-bg",
+      requestId: "r-bg",
+    });
+    const partial = reduceListing(sessioned, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "s-bg",
+        requestId: "r-bg",
+        uri: "local:///home",
+        entries: [newEntry],
+        isComplete: false,
+        batchIndex: 0,
+      },
+    });
+
+    expect(activeTab(partial.panels.left).orderedEntryIds).toEqual([
+      oldEntry.uri,
+    ]);
+    expect(
+      activeTab(partial.panels.left).backgroundListing?.orderedEntryIds,
+    ).toEqual([newEntry.uri]);
+
+    const complete = reduceListing(partial, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "s-bg",
+        requestId: "r-bg",
+        uri: "local:///home",
+        entries: [],
+        isComplete: true,
+        batchIndex: 1,
+      },
+    });
+    const tab = activeTab(complete.panels.left);
+
+    expect(tab.orderedEntryIds).toEqual([newEntry.uri]);
+    expect(tab.entriesById[oldEntry.uri]).toBeUndefined();
+    expect(tab.loadState).toBe("loaded");
+    expect(tab.backgroundListing).toBeNull();
   });
 });
 

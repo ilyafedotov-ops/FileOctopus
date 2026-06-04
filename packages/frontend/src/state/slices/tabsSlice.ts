@@ -53,6 +53,7 @@ function createFreshTab(uri: string, source?: PanelTabState): PanelTabState {
       cloneListing && source
         ? source.hashMap
         : ({} as Record<string, HashState>),
+    backgroundListing: null,
   };
 }
 

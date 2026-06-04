@@ -245,6 +245,8 @@ export function FilePanel({
         onSwitchTab={onSwitchTab}
         onCloseTab={onCloseTab}
         onOpenTab={onOpenTab}
+        onOpenTerminal={onOpenTerminal}
+        terminalDisabled={terminalDisabled}
       />
       <PaneHeader
         uri={tab.uri}
@@ -254,8 +256,6 @@ export function FilePanel({
         onActivate={onActivate}
         locationTargets={locationTargets}
         onBreadcrumbContextMenu={onBreadcrumbContextMenu}
-        onOpenTerminal={onOpenTerminal}
-        terminalDisabled={terminalDisabled}
         gitBranch={gitStatus.repo?.branch ?? gitStatus.repo?.headShort ?? null}
         gitDirty={gitStatus.repo?.isDirty ?? false}
       />

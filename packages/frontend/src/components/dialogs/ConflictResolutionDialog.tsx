@@ -24,6 +24,7 @@ interface ConflictResolutionDialogProps {
   entries: FileEntryDto[];
   fs?: FsClient;
   destinationByUri?: Record<string, ConflictEntryMetadata>;
+  busy?: boolean;
   onBack: () => void;
   onResolve: (result: ConflictResolutionResult) => void;
 }
@@ -144,10 +145,10 @@ export function ConflictResolutionDialog({
   entries,
   fs,
   destinationByUri,
+  busy = false,
   onBack,
   onResolve,
 }: ConflictResolutionDialogProps) {
-  const [selectedAction, setSelectedAction] = useState<ConflictAction>("skip");
   const [applyToAll, setApplyToAll] = useState(false);
   const destinationMetadata = useDestinationMetadata(
     conflicts,
@@ -163,8 +164,8 @@ export function ConflictResolutionDialog({
     <section className="fo-dialog-section">
       <h3>Resolve Conflicts</h3>
       <p>
-        {conflicts.length} item{conflicts.length !== 1 ? "s" : ""} already exist
-        at the destination.
+        {conflicts.length} item{conflicts.length !== 1 ? "s" : ""} already{" "}
+        {conflicts.length === 1 ? "exists" : "exist"} at the destination.
       </p>
 
       <div className="fo-conflict-list">
@@ -203,40 +204,6 @@ export function ConflictResolutionDialog({
                   </div>
                 </div>
               </div>
-              {!applyToAll ? (
-                <div className="fo-conflict-actions-per-item">
-                  <label className="fo-conflict-radio">
-                    <input
-                      type="radio"
-                      name={`conflict-${i}`}
-                      value="skip"
-                      checked={selectedAction === "skip"}
-                      onChange={() => setSelectedAction("skip")}
-                    />
-                    Skip
-                  </label>
-                  <label className="fo-conflict-radio">
-                    <input
-                      type="radio"
-                      name={`conflict-${i}`}
-                      value="overwrite"
-                      checked={selectedAction === "overwrite"}
-                      onChange={() => setSelectedAction("overwrite")}
-                    />
-                    Replace
-                  </label>
-                  <label className="fo-conflict-radio">
-                    <input
-                      type="radio"
-                      name={`conflict-${i}`}
-                      value="renameNew"
-                      checked={selectedAction === "renameNew"}
-                      onChange={() => setSelectedAction("renameNew")}
-                    />
-                    Keep Both
-                  </label>
-                </div>
-              ) : null}
             </div>
           );
         })}
@@ -258,6 +225,7 @@ export function ConflictResolutionDialog({
           type="button"
           variant="ghost"
           size="sm"
+          disabled={busy}
           onClick={() => onBack()}
         >
           Cancel Operation
@@ -266,6 +234,7 @@ export function ConflictResolutionDialog({
           type="button"
           variant="ghost"
           size="sm"
+          disabled={busy}
           onClick={() => handleAction("skip")}
         >
           Skip
@@ -274,6 +243,7 @@ export function ConflictResolutionDialog({
           type="button"
           variant="ghost"
           size="sm"
+          disabled={busy}
           onClick={() => handleAction("renameNew")}
         >
           Keep Both
@@ -282,6 +252,7 @@ export function ConflictResolutionDialog({
           type="button"
           variant="danger"
           size="sm"
+          disabled={busy}
           onClick={() => handleAction("overwrite")}
         >
           Replace

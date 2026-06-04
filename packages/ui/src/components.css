@@ -5,14 +5,14 @@
   align-items: center;
   justify-content: center;
   gap: 0.3rem;
-  min-height: 22px;
-  padding: 0 0.5rem;
+  min-height: 24px;
+  padding: 0 0.55rem;
   border: 1px solid var(--fo-control-border);
-  border-radius: var(--fo-radius-xs);
+  border-radius: 0;
   background: var(--fo-control-bg);
   color: var(--fo-text);
   font-size: var(--fo-font-size-md);
-  font-weight: 500;
+  font-weight: 650;
   line-height: 1;
   white-space: nowrap;
   transition:
@@ -22,8 +22,8 @@
 }
 
 .fo-ui-btn:hover:not(:disabled) {
-  background: var(--fo-accent-soft);
-  border-color: var(--fo-accent-soft);
+  background: var(--fo-classic-face);
+  border-color: var(--fo-accent);
 }
 
 .fo-ui-btn:active:not(:disabled) {
@@ -41,7 +41,7 @@
 }
 
 .fo-ui-btn--sm {
-  min-height: 22px;
+  min-height: 24px;
   padding: 0 0.4rem;
   font-size: var(--fo-font-size-sm);
 }
@@ -65,13 +65,13 @@
 }
 
 .fo-ui-btn--ghost {
-  border-color: transparent;
-  background: transparent;
+  border-color: var(--fo-control-border);
+  background: var(--fo-control-bg);
 }
 
 .fo-ui-btn--ghost:hover:not(:disabled) {
-  border-color: var(--fo-border);
-  background: var(--fo-strip-bg);
+  border-color: var(--fo-accent);
+  background: var(--fo-classic-face);
 }
 
 .fo-ui-btn--danger {

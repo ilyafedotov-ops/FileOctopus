@@ -23,6 +23,7 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
     handleCopyOrMove: vi.fn(),
     handleCreateFolder: vi.fn(),
     handleTrash: vi.fn(),
+    handleDelete: vi.fn(),
     handleProperties: vi.fn(async () => undefined),
     setOperationError: vi.fn(),
     ...overrides,
@@ -254,6 +255,42 @@ describe("createCommanderActions", () => {
 
     commander.copy();
     expect(handleCopyOrMove).toHaveBeenCalledWith("left", "copy");
+  });
+
+  it("routes the F8 delete action through handleDelete", () => {
+    const tab = {
+      ...activeTab(createInitialState().panels.left),
+      selectedId: "local:///tmp/a.txt",
+      selectedIds: ["local:///tmp/a.txt"],
+      entriesById: {
+        "local:///tmp/a.txt": {
+          uri: "local:///tmp/a.txt",
+          name: "a.txt",
+          kind: "file",
+          size: 1,
+          isHidden: false,
+          isSymlink: false,
+          providerId: "local",
+          canRead: true,
+          canList: false,
+          canWrite: true,
+          canDelete: true,
+          canRename: true,
+        },
+      },
+      orderedEntryIds: ["local:///tmp/a.txt"],
+    };
+    const handleDelete = vi.fn();
+    const handleTrash = vi.fn();
+    const commander = createCommanderActions(
+      baseDeps({ tab, handleDelete, handleTrash }),
+    );
+
+    expect(commander.canDelete).toBe(true);
+    commander.delete();
+
+    expect(handleDelete).toHaveBeenCalledWith("left");
+    expect(handleTrash).not.toHaveBeenCalled();
   });
 
   it("starts copy and move dialogs when selection exists", () => {

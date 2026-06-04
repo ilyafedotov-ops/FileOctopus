@@ -1,6 +1,8 @@
 import type { Dispatch, SetStateAction } from "react";
 import type {
+  FileEntryDto,
   FileOperationKind,
+  FileOperationPlanDto,
   JobSnapshot,
   UserPreferencesDto,
 } from "@fileoctopus/ts-api";
@@ -16,6 +18,7 @@ export type CopyMoveKind = Extract<FileOperationKind, "copy" | "move">;
 export interface FileClipboardState {
   kind: CopyMoveKind;
   uris: string[];
+  entries: FileEntryDto[];
   providerId: string;
   timestamp: number;
 }
@@ -39,9 +42,15 @@ export interface UseFileOpHandlersDeps {
       replace?: boolean;
       includeHidden?: boolean;
       softRefresh?: boolean;
+      backgroundRefresh?: boolean;
     },
   ) => void;
-  refreshVisiblePanels: () => void;
+  refreshVisiblePanels: (options?: {
+    replace?: boolean;
+    includeHidden?: boolean;
+    softRefresh?: boolean;
+    backgroundRefresh?: boolean;
+  }) => void;
   refreshNavigation: () => Promise<void>;
   navigatePanel: (
     panelId: PanelId,
@@ -50,6 +59,11 @@ export interface UseFileOpHandlersDeps {
       replace?: boolean;
       includeHidden?: boolean;
       softRefresh?: boolean;
+      backgroundRefresh?: boolean;
     },
   ) => Promise<void>;
+  registerOperationRefresh?: (
+    jobId: string,
+    plan: FileOperationPlanDto,
+  ) => void;
 }

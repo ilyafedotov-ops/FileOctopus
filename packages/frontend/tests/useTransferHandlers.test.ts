@@ -288,6 +288,112 @@ describe("useTransferHandlers", () => {
     expect(deps.setDialog).toHaveBeenCalledWith(null);
   });
 
+  it("submitCopyMove opens conflict resolution when planning finds conflicts", async () => {
+    const { deps, coreOverride } = buildDeps();
+    const plan = {
+      operationId: "op-1",
+      totalItems: 1,
+      conflicts: [
+        {
+          source: "local:///home/user/test.txt",
+          destination: "local:///dest/test.txt",
+        },
+      ],
+      warnings: [],
+    };
+    coreOverride.reviewCopyMoveDialog = vi.fn(async () => plan);
+
+    const { result } = renderHook(() =>
+      useTransferHandlers(deps, coreOverride),
+    );
+
+    const dialog = {
+      type: "copyMove" as const,
+      panelId: "left" as const,
+      kind: "copy" as const,
+      entries: [makeEntry()],
+      destination: "local:///dest",
+      conflictPolicy: "fail" as const,
+      advancedOptions: false,
+      planningEnabled: false,
+      plan: null,
+      planning: false,
+      step: "review" as const,
+      error: null as string | null,
+    };
+
+    await act(async () => {
+      await result.current.submitCopyMove(dialog);
+    });
+
+    expect(coreOverride.startPlannedOperation).not.toHaveBeenCalled();
+    expect(deps.setDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plan,
+        step: "confirm-overwrite",
+      }),
+    );
+  });
+
+  it("submitCopyMove replans with selected conflict policy before starting", async () => {
+    const { deps, coreOverride } = buildDeps();
+    const originalPlan = {
+      operationId: "op-1",
+      totalItems: 1,
+      conflicts: [
+        {
+          source: "local:///home/user/test.txt",
+          destination: "local:///dest/test.txt",
+        },
+      ],
+      warnings: [],
+    };
+    const resolvedPlan = {
+      operationId: "op-2",
+      totalItems: 1,
+      conflicts: originalPlan.conflicts,
+      warnings: [],
+    };
+    coreOverride.reviewCopyMoveDialog = vi.fn(async () => resolvedPlan);
+    coreOverride.startPlannedOperation = vi.fn(async () => true);
+
+    const { result } = renderHook(() =>
+      useTransferHandlers(deps, coreOverride),
+    );
+
+    const dialog = {
+      type: "copyMove" as const,
+      panelId: "left" as const,
+      kind: "copy" as const,
+      entries: [makeEntry()],
+      destination: "local:///dest",
+      conflictPolicy: "fail" as const,
+      advancedOptions: false,
+      planningEnabled: false,
+      plan: originalPlan,
+      planning: false,
+      step: "confirm-overwrite" as const,
+      error: null as string | null,
+      pendingConflictPolicy: "renameNew" as const,
+    };
+
+    await act(async () => {
+      await result.current.submitCopyMove(dialog);
+    });
+
+    expect(coreOverride.reviewCopyMoveDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conflictPolicy: "renameNew",
+        plan: null,
+        step: "confirm-overwrite",
+      }),
+    );
+    expect(coreOverride.startPlannedOperation).toHaveBeenCalledWith(
+      resolvedPlan,
+    );
+    expect(deps.setDialog).toHaveBeenCalledWith(null);
+  });
+
   it("submitCopyMove returns early when plan review returns null and planningEnabled", async () => {
     const { deps, coreOverride } = buildDeps();
     coreOverride.reviewCopyMoveDialog = vi.fn(async () => null);
@@ -318,7 +424,7 @@ describe("useTransferHandlers", () => {
     expect(coreOverride.startPlannedOperation).not.toHaveBeenCalled();
   });
 
-  it("submitCopyMove shows confirm-overwrite step when confirmOverwrite is enabled and there are conflicts", async () => {
+  it("submitCopyMove shows confirm-overwrite step when there are conflicts", async () => {
     const { deps, coreOverride } = buildDeps({
       preferences: { confirmOverwrite: true },
     });

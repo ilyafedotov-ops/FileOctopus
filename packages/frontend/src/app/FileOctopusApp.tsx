@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { activeTab, type SortField } from "../panelStore";
+import { activeTab, parentUri, type SortField } from "../panelStore";
+import type { FileOperationPlanDto } from "@fileoctopus/ts-api";
+import { normalizeIpcError } from "@fileoctopus/ts-api";
+import { operationErrorMessage } from "../dialogs/operationJobState";
 import { applySplitRatio, applyThemePreference } from "../applyPreferences";
 import { useWorkspaceLayout } from "../hooks/useWorkspaceLayout";
 import { useMenuBarProps } from "../hooks/useMenuBarProps";
@@ -306,6 +309,94 @@ function FileOctopusAppInner({
 
   const left = activeTab(state.panels.left);
   const right = activeTab(state.panels.right);
+  const operationRefreshTargetsRef = useRef(
+    new Map<string, { folderUris: string[]; removedEntryUris: string[] }>(),
+  );
+
+  const registerOperationRefresh = useCallback(
+    (jobId: string, plan: FileOperationPlanDto) => {
+      const folderUris = new Set<string>();
+      const removedEntryUris: string[] = [];
+      const addParent = (uri: string | null | undefined) => {
+        if (!uri) {
+          return;
+        }
+        folderUris.add(parentUri(uri) ?? uri);
+      };
+      const addDestination = () => {
+        addParent(plan.destination);
+      };
+      const addSources = () => {
+        for (const source of plan.sources) {
+          addParent(source);
+        }
+      };
+
+      switch (plan.kind) {
+        case "copy":
+        case "createArchive":
+        case "extractArchive":
+        case "createDirectory":
+        case "createFile":
+        case "writeTextFile":
+          addDestination();
+          break;
+        case "move":
+          addSources();
+          addDestination();
+          break;
+        case "deleteToTrash":
+        case "deletePermanently":
+          for (const source of plan.sources) {
+            removedEntryUris.push(source);
+            addParent(source);
+          }
+          break;
+        default:
+          addSources();
+          addDestination();
+          break;
+      }
+
+      operationRefreshTargetsRef.current.set(jobId, {
+        folderUris: [...folderUris],
+        removedEntryUris,
+      });
+    },
+    [],
+  );
+
+  const takeOperationRefreshTargets = useCallback((jobId: string) => {
+    const targets = operationRefreshTargetsRef.current.get(jobId) ?? null;
+    operationRefreshTargetsRef.current.delete(jobId);
+    return targets;
+  }, []);
+
+  const refreshOperationTargets = useCallback(
+    (targets: string[] | null, options?: { fullReload?: boolean }) => {
+      const fullReload = options?.fullReload === true;
+      const refreshOptions = {
+        replace: true,
+        softRefresh: !fullReload,
+        backgroundRefresh: !fullReload,
+      };
+      const folderUris = targets ?? null;
+      const panelIds = (["left", "right"] as const).filter((panelId) => {
+        const tab = activeTab(state.panels[panelId]);
+        return folderUris?.includes(tab.uri);
+      });
+
+      if (panelIds.length === 0) {
+        refreshVisiblePanels(refreshOptions);
+        return;
+      }
+
+      for (const panelId of panelIds) {
+        refreshPanel(panelId, refreshOptions);
+      }
+    },
+    [refreshPanel, refreshVisiblePanels, state.panels],
+  );
 
   const { starredUriSet, rowHeight, previewEntry } = useAppInit({
     client,
@@ -320,7 +411,8 @@ function FileOctopusAppInner({
     starred,
     pushToast,
     refreshPanel,
-    refreshVisiblePanels,
+    refreshOperationTargets,
+    takeOperationRefreshTargets,
     refreshHistory,
     refreshLocations,
     refreshNetworkProfiles,
@@ -372,6 +464,7 @@ function FileOctopusAppInner({
     handleRename,
     handleCopyOrMove,
     handleTrash,
+    handleDelete,
     toggleStarredForEntry,
     handlePermanentDelete,
     handleProperties,
@@ -404,7 +497,43 @@ function FileOctopusAppInner({
     refreshVisiblePanels,
     refreshNavigation,
     navigatePanel,
+    registerOperationRefresh,
   });
+
+  const cancelActiveJob = useCallback(
+    (jobId: string) => {
+      void (async () => {
+        setOperationError(null);
+        try {
+          await client.jobs.cancelJob({ jobId });
+          setJobs((current) => {
+            const existing = current[jobId];
+            if (!existing) {
+              return current;
+            }
+            return {
+              ...current,
+              [jobId]: { ...existing, status: "cancelled" },
+            };
+          });
+        } catch (error) {
+          const normalized = normalizeIpcError(error);
+          if (normalized.code === "not_found") {
+            setJobs((current) => {
+              const next = { ...current };
+              delete next[jobId];
+              return next;
+            });
+            return;
+          }
+          setOperationError(
+            operationErrorMessage(normalized.code, normalized.message),
+          );
+        }
+      })();
+    },
+    [client, setJobs, setOperationError],
+  );
 
   const triggerInlineRename = useCallback(
     (panelId: "left" | "right") => {
@@ -671,7 +800,7 @@ function FileOctopusAppInner({
         handleCommandSelect,
         handleCopyOrMove,
         handleCreateFolder,
-        handleTrash,
+        handleDelete,
         handleProperties,
         setOperationError,
       }),
@@ -700,7 +829,7 @@ function FileOctopusAppInner({
       isPreviewable,
       handleCopyOrMove,
       handleCreateFolder,
-      handleTrash,
+      handleDelete,
       handleProperties,
       setOperationError,
     ],
@@ -791,6 +920,7 @@ function FileOctopusAppInner({
       setActivityCollapsed={setActivityCollapsed}
       refreshHistory={refreshHistory}
       clearHistory={clearHistory}
+      onCancelJob={cancelActiveJob}
       settingsOpen={settingsOpen}
       shortcutsOpen={shortcutsOpen}
       commandPaletteOpen={commandPaletteOpen}
@@ -911,6 +1041,7 @@ function FileOctopusAppInner({
       copySelectionToFileClipboard={copySelectionToFileClipboard}
       pasteClipboard={pasteClipboard}
       handleTrash={handleTrash}
+      handleDelete={handleDelete}
       toggleStarredForEntry={toggleStarredForEntry}
       handlePermanentDelete={handlePermanentDelete}
       handleProperties={handleProperties}

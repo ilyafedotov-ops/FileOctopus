@@ -210,13 +210,21 @@ describe("createNavigationController", () => {
   it("refreshVisiblePanels refreshes both panels", async () => {
     const deps = makeDeps();
     const ctrl = createNavigationController(deps);
-    ctrl.refreshVisiblePanels();
+    ctrl.refreshVisiblePanels({ softRefresh: true, backgroundRefresh: true });
     await new Promise((r) => setTimeout(r, 10));
     expect(deps.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ panelId: "left" }),
+      expect.objectContaining({
+        panelId: "left",
+        softRefresh: true,
+        backgroundRefresh: true,
+      }),
     );
     expect(deps.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ panelId: "right" }),
+      expect.objectContaining({
+        panelId: "right",
+        softRefresh: true,
+        backgroundRefresh: true,
+      }),
     );
   });
 

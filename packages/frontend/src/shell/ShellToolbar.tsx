@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { createPortal } from "react-dom";
 import { Icons, ToolbarButton } from "@fileoctopus/ui";
 import { ToolbarCustomizeDialog } from "../components/ToolbarCustomizeDialog";
 import { useToolbarConfig } from "../hooks/useToolbarConfig";
@@ -47,7 +48,7 @@ export function ShellToolbar() {
     handleCommandSelect: ctx.handleCommandSelect,
     handleCopyOrMove: ctx.handleCopyOrMove,
     handleCreateFolder: ctx.handleCreateFolder,
-    handleTrash: ctx.handleTrash,
+    handleDelete: ctx.handleDelete,
     handleProperties: ctx.handleProperties,
     setOperationError: ctx.setOperationError,
   });
@@ -118,6 +119,18 @@ export function ShellToolbar() {
     notificationCount === 0
       ? "Notifications"
       : `Notifications: ${notificationCount} unread`;
+  const notificationCenter = (
+    <NotificationCenter
+      open={ctx.notificationCenterOpen}
+      notifications={ctx.notifications}
+      onClear={() => ctx.setNotifications([])}
+      onDismiss={(id) =>
+        ctx.setNotifications((current) =>
+          current.filter((notification) => notification.id !== id),
+        )
+      }
+    />
+  );
 
   return (
     <>
@@ -207,16 +220,6 @@ export function ShellToolbar() {
               <span className="fo-notification-count">{notificationCount}</span>
             ) : null}
           </ToolbarButton>
-          <NotificationCenter
-            open={ctx.notificationCenterOpen}
-            notifications={ctx.notifications}
-            onClear={() => ctx.setNotifications([])}
-            onDismiss={(id) =>
-              ctx.setNotifications((current) =>
-                current.filter((notification) => notification.id !== id),
-              )
-            }
-          />
         </div>
         <span className="fo-toolbar-separator" aria-hidden="true" />
         <ToolbarButton
@@ -234,6 +237,9 @@ export function ShellToolbar() {
         onClose={() => ctx.setToolbarCustomizeOpen(false)}
         onSave={saveEntries}
       />
+      {typeof document === "undefined"
+        ? notificationCenter
+        : createPortal(notificationCenter, document.body)}
     </>
   );
 }

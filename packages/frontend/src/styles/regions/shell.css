@@ -337,10 +337,10 @@
 }
 
 .fo-notification-center {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  z-index: 210;
+  position: fixed;
+  top: 88px;
+  right: 12px;
+  z-index: 260;
   width: min(340px, calc(100vw - 24px));
   max-height: min(420px, calc(100vh - 120px));
   overflow: hidden;

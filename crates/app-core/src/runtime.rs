@@ -236,7 +236,7 @@ impl OperationRuntime {
         let snapshot = JobSnapshot {
             job_id: job_id.clone(),
             operation_kind,
-            status: JobStatus::Queued,
+            status: JobStatus::Running,
             current_item: None,
             completed_items: 0,
             total_items,
@@ -277,18 +277,15 @@ impl OperationRuntime {
         let history = self.history.clone();
         let task_job_id = job_id.clone();
 
-        let task = move || {
-            // The job announces Running only once a worker picks it up; until
-            // then it stays Queued so the pool acts as a real bounded queue.
-            sink(JobEvent::Started(JobStartedEvent {
-                job_id: task_job_id.clone(),
-                operation_kind,
-                total_items,
-                total_bytes,
-                started_at: now,
-            }));
-            update_snapshot_status(&jobs, &task_job_id, JobStatus::Running, None, None);
+        sink(JobEvent::Started(JobStartedEvent {
+            job_id: job_id.clone(),
+            operation_kind,
+            total_items,
+            total_bytes,
+            started_at: now,
+        }));
 
+        let task = move || {
             let progress_jobs = jobs.clone();
             let progress_base = sink.clone();
             let progress_sink = move |event: JobEvent| {

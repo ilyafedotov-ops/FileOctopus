@@ -44,6 +44,7 @@ export interface NavigateOptions {
   replace?: boolean;
   includeHidden?: boolean;
   softRefresh?: boolean;
+  backgroundRefresh?: boolean;
 }
 
 export interface NavigationController {
@@ -59,7 +60,7 @@ export interface NavigationController {
   ): Promise<void>;
   goHistory(panelId: PanelId, direction: "back" | "forward"): Promise<void>;
   refreshPanel(panelId: PanelId, options?: NavigateOptions): void;
-  refreshVisiblePanels(): void;
+  refreshVisiblePanels(options?: NavigateOptions): void;
   refreshNavigation(): Promise<void>;
   activateEntry(panelId: PanelId, entry: FileEntryDto | null): void;
   openExternal(entry: FileEntryDto): Promise<void>;
@@ -98,9 +99,10 @@ export function createNavigationController(
     panelId: PanelId,
     uri: string,
     includeHidden: boolean,
+    backgroundRefresh = false,
   ) {
     const requestId = createRequestId();
-    dispatch({ type: "startRequest", panelId, requestId });
+    dispatch({ type: "startRequest", panelId, requestId, backgroundRefresh });
 
     try {
       const response = await client.fs.listStart({
@@ -195,6 +197,7 @@ export function createNavigationController(
       uri,
       replace: options.replace,
       softRefresh: options.softRefresh,
+      backgroundRefresh: options.backgroundRefresh,
     });
     if (!options.softRefresh) {
       setSearch((current) =>
@@ -205,7 +208,12 @@ export function createNavigationController(
     if (isNetworkUri(uri)) {
       await loadNetworkNeighborhood(panelId, uri);
     } else {
-      await startListing(panelId, uri, options.includeHidden ?? tab.showHidden);
+      await startListing(
+        panelId,
+        uri,
+        options.includeHidden ?? tab.showHidden,
+        options.backgroundRefresh ?? false,
+      );
     }
     if (!options.softRefresh) {
       if (!isNetworkUri(uri)) {
@@ -247,12 +255,13 @@ export function createNavigationController(
       replace: options.replace ?? true,
       includeHidden: options.includeHidden ?? tab.showHidden,
       softRefresh: options.softRefresh ?? false,
+      backgroundRefresh: options.backgroundRefresh ?? false,
     });
   }
 
-  function refreshVisiblePanels() {
-    refreshPanel("left");
-    refreshPanel("right");
+  function refreshVisiblePanels(options: NavigateOptions = {}) {
+    refreshPanel("left", options);
+    refreshPanel("right", options);
   }
 
   function activateEntry(panelId: PanelId, entry: FileEntryDto | null) {

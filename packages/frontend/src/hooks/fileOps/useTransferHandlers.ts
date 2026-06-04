@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import type { ConflictPolicy } from "@fileoctopus/ts-api";
 import type { PanelId } from "../../panelStore";
 import { activeTab } from "../../panelStore";
@@ -25,6 +26,7 @@ export function useTransferHandlers(
   const { state, setDialog, preferences } = deps;
   const { startPlannedOperation, reviewCopyMoveDialog, selectedEntries } =
     coreOverride ?? useOperationCore(deps);
+  const submitInFlightRef = useRef(false);
 
   function handleCopyOrMove(panelId: PanelId, kind: CopyMoveKind) {
     const entries = selectedEntries(panelId);
@@ -57,36 +59,79 @@ export function useTransferHandlers(
   async function submitCopyMove(
     current: Extract<OperationDialog, { type: "copyMove" }>,
   ) {
-    if (!current.destination.trim()) {
-      setDialog({ ...current, error: "Enter a destination local URI." });
+    if (submitInFlightRef.current) {
       return;
     }
+    submitInFlightRef.current = true;
 
-    let plan = current.plan;
-
-    if (!plan) {
-      plan = await reviewCopyMoveDialog(current);
-      if (!plan || current.planningEnabled) {
+    try {
+      if (!current.destination.trim()) {
+        setDialog({ ...current, error: "Enter a destination local URI." });
         return;
       }
-    }
 
-    const plannedDialog = { ...current, plan };
+      const resolvingConflict =
+        current.step === "confirm-overwrite" && current.pendingConflictPolicy;
+      const conflictPolicy =
+        current.pendingConflictPolicy ?? current.conflictPolicy;
+      let plan = current.plan;
 
-    if (
-      current.step !== "confirm-overwrite" &&
-      (preferences?.confirmOverwrite ?? false) &&
-      plan.conflicts.length > 0 &&
-      current.conflictPolicy === "overwrite"
-    ) {
-      setDialog({ ...plannedDialog, step: "confirm-overwrite" });
-      return;
-    }
+      if (!plan || resolvingConflict) {
+        plan = await reviewCopyMoveDialog({
+          ...current,
+          conflictPolicy,
+          pendingConflictPolicy: undefined,
+          plan: null,
+          step: resolvingConflict ? "confirm-overwrite" : "review",
+        });
+        if (!plan || (current.planningEnabled && !resolvingConflict)) {
+          return;
+        }
+      }
 
-    const ok = await startPlannedOperation(plan);
+      if (
+        resolvingConflict &&
+        plan.conflicts.length > 0 &&
+        conflictPolicy === "fail"
+      ) {
+        setDialog({
+          ...current,
+          plan,
+          conflictPolicy,
+          step: "confirm-overwrite",
+          error:
+            "Choose how to handle destination conflicts before continuing.",
+        });
+        return;
+      }
 
-    if (ok) {
-      setDialog(null);
+      const plannedDialog = {
+        ...current,
+        conflictPolicy,
+        pendingConflictPolicy: undefined,
+        plan,
+      };
+
+      if (!resolvingConflict && plan.conflicts.length > 0) {
+        setDialog({ ...plannedDialog, step: "confirm-overwrite" });
+        return;
+      }
+
+      const ok = await startPlannedOperation(plan);
+
+      if (ok) {
+        setDialog(null);
+      } else if (resolvingConflict) {
+        setDialog({
+          ...plannedDialog,
+          step: "confirm-overwrite",
+          planning: false,
+          error:
+            "Could not start the operation. Try again or cancel from the activity panel.",
+        });
+      }
+    } finally {
+      submitInFlightRef.current = false;
     }
   }
 

@@ -39,7 +39,10 @@ export function PathBar({
   }, [focusToken]);
 
   if (!editing) {
-    const segments = breadcrumbSegments(value).map((segment) => ({
+    const allSegments = breadcrumbSegments(value);
+    const visibleSegments =
+      allSegments.length > 1 ? allSegments.slice(0, -1) : allSegments;
+    const segments = visibleSegments.map((segment) => ({
       label: segment.label,
       path: segment.uri,
     }));

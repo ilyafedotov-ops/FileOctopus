@@ -35,6 +35,7 @@ describe("DialogShell (UPP-E1)", () => {
     expect(dialog.getAttribute("aria-labelledby")).toBe(heading.id);
     expect(screen.getByText("Choose a new name")).not.toBeNull();
     expect(screen.getByRole("button", { name: "Save" })).not.toBeNull();
+    expect(screen.getByRole("button", { name: "Close" }).textContent).toBe("×");
   });
 
   it("closes via the header close button and the Escape key", () => {

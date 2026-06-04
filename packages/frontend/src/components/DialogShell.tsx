@@ -64,7 +64,10 @@ export function DialogShell({
 
   return (
     <div
-      className="fo-dialog-backdrop"
+      className={cx(
+        "fo-dialog-backdrop",
+        !closeOnBackdrop && "fo-dialog-backdrop--pass-through",
+      )}
       role="presentation"
       onClick={closeOnBackdrop ? onClose : undefined}
     >
@@ -96,8 +99,9 @@ export function DialogShell({
               size="sm"
               onClick={onClose}
               aria-label="Close"
+              className="fo-dialog-close"
             >
-              Close
+              ×
             </Button>
           ) : null}
         </header>

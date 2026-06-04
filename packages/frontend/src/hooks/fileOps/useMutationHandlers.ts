@@ -3,7 +3,6 @@ import { isRemoteUri, normalizeIpcError } from "@fileoctopus/ts-api";
 import type { PanelId } from "../../panelStore";
 import { activeTab } from "../../panelStore";
 import {
-  jobIdValue,
   isValidName,
   operationErrorMessage,
 } from "../../dialogs/OperationDialogView";
@@ -13,6 +12,26 @@ import type { UseFileOpHandlersDeps } from "./types";
 import { useOperationCore, type OperationCore } from "./useOperationCore";
 
 const SKIP_TRASH_CONFIRM_KEY = "fileoctopus.skipTrashConfirm";
+const DEFAULT_FOLDER_NAME = "New Folder";
+
+function nextFolderName(entries: FileEntryDto[]): string {
+  const existing = new Set(
+    entries
+      .filter((entry) => entry.kind === "directory")
+      .map((entry) => entry.name),
+  );
+
+  if (!existing.has(DEFAULT_FOLDER_NAME)) {
+    return DEFAULT_FOLDER_NAME;
+  }
+
+  let suffix = 2;
+  while (existing.has(`${DEFAULT_FOLDER_NAME} ${suffix}`)) {
+    suffix += 1;
+  }
+
+  return `${DEFAULT_FOLDER_NAME} ${suffix}`;
+}
 
 export function useMutationHandlers(
   deps: UseFileOpHandlersDeps,
@@ -23,20 +42,24 @@ export function useMutationHandlers(
     state,
     dispatch,
     setDialog,
-    setJobs,
     setOperationError,
-    refreshVisiblePanels,
     refreshNavigation,
+    preferences,
   } = deps;
 
-  const { planOperation, startOperation, selectedEntries } =
-    coreOverride ?? useOperationCore(deps);
+  const {
+    planOperation,
+    startOperation,
+    startPlannedOperation,
+    selectedEntries,
+  } = coreOverride ?? useOperationCore(deps);
 
   function handleCreateFolder(panelId: PanelId) {
+    const tab = activeTab(state.panels[panelId]);
     setDialog({
       type: "createFolder",
       panelId,
-      name: "New Folder",
+      name: nextFolderName(Object.values(tab.entriesById)),
       error: null,
     });
   }
@@ -74,10 +97,12 @@ export function useMutationHandlers(
       return;
     }
 
-    if (
+    const confirmDisabled = preferences?.confirmDelete === false;
+    const skipPersisted =
       typeof sessionStorage !== "undefined" &&
-      sessionStorage.getItem(SKIP_TRASH_CONFIRM_KEY) === "true"
-    ) {
+      sessionStorage.getItem(SKIP_TRASH_CONFIRM_KEY) === "true";
+
+    if (confirmDisabled || skipPersisted) {
       void executeTrash(panelId, entries);
       return;
     }
@@ -110,7 +135,24 @@ export function useMutationHandlers(
       return;
     }
 
+    if (preferences?.confirmPermanentDelete === false) {
+      void startOperation(
+        "deletePermanently",
+        entries.map((entry) => entry.uri),
+      );
+      return;
+    }
+
     setDialog({ type: "permanentDelete", panelId, entries, error: null });
+  }
+
+  function handleDelete(panelId: PanelId) {
+    if (preferences?.useTrashByDefault) {
+      handleTrash(panelId);
+      return;
+    }
+
+    handlePermanentDelete(panelId);
   }
 
   async function submitCreateFolder(
@@ -127,15 +169,34 @@ export function useMutationHandlers(
     }
 
     const tab = activeTab(state.panels[current.panelId]);
-    const ok = await startOperation(
-      "createDirectory",
-      [],
-      joinUri(tab.uri, name),
-    );
+    const targetUri = joinUri(tab.uri, name);
 
-    if (ok) {
-      setDialog(null);
-      refreshVisiblePanels();
+    try {
+      const planResponse = await planOperation(
+        "createDirectory",
+        [],
+        targetUri,
+      );
+
+      if (planResponse.plan.conflicts.length > 0) {
+        setDialog({
+          ...current,
+          error: "A folder with this name already exists.",
+        });
+        return;
+      }
+
+      const ok = await startPlannedOperation(planResponse.plan);
+
+      if (ok) {
+        setDialog(null);
+      }
+    } catch (error) {
+      const normalized = normalizeIpcError(error);
+      setDialog({
+        ...current,
+        error: operationErrorMessage(normalized.code, normalized.message),
+      });
     }
   }
 
@@ -157,20 +218,16 @@ export function useMutationHandlers(
 
     try {
       const planResponse = await planOperation("createFile", [], targetUri);
-      const started = await client.fileOperations.startFileOperation({
-        operationId: planResponse.plan.operationId,
-      });
+      const ok = await startPlannedOperation(planResponse.plan);
 
-      setJobs((jobMap) => ({
-        ...jobMap,
-        [jobIdValue(started.job.jobId)]: started.job,
-      }));
-      setDialog(null);
-      dispatch({
-        type: "setSelection",
-        panelId: current.panelId,
-        entryId: targetUri,
-      });
+      if (ok) {
+        setDialog(null);
+        dispatch({
+          type: "setSelection",
+          panelId: current.panelId,
+          entryId: targetUri,
+        });
+      }
     } catch (error) {
       const normalized = normalizeIpcError(error);
       setDialog({
@@ -227,15 +284,11 @@ export function useMutationHandlers(
         "deletePermanently",
         current.entries.map((entry) => entry.uri),
       );
-      const started = await client.fileOperations.startFileOperation({
-        operationId: planResponse.plan.operationId,
-      });
+      const ok = await startPlannedOperation(planResponse.plan);
 
-      setJobs((jobMap) => ({
-        ...jobMap,
-        [jobIdValue(started.job.jobId)]: started.job,
-      }));
-      setDialog(null);
+      if (ok) {
+        setDialog(null);
+      }
     } catch (error) {
       const normalized = normalizeIpcError(error);
       setDialog({
@@ -295,6 +348,7 @@ export function useMutationHandlers(
     handleTrash,
     executeTrash,
     handlePermanentDelete,
+    handleDelete,
     submitCreateFolder,
     submitCreateFile,
     submitRename,

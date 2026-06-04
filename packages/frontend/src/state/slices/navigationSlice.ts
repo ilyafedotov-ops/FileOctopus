@@ -39,6 +39,7 @@ export function reduceNavigation(
         applyNavigation(tab, normalizeLocalInput(action.uri), {
           replace: action.replace,
           softRefresh: action.softRefresh,
+          backgroundRefresh: action.backgroundRefresh,
         }),
       );
     case "goBack":

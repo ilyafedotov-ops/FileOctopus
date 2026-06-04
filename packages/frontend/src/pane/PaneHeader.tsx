@@ -1,7 +1,6 @@
 import type { MouseEvent } from "react";
 import { useMemo, useState } from "react";
-import { DropdownMenu, Icons, ToolbarButton } from "@fileoctopus/ui";
-import { toolbarCommandMeta } from "../commands/toolbarConfig";
+import { DropdownMenu, Icons } from "@fileoctopus/ui";
 import { PathBar } from "./PanePathBar";
 import {
   selectActivePaneLocationTarget,
@@ -15,8 +14,6 @@ interface PaneHeaderProps {
   onNavigate: (uri: string) => void;
   onActivate?: () => void;
   onBreadcrumbContextMenu?: (path: string, event: MouseEvent) => void;
-  onOpenTerminal?: () => void;
-  terminalDisabled?: boolean;
   gitBranch?: string | null;
   gitDirty?: boolean;
   locationTargets?: PaneLocationTarget[];
@@ -29,13 +26,10 @@ export function PaneHeader({
   onNavigate,
   onActivate,
   onBreadcrumbContextMenu,
-  onOpenTerminal,
-  terminalDisabled = false,
   gitBranch,
   gitDirty = false,
   locationTargets = [],
 }: PaneHeaderProps) {
-  const terminalMeta = toolbarCommandMeta("op.openTerminal");
   const [locationsOpen, setLocationsOpen] = useState(false);
   const activeLocation = selectActivePaneLocationTarget(locationTargets, uri);
   const locationLabel = activeLocation?.label ?? "Location";
@@ -100,26 +94,6 @@ export function PaneHeader({
           </span>
         ) : null}
       </div>
-      {onOpenTerminal ? (
-        <div
-          className="fo-panel-header-actions"
-          role="group"
-          aria-label="Pane actions"
-        >
-          <ToolbarButton
-            className="fo-panel-terminal-btn"
-            disabled={terminalDisabled}
-            title={terminalMeta.tooltip}
-            aria-label={terminalMeta.label}
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenTerminal();
-            }}
-          >
-            {Icons.terminal()}
-          </ToolbarButton>
-        </div>
-      ) : null}
     </header>
   );
 }

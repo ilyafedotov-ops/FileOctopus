@@ -125,9 +125,17 @@ export interface UseAppInitParams {
       replace?: boolean;
       includeHidden?: boolean;
       softRefresh?: boolean;
+      backgroundRefresh?: boolean;
     },
   ) => void;
-  refreshVisiblePanels: () => void;
+  refreshOperationTargets: (
+    targets: string[] | null,
+    options?: { fullReload?: boolean },
+  ) => void;
+  takeOperationRefreshTargets: (jobId: string) => {
+    folderUris: string[];
+    removedEntryUris: string[];
+  } | null;
   refreshHistory: () => Promise<void>;
   refreshLocations: () => Promise<void>;
   refreshNetworkProfiles: () => Promise<void>;
@@ -144,6 +152,7 @@ export interface UseAppInitParams {
       replace?: boolean;
       includeHidden?: boolean;
       softRefresh?: boolean;
+      backgroundRefresh?: boolean;
     },
   ) => Promise<void>;
   applyFolderSizeCompleted: (event: FolderSizeCompletedEventDto) => void;
@@ -190,7 +199,8 @@ export function useAppInit({
   starred,
   pushToast,
   refreshPanel,
-  refreshVisiblePanels,
+  refreshOperationTargets,
+  takeOperationRefreshTargets,
   refreshHistory,
   refreshLocations,
   refreshNetworkProfiles,
@@ -322,7 +332,11 @@ export function useAppInit({
     client.fs
       .onWatchChanged((event) => {
         if (event.uri === activeUri) {
-          refreshPanel(activePanelId, { replace: true, softRefresh: true });
+          refreshPanel(activePanelId, {
+            replace: true,
+            softRefresh: true,
+            backgroundRefresh: true,
+          });
         }
       })
       .then((value) => {
@@ -408,7 +422,21 @@ export function useAppInit({
           popup: shouldPopupOperationCompleted(event.operationKind),
         });
         if (shouldRefreshOperationCompleted(event.operationKind)) {
-          refreshVisiblePanels();
+          const refreshPlan = takeOperationRefreshTargets(event.jobId);
+          if (refreshPlan?.removedEntryUris.length) {
+            dispatch({
+              type: "removeEntries",
+              uris: refreshPlan.removedEntryUris,
+            });
+          }
+          refreshOperationTargets(
+            refreshPlan?.folderUris.length ? refreshPlan.folderUris : null,
+            {
+              fullReload:
+                event.operationKind === "deleteToTrash" ||
+                event.operationKind === "deletePermanently",
+            },
+          );
         }
         void refreshHistory();
       }),
@@ -462,7 +490,10 @@ export function useAppInit({
           }
           return current;
         });
-        refreshVisiblePanels();
+        const refreshPlan = takeOperationRefreshTargets(event.jobId);
+        refreshOperationTargets(
+          refreshPlan?.folderUris.length ? refreshPlan.folderUris : null,
+        );
         void refreshHistory();
       }),
       client.fileOperations.onJobCancelled((event) => {
@@ -508,7 +539,12 @@ export function useAppInit({
           }
           return current;
         });
-        refreshVisiblePanels();
+        const cancelledRefreshPlan = takeOperationRefreshTargets(event.jobId);
+        refreshOperationTargets(
+          cancelledRefreshPlan?.folderUris.length
+            ? cancelledRefreshPlan.folderUris
+            : null,
+        );
         void refreshHistory();
       }),
       client.fileOperations.onJobPaused((event) => {

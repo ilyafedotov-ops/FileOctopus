@@ -73,6 +73,7 @@ export interface ShellLayoutContextValue {
   setActivityCollapsed: (v: boolean) => void;
   refreshHistory: () => Promise<void>;
   clearHistory: () => Promise<void>;
+  onCancelJob: (jobId: string) => void;
   settingsOpen: boolean;
   shortcutsOpen: boolean;
   commandPaletteOpen: boolean;
@@ -230,6 +231,7 @@ export interface ShellLayoutContextValue {
   ) => void;
   pasteClipboard: (panelId: PanelId) => Promise<void>;
   handleTrash: (panelId: PanelId) => void;
+  handleDelete: (panelId: PanelId) => void;
   toggleStarredForEntry: (entry: FileEntryDto) => Promise<void>;
   handlePermanentDelete: (panelId: PanelId) => void;
   handleProperties: (

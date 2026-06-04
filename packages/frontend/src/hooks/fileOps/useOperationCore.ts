@@ -1,8 +1,10 @@
+import { useRef } from "react";
 import type {
   ConflictPolicy,
   FileEntryDto,
   FileOperationKind,
   FileOperationPlanDto,
+  JobSnapshot,
 } from "@fileoctopus/ts-api";
 import { normalizeIpcError } from "@fileoctopus/ts-api";
 import type { PanelId } from "../../panelStore";
@@ -15,8 +17,20 @@ import {
 import type { OperationDialog } from "../../dialogs/OperationDialogView";
 import type { UseFileOpHandlersDeps } from "./types";
 
+function promoteQueuedJob(job: JobSnapshot): JobSnapshot {
+  return job.status === "queued" ? { ...job, status: "running" } : job;
+}
+
 export function useOperationCore(deps: UseFileOpHandlersDeps) {
-  const { client, state, setDialog, setJobs, setOperationError } = deps;
+  const {
+    client,
+    state,
+    setDialog,
+    setJobs,
+    setOperationError,
+    registerOperationRefresh,
+  } = deps;
+  const startingOperationIdsRef = useRef(new Set<string>());
 
   async function planOperation(
     kind: FileOperationKind,
@@ -39,15 +53,42 @@ export function useOperationCore(deps: UseFileOpHandlersDeps) {
   async function startPlannedOperation(
     plan: FileOperationPlanDto,
   ): Promise<boolean> {
+    if (startingOperationIdsRef.current.has(plan.operationId)) {
+      return false;
+    }
+    startingOperationIdsRef.current.add(plan.operationId);
+
     try {
       const started = await client.fileOperations.startFileOperation({
         operationId: plan.operationId,
       });
+      const jobId = jobIdValue(started.job.jobId);
+      const snapshot = promoteQueuedJob(started.job);
 
       setJobs((current) => ({
         ...current,
-        [jobIdValue(started.job.jobId)]: started.job,
+        [jobId]: snapshot,
       }));
+      registerOperationRefresh?.(started.job.jobId, plan);
+
+      if (started.job.status === "queued") {
+        void client.jobs
+          .getJobStatus({ jobId })
+          .then((response) => {
+            setJobs((current) => {
+              const existing = current[jobId];
+              if (!existing || existing.status !== "queued") {
+                return current;
+              }
+              return {
+                ...current,
+                [jobId]: promoteQueuedJob(response.job),
+              };
+            });
+          })
+          .catch(() => undefined);
+      }
+
       return true;
     } catch (error) {
       const normalized = normalizeIpcError(error);
@@ -55,6 +96,8 @@ export function useOperationCore(deps: UseFileOpHandlersDeps) {
         operationErrorMessage(normalized.code, normalized.message),
       );
       return false;
+    } finally {
+      startingOperationIdsRef.current.delete(plan.operationId);
     }
   }
 
