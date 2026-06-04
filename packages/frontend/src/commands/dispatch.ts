@@ -63,6 +63,14 @@ export interface CommandDispatchDeps {
   setViewerEntry: (entry: FileEntryDto | null) => void;
   setEditorOpen: (open: boolean) => void;
   setEditorEntry: (entry: FileEntryDto | null) => void;
+  openPreviewInOppositePane?: (
+    sourcePanelId: PanelId,
+    entry: FileEntryDto,
+  ) => void;
+  openEditorInOppositePane?: (
+    sourcePanelId: PanelId,
+    entry: FileEntryDto,
+  ) => void;
   isTextEditable: (entry: FileEntryDto | null) => boolean;
   isPreviewable: (entry: FileEntryDto | null) => boolean;
   activityCollapsed: boolean;
@@ -430,8 +438,12 @@ export function dispatchCommand(
       const entry = selectedEntry;
       if (entry) {
         deps.setOperationError(null);
-        deps.setViewerEntry(entry);
-        deps.setViewerOpen(true);
+        if (deps.openPreviewInOppositePane) {
+          deps.openPreviewInOppositePane(panelId, entry);
+        } else {
+          deps.setViewerEntry(entry);
+          deps.setViewerOpen(true);
+        }
         return true;
       }
       void deps.handleProperties(panelId, entry);
@@ -539,16 +551,28 @@ export function dispatchCommand(
       if (!entry) return true;
       if (deps.isTextEditable(entry)) {
         deps.setOperationError(null);
-        deps.setEditorEntry(entry);
-        deps.setEditorOpen(true);
+        if (deps.openEditorInOppositePane) {
+          deps.openEditorInOppositePane(panelId, entry);
+        } else {
+          deps.setEditorEntry(entry);
+          deps.setEditorOpen(true);
+        }
         return true;
       }
-      void deps.openExternal(entry);
+      if (deps.openPreviewInOppositePane) {
+        deps.openPreviewInOppositePane(panelId, entry);
+      } else {
+        void deps.openExternal(entry);
+      }
       return true;
     }
     case "op.openDefault":
       if (selectedEntry) {
-        void deps.openExternal(selectedEntry);
+        if (deps.openPreviewInOppositePane) {
+          deps.openPreviewInOppositePane(panelId, selectedEntry);
+        } else {
+          void deps.openExternal(selectedEntry);
+        }
       }
       return true;
     case "op.reveal":

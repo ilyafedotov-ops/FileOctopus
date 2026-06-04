@@ -19,6 +19,8 @@ function baseDeps(overrides: Record<string, unknown> = {}) {
     setEditorOpen: vi.fn(),
     setEditorEntry: vi.fn(),
     isTextEditable: () => false,
+    openPreviewInOppositePane: vi.fn(),
+    openEditorInOppositePane: vi.fn(),
     handleCommandSelect: vi.fn(),
     handleCopyOrMove: vi.fn(),
     handleCreateFolder: vi.fn(),
@@ -40,9 +42,8 @@ describe("createCommanderActions", () => {
     expect(handleProperties).toHaveBeenCalledWith("left", null);
   });
 
-  it("opens viewer for selected files on view", () => {
-    const setViewerOpen = vi.fn();
-    const setViewerEntry = vi.fn();
+  it("opens a preview tab for selected files on view", () => {
+    const openPreviewInOppositePane = vi.fn();
     const tab = {
       ...activeTab(createInitialState().panels.left),
       selectedId: "local:///tmp/readme.txt",
@@ -69,20 +70,20 @@ describe("createCommanderActions", () => {
     const commander = createCommanderActions(
       baseDeps({
         tab,
-        setViewerOpen,
-        setViewerEntry,
+        openPreviewInOppositePane,
       }),
     );
 
     commander.view();
 
-    expect(setViewerEntry).toHaveBeenCalled();
-    expect(setViewerOpen).toHaveBeenCalledWith(true);
+    expect(openPreviewInOppositePane).toHaveBeenCalledWith(
+      "left",
+      tab.entriesById["local:///tmp/readme.txt"],
+    );
   });
 
-  it("opens viewer for binary files on view", () => {
-    const setViewerOpen = vi.fn();
-    const setViewerEntry = vi.fn();
+  it("opens a preview tab for binary files on view", () => {
+    const openPreviewInOppositePane = vi.fn();
     const setOperationError = vi.fn();
     const tab = {
       ...activeTab(createInitialState().panels.left),
@@ -108,13 +109,57 @@ describe("createCommanderActions", () => {
     };
 
     const commander = createCommanderActions(
-      baseDeps({ tab, setViewerOpen, setViewerEntry, setOperationError }),
+      baseDeps({ tab, openPreviewInOppositePane, setOperationError }),
     );
 
     commander.view();
 
     expect(setOperationError).toHaveBeenCalledWith(null);
-    expect(setViewerOpen).toHaveBeenCalledWith(true);
+    expect(openPreviewInOppositePane).toHaveBeenCalledWith(
+      "left",
+      tab.entriesById["local:///tmp/archive.bin"],
+    );
+  });
+
+  it("opens an editor tab for editable selected files on edit", () => {
+    const openEditorInOppositePane = vi.fn();
+    const tab = {
+      ...activeTab(createInitialState().panels.left),
+      selectedId: "local:///tmp/readme.txt",
+      selectedIds: ["local:///tmp/readme.txt"],
+      entriesById: {
+        "local:///tmp/readme.txt": {
+          uri: "local:///tmp/readme.txt",
+          name: "readme.txt",
+          kind: "file",
+          size: 12,
+          isHidden: false,
+          isSymlink: false,
+          providerId: "local",
+          canRead: true,
+          canList: false,
+          canWrite: true,
+          canDelete: true,
+          canRename: true,
+        },
+      },
+      orderedEntryIds: ["local:///tmp/readme.txt"],
+    };
+
+    const commander = createCommanderActions(
+      baseDeps({
+        tab,
+        isTextEditable: () => true,
+        openEditorInOppositePane,
+      }),
+    );
+
+    commander.edit();
+
+    expect(openEditorInOppositePane).toHaveBeenCalledWith(
+      "left",
+      tab.entriesById["local:///tmp/readme.txt"],
+    );
   });
 
   it("exposes the full F1-F10 Norton function-key layout", () => {

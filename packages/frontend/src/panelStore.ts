@@ -33,6 +33,7 @@ export type SortField =
   | "owner";
 export type SortDirection = "asc" | "desc";
 export type ViewMode = "details" | "list" | "compact" | "icons" | "columns";
+export type TabKind = "directory" | "preview" | "editor";
 
 export interface SortState {
   field: SortField;
@@ -41,7 +42,10 @@ export interface SortState {
 }
 
 export interface PanelTabState {
+  tabKind: TabKind;
   uri: string;
+  previewEntry: FileEntryDto | null;
+  editorEntry: FileEntryDto | null;
   entriesById: Record<string, FileEntryDto>;
   orderedEntryIds: string[];
   selectedIds: string[];
@@ -147,6 +151,8 @@ export type PanelAction =
     }
   | { type: "swapPanes" }
   | { type: "openTab"; panelId: PanelId; uri: string }
+  | { type: "openPreviewTab"; panelId: PanelId; entry: FileEntryDto }
+  | { type: "openEditorTab"; panelId: PanelId; entry: FileEntryDto }
   | { type: "closeTab"; panelId: PanelId; tabId: string }
   | { type: "switchTab"; panelId: PanelId; tabId: string }
   | {
@@ -249,7 +255,10 @@ function createPanel(id: PanelId, uri: string): PanelState {
     activeTabId: "main",
     tabs: {
       main: {
+        tabKind: "directory",
         uri,
+        previewEntry: null,
+        editorEntry: null,
         entriesById: {},
         orderedEntryIds: [],
         selectedIds: [],
@@ -306,7 +315,10 @@ export function applyNavigation(
 
   return {
     ...tab,
+    tabKind: "directory",
     uri,
+    previewEntry: null,
+    editorEntry: null,
     entriesById: {},
     orderedEntryIds: [],
     selectedIds: [],

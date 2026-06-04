@@ -64,79 +64,126 @@ export function ViewerDialog({
       aria-modal="true"
     >
       <div className="fo-viewer-modal">
-        <div className="fo-viewer-header">
-          <span className="fo-viewer-title">{entry.name}</span>
-          <div className="fo-viewer-modes" role="tablist">
+        <ViewerContent
+          entry={entry}
+          fs={fs}
+          mode={mode}
+          onModeChange={setMode}
+          onClose={onClose}
+          siblings={siblings}
+          currentIndex={currentIndex}
+          hasPrev={hasPrev}
+          hasNext={Boolean(hasNext)}
+          onNavigate={onNavigate}
+        />
+      </div>
+    </div>
+  );
+}
+
+interface ViewerContentProps {
+  entry: FileEntryDto;
+  fs: FsClient;
+  mode: ViewerMode;
+  onModeChange: (mode: ViewerMode) => void;
+  onClose?: () => void;
+  siblings?: FileEntryDto[];
+  currentIndex?: number;
+  hasPrev?: boolean;
+  hasNext?: boolean;
+  onNavigate?: (entry: FileEntryDto) => void;
+}
+
+export function ViewerContent({
+  entry,
+  fs,
+  mode,
+  onModeChange,
+  onClose,
+  siblings,
+  currentIndex = -1,
+  hasPrev = false,
+  hasNext = false,
+  onNavigate,
+}: ViewerContentProps) {
+  return (
+    <>
+      <div className="fo-viewer-header">
+        <span className="fo-viewer-title">{entry.name}</span>
+        <div className="fo-viewer-modes" role="tablist">
+          <button
+            role="tab"
+            aria-selected={mode === "text"}
+            onClick={() => onModeChange("text")}
+            className="fo-viewer-mode-tab"
+          >
+            Text
+          </button>
+          <button
+            role="tab"
+            aria-selected={mode === "hex"}
+            onClick={() => onModeChange("hex")}
+            className="fo-viewer-mode-tab"
+          >
+            Hex
+          </button>
+          <button
+            role="tab"
+            aria-selected={mode === "pdf"}
+            onClick={() => onModeChange("pdf")}
+            className="fo-viewer-mode-tab"
+          >
+            PDF
+          </button>
+          <button
+            role="tab"
+            aria-selected={mode === "image"}
+            onClick={() => onModeChange("image")}
+            className="fo-viewer-mode-tab"
+          >
+            Image
+          </button>
+          <button
+            role="tab"
+            aria-selected={mode === "media"}
+            onClick={() => onModeChange("media")}
+            className="fo-viewer-mode-tab"
+          >
+            Media
+          </button>
+        </div>
+        {siblings && siblings.length > 1 && (
+          <div className="fo-viewer-gallery-nav">
             <button
-              role="tab"
-              aria-selected={mode === "text"}
-              onClick={() => setMode("text")}
-              className="fo-viewer-mode-tab"
+              className="fo-viewer-nav-btn"
+              aria-label="Previous image"
+              disabled={!hasPrev}
+              onClick={() => {
+                if (hasPrev && onNavigate) {
+                  onNavigate(siblings[currentIndex - 1]);
+                }
+              }}
             >
-              Text
+              ‹
             </button>
+            <span className="fo-viewer-gallery-counter">
+              {currentIndex + 1} / {siblings.length}
+            </span>
             <button
-              role="tab"
-              aria-selected={mode === "hex"}
-              onClick={() => setMode("hex")}
-              className="fo-viewer-mode-tab"
+              className="fo-viewer-nav-btn"
+              aria-label="Next image"
+              disabled={!hasNext}
+              onClick={() => {
+                if (hasNext && onNavigate) {
+                  onNavigate(siblings[currentIndex + 1]);
+                }
+              }}
             >
-              Hex
-            </button>
-            <button
-              role="tab"
-              aria-selected={mode === "pdf"}
-              onClick={() => setMode("pdf")}
-              className="fo-viewer-mode-tab"
-            >
-              PDF
-            </button>
-            <button
-              role="tab"
-              aria-selected={mode === "image"}
-              onClick={() => setMode("image")}
-              className="fo-viewer-mode-tab"
-            >
-              Image
-            </button>
-            <button
-              role="tab"
-              aria-selected={mode === "media"}
-              onClick={() => setMode("media")}
-              className="fo-viewer-mode-tab"
-            >
-              Media
+              ›
             </button>
           </div>
-          {siblings && siblings.length > 1 && (
-            <div className="fo-viewer-gallery-nav">
-              <button
-                className="fo-viewer-nav-btn"
-                aria-label="Previous image"
-                disabled={!hasPrev}
-                onClick={() => {
-                  if (hasPrev && onNavigate)
-                    onNavigate(siblings[currentIndex - 1]);
-                }}
-              >
-                ‹
-              </button>
-              <span className="fo-viewer-gallery-counter">
-                {currentIndex + 1} / {siblings.length}
-              </span>
-              <button
-                className="fo-viewer-nav-btn"
-                aria-label="Next image"
-                disabled={!hasNext}
-                onClick={() => {
-                  if (hasNext && onNavigate)
-                    onNavigate(siblings[currentIndex + 1]);
-                }}
-              >
-                ›
-              </button>
-            </div>
-          )}
+        )}
+        {onClose ? (
           <button
             className="fo-viewer-close"
             onClick={onClose}
@@ -145,12 +192,12 @@ export function ViewerDialog({
           >
             ✕
           </button>
-        </div>
-        <div className="fo-viewer-body" data-mode={mode}>
-          <ViewerBody mode={mode} entry={entry} fs={fs} />
-        </div>
+        ) : null}
       </div>
-    </div>
+      <div className="fo-viewer-body" data-mode={mode}>
+        <ViewerBody mode={mode} entry={entry} fs={fs} />
+      </div>
+    </>
   );
 }
 

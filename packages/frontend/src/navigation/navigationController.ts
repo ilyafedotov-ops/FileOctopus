@@ -38,6 +38,10 @@ export interface NavigationControllerDeps {
   setOperationError: Dispatch<SetStateAction<string | null>>;
   syncTerminalCwd?: (panelId: PanelId, uri: string) => void;
   onOpenConnectionWizard?: (prefill?: NetworkConnectionDraftDto) => void;
+  openPreviewInOppositePane?: (
+    sourcePanelId: PanelId,
+    entry: FileEntryDto,
+  ) => void;
 }
 
 export interface NavigateOptions {
@@ -81,6 +85,7 @@ export function createNavigationController(
     setOperationError,
     syncTerminalCwd,
     onOpenConnectionWizard,
+    openPreviewInOppositePane,
   } = deps;
 
   async function openExternal(entry: FileEntryDto) {
@@ -293,6 +298,11 @@ export function createNavigationController(
 
     if (isArchiveFile(entry.name)) {
       void navigateArchive(panelId, entry);
+      return;
+    }
+
+    if (openPreviewInOppositePane) {
+      openPreviewInOppositePane(panelId, entry);
       return;
     }
 

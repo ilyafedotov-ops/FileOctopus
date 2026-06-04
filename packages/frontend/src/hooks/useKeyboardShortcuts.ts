@@ -31,6 +31,14 @@ export interface UseKeyboardShortcutsDeps {
   setViewerEntry: (entry: FileEntryDto | null) => void;
   setEditorOpen: (open: boolean) => void;
   setEditorEntry: (entry: FileEntryDto | null) => void;
+  openPreviewInOppositePane?: (
+    sourcePanelId: PanelId,
+    entry: FileEntryDto,
+  ) => void;
+  openEditorInOppositePane?: (
+    sourcePanelId: PanelId,
+    entry: FileEntryDto,
+  ) => void;
   isTextEditable: (entry: FileEntryDto | null) => boolean;
   dialog: unknown;
   setDialog: (dialog: null) => void;
@@ -73,6 +81,8 @@ export function createKeyboardShortcutsHandler(
       setViewerEntry,
       setEditorOpen,
       setEditorEntry,
+      openPreviewInOppositePane,
+      openEditorInOppositePane,
       isTextEditable,
       dialog,
       setDialog,
@@ -168,6 +178,8 @@ export function createKeyboardShortcutsHandler(
       setViewerEntry,
       setEditorOpen,
       setEditorEntry,
+      openPreviewInOppositePane,
+      openEditorInOppositePane,
       isTextEditable,
       handleCommandSelect,
       handleCopyOrMove,

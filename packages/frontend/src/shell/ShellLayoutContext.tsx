@@ -225,6 +225,14 @@ export interface ShellLayoutContextValue {
   starredUriSet: Set<string>;
   dispatch: React.Dispatch<PanelAction>;
   activateEntry: (panelId: PanelId, entry: FileEntryDto | null) => void;
+  openPreviewInOppositePane: (
+    sourcePanelId: PanelId,
+    entry: FileEntryDto,
+  ) => void;
+  openEditorInOppositePane: (
+    sourcePanelId: PanelId,
+    entry: FileEntryDto,
+  ) => void;
   handleRename: (panelId: PanelId) => void;
   triggerInlineRename: (panelId: PanelId) => void;
   copySelectionToFileClipboard: (

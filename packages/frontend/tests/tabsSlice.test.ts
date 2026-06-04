@@ -2,8 +2,29 @@ import { describe, expect, it, beforeEach } from "vitest";
 import { isTabAction, reduceTab } from "../src/state/slices/tabsSlice";
 import { createInitialState, activeTab } from "../src/panelStore";
 import type { FileOctopusState, PanelAction } from "../src/panelStore";
+import type { FileEntryDto } from "@fileoctopus/ts-api";
 
 let state: FileOctopusState;
+
+function fileEntry(overrides: Partial<FileEntryDto> = {}): FileEntryDto {
+  return {
+    name: "readme.txt",
+    uri: "local:///home/readme.txt",
+    kind: "file",
+    size: 100,
+    extension: ".txt",
+    modifiedAt: null,
+    createdAt: null,
+    isHidden: false,
+    canRead: true,
+    canWrite: true,
+    canDelete: true,
+    canRename: true,
+    canList: false,
+    providerId: "local",
+    ...overrides,
+  };
+}
 
 beforeEach(() => {
   localStorage.clear();
@@ -35,6 +56,24 @@ describe("isTabAction", () => {
         type: "switchTab",
         panelId: "left",
         tabId: "main",
+      } as PanelAction),
+    ).toBe(true);
+  });
+  it("matches openPreviewTab", () => {
+    expect(
+      isTabAction({
+        type: "openPreviewTab",
+        panelId: "right",
+        entry: fileEntry(),
+      } as PanelAction),
+    ).toBe(true);
+  });
+  it("matches openEditorTab", () => {
+    expect(
+      isTabAction({
+        type: "openEditorTab",
+        panelId: "right",
+        entry: fileEntry(),
       } as PanelAction),
     ).toBe(true);
   });
@@ -246,6 +285,55 @@ describe("reduceTab — openTab", () => {
     expect(result.panels.right.activeTabId).toBe(
       state.panels.right.activeTabId,
     );
+  });
+});
+
+describe("reduceTab — content tabs", () => {
+  it("creates a preview tab and makes it active", () => {
+    const entry = fileEntry();
+    const result = reduceTab(state, {
+      type: "openPreviewTab",
+      panelId: "right",
+      entry,
+    });
+    const tab = activeTab(result.panels.right);
+    expect(tab.uri).toBe(entry.uri);
+    expect(tab.tabKind).toBe("preview");
+    expect(tab.previewEntry).toEqual(entry);
+    expect(tab.editorEntry).toBeNull();
+    expect(tab.loadState).toBe("loaded");
+    expect(tab.entriesById).toEqual({});
+  });
+
+  it("creates an editor tab and makes it active", () => {
+    const entry = fileEntry();
+    const result = reduceTab(state, {
+      type: "openEditorTab",
+      panelId: "right",
+      entry,
+    });
+    const tab = activeTab(result.panels.right);
+    expect(tab.uri).toBe(entry.uri);
+    expect(tab.tabKind).toBe("editor");
+    expect(tab.editorEntry).toEqual(entry);
+    expect(tab.previewEntry).toBeNull();
+    expect(tab.loadState).toBe("loaded");
+  });
+
+  it("closes content tabs like directory tabs", () => {
+    const withPreview = reduceTab(state, {
+      type: "openPreviewTab",
+      panelId: "right",
+      entry: fileEntry(),
+    });
+    const previewTabId = withPreview.panels.right.activeTabId;
+    const result = reduceTab(withPreview, {
+      type: "closeTab",
+      panelId: "right",
+      tabId: previewTabId,
+    });
+    expect(result.panels.right.tabs[previewTabId]).toBeUndefined();
+    expect(result.panels.right.activeTabId).toBe("main");
   });
 });
 

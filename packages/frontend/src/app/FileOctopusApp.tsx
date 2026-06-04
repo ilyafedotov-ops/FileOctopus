@@ -219,6 +219,8 @@ function FileOctopusAppInner({
     refreshLocations,
     refreshNetworkProfiles,
     activateEntry,
+    openPreviewInOppositePane,
+    openEditorInOppositePane,
     refreshVisiblePanels,
     refreshHistory,
     refreshDiagnostics,
@@ -616,6 +618,8 @@ function FileOctopusAppInner({
     setViewerEntry,
     setEditorOpen,
     setEditorEntry,
+    openPreviewInOppositePane,
+    openEditorInOppositePane,
     isPreviewable,
     isTextEditable,
     activityCollapsed,
@@ -834,6 +838,8 @@ function FileOctopusAppInner({
         editorOpen,
         setEditorOpen,
         setEditorEntry,
+        openPreviewInOppositePane,
+        openEditorInOppositePane,
         isTextEditable,
         dialog,
         setDialog,
@@ -864,6 +870,8 @@ function FileOctopusAppInner({
       setViewerEntry,
       setEditorOpen,
       setEditorEntry,
+      openPreviewInOppositePane,
+      openEditorInOppositePane,
       isTextEditable,
       dialog,
       setDialog,
@@ -1084,6 +1092,8 @@ function FileOctopusAppInner({
         starredUriSet={starredUriSet}
         dispatch={dispatch}
         activateEntry={activateEntry}
+        openPreviewInOppositePane={openPreviewInOppositePane}
+        openEditorInOppositePane={openEditorInOppositePane}
         handleRename={handleRename}
         triggerInlineRename={triggerInlineRename}
         copySelectionToFileClipboard={copySelectionToFileClipboard}

@@ -119,6 +119,18 @@ const stopWatching = vi.fn(async () => ({ ok: true }));
 const onWatchChanged = vi.fn(async () => () => undefined);
 const openPathWithDefaultApp = vi.fn(async () => ({ ok: true }));
 const revealPathInFileManager = vi.fn(async () => ({ ok: true }));
+const readFileRange = vi.fn(async () => ({
+  bytesBase64: btoa("hello"),
+  bytesRead: 5,
+  byteSize: 5,
+  eof: true,
+}));
+const readTextFile = vi.fn(async () => ({
+  content: "hello",
+  truncated: false,
+  byteSize: 5,
+}));
+const writeTextFile = vi.fn(async () => ({ byteSize: 5 }));
 const properties = vi.fn(async ({ uri }: { uri: string }) => ({
   properties: {
     uri,
@@ -403,6 +415,9 @@ vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
         stopWatching,
         onWatchChanged,
         openPathWithDefaultApp,
+        readFileRange,
+        readTextFile,
+        writeTextFile,
         revealPathInFileManager,
         properties,
         recursiveSearch,
@@ -561,6 +576,9 @@ describe("FileOctopusShell", () => {
     stopWatching.mockClear();
     onWatchChanged.mockClear();
     openPathWithDefaultApp.mockClear();
+    readFileRange.mockClear();
+    readTextFile.mockClear();
+    writeTextFile.mockClear();
     revealPathInFileManager.mockClear();
     properties.mockClear();
     recursiveSearch.mockClear();
@@ -939,16 +957,15 @@ describe("FileOctopusShell", () => {
     });
   });
 
-  it("opens files externally while folders navigate internally", async () => {
+  it("opens files in opposite-pane preview tabs while folders navigate internally", async () => {
     render(<FileOctopusShell />);
     await applyLeftEntries([folderEntry("Projects"), entry("alpha.txt")]);
 
     fireEvent.doubleClick(screen.getByText(/alpha.txt/));
     await waitFor(() =>
-      expect(openPathWithDefaultApp).toHaveBeenCalledWith({
-        uri: "local:///tmp/alpha.txt",
-      }),
+      expect(screen.getAllByText("alpha.txt").length).toBeGreaterThan(1),
     );
+    expect(openPathWithDefaultApp).not.toHaveBeenCalled();
 
     fireEvent.doubleClick(screen.getByText(/Projects/));
     await waitFor(() =>
@@ -958,6 +975,22 @@ describe("FileOctopusShell", () => {
         uri: "local:///tmp/Projects",
       }),
     );
+  });
+
+  it("opens editable files in opposite-pane editor tabs", async () => {
+    render(<FileOctopusShell />);
+    await applyLeftEntries([entry("notes.txt")]);
+
+    fireEvent.click(screen.getByRole("button", { name: /Edit - F4/ }));
+
+    await waitFor(() =>
+      expect(readTextFile).toHaveBeenCalledWith({
+        uri: "local:///tmp/notes.txt",
+        maxBytes: 10 * 1024 * 1024,
+      }),
+    );
+    expect(screen.getAllByText("notes.txt").length).toBeGreaterThan(1);
+    expect(screen.getByText("Save")).toBeTruthy();
   });
 
   it("shows properties and recursive search result actions", async () => {
