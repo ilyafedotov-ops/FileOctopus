@@ -56,3 +56,84 @@
   margin-left: auto;
   padding: 0 4px;
 }
+
+.fo-terminal-tab-actions-trigger {
+  min-width: 24px;
+  padding: 0;
+}
+
+.fo-terminal-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 1 180px;
+  min-width: 120px;
+  max-width: 220px;
+  height: 22px;
+  margin-left: 4px;
+  padding: 0 2px 0 6px;
+  border-left: 1px solid var(--fo-editor-bg);
+  color: var(--fo-muted-text);
+}
+
+.fo-terminal-search .fo-ui-icon {
+  width: 14px;
+  height: 14px;
+  color: var(--fo-muted-text);
+}
+
+.fo-terminal-search-input {
+  min-width: 0;
+  width: 100%;
+  height: 20px;
+  border: 0;
+  background: transparent;
+  color: var(--fo-text);
+  font: inherit;
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-terminal-search-input:focus {
+  outline: 0;
+}
+
+.fo-terminal-search-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--fo-muted-text);
+  cursor: pointer;
+}
+
+.fo-terminal-search-step:hover:not(:disabled) {
+  background: var(--fo-tab-hover-bg);
+  color: var(--fo-text);
+}
+
+.fo-terminal-search-step:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.fo-tab--renaming {
+  padding: 1px 4px;
+  cursor: default;
+}
+
+.fo-tab--renaming input {
+  min-width: 84px;
+  width: 120px;
+  height: 19px;
+  border: 1px solid var(--fo-accent);
+  border-radius: 0;
+  background: var(--fo-editor-bg);
+  color: var(--fo-text);
+  font: inherit;
+  font-size: var(--fo-font-size-md);
+}

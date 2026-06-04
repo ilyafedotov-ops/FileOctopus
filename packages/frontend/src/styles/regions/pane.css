@@ -617,6 +617,7 @@
   display: grid;
   grid-template-columns: minmax(220px, 1fr) 96px 90px 160px;
   min-width: 0;
+  transition: background-color 0.1s ease;
 }
 
 .fo-view-list .fo-row {
@@ -764,7 +765,8 @@
   background: var(--fo-panel-bg);
   color: var(--fo-text);
   font-size: var(--fo-font-size-md);
-  font-weight: 500;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .fo-column-button:last-child {
@@ -778,6 +780,11 @@
   cursor: col-resize;
   z-index: 1;
   user-select: none;
+  transition: width 0.1s ease;
+}
+
+.fo-column-resize-handle:hover {
+  width: 7px;
 }
 
 .fo-column-resize-handle::after {
@@ -875,12 +882,23 @@
 .fo-row-selected {
   background: var(--fo-accent-soft);
   color: var(--fo-on-accent-soft);
+  transition:
+    background-color 0.1s ease,
+    outline-color 0.1s ease;
 }
 
 .fo-row-focused {
   outline: 1px solid var(--fo-accent);
   outline-offset: -1px;
   z-index: 1;
+  transition:
+    background-color 0.1s ease,
+    outline-color 0.1s ease;
+}
+
+/* Focused row that is also hovered keeps the focus outline but does not change background */
+.fo-row-focused:hover:not(.fo-row-selected) {
+  background: transparent;
 }
 
 .fo-row-parent .fo-row-text {
@@ -1182,6 +1200,9 @@
   outline: 2px dashed var(--fo-accent);
   outline-offset: -4px;
   background: var(--fo-accent-soft);
+  transition:
+    outline-color 0.15s ease,
+    background-color 0.15s ease;
 }
 
 .fo-panel-drop-overlay {
@@ -1194,6 +1215,7 @@
   padding: 8px;
   border-radius: var(--fo-radius-md);
   background: color-mix(in srgb, var(--fo-accent-soft) 92%, transparent);
+  backdrop-filter: blur(2px);
   color: var(--fo-text);
   font-size: var(--fo-font-size-lg);
   font-weight: 600;
@@ -1203,9 +1225,34 @@
 
 .fo-panel-drop-path {
   color: var(--fo-muted-text);
-  font-size: var(--fo-font-size-sm);
+  font-size: var(--fo-font-size-md);
   font-weight: 500;
   word-break: break-all;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.fo-panel-drop-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 4px;
+  border: 2px solid var(--fo-accent);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-accent-soft);
+}
+
+.fo-panel-drop-icon::after {
+  content: "";
+  display: block;
+  width: 0;
+  height: 0;
+  margin-top: -2px;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--fo-accent);
+  transform: rotate(180deg);
 }
 
 .fo-pane-state-loading-label {
@@ -1580,21 +1627,25 @@
   border: 1px dashed var(--fo-border);
   border-radius: var(--fo-radius-xs);
   background: var(--fo-panel-bg);
+  transition: opacity 0.2s ease;
 }
 
 .fo-pane-state-path {
   color: var(--fo-muted-text);
   word-break: break-all;
+  font-family: var(--fo-mono, monospace);
 }
 
 .fo-pane-state-actions {
   display: flex;
-  gap: 4px;
+  gap: 8px;
 }
 
 /* --- UPP-C4: Pane state variants --- */
 
 .fo-pane-state-loading {
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   border-style: none;
@@ -1616,10 +1667,17 @@
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .fo-pane-state-spinner {
+    animation: none;
+  }
+}
+
 .fo-pane-state-empty {
   align-items: center;
   justify-content: center;
   border-style: dashed;
+  border-left: 3px solid var(--fo-accent);
   color: var(--fo-muted-text);
 }
 
@@ -1627,6 +1685,7 @@
   align-items: center;
   justify-content: center;
   border-color: var(--fo-danger-border, var(--fo-border));
+  border-left: 3px solid var(--fo-danger);
   background: var(--fo-danger-bg, var(--fo-panel-bg));
   color: var(--fo-danger-text, var(--fo-text));
 }

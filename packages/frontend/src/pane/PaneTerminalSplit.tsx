@@ -37,6 +37,8 @@ export function PaneTerminalSplit({
   const {
     markSessionExited,
     closeTerminalTab,
+    renameTerminalTab,
+    duplicateTerminalTab,
     setPaneTerminalCollapsed,
     setPaneTerminalMaximized,
     closePaneTerminal,
@@ -103,6 +105,10 @@ export function PaneTerminalSplit({
           onSwitch={onSwitch}
           onClose={(sessionId) => closeTerminalTab(sessionId)}
           onNewSession={onNewSession}
+          onRename={renameTerminalTab}
+          onDuplicate={(sessionId) => {
+            void duplicateTerminalTab(sessionId);
+          }}
           onSessionExited={(sessionId, exitCode) => {
             markSessionExited(sessionId, exitCode);
           }}

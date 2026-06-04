@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use app_core::AppPaths;
@@ -47,6 +47,41 @@ fn refresh_and_list(state: &PluginState) -> Result<PluginListResponse, IpcError>
     })
 }
 
+fn normalize_path(path: &Path) -> PathBuf {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::CurDir => {}
+            Component::ParentDir => {
+                normalized.pop();
+            }
+            _ => normalized.push(component.as_os_str()),
+        }
+    }
+    normalized
+}
+
+fn ensure_plugin_path_contained(root: &Path, path: &Path) -> Result<(), IpcError> {
+    let root = root.canonicalize().unwrap_or_else(|_| normalize_path(root));
+    let path = path.canonicalize().unwrap_or_else(|_| normalize_path(path));
+    if path.starts_with(&root) {
+        Ok(())
+    } else {
+        Err(IpcError::invalid_request(
+            "plugin path escapes the plugins directory",
+        ))
+    }
+}
+
+fn plugin_destination(root: &Path, plugin_id: &str) -> Result<PathBuf, IpcError> {
+    if plugin_id.contains('/') || plugin_id.contains('\\') || plugin_id.contains("..") {
+        return Err(IpcError::invalid_request("invalid plugin id"));
+    }
+    let destination = root.join(plugin_id);
+    ensure_plugin_path_contained(root, &destination)?;
+    Ok(destination)
+}
+
 #[tauri::command]
 pub async fn plugin_list(state: State<'_, PluginState>) -> Result<PluginListResponse, IpcError> {
     refresh_and_list(&state)
@@ -70,7 +105,7 @@ pub async fn plugin_install(
     let manifest =
         parse_manifest(&manifest_json).map_err(|e| IpcError::invalid_request(format!("{e}")))?;
 
-    let dest_dir = state.plugins_dir.join(&manifest.id);
+    let dest_dir = plugin_destination(&state.plugins_dir, &manifest.id)?;
     if dest_dir.exists() {
         return Err(IpcError::invalid_request(format!(
             "plugin already installed: {}",
@@ -124,6 +159,7 @@ pub async fn plugin_uninstall(
         .ok_or_else(|| IpcError::not_found(format!("plugin not found: {}", request.plugin_id)))?;
 
     let install_path = plugins[idx].install_path.clone();
+    ensure_plugin_path_contained(&state.plugins_dir, &install_path)?;
     plugins.remove(idx);
     drop(plugins);
 
@@ -171,6 +207,7 @@ mod tests {
             preferences_db: dir.join("prefs.sqlite"),
             navigation_db: dir.join("nav.sqlite"),
             network_db: dir.join("net.sqlite"),
+            terminal_db: dir.join("terminal.sqlite"),
         }
     }
 
@@ -233,5 +270,22 @@ mod tests {
         assert_eq!(response.plugins[0].manifest.id, "com.example.test");
         assert_eq!(response.plugins[0].manifest.name, "Test Plugin");
         assert!(response.plugins[0].enabled);
+    }
+
+    #[test]
+    fn plugin_destination_must_stay_inside_plugins_dir() {
+        let root = PathBuf::from("/tmp/fileoctopus/plugins");
+        assert!(plugin_destination(&root, "com.example.test").is_ok());
+        assert!(plugin_destination(&root, "../escape").is_err());
+        assert!(plugin_destination(&root, "/tmp/escape").is_err());
+    }
+
+    #[test]
+    fn plugin_uninstall_path_must_stay_inside_plugins_dir() {
+        let root = PathBuf::from("/tmp/fileoctopus/plugins");
+        assert!(ensure_plugin_path_contained(&root, &root.join("com.example.test")).is_ok());
+        assert!(
+            ensure_plugin_path_contained(&root, &PathBuf::from("/tmp/fileoctopus/escape")).is_err()
+        );
     }
 }

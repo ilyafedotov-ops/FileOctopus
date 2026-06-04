@@ -17,10 +17,14 @@ fn spawn_shell_emits_output() {
     let id = service
         .spawn(SpawnTerminalRequest {
             cwd,
+            cwd_uri: None,
             cols: 80,
             rows: 24,
             shell: Some("/bin/sh".to_string()),
             args: Some(Vec::new()),
+            env: Vec::new(),
+            terminal_profile_id: None,
+            title: None,
             owner: TEST_OWNER.to_string(),
         })
         .expect("spawn");
@@ -65,10 +69,14 @@ fn kill_actually_terminates_child() {
     let id = service
         .spawn(SpawnTerminalRequest {
             cwd,
+            cwd_uri: None,
             cols: 80,
             rows: 24,
             shell: Some("/bin/sh".to_string()),
             args: Some(Vec::new()),
+            env: Vec::new(),
+            terminal_profile_id: None,
+            title: None,
             owner: TEST_OWNER.to_string(),
         })
         .expect("spawn");
@@ -88,10 +96,14 @@ fn resize_rejects_zero_dimensions() {
     let id = service
         .spawn(SpawnTerminalRequest {
             cwd,
+            cwd_uri: None,
             cols: 80,
             rows: 24,
             shell: None,
             args: None,
+            env: Vec::new(),
+            terminal_profile_id: None,
+            title: None,
             owner: TEST_OWNER.to_string(),
         })
         .expect("spawn");
@@ -108,10 +120,14 @@ fn write_rejects_wrong_owner() {
     let id = service
         .spawn(SpawnTerminalRequest {
             cwd,
+            cwd_uri: None,
             cols: 80,
             rows: 24,
             shell: None,
             args: None,
+            env: Vec::new(),
+            terminal_profile_id: None,
+            title: None,
             owner: TEST_OWNER.to_string(),
         })
         .expect("spawn");

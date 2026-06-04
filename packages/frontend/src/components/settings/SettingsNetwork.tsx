@@ -1,4 +1,7 @@
-import type { UserPreferencesDto } from "@fileoctopus/ts-api";
+import type {
+  NetworkProviderCapabilityDto,
+  UserPreferencesDto,
+} from "@fileoctopus/ts-api";
 import { PathBrowseField } from "../PathBrowseField";
 import {
   pickLocalPath as defaultPickLocalPath,
@@ -10,13 +13,97 @@ interface SettingsNetworkProps {
   preferences: UserPreferencesDto;
   onChange: (key: string, value: string) => void;
   pickLocalPath?: LocalPathPicker;
+  providers?: NetworkProviderCapabilityDto[];
+}
+
+const DEFAULT_PROVIDERS: NetworkProviderCapabilityDto[] = [
+  {
+    scheme: "sftp",
+    label: "SFTP",
+    category: "server",
+    defaultPort: 22,
+    authKinds: ["password", "privateKey"],
+    fileCapable: true,
+    terminalCapable: true,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: ["useAgent", "sshConfigHost", "proxyJump"],
+  },
+  {
+    scheme: "ssh",
+    label: "SSH",
+    category: "server",
+    defaultPort: 22,
+    authKinds: ["password", "privateKey"],
+    fileCapable: false,
+    terminalCapable: true,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: ["useAgent", "sshConfigHost", "proxyJump"],
+  },
+  {
+    scheme: "smb",
+    label: "SMB / CIFS",
+    category: "server",
+    defaultPort: 445,
+    authKinds: ["password"],
+    fileCapable: true,
+    terminalCapable: false,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: ["workgroup", "sharePath"],
+  },
+  {
+    scheme: "s3",
+    label: "S3",
+    category: "server",
+    defaultPort: 443,
+    authKinds: ["accessKey"],
+    fileCapable: true,
+    terminalCapable: false,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: ["region", "pathStyle"],
+  },
+  {
+    scheme: "webdav",
+    label: "WebDAV",
+    category: "server",
+    defaultPort: 443,
+    authKinds: ["password"],
+    fileCapable: false,
+    terminalCapable: false,
+    status: "unavailable",
+    missingDependency: "WebDAV provider is not registered yet.",
+    supportedOptions: [],
+  },
+];
+
+function providerCapabilityLabel(
+  provider: NetworkProviderCapabilityDto,
+): string {
+  if (provider.fileCapable && provider.terminalCapable) {
+    return "Files + terminal";
+  }
+  if (provider.fileCapable) {
+    return "Files";
+  }
+  if (provider.terminalCapable) {
+    return "Terminal";
+  }
+  return "Unavailable";
 }
 
 export function SettingsNetwork({
   preferences,
   onChange,
   pickLocalPath = defaultPickLocalPath,
+  providers = DEFAULT_PROVIDERS,
 }: SettingsNetworkProps) {
+  const defaultProtocolProviders = providers.filter(
+    (provider) => provider.fileCapable || provider.scheme === "webdav",
+  );
+
   async function browseSshKeyPath() {
     const selected = await pickLocalPath({
       kind: "file",
@@ -35,10 +122,27 @@ export function SettingsNetwork({
       role="region"
       aria-label="Network settings"
     >
-      <h3>Network</h3>
+      <h3>Network &amp; Connections</h3>
       <p className="fo-settings-description">
-        Connection timeout, auto-reconnect, and SSH keys.
+        Provider availability, connection defaults, SSH keys, and login
+        behavior.
       </p>
+      <div className="fo-settings-field">
+        <span>Provider availability</span>
+        <div className="fo-settings-provider-list">
+          {providers.map((provider) => (
+            <div key={provider.scheme} className="fo-settings-provider-row">
+              <strong>{provider.label}</strong>
+              <span>{providerCapabilityLabel(provider)}</span>
+              <span>
+                {provider.status === "available"
+                  ? `Port ${provider.defaultPort ?? "-"}`
+                  : provider.missingDependency}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
       <label className="fo-settings-field">
         <span>Connection timeout (seconds)</span>
         <input
@@ -74,6 +178,22 @@ export function SettingsNetwork({
         Automatically attempt to reconnect when a network connection drops.
       </p>
       <label className="fo-settings-field">
+        <span>Reconnect attempts</span>
+        <input
+          type="number"
+          aria-label="Reconnect attempts"
+          value={preferences.networkAutoReconnect ? 3 : 0}
+          min={0}
+          max={10}
+          onChange={(event) =>
+            onChange(
+              "networkAutoReconnect",
+              Number(event.target.value) > 0 ? "true" : "false",
+            )
+          }
+        />
+      </label>
+      <label className="fo-settings-field">
         <span>Default protocol</span>
         <select
           aria-label="Default protocol"
@@ -82,10 +202,17 @@ export function SettingsNetwork({
             onChange("networkDefaultProtocol", event.target.value)
           }
         >
-          <option value="sftp">SFTP</option>
-          <option value="smb">SMB</option>
-          <option value="s3">S3</option>
-          <option value="webdav">WebDAV</option>
+          {defaultProtocolProviders.map((provider) => (
+            <option
+              key={provider.scheme}
+              value={provider.scheme}
+              disabled={
+                provider.status !== "available" || !provider.fileCapable
+              }
+            >
+              {provider.label}
+            </option>
+          ))}
         </select>
       </label>
       <p className="fo-settings-hint">
@@ -102,6 +229,24 @@ export function SettingsNetwork({
       />
       <p className="fo-settings-hint">
         Default path to the SSH private key for SFTP and SSH connections.
+      </p>
+      <label className="fo-settings-checkbox">
+        <input
+          type="checkbox"
+          aria-label="Use SSH agent by default"
+          checked={preferences.networkUseSshAgent}
+          onChange={(event) =>
+            onChange(
+              "networkUseSshAgent",
+              event.target.checked ? "true" : "false",
+            )
+          }
+        />
+        <span>Use SSH agent by default</span>
+      </label>
+      <p className="fo-settings-hint">
+        Per-profile SSH agent, ssh_config host, ProxyJump, and keepalive options
+        are configured in the connection wizard.
       </p>
     </section>
   );

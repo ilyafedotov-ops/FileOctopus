@@ -144,6 +144,16 @@ describe("ConnectServerDialog", () => {
     fireEvent.change(within(dialog()).getByLabelText("Password"), {
       target: { value: "hunter2" },
     });
+    fireEvent.click(within(dialog()).getByLabelText("Use SSH agent"));
+    fireEvent.change(within(dialog()).getByLabelText("SSH config host"), {
+      target: { value: "prod-alias" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("ProxyJump"), {
+      target: { value: "bastion.example.com" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("Keepalive seconds"), {
+      target: { value: "45" },
+    });
 
     // Step 2 → 3 (Credentials → Test)
     fireEvent.click(footerButton("Next"));
@@ -171,6 +181,14 @@ describe("ConnectServerDialog", () => {
       username: "deploy",
       password: "hunter2",
       defaultPath: "/",
+      options: {
+        ssh: {
+          useAgent: true,
+          sshConfigHost: "prod-alias",
+          proxyJump: "bastion.example.com",
+          keepaliveSecs: 45,
+        },
+      },
     });
   });
 

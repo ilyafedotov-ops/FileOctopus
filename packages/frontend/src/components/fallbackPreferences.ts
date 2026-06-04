@@ -53,6 +53,7 @@ export const FALLBACK_PREFERENCES: UserPreferencesDto = {
   networkAutoReconnect: true,
   networkDefaultProtocol: "sftp",
   networkSshKeyPath: "",
+  networkUseSshAgent: false,
   editorFontFamily: "monospace",
   editorFontSize: 14,
   editorTabSize: 4,

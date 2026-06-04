@@ -1,7 +1,37 @@
 import { describe, expect, it, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { SettingsNetwork } from "../src/components/settings/SettingsNetwork";
-import type { UserPreferencesDto } from "@fileoctopus/ts-api";
+import type {
+  NetworkProviderCapabilityDto,
+  UserPreferencesDto,
+} from "@fileoctopus/ts-api";
+
+const providers: NetworkProviderCapabilityDto[] = [
+  {
+    scheme: "sftp",
+    label: "SFTP",
+    category: "server",
+    defaultPort: 22,
+    authKinds: ["password", "privateKey"],
+    fileCapable: true,
+    terminalCapable: true,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: ["useAgent", "proxyJump"],
+  },
+  {
+    scheme: "webdav",
+    label: "WebDAV",
+    category: "server",
+    defaultPort: 443,
+    authKinds: ["password"],
+    fileCapable: false,
+    terminalCapable: false,
+    status: "unavailable",
+    missingDependency: "WebDAV provider is not registered yet.",
+    supportedOptions: [],
+  },
+];
 
 function makePrefs(
   overrides: Partial<UserPreferencesDto> = {},
@@ -62,8 +92,37 @@ afterEach(cleanup);
 
 describe("SettingsNetwork", () => {
   it("renders section heading", () => {
-    render(<SettingsNetwork preferences={makePrefs()} onChange={vi.fn()} />);
-    expect(screen.getByText("Network")).toBeTruthy();
+    render(
+      <SettingsNetwork
+        preferences={makePrefs()}
+        onChange={vi.fn()}
+        providers={providers}
+      />,
+    );
+    expect(screen.getByText("Network & Connections")).toBeTruthy();
+  });
+
+  it("renders provider availability and disables unavailable protocols", () => {
+    render(
+      <SettingsNetwork
+        preferences={makePrefs()}
+        onChange={vi.fn()}
+        providers={providers}
+      />,
+    );
+
+    expect(screen.getAllByText("SFTP").length).toBeGreaterThan(0);
+    expect(screen.getByText("Files + terminal")).toBeTruthy();
+    expect(
+      screen.getByText("WebDAV provider is not registered yet."),
+    ).toBeTruthy();
+    const select = screen.getByLabelText(
+      "Default protocol",
+    ) as HTMLSelectElement;
+    const webdav = [...select.options].find(
+      (option) => option.value === "webdav",
+    );
+    expect(webdav?.disabled).toBe(true);
   });
 
   it("renders connection timeout field with current value", () => {

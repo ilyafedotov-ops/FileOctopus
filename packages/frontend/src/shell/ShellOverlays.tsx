@@ -123,6 +123,7 @@ export function ShellOverlays() {
         isProductionBuild={ctx.isProductionBuild}
         fs={ctx.client.fs}
         pluginClient={ctx.client.plugin}
+        terminalClient={ctx.client.terminal}
         updatePreference={ctx.updatePreference}
         handleSetAutostart={ctx.handleSetAutostart}
         onCustomizeToolbar={() =>

@@ -2,7 +2,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Duration;
 
-use config::{NavigationRepository, NetworkProfileRepository, PreferencesRepository};
+use config::{
+    NavigationRepository, NetworkProfileRepository, PreferencesRepository,
+    TerminalProfileRepository,
+};
 use fs_core::{vfs_io::VfsFilesystem, LocalFsProvider};
 use git_intel::GitService;
 use platform::SecretStore;
@@ -56,6 +59,7 @@ pub struct AppState {
     preferences: PreferencesRepository,
     navigation: NavigationRepository,
     network: NetworkProfileRepository,
+    terminal_profiles: TerminalProfileRepository,
     sessions: Arc<ConnectionSessionManager>,
     secrets: SecretStore,
     paths: AppPaths,
@@ -83,6 +87,10 @@ impl AppState {
 
     pub fn network(&self) -> &NetworkProfileRepository {
         &self.network
+    }
+
+    pub fn terminal_profiles(&self) -> &TerminalProfileRepository {
+        &self.terminal_profiles
     }
 
     pub fn sessions(&self) -> Arc<ConnectionSessionManager> {
@@ -243,6 +251,8 @@ impl AppCore {
         let secrets = SecretStore::new();
         let network = NetworkProfileRepository::new(paths.network_db.clone())
             .map_err(|error| AppCoreError::Network(error.to_string()))?;
+        let terminal_profiles = TerminalProfileRepository::new(paths.terminal_db.clone())
+            .map_err(|error| AppCoreError::History(error.to_string()))?;
 
         let network_enabled = is_network_enabled();
         let mut connector_registry = RemoteConnectorRegistry::new();
@@ -298,6 +308,7 @@ impl AppCore {
             preferences,
             navigation,
             network,
+            terminal_profiles,
             sessions,
             secrets,
             paths,

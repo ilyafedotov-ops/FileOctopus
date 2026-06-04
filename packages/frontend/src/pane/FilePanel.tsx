@@ -314,6 +314,7 @@ export function FilePanel({
         >
           {dragOver ? (
             <div className="fo-panel-drop-overlay" aria-live="polite">
+              <div className="fo-panel-drop-icon" aria-hidden="true" />
               Drop here to move to {title.toLowerCase()} pane
               <span className="fo-panel-drop-path">
                 {localPathFromUri(tab.uri)}

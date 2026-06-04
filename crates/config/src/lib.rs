@@ -1,5 +1,6 @@
 mod navigation;
 mod network;
+mod terminal;
 
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
@@ -12,8 +13,13 @@ pub use navigation::{
     FavoriteEntry, NavigationError, NavigationRepository, RecentBucket, RecentEntry, StarredEntry,
 };
 pub use network::{
-    AuthKind, NetworkError, NetworkProfile, NetworkProfileRepository, NewNetworkProfile,
-    UpdateNetworkProfile,
+    AuthKind, NetworkEnvVar, NetworkError, NetworkProfile, NetworkProfileRepository,
+    NetworkProtocolOptions, NewNetworkProfile, S3ProtocolOptions, SmbProtocolOptions,
+    SshProtocolOptions, UpdateNetworkProfile,
+};
+pub use terminal::{
+    NewTerminalProfile, TerminalProfile, TerminalProfileError, TerminalProfileRepository,
+    TerminalProfileScope, UpdateTerminalProfile,
 };
 
 pub const SCHEMA_VERSION: u32 = 15;
@@ -84,6 +90,7 @@ pub struct UserPreferences {
     pub network_auto_reconnect: bool,
     pub network_default_protocol: String,
     pub network_ssh_key_path: String,
+    pub network_use_ssh_agent: bool,
     pub editor_font_family: String,
     pub editor_font_size: u32,
     pub editor_tab_size: u32,
@@ -153,6 +160,7 @@ impl Default for UserPreferences {
             network_auto_reconnect: true,
             network_default_protocol: "sftp".to_string(),
             network_ssh_key_path: String::new(),
+            network_use_ssh_agent: false,
             editor_font_family: "monospace".to_string(),
             editor_font_size: 14,
             editor_tab_size: 4,
@@ -748,6 +756,7 @@ impl UserPreferences {
                 self.network_default_protocol.clone(),
             ),
             ("networkSshKeyPath", self.network_ssh_key_path.clone()),
+            ("networkUseSshAgent", self.network_use_ssh_agent.to_string()),
             ("editorFontFamily", self.editor_font_family.clone()),
             ("editorFontSize", self.editor_font_size.to_string()),
             ("editorTabSize", self.editor_tab_size.to_string()),
@@ -949,6 +958,9 @@ fn apply_value(
         }
         "networkSshKeyPath" => {
             preferences.network_ssh_key_path = parse_file_path(value)?;
+        }
+        "networkUseSshAgent" => {
+            preferences.network_use_ssh_agent = parse_bool(value, key)?;
         }
         "editorFontFamily" => {
             preferences.editor_font_family = parse_terminal_shell(value)?;

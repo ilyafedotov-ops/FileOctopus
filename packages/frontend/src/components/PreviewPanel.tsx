@@ -7,6 +7,7 @@ import {
   normalizeIpcError,
 } from "@fileoctopus/ts-api";
 import { operationErrorMessage } from "../dialogs/OperationDialogView";
+import { PreviewToolbar } from "./PreviewToolbar";
 
 /** Extensions considered safe for text preview */
 const TEXT_EXTENSIONS = new Set([
@@ -158,6 +159,16 @@ export function isPreviewable(entry: FileEntryDto | null): boolean {
   );
 }
 
+type PreviewMode = "image" | "text" | "pdf" | "media" | "unknown";
+
+function getPreviewMode(entry: FileEntryDto): PreviewMode {
+  if (isImagePreviewable(entry)) return "image";
+  if (isPdfPreviewable(entry)) return "pdf";
+  if (isMediaPreviewable(entry)) return "media";
+  if (isTextPreviewable(entry)) return "text";
+  return "unknown";
+}
+
 interface PreviewPanelProps {
   entry: FileEntryDto | null;
   fs: FsClient;
@@ -189,6 +200,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
   const [loading, setLoading] = useState(false);
   const [truncated, setTruncated] = useState(false);
   const [byteSize, setByteSize] = useState(0);
+  const [zoom, setZoom] = useState(1);
 
   const loadContent = useCallback(async () => {
     if (!entry) return;
@@ -236,6 +248,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
     setError(null);
     setTruncated(false);
     setByteSize(0);
+    setZoom(1);
     if (entry && isPreviewable(entry)) {
       void loadContent();
     }
@@ -260,11 +273,38 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
   const isImage = isImagePreviewable(entry);
   const isPdf = isPdfPreviewable(entry);
   const isMedia = isMediaPreviewable(entry);
+  const mode = getPreviewMode(entry);
 
   const formatBytes = (b: number): string => {
     if (b < 1024) return `${b} B`;
     if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
     return `${(b / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleZoomIn = () => setZoom((z) => Math.min(z * 1.25, 10));
+  const handleZoomOut = () => setZoom((z) => Math.max(z * 0.75, 0.1));
+  const handleFit = () => setZoom(1);
+  const handleActualSize = () => setZoom(1);
+
+  const handleCopyContent = async () => {
+    if (textContent == null) return;
+    try {
+      await navigator.clipboard.writeText(textContent);
+    } catch {
+      // Silently ignore clipboard errors
+    }
+  };
+
+  const handleOpenExternally = () => {
+    // TODO: integrate with Tauri shell.open(path) when available
+  };
+
+  const handleCopyPath = async () => {
+    try {
+      await navigator.clipboard.writeText(entry.uri);
+    } catch {
+      // Silently ignore clipboard errors
+    }
   };
 
   return (
@@ -283,6 +323,17 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
           ✕
         </button>
       </div>
+      <PreviewToolbar
+        mode={mode}
+        zoom={zoom}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onFit={handleFit}
+        onActualSize={handleActualSize}
+        onCopyContent={handleCopyContent}
+        onOpenExternally={handleOpenExternally}
+        onCopyPath={handleCopyPath}
+      />
       <div className="fo-preview-content">
         {loading && <div className="fo-preview-loading">Loading...</div>}
         {error && <div className="fo-preview-error">{error}</div>}
@@ -291,6 +342,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
             className="fo-preview-image"
             src={binaryDataUri}
             alt={entry.name}
+            style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }}
           />
         )}
         {isPdf && binaryDataUri && !loading && (

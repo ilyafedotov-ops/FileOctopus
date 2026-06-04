@@ -4,15 +4,18 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::Arc;
 #[cfg(any(target_os = "macos", test))]
-use std::time::{Duration, Instant};
+use std::time::Duration;
+use std::time::Instant;
 
 use app_core::{is_network_enabled, AppState};
 use app_ipc::{
     FileEntryDto, IpcError, NetworkConnectionStatusDto, NetworkConnectionStatusResponse,
     NetworkNeighborhoodRequest, NetworkNeighborhoodResponse, NetworkProfileActionRequest,
-    NetworkProfileAddRequest, NetworkProfileDeleteRequest, NetworkProfileDto,
-    NetworkProfileResponse, NetworkProfileSetSecretRequest, NetworkProfileUpdateRequest,
-    NetworkProfilesListResponse, OkResponse,
+    NetworkProfileAddRequest, NetworkProfileDeleteRequest, NetworkProfileDraftDto,
+    NetworkProfileDto, NetworkProfileResponse, NetworkProfileSetSecretRequest,
+    NetworkProfileTestRequest, NetworkProfileTestResponse, NetworkProfileTrustFingerprintRequest,
+    NetworkProfileUpdateRequest, NetworkProfilesListResponse, NetworkProviderCapabilityDto,
+    NetworkProvidersListResponse, OkResponse,
 };
 use config::{AuthKind, NewNetworkProfile, UpdateNetworkProfile};
 use platform::SecretStore;
@@ -88,6 +91,126 @@ fn status_to_dto(profile_id: &str, status: ConnectionStatus) -> NetworkConnectio
             message: Some(message),
         },
     }
+}
+
+#[allow(clippy::too_many_arguments)]
+fn provider_capability(
+    scheme: &str,
+    label: &str,
+    default_port: Option<u16>,
+    auth_kinds: &[&str],
+    file_capable: bool,
+    terminal_capable: bool,
+    status: &str,
+    missing_dependency: Option<&str>,
+    supported_options: &[&str],
+) -> NetworkProviderCapabilityDto {
+    NetworkProviderCapabilityDto {
+        scheme: scheme.to_string(),
+        label: label.to_string(),
+        category: "server".to_string(),
+        default_port,
+        auth_kinds: auth_kinds
+            .iter()
+            .map(|value| (*value).to_string())
+            .collect(),
+        file_capable,
+        terminal_capable,
+        status: status.to_string(),
+        missing_dependency: missing_dependency.map(str::to_string),
+        supported_options: supported_options
+            .iter()
+            .map(|value| (*value).to_string())
+            .collect(),
+    }
+}
+
+fn network_provider_catalog() -> Vec<NetworkProviderCapabilityDto> {
+    let network_enabled = is_network_enabled();
+    let disabled_reason = (!network_enabled).then_some(
+        "network features are disabled; set FILEOCTOPUS_ENABLE_NETWORK=1 to enable them",
+    );
+    let enabled_status = if network_enabled {
+        "available"
+    } else {
+        "unavailable"
+    };
+
+    vec![
+        provider_capability(
+            "sftp",
+            "SFTP",
+            Some(22),
+            &["password", "privateKey"],
+            network_enabled,
+            network_enabled,
+            enabled_status,
+            disabled_reason,
+            &[
+                "useAgent",
+                "sshConfigHost",
+                "proxyJump",
+                "proxyCommand",
+                "keepaliveSecs",
+                "compression",
+                "addressFamily",
+            ],
+        ),
+        provider_capability(
+            "ssh",
+            "SSH",
+            Some(22),
+            &["password", "privateKey"],
+            false,
+            network_enabled,
+            enabled_status,
+            disabled_reason,
+            &[
+                "useAgent",
+                "sshConfigHost",
+                "proxyJump",
+                "proxyCommand",
+                "keepaliveSecs",
+                "compression",
+                "addressFamily",
+                "terminalInitialCommand",
+                "terminalEnv",
+            ],
+        ),
+        provider_capability(
+            "smb",
+            "SMB / CIFS",
+            Some(445),
+            &["password"],
+            network_enabled,
+            false,
+            enabled_status,
+            disabled_reason,
+            &["workgroup", "minProtocol", "signingMode", "sharePath"],
+        ),
+        provider_capability(
+            "s3",
+            "S3",
+            Some(443),
+            &["accessKey"],
+            network_enabled,
+            false,
+            enabled_status,
+            disabled_reason,
+            &["region", "useTls", "pathStyle", "rootPrefix"],
+        ),
+        provider_capability(
+            "webdav",
+            "WebDAV",
+            Some(443),
+            &["password"],
+            false,
+            false,
+            "unavailable",
+            Some("WebDAV provider is not registered yet."),
+            &[],
+        ),
+    ]
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -390,6 +513,138 @@ pub async fn network_profiles_list(
 }
 
 #[tauri::command]
+pub fn network_providers_list() -> Result<NetworkProvidersListResponse, IpcError> {
+    Ok(NetworkProvidersListResponse {
+        providers: network_provider_catalog(),
+    })
+}
+
+fn draft_resolved_uri(draft: &NetworkProfileDraftDto) -> Option<String> {
+    if matches!(draft.scheme.as_str(), "sftp" | "smb" | "s3" | "webdav") {
+        return ResourceUri::from_remote_profile(&draft.scheme, "preview", &draft.default_path)
+            .ok()
+            .map(|uri| uri.as_str().to_string());
+    }
+    None
+}
+
+fn validate_profile_draft(draft: &NetworkProfileDraftDto) -> Result<(), IpcError> {
+    if !matches!(
+        draft.scheme.as_str(),
+        "sftp" | "ssh" | "smb" | "s3" | "webdav"
+    ) {
+        return Err(IpcError::new(
+            app_ipc::error_codes::INVALID_REQUEST,
+            format!("unsupported scheme `{}`", draft.scheme),
+        ));
+    }
+    if draft.scheme == "webdav" {
+        return Err(IpcError::new(
+            app_ipc::error_codes::UNSUPPORTED_PROVIDER,
+            "WebDAV provider is not registered yet.",
+        ));
+    }
+    if draft.host.trim().is_empty()
+        || draft.host != draft.host.trim()
+        || draft
+            .host
+            .chars()
+            .any(|ch| ch.is_whitespace() || ch.is_control())
+    {
+        return Err(IpcError::new(
+            app_ipc::error_codes::INVALID_REQUEST,
+            "host is required and must not contain whitespace",
+        ));
+    }
+    if draft.username.trim().is_empty() {
+        return Err(IpcError::new(
+            app_ipc::error_codes::INVALID_REQUEST,
+            "username is required",
+        ));
+    }
+    if draft.port == 0 {
+        return Err(IpcError::new(
+            app_ipc::error_codes::INVALID_REQUEST,
+            "port must be in range 1..=65535",
+        ));
+    }
+    AuthKind::parse(&draft.auth_kind).map_err(network_error)?;
+    if draft.auth_kind == "privateKey" && draft.private_key_path.as_deref().unwrap_or("").is_empty()
+    {
+        return Err(IpcError::new(
+            app_ipc::error_codes::INVALID_REQUEST,
+            "private key path is required",
+        ));
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn network_profile_test(
+    request: NetworkProfileTestRequest,
+    state: State<'_, Arc<AppState>>,
+) -> Result<NetworkProfileTestResponse, IpcError> {
+    let started = Instant::now();
+    let has_id = request.id.as_ref().is_some_and(|id| !id.trim().is_empty());
+    let has_draft = request.draft.is_some();
+    if has_id == has_draft {
+        return Err(IpcError::new(
+            app_ipc::error_codes::INVALID_REQUEST,
+            "provide exactly one of id or draft",
+        ));
+    }
+
+    if let Some(id) = request.id {
+        ensure_network_enabled()?;
+        state.sessions().connect(&id).await.map_err(remote_error)?;
+        let profile = state.network().get(&id).map_err(network_error)?;
+        let fingerprint = profile.host_key_fingerprint.clone();
+        let observed_fingerprint = state.sessions().observed_host_key_fingerprint(&id).await;
+        let resolved_uri = profile_to_dto(profile.clone()).default_uri;
+        let ssh_like = matches!(profile.scheme.as_str(), "sftp" | "ssh");
+        return Ok(NetworkProfileTestResponse {
+            ok: true,
+            status: "success".to_string(),
+            message: "Connection test succeeded.".to_string(),
+            duration_ms: started.elapsed().as_millis(),
+            resolved_uri: (!resolved_uri.is_empty()).then_some(resolved_uri),
+            observed_fingerprint,
+            trust_state: if ssh_like {
+                if fingerprint.is_some() {
+                    "trusted"
+                } else {
+                    "untrusted"
+                }
+            } else {
+                "notApplicable"
+            }
+            .to_string(),
+            warnings: Vec::new(),
+        });
+    }
+
+    let draft = request.draft.expect("draft checked above");
+    validate_profile_draft(&draft)?;
+    let ssh_like = matches!(draft.scheme.as_str(), "sftp" | "ssh");
+    Ok(NetworkProfileTestResponse {
+        ok: true,
+        status: "warning".to_string(),
+        message: "Profile details are valid. Save the profile to run a live authentication test."
+            .to_string(),
+        duration_ms: started.elapsed().as_millis(),
+        resolved_uri: draft_resolved_uri(&draft),
+        observed_fingerprint: None,
+        trust_state: if ssh_like {
+            "untrusted"
+        } else {
+            "notApplicable"
+        }
+        .to_string(),
+        warnings: vec!["Draft tests do not persist or use transient secrets yet.".to_string()],
+    })
+}
+
+#[tauri::command]
 pub fn network_profile_add(
     request: NetworkProfileAddRequest,
     state: State<'_, Arc<AppState>>,
@@ -406,6 +661,7 @@ pub fn network_profile_add(
             auth_kind: AuthKind::parse(&request.auth_kind).map_err(network_error)?,
             private_key_path: request.private_key_path,
             default_path: request.default_path,
+            options: request.options.into(),
         })
         .map_err(network_error)?;
 
@@ -432,6 +688,7 @@ pub fn network_profile_update(
                 auth_kind: AuthKind::parse(&request.auth_kind).map_err(network_error)?,
                 private_key_path: request.private_key_path,
                 default_path: request.default_path,
+                options: request.options.into(),
             },
         )
         .map_err(network_error)?;
@@ -664,6 +921,26 @@ pub fn network_profile_forget_fingerprint(
 }
 
 #[tauri::command]
+pub fn network_profile_trust_fingerprint(
+    request: NetworkProfileTrustFingerprintRequest,
+    state: State<'_, Arc<AppState>>,
+) -> Result<OkResponse, IpcError> {
+    ensure_network_enabled()?;
+    let fingerprint = request.fingerprint.trim();
+    if fingerprint.is_empty() || !fingerprint.starts_with("SHA256:") {
+        return Err(IpcError::new(
+            app_ipc::error_codes::INVALID_REQUEST,
+            "host key fingerprint must be an OpenSSH-style SHA256 fingerprint",
+        ));
+    }
+    state
+        .network()
+        .set_host_key_fingerprint(&request.id, fingerprint)
+        .map_err(network_error)?;
+    Ok(OkResponse { ok: true })
+}
+
+#[tauri::command]
 pub fn network_validate_uri(uri: String) -> Result<OkResponse, IpcError> {
     ensure_network_enabled()?;
     ResourceUri::parse(&uri).map_err(IpcError::from)?;
@@ -685,6 +962,7 @@ mod tests {
             preferences_db: root.join("preferences.sqlite"),
             navigation_db: root.join("navigation.sqlite"),
             network_db: root.join("network.sqlite"),
+            terminal_db: root.join("terminal.sqlite"),
         };
         app_core::AppCore::boot_with_paths(paths).expect("boot AppCore for test")
     }

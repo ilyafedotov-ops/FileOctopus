@@ -1,4 +1,4 @@
-use config::{AuthKind, NetworkProfile};
+use config::{AuthKind, NetworkProfile, NetworkProtocolOptions};
 use provider_smb::connector::SmbConnector;
 use remote_core::{AuthSecrets, RemoteConnector};
 
@@ -18,6 +18,7 @@ fn make_profile(host: &str, port: u16, auth_kind: AuthKind) -> NetworkProfile {
         last_connected_at: None,
         last_error: None,
         has_stored_secret: false,
+        options: NetworkProtocolOptions::default(),
         created_at: "2026-01-01T00:00:00Z".to_string(),
         updated_at: "2026-01-01T00:00:00Z".to_string(),
     }

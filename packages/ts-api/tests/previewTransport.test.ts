@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { createPreviewTransport } from "../src/transports/preview";
-import type { NetworkNeighborhoodResponse } from "../src/types";
+import type {
+  NetworkNeighborhoodResponse,
+  NetworkProfileTestResponse,
+  NetworkProvidersListResponse,
+} from "../src/types";
 
 describe("preview transport — network.discoverNeighborhood", () => {
   const transport = createPreviewTransport();
@@ -92,5 +96,64 @@ describe("preview transport — network.discoverNeighborhood", () => {
 
     expect(response.uri).toBe("network:///");
     expect(response.entries.length).toBeGreaterThan(0);
+  });
+});
+
+describe("preview transport — network provider catalog", () => {
+  const transport = createPreviewTransport();
+
+  it("returns provider capabilities with webdav marked unavailable", async () => {
+    const response = await transport.invoke<NetworkProvidersListResponse>(
+      "network.providersList",
+    );
+
+    expect(response.providers.map((provider) => provider.scheme)).toEqual([
+      "sftp",
+      "ssh",
+      "smb",
+      "s3",
+      "webdav",
+    ]);
+    expect(
+      response.providers.find((provider) => provider.scheme === "sftp"),
+    ).toMatchObject({
+      fileCapable: true,
+      terminalCapable: true,
+      authKinds: ["password", "privateKey"],
+    });
+    expect(
+      response.providers.find((provider) => provider.scheme === "webdav"),
+    ).toMatchObject({
+      status: "unavailable",
+      missingDependency: "WebDAV provider is not registered yet.",
+    });
+  });
+
+  it("returns a deterministic profile test result", async () => {
+    const response = await transport.invoke<NetworkProfileTestResponse>(
+      "network.profileTest",
+      {
+        request: {
+          draft: {
+            label: "Preview",
+            scheme: "sftp",
+            host: "example.com",
+            port: 22,
+            username: "deploy",
+            authKind: "privateKey",
+            privateKeyPath: "~/.ssh/id_ed25519",
+            defaultPath: "/home/deploy",
+            options: { ssh: { useAgent: true } },
+          },
+        },
+      },
+    );
+
+    expect(response.ok).toBe(true);
+    expect(response.resolvedUri).toBe("sftp://preview/home/deploy");
+    expect(response.trustState).toBe("untrusted");
+    expect(response.warnings).toContain(
+      "Preview transport does not open sockets.",
+    );
   });
 });

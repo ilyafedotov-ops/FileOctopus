@@ -14,6 +14,7 @@ import {
   isMediaPreviewable,
   isPreviewable,
 } from "../src/components/PreviewPanel";
+import { PreviewToolbar } from "../src/components/PreviewToolbar";
 import type {
   FileEntryDto,
   ReadFileAsDataUriResponse,
@@ -528,5 +529,305 @@ describe("PreviewPanel media preview", () => {
     await waitFor(() => {
       expect(screen.getByText("Too large")).toBeTruthy();
     });
+  });
+});
+
+// ─── PreviewToolbar ───
+
+describe("PreviewToolbar", () => {
+  it("shows toolbar with zoom controls for image preview", () => {
+    render(
+      <PreviewToolbar
+        mode="image"
+        zoom={1}
+        onZoomIn={vi.fn()}
+        onZoomOut={vi.fn()}
+        onFit={vi.fn()}
+        onActualSize={vi.fn()}
+        onCopyContent={vi.fn()}
+        onOpenExternally={vi.fn()}
+        onCopyPath={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("toolbar", { name: /preview/i })).toBeTruthy();
+    expect(screen.getByLabelText("Zoom in")).toBeTruthy();
+    expect(screen.getByLabelText("Zoom out")).toBeTruthy();
+    expect(screen.getByLabelText("Fit to panel")).toBeTruthy();
+    expect(screen.getByLabelText("Actual size")).toBeTruthy();
+  });
+
+  it("shows toolbar with text actions for text preview", () => {
+    render(
+      <PreviewToolbar
+        mode="text"
+        zoom={1}
+        onZoomIn={vi.fn()}
+        onZoomOut={vi.fn()}
+        onFit={vi.fn()}
+        onActualSize={vi.fn()}
+        onCopyContent={vi.fn()}
+        onOpenExternally={vi.fn()}
+        onCopyPath={vi.fn()}
+      />,
+    );
+    expect(screen.getByRole("toolbar", { name: /preview/i })).toBeTruthy();
+    expect(screen.getByLabelText("Copy content")).toBeTruthy();
+  });
+
+  it("shows open externally and copy path buttons for any preview", () => {
+    render(
+      <PreviewToolbar
+        mode="image"
+        zoom={1}
+        onZoomIn={vi.fn()}
+        onZoomOut={vi.fn()}
+        onFit={vi.fn()}
+        onActualSize={vi.fn()}
+        onCopyContent={vi.fn()}
+        onOpenExternally={vi.fn()}
+        onCopyPath={vi.fn()}
+      />,
+    );
+    expect(screen.getByLabelText("Open externally")).toBeTruthy();
+    expect(screen.getByLabelText("Copy path")).toBeTruthy();
+  });
+
+  it("displays current zoom level", () => {
+    render(
+      <PreviewToolbar
+        mode="image"
+        zoom={1.5}
+        onZoomIn={vi.fn()}
+        onZoomOut={vi.fn()}
+        onFit={vi.fn()}
+        onActualSize={vi.fn()}
+        onCopyContent={vi.fn()}
+        onOpenExternally={vi.fn()}
+        onCopyPath={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("150%")).toBeTruthy();
+  });
+
+  it("does not show zoom controls for text mode", () => {
+    render(
+      <PreviewToolbar
+        mode="text"
+        zoom={1}
+        onZoomIn={vi.fn()}
+        onZoomOut={vi.fn()}
+        onFit={vi.fn()}
+        onActualSize={vi.fn()}
+        onCopyContent={vi.fn()}
+        onOpenExternally={vi.fn()}
+        onCopyPath={vi.fn()}
+      />,
+    );
+    expect(screen.queryByLabelText("Zoom in")).toBeNull();
+    expect(screen.queryByLabelText("Zoom out")).toBeNull();
+  });
+
+  it("calls onZoomIn when Zoom in is clicked", () => {
+    const onZoomIn = vi.fn();
+    render(
+      <PreviewToolbar
+        mode="image"
+        zoom={1}
+        onZoomIn={onZoomIn}
+        onZoomOut={vi.fn()}
+        onFit={vi.fn()}
+        onActualSize={vi.fn()}
+        onCopyContent={vi.fn()}
+        onOpenExternally={vi.fn()}
+        onCopyPath={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText("Zoom in"));
+    expect(onZoomIn).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onCopyContent when Copy content is clicked", () => {
+    const onCopyContent = vi.fn();
+    render(
+      <PreviewToolbar
+        mode="text"
+        zoom={1}
+        onZoomIn={vi.fn()}
+        onZoomOut={vi.fn()}
+        onFit={vi.fn()}
+        onActualSize={vi.fn()}
+        onCopyContent={onCopyContent}
+        onOpenExternally={vi.fn()}
+        onCopyPath={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText("Copy content"));
+    expect(onCopyContent).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ─── PreviewPanel toolbar integration ───
+
+describe("PreviewPanel toolbar integration", () => {
+  it("shows toolbar with zoom controls for image preview", async () => {
+    const mockFs = createMockFs();
+    mockFs.readFileAsDataUri.mockResolvedValue({
+      dataUri: "data:image/png;base64,iVBOR",
+      byteSize: 12345,
+      mimeType: "image/png",
+    });
+
+    render(
+      <PreviewPanel
+        entry={makeEntry({
+          name: "photo.png",
+          uri: "local:///home/user/photo.png",
+        })}
+        fs={mockFs}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("toolbar", { name: /preview/i })).toBeTruthy();
+    });
+    expect(screen.getByLabelText("Zoom in")).toBeTruthy();
+    expect(screen.getByLabelText("Zoom out")).toBeTruthy();
+    expect(screen.getByLabelText("Fit to panel")).toBeTruthy();
+    expect(screen.getByLabelText("Actual size")).toBeTruthy();
+  });
+
+  it("shows toolbar with copy content for text preview", async () => {
+    const mockFs = createMockFs();
+    mockFs.readTextFile.mockResolvedValue({
+      content: "hello world",
+      truncated: false,
+      byteSize: 11,
+    });
+
+    render(
+      <PreviewPanel
+        entry={makeEntry({ name: "readme.md" })}
+        fs={mockFs}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("toolbar", { name: /preview/i })).toBeTruthy();
+    });
+    expect(screen.getByLabelText("Copy content")).toBeTruthy();
+  });
+
+  it("shows open externally and copy path buttons for any preview", async () => {
+    const mockFs = createMockFs();
+    mockFs.readFileAsDataUri.mockResolvedValue({
+      dataUri: "data:image/png;base64,iVBOR",
+      byteSize: 12345,
+      mimeType: "image/png",
+    });
+
+    render(
+      <PreviewPanel
+        entry={makeEntry({
+          name: "photo.png",
+          uri: "local:///home/user/photo.png",
+        })}
+        fs={mockFs}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByLabelText("Open externally")).toBeTruthy();
+    });
+    expect(screen.getByLabelText("Copy path")).toBeTruthy();
+  });
+
+  it("zoom in increases zoom level", async () => {
+    const mockFs = createMockFs();
+    mockFs.readFileAsDataUri.mockResolvedValue({
+      dataUri: "data:image/png;base64,iVBOR",
+      byteSize: 12345,
+      mimeType: "image/png",
+    });
+
+    render(
+      <PreviewPanel
+        entry={makeEntry({
+          name: "photo.png",
+          uri: "local:///home/user/photo.png",
+        })}
+        fs={mockFs}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("img")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByLabelText("Zoom in"));
+    // Verify zoom state changed — the image should have a transform style
+    const img = screen.getByRole("img");
+    expect(img.style.transform).toBeTruthy();
+    expect(img.style.transform).toContain("scale(1.25)");
+  });
+
+  it("zoom out decreases zoom level", async () => {
+    const mockFs = createMockFs();
+    mockFs.readFileAsDataUri.mockResolvedValue({
+      dataUri: "data:image/png;base64,iVBOR",
+      byteSize: 12345,
+      mimeType: "image/png",
+    });
+
+    render(
+      <PreviewPanel
+        entry={makeEntry({
+          name: "photo.png",
+          uri: "local:///home/user/photo.png",
+        })}
+        fs={mockFs}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("img")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByLabelText("Zoom out"));
+    const img = screen.getByRole("img");
+    expect(img.style.transform).toContain("scale(0.75)");
+  });
+
+  it("actual size resets zoom to 1", async () => {
+    const mockFs = createMockFs();
+    mockFs.readFileAsDataUri.mockResolvedValue({
+      dataUri: "data:image/png;base64,iVBOR",
+      byteSize: 12345,
+      mimeType: "image/png",
+    });
+
+    render(
+      <PreviewPanel
+        entry={makeEntry({
+          name: "photo.png",
+          uri: "local:///home/user/photo.png",
+        })}
+        fs={mockFs}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("img")).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByLabelText("Zoom in"));
+    fireEvent.click(screen.getByLabelText("Actual size"));
+    const img = screen.getByRole("img");
+    expect(img.style.transform).toContain("scale(1)");
   });
 });

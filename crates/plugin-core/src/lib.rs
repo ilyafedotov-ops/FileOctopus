@@ -49,7 +49,7 @@ pub const MANIFEST_FILENAME: &str = "plugin.json";
 pub fn parse_manifest(json: &str) -> Result<PluginManifest, PluginError> {
     let manifest: PluginManifest =
         serde_json::from_str(json).map_err(|e| PluginError::InvalidManifest(e.to_string()))?;
-    if manifest.id.is_empty() {
+    if !is_valid_plugin_id(&manifest.id) {
         return Err(PluginError::InvalidManifest("id is required".into()));
     }
     if manifest.name.is_empty() {
@@ -59,6 +59,16 @@ pub fn parse_manifest(json: &str) -> Result<PluginManifest, PluginError> {
         return Err(PluginError::InvalidManifest("version is required".into()));
     }
     Ok(manifest)
+}
+
+fn is_valid_plugin_id(id: &str) -> bool {
+    !id.trim().is_empty()
+        && id == id.trim()
+        && !id.starts_with('.')
+        && id
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '.' | '_' | '-'))
+        && id.split('.').all(|part| !part.is_empty())
 }
 
 pub fn discover_plugins(dir: &Path) -> Result<Vec<InstalledPlugin>, PluginError> {
@@ -146,6 +156,32 @@ mod tests {
         }"#;
         let err = parse_manifest(json).unwrap_err();
         assert!(matches!(err, PluginError::InvalidManifest(_)));
+    }
+
+    #[test]
+    fn parse_manifest_rejects_path_like_id() {
+        for id in [
+            "../escape",
+            "com/example/test",
+            "com\\example\\test",
+            "/tmp/plugin",
+        ] {
+            let json = serde_json::json!({
+                "id": id,
+                "name": "Path ID",
+                "version": "1.0.0",
+                "description": "",
+                "author": "Test",
+                "entryPoint": "main.js",
+                "permissions": []
+            })
+            .to_string();
+            let err = parse_manifest(&json).unwrap_err();
+            assert!(
+                matches!(err, PluginError::InvalidManifest(_)),
+                "expected `{id}` to be rejected"
+            );
+        }
     }
 
     #[test]

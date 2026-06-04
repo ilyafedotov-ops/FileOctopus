@@ -221,4 +221,128 @@ describe("Settings Dialog Polish", () => {
       },
     );
   });
+
+  describe("Consistent CSS class usage", () => {
+    function renderDialog() {
+      render(
+        <SettingsDialog
+          open
+          preferences={makePreferences()}
+          autostart={null}
+          onClose={() => {}}
+          onChange={() => {}}
+          onSetAutostart={async () => {}}
+        />,
+      );
+    }
+
+    function clickGeneralTab() {
+      fireEvent.click(navButton("General"));
+    }
+
+    it("settings panels have consistent fo-settings-section class", () => {
+      renderDialog();
+      clickGeneralTab();
+      const sections = document.querySelectorAll(".fo-settings-section");
+      expect(sections.length).toBeGreaterThan(0);
+      sections.forEach((section) => {
+        expect(section.className).toContain("fo-settings-section");
+      });
+    });
+
+    it("settings controls use consistent fo-settings-field layout", () => {
+      renderDialog();
+      clickGeneralTab();
+      const fields = document.querySelectorAll(".fo-settings-field");
+      expect(fields.length).toBeGreaterThan(0);
+    });
+
+    it("settings checkboxes use fo-settings-checkbox class", () => {
+      renderDialog();
+      clickGeneralTab();
+      const checkboxes = document.querySelectorAll(".fo-settings-checkbox");
+      expect(checkboxes.length).toBeGreaterThan(0);
+    });
+
+    it("settings dialog has fo-settings-dialog wrapper", () => {
+      renderDialog();
+      const dialog = document.querySelector(".fo-settings-dialog");
+      expect(dialog).toBeTruthy();
+    });
+
+    it("settings layout uses fo-settings-layout grid", () => {
+      renderDialog();
+      const layout = document.querySelector(".fo-settings-layout");
+      expect(layout).toBeTruthy();
+    });
+
+    it("settings nav uses fo-settings-nav class", () => {
+      renderDialog();
+      const nav = document.querySelector(".fo-settings-nav");
+      expect(nav).toBeTruthy();
+    });
+
+    it("active nav button has data-active attribute", () => {
+      renderDialog();
+      const activeBtn = document.querySelector(
+        ".fo-settings-nav button[data-active='true']",
+      );
+      expect(activeBtn).toBeTruthy();
+      expect(activeBtn?.textContent).toBe("General");
+    });
+
+    it("non-active nav buttons do not have data-active=true", () => {
+      renderDialog();
+      const allNavBtns = document.querySelectorAll(".fo-settings-nav button");
+      const activeBtns = document.querySelectorAll(
+        ".fo-settings-nav button[data-active='true']",
+      );
+      expect(allNavBtns.length).toBeGreaterThan(activeBtns.length);
+    });
+
+    it("active nav button changes when clicking a different tab", () => {
+      renderDialog();
+      fireEvent.click(navButton("Display"));
+      const activeBtn = document.querySelector(
+        ".fo-settings-nav button[data-active='true']",
+      );
+      expect(activeBtn?.textContent).toBe("Display");
+    });
+
+    it("each section has an fo-settings-description paragraph", () => {
+      renderDialog();
+      fireEvent.click(navButton("General"));
+      const section = screen.getByRole("region", {
+        name: "General settings",
+      });
+      const desc = section.querySelector(".fo-settings-description");
+      expect(desc).toBeTruthy();
+      expect(desc!.textContent!.length).toBeGreaterThan(0);
+    });
+
+    it("plugins section uses fo-settings-section wrapper", () => {
+      const pluginClient = {
+        list: vi.fn().mockResolvedValue({ plugins: [] }),
+        uninstall: vi.fn(),
+        toggle: vi.fn(),
+      };
+      render(
+        <SettingsDialog
+          open
+          preferences={makePreferences()}
+          autostart={null}
+          onClose={() => {}}
+          onChange={() => {}}
+          onSetAutostart={async () => {}}
+          pluginClient={pluginClient}
+        />,
+      );
+      fireEvent.click(navButton("Plugins"));
+      const sections = document.querySelectorAll(".fo-settings-section");
+      const pluginSection = Array.from(sections).find(
+        (s) => s.querySelector("h3")?.textContent === "Plugins",
+      );
+      expect(pluginSection).toBeTruthy();
+    });
+  });
 });

@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use uuid::Uuid;
 
-pub const NETWORK_SCHEMA_VERSION: u32 = 2;
+pub const NETWORK_SCHEMA_VERSION: u32 = 3;
 
 #[derive(Debug, Error)]
 pub enum NetworkError {
@@ -71,6 +71,7 @@ pub struct NetworkProfile {
     pub last_connected_at: Option<String>,
     pub last_error: Option<String>,
     pub has_stored_secret: bool,
+    pub options: NetworkProtocolOptions,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -86,6 +87,8 @@ pub struct NewNetworkProfile {
     pub auth_kind: AuthKind,
     pub private_key_path: Option<String>,
     pub default_path: String,
+    #[serde(default)]
+    pub options: NetworkProtocolOptions,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -98,6 +101,59 @@ pub struct UpdateNetworkProfile {
     pub auth_kind: AuthKind,
     pub private_key_path: Option<String>,
     pub default_path: String,
+    #[serde(default)]
+    pub options: NetworkProtocolOptions,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkProtocolOptions {
+    #[serde(default)]
+    pub ssh: SshProtocolOptions,
+    #[serde(default)]
+    pub smb: SmbProtocolOptions,
+    #[serde(default)]
+    pub s3: S3ProtocolOptions,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SshProtocolOptions {
+    pub use_agent: Option<bool>,
+    pub ssh_config_host: Option<String>,
+    pub proxy_jump: Option<String>,
+    pub proxy_command: Option<String>,
+    pub keepalive_secs: Option<u32>,
+    pub compression: Option<bool>,
+    pub address_family: Option<String>,
+    pub terminal_initial_command: Option<String>,
+    #[serde(default)]
+    pub terminal_env: Vec<NetworkEnvVar>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct SmbProtocolOptions {
+    pub workgroup: Option<String>,
+    pub min_protocol: Option<String>,
+    pub signing_mode: Option<String>,
+    pub share_path: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct S3ProtocolOptions {
+    pub region: Option<String>,
+    pub use_tls: Option<bool>,
+    pub path_style: Option<bool>,
+    pub root_prefix: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct NetworkEnvVar {
+    pub name: String,
+    pub value: String,
 }
 
 #[derive(Clone)]
@@ -123,7 +179,7 @@ impl NetworkProfileRepository {
         let mut statement = connection.prepare(
             "select id, label, scheme, host, port, username, auth_kind, private_key_path,
                     default_path, host_key_fingerprint, sort_order, last_connected_at,
-                    last_error, has_stored_secret, created_at, updated_at
+                    last_error, has_stored_secret, created_at, updated_at, options_json
              from network_profiles
              order by sort_order asc, label asc",
         )?;
@@ -137,7 +193,7 @@ impl NetworkProfileRepository {
         let mut statement = connection.prepare(
             "select id, label, scheme, host, port, username, auth_kind, private_key_path,
                     default_path, host_key_fingerprint, sort_order, last_connected_at,
-                    last_error, has_stored_secret, created_at, updated_at
+                    last_error, has_stored_secret, created_at, updated_at, options_json
              from network_profiles
              where id = ?1",
         )?;
@@ -169,12 +225,13 @@ impl NetworkProfileRepository {
                 .private_key_path
                 .as_ref()
                 .is_some_and(|path| !path.is_empty());
+        let options_json = encode_options(&profile.options)?;
         connection.execute(
             "insert into network_profiles (
                 id, label, scheme, host, port, username, auth_kind, private_key_path,
                 default_path, host_key_fingerprint, sort_order, last_connected_at,
-                last_error, has_stored_secret, created_at, updated_at
-             ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, null, ?10, null, null, ?11, ?12, ?12)",
+                last_error, has_stored_secret, created_at, updated_at, options_json
+             ) values (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, null, ?10, null, null, ?11, ?12, ?12, ?13)",
             params![
                 id,
                 profile.label,
@@ -188,6 +245,7 @@ impl NetworkProfileRepository {
                 sort_order,
                 i64::from(has_stored_secret),
                 now,
+                options_json,
             ],
         )?;
 
@@ -214,11 +272,12 @@ impl NetworkProfileRepository {
             existing.has_stored_secret,
             profile.private_key_path.as_deref(),
         );
+        let options_json = encode_options(&profile.options)?;
         let updated = connection.execute(
             "update network_profiles
              set label = ?2, host = ?3, port = ?4, username = ?5, auth_kind = ?6,
                  private_key_path = ?7, default_path = ?8, has_stored_secret = ?9,
-                 updated_at = ?10
+                 updated_at = ?10, options_json = ?11
              where id = ?1",
             params![
                 id,
@@ -231,6 +290,7 @@ impl NetworkProfileRepository {
                 profile.default_path,
                 i64::from(has_stored_secret),
                 now,
+                options_json,
             ],
         )?;
 
@@ -344,7 +404,8 @@ impl NetworkProfileRepository {
 
     fn migrate(&self) -> Result<(), NetworkError> {
         let connection = self.connect()?;
-        let version = connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
+        let mut version: u32 =
+            connection.pragma_query_value(None, "user_version", |row| row.get(0))?;
         if version > NETWORK_SCHEMA_VERSION {
             return Err(NetworkError::UnsupportedSchema(version));
         }
@@ -367,10 +428,12 @@ impl NetworkProfileRepository {
                     last_error text,
                     has_stored_secret integer not null default 0,
                     created_at text not null,
-                    updated_at text not null
+                    updated_at text not null,
+                    options_json text not null default '{}'
                 );",
             )?;
             connection.pragma_update(None, "user_version", NETWORK_SCHEMA_VERSION)?;
+            version = NETWORK_SCHEMA_VERSION;
         }
 
         if version == 1 {
@@ -386,11 +449,36 @@ impl NetworkProfileRepository {
                    and private_key_path is not null
                    and trim(private_key_path) != '';",
             )?;
+            connection.pragma_update(None, "user_version", 2u32)?;
+            version = 2;
+        }
+
+        if version == 2 {
+            connection.execute_batch(
+                "alter table network_profiles
+                 add column options_json text not null default '{}';",
+            )?;
             connection.pragma_update(None, "user_version", NETWORK_SCHEMA_VERSION)?;
         }
 
         Ok(())
     }
+}
+
+fn encode_options(options: &NetworkProtocolOptions) -> Result<String, NetworkError> {
+    serde_json::to_string(options).map_err(|error| NetworkError::InvalidValue {
+        field: "options".to_string(),
+        reason: error.to_string(),
+    })
+}
+
+fn decode_options(value: String) -> Result<NetworkProtocolOptions, rusqlite::Error> {
+    if value.trim().is_empty() {
+        return Ok(NetworkProtocolOptions::default());
+    }
+    serde_json::from_str(&value).map_err(|error| {
+        rusqlite::Error::FromSqlConversionFailure(16, rusqlite::types::Type::Text, Box::new(error))
+    })
 }
 
 fn stored_secret_flag_for_profile(
@@ -435,6 +523,7 @@ fn map_profile_row(row: &rusqlite::Row<'_>) -> Result<NetworkProfile, rusqlite::
         has_stored_secret: row.get::<_, i64>(13)? != 0,
         created_at: row.get(14)?,
         updated_at: row.get(15)?,
+        options: decode_options(row.get(16)?)?,
     })
 }
 
@@ -497,6 +586,7 @@ mod tests {
             auth_kind: AuthKind::Password,
             private_key_path: None,
             default_path: "/home/deploy".to_string(),
+            options: NetworkProtocolOptions::default(),
         }
     }
 
@@ -528,6 +618,7 @@ mod tests {
                     auth_kind: AuthKind::Password,
                     private_key_path: None,
                     default_path: "/".to_string(),
+                    options: NetworkProtocolOptions::default(),
                 },
             )
             .unwrap();
@@ -644,6 +735,25 @@ mod tests {
             let profile = repository.add(new).unwrap();
             assert_eq!(profile.scheme, scheme);
         }
+    }
+
+    #[test]
+    fn persists_protocol_options() {
+        let dir = tempdir().unwrap();
+        let repository = NetworkProfileRepository::new(dir.path().join("network.sqlite")).unwrap();
+        let mut new = sample_profile();
+        new.options.ssh.use_agent = Some(true);
+        new.options.ssh.keepalive_secs = Some(45);
+        new.options.ssh.proxy_jump = Some("bastion.example.com".to_string());
+
+        let created = repository.add(new).unwrap();
+
+        assert_eq!(created.options.ssh.use_agent, Some(true));
+        assert_eq!(created.options.ssh.keepalive_secs, Some(45));
+        assert_eq!(
+            repository.get(&created.id).unwrap().options.ssh.proxy_jump,
+            Some("bastion.example.com".to_string())
+        );
     }
 
     #[test]

@@ -31,6 +31,8 @@ export function toolbarCommandIcon(commandId: CommandId): ReactNode | null {
     case "nav.home":
       return Icons.home();
     case "op.openTerminal":
+    case "terminal.runCommand":
+    case "terminal.spawnAndRun":
       return Icons.terminal();
     case "op.compress":
       return Icons.archive();

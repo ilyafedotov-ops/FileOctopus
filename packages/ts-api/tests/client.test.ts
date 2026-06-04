@@ -84,6 +84,72 @@ describe("FileOctopusClient", () => {
     });
   });
 
+  it("routes advanced terminal commands through the terminal client", async () => {
+    const calls: Array<{ command: string; args?: Record<string, unknown> }> =
+      [];
+    const subscribed: string[] = [];
+    const transport: IpcTransport = {
+      async invoke<TResponse>(command: string, args?: Record<string, unknown>) {
+        calls.push({ command, args });
+        if (command === "terminal.capabilities") {
+          return {
+            defaultShell: "/bin/bash",
+            defaultArgs: ["-l"],
+            discoveredShells: ["/bin/bash"],
+            supportsSsh: true,
+            cursorStyles: ["block"],
+            themeIds: ["system"],
+          } as TResponse;
+        }
+        if (command === "terminal.profilesList") {
+          return { profiles: [], defaultProfileId: null } as TResponse;
+        }
+        if (command === "terminal.sessionsList") {
+          return { sessions: [] } as TResponse;
+        }
+        if (command === "terminal.spawnAndRun") {
+          return { sessionId: "terminal-1" } as TResponse;
+        }
+        return { success: true } as TResponse;
+      },
+      async listen(event) {
+        subscribed.push(event);
+        return () => {};
+      },
+    };
+    const client = new FileOctopusClient(transport);
+
+    await client.terminal.capabilities();
+    await client.terminal.listProfiles();
+    await client.terminal.listSessions();
+    await client.terminal.sendText({ sessionId: "terminal-1", text: "pwd" });
+    await client.terminal.runCommand({
+      sessionId: "terminal-1",
+      command: "pwd",
+      appendNewline: true,
+      focus: true,
+    });
+    await client.terminal.spawnAndRun({
+      uri: "local:///tmp",
+      terminalProfileId: "profile-1",
+      cols: 80,
+      rows: 24,
+      command: "cargo test",
+      title: "Tests",
+    });
+    await client.terminal.onSession(() => {});
+
+    expect(calls.map((call) => call.command)).toEqual([
+      "terminal.capabilities",
+      "terminal.profilesList",
+      "terminal.sessionsList",
+      "terminal.sendText",
+      "terminal.runCommand",
+      "terminal.spawnAndRun",
+    ]);
+    expect(subscribed).toEqual(["terminal:session"]);
+  });
+
   it("routes Sprint 4 baseline filesystem commands through typed clients", async () => {
     const calls: Array<{ command: string; args?: Record<string, unknown> }> =
       [];
@@ -679,12 +745,20 @@ describe("FileOctopusClient", () => {
     const client = new FileOctopusClient(transport);
     await client.network.listProfiles();
     await client.network.connect({ id: "profile-1" });
+    await client.network.trustFingerprint({
+      id: "profile-1",
+      fingerprint: "SHA256:abc",
+    });
 
     expect(calls.map((call) => call.command)).toEqual([
       "network.profilesList",
       "network.connect",
+      "network.profileTrustFingerprint",
     ]);
     expect(calls[1]?.args).toEqual({ request: { id: "profile-1" } });
+    expect(calls[2]?.args).toEqual({
+      request: { id: "profile-1", fingerprint: "SHA256:abc" },
+    });
   });
 
   it("routes network.discoverNeighborhood through the network client", async () => {

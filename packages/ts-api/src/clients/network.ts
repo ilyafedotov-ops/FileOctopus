@@ -3,12 +3,16 @@ import type {
   NetworkConnectionStatusResponse,
   NetworkNeighborhoodRequest,
   NetworkNeighborhoodResponse,
+  NetworkProfileTestRequest,
+  NetworkProfileTestResponse,
   NetworkProfileActionRequest,
   NetworkProfileAddRequest,
   NetworkProfileDeleteRequest,
   NetworkProfileResponse,
   NetworkProfileSetSecretRequest,
   NetworkProfileUpdateRequest,
+  NetworkProfileTrustFingerprintRequest,
+  NetworkProvidersListResponse,
   NetworkProfilesListResponse,
   NetworkStatusEvent,
   OkResponse,
@@ -21,6 +25,10 @@ export class NetworkClient {
 
   async listProfiles(): Promise<NetworkProfilesListResponse> {
     return this.transport.invoke("network.profilesList");
+  }
+
+  async listProviders(): Promise<NetworkProvidersListResponse> {
+    return this.transport.invoke("network.providersList");
   }
 
   async addProfile(
@@ -61,6 +69,12 @@ export class NetworkClient {
     return this.transport.invoke("network.connectionStatus");
   }
 
+  async testProfile(
+    request: NetworkProfileTestRequest,
+  ): Promise<NetworkProfileTestResponse> {
+    return this.transport.invoke("network.profileTest", { request });
+  }
+
   async discoverNeighborhood(
     request: NetworkNeighborhoodRequest,
   ): Promise<NetworkNeighborhoodResponse> {
@@ -83,6 +97,14 @@ export class NetworkClient {
     request: NetworkProfileActionRequest,
   ): Promise<OkResponse> {
     return this.transport.invoke("network.profileForgetFingerprint", {
+      request,
+    });
+  }
+
+  async trustFingerprint(
+    request: NetworkProfileTrustFingerprintRequest,
+  ): Promise<OkResponse> {
+    return this.transport.invoke("network.profileTrustFingerprint", {
       request,
     });
   }

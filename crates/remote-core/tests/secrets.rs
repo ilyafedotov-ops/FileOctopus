@@ -1,4 +1,7 @@
-use config::{AuthKind, NetworkProfileRepository, NewNetworkProfile, UpdateNetworkProfile};
+use config::{
+    AuthKind, NetworkProfileRepository, NetworkProtocolOptions, NewNetworkProfile,
+    UpdateNetworkProfile,
+};
 use remote_core::AuthSecrets;
 use tempfile::TempDir;
 
@@ -12,6 +15,7 @@ fn profile_with(auth_kind: AuthKind, private_key_path: Option<String>) -> NewNet
         auth_kind,
         private_key_path,
         default_path: "/".into(),
+        options: NetworkProtocolOptions::default(),
     }
 }
 
@@ -76,6 +80,7 @@ fn private_key_update_round_trips_key_path() {
                 auth_kind: AuthKind::PrivateKey,
                 private_key_path: Some("/new".into()),
                 default_path: profile.default_path.clone(),
+                options: NetworkProtocolOptions::default(),
             },
         )
         .unwrap();
