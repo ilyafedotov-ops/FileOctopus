@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import type { AclEntry, GetAclResponse, FsClient } from "@fileoctopus/ts-api";
+import {
+  uriScheme,
+  type AclEntry,
+  type GetAclResponse,
+  type FsClient,
+  type IpcError,
+} from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 
 interface AclEditorProps {
@@ -30,6 +36,18 @@ function entriesFromOctal(octal: string): AclEntry[] {
       execute: (digit & 1) !== 0,
     };
   });
+}
+
+function errorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+  if (isIpcError(error)) return error.message;
+  return fallback;
+}
+
+function isIpcError(error: unknown): error is IpcError {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as Partial<IpcError>;
+  return typeof candidate.message === "string";
 }
 
 function Checkbox({
@@ -63,9 +81,21 @@ export function AclEditor({ uri, fs, isDirectory }: AclEditorProps) {
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const scheme = uriScheme(uri);
 
   useEffect(() => {
-    if (!fs) return;
+    if (!fs) {
+      setLoading(false);
+      setError("Permissions management is unavailable.");
+      return;
+    }
+
+    if (scheme !== "local") {
+      setLoading(false);
+      setError("Permissions management is only available for local files.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     fs.getAcl({ uri })
@@ -76,10 +106,10 @@ export function AclEditor({ uri, fs, isDirectory }: AclEditorProps) {
         setDirty(false);
       })
       .catch((err: unknown) => {
-        setError(err instanceof Error ? err.message : "Failed to load ACL");
+        setError(errorMessage(err, "Failed to load ACL"));
       })
       .finally(() => setLoading(false));
-  }, [fs, uri]);
+  }, [fs, uri, scheme]);
 
   const togglePermission = useCallback(
     (principal: string, perm: "read" | "write" | "execute", value: boolean) => {
@@ -111,9 +141,7 @@ export function AclEditor({ uri, fs, isDirectory }: AclEditorProps) {
     fs.setAcl({ uri, octal: octalInput, recursive })
       .then(() => setDirty(false))
       .catch((err: unknown) => {
-        setSaveError(
-          err instanceof Error ? err.message : "Failed to set permissions",
-        );
+        setSaveError(errorMessage(err, "Failed to set permissions"));
       })
       .finally(() => setSaving(false));
   }, [fs, uri, octalInput, recursive]);

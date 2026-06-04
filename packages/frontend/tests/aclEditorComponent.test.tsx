@@ -156,4 +156,40 @@ describe("AclEditor", () => {
     const error = await screen.findByText("Permission denied");
     expect(error).toBeTruthy();
   });
+
+  it("shows ipc error messages when getAcl fails", async () => {
+    const mockFs = {
+      getAcl: vi.fn<() => Promise<GetAclResponse>>().mockRejectedValue({
+        code: "permission_denied",
+        message: "cannot stat: Permission denied",
+      }),
+      setAcl: vi
+        .fn<() => Promise<{ success: boolean }>>()
+        .mockResolvedValue({ success: true }),
+    } as unknown as FsClient;
+
+    render(
+      <AclEditor uri="local:///tmp/test.txt" fs={mockFs} isDirectory={false} />,
+    );
+
+    const error = await screen.findByText("cannot stat: Permission denied");
+    expect(error).toBeTruthy();
+  });
+
+  it("does not call getAcl for non-local resources", async () => {
+    const fs = createMockFs();
+    render(
+      <AclEditor
+        uri="sftp://profile-id/tmp/test.txt"
+        fs={fs}
+        isDirectory={false}
+      />,
+    );
+
+    const error = await screen.findByText(
+      "Permissions management is only available for local files.",
+    );
+    expect(error).toBeTruthy();
+    expect(fs.getAcl).not.toHaveBeenCalled();
+  });
 });
