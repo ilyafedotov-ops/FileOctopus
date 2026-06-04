@@ -417,6 +417,20 @@ describe("ShellToolbar", () => {
     expect(setNotificationCenterOpen).toHaveBeenCalledWith(true);
   });
 
+  it("renders the notification center outside the clipping toolbar", () => {
+    renderToolbar({
+      notifications: [{ id: "n1", tone: "info", title: "One" }],
+      notificationCenterOpen: true,
+    });
+
+    const center = screen
+      .getAllByLabelText("Notifications")
+      .find((element) => element.classList.contains("fo-notification-center"));
+
+    expect(center).toBeTruthy();
+    expect(center?.closest(".fo-workbench-toolbar")).toBeNull();
+  });
+
   it("shows canGoBack=false when backStack is empty", () => {
     renderToolbar();
     expect(screen.getByTestId("can-go-back").textContent).toBe("false");

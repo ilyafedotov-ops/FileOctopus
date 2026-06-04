@@ -108,6 +108,18 @@
   background: var(--fo-tab-hover-bg);
 }
 
+.fo-tab--action {
+  flex: 0 0 auto;
+  justify-content: center;
+  width: 34px;
+  padding: 2px 6px;
+}
+
+.fo-tab--action svg {
+  width: 16px;
+  height: 16px;
+}
+
 /* UPP-C1: the active pane must be unmistakable (UI spec §3.2). It carries an
    accent frame plus a 2px accent top strip; both are drawn on the panel's own
    background so contrast holds across all themes (incl. commander-blue). The
@@ -143,13 +155,6 @@
   border-bottom: 1px solid var(--fo-panel-bg);
   font-size: var(--fo-font-size-md);
   font-weight: 700;
-}
-
-.fo-panel-header-actions {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  padding-right: 4px;
 }
 
 .fo-panel-header .fo-panel-title-row {
@@ -202,11 +207,6 @@
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.fo-panel-terminal-btn.fo-ui-btn {
-  min-width: 28px;
-  padding: 0 6px;
 }
 
 .fo-panel[data-active="false"] .fo-panel-header {
@@ -1374,9 +1374,11 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  max-width: 10.5rem;
+  justify-content: center;
+  width: 42px;
+  max-width: 42px;
   min-height: var(--fo-pathbar-height);
-  padding: 0 6px;
+  padding: 0;
   border-right: 1px solid var(--fo-panel-bg);
   border-radius: 0;
   background: var(--fo-editor-bg);
@@ -1404,10 +1406,7 @@
 }
 
 .fo-pane-location-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: none;
 }
 
 .fo-pane-location-trigger .fo-ui-icon {

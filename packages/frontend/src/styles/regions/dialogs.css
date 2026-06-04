@@ -646,12 +646,20 @@
   animation: fo-dialog-backdrop-in var(--fo-motion-fast) var(--fo-motion-ease);
 }
 
+.fo-dialog-backdrop--pass-through {
+  pointer-events: none;
+}
+
+.fo-dialog-backdrop--pass-through .fo-dialog {
+  pointer-events: auto;
+}
+
 .fo-dialog,
 dialog.fo-dialog {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  width: min(46rem, calc(100vw - 2rem));
+  width: min(40rem, calc(100vw - 2rem));
   height: auto;
   max-height: calc(100dvh - var(--fo-titlebar-height, 50px) - 16px);
   min-height: 0;
@@ -659,7 +667,7 @@ dialog.fo-dialog {
   overflow: auto;
   padding: 0;
   border: 1px solid var(--fo-workbench-dialog-border);
-  border-radius: var(--fo-radius-sm-wide);
+  border-radius: var(--fo-radius-sm);
   background: var(--fo-workbench-dialog-bg);
   color: var(--fo-text);
   box-shadow: var(--fo-elevation-modal);
@@ -694,10 +702,10 @@ dialog.fo-dialog[open] {
   flex: 0 0 auto;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.5rem;
   margin-bottom: 0;
-  min-height: 48px;
-  padding: 0.7rem 0.85rem;
+  min-height: 36px;
+  padding: 0.5rem 0.7rem;
   border-bottom: 1px solid var(--fo-workbench-dialog-border);
   background: var(--fo-workbench-dialog-panel-bg);
   color: var(--fo-text);
@@ -741,24 +749,32 @@ dialog.fo-dialog[open] {
 .fo-dialog-header h2 {
   margin: 0;
   color: var(--fo-text);
-  font-size: var(--fo-font-size-xl);
+  font-size: var(--fo-font-size-lg);
   font-weight: 750;
   line-height: var(--fo-line-tight);
 }
 
 .fo-dialog-header p {
   display: block;
-  margin: 0.25rem 0 0;
+  margin: 0.1rem 0 0;
   color: var(--fo-muted-text);
-  font-size: var(--fo-font-size-md);
+  font-size: var(--fo-font-size-sm);
   line-height: var(--fo-line-normal);
+}
+
+.fo-dialog-close.fo-ui-btn {
+  width: 24px;
+  min-width: 24px;
+  padding: 0;
+  font-size: var(--fo-font-size-lg);
+  line-height: 1;
 }
 
 .fo-dialog-body {
   display: grid;
   align-content: start;
-  gap: 0.8rem;
-  padding: 0.9rem;
+  gap: 0.55rem;
+  padding: 0.65rem;
   flex: 0 0 auto;
   min-height: 0;
 }
@@ -766,20 +782,20 @@ dialog.fo-dialog[open] {
 .fo-dialog-form {
   flex: 0 0 auto;
   display: grid;
-  gap: 0.8rem;
+  gap: 0.6rem;
   margin: 0;
-  padding: 0.9rem;
+  padding: 0.65rem;
 }
 
 .fo-dialog-field {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.25rem;
 }
 
 .fo-dialog-field > span,
 .fo-dialog-field > label {
   color: var(--fo-text);
-  font-size: var(--fo-font-size-md);
+  font-size: var(--fo-font-size-sm);
   font-weight: 700;
 }
 
@@ -787,13 +803,13 @@ dialog.fo-dialog[open] {
 .fo-dialog-field select,
 .fo-dialog-field textarea {
   width: 100%;
-  min-height: 34px;
-  padding: 0.4rem 0.55rem;
+  min-height: 28px;
+  padding: 0.25rem 0.45rem;
   border: 1px solid var(--fo-workbench-dialog-muted-border);
-  border-radius: var(--fo-radius-sm);
+  border-radius: var(--fo-radius-xs);
   background: var(--fo-workbench-dialog-field-bg);
   color: var(--fo-text);
-  font-size: var(--fo-font-size-lg);
+  font-size: var(--fo-font-size-md);
 }
 
 .fo-dialog-field input:focus-visible,
@@ -1014,10 +1030,14 @@ dialog.fo-dialog[open] {
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.35rem;
-  padding: 0.75rem 0.85rem;
+  gap: 0.3rem;
+  padding: 0.55rem 0.7rem;
   border-top: 1px solid var(--fo-workbench-dialog-border);
-  background: var(--fo-workbench-dialog-panel-bg);
+  background: color-mix(
+    in srgb,
+    var(--fo-workbench-dialog-panel-bg) 70%,
+    transparent
+  );
 }
 
 .fo-dialog-form .fo-dialog-footer,
@@ -1035,7 +1055,7 @@ dialog.fo-dialog[open] {
 
 .fo-dialog-item-list {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.1rem;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1044,11 +1064,15 @@ dialog.fo-dialog[open] {
 }
 
 .fo-dialog-item-list li {
-  padding: 0.3rem 0.45rem;
-  border: 1px solid var(--fo-classic-shadow);
-  border-radius: 0;
-  background: var(--fo-classic-window);
-  font-size: var(--fo-font-size-md);
+  padding: 0.22rem 0.35rem;
+  border: none;
+  border-radius: var(--fo-radius-xs);
+  background: color-mix(
+    in srgb,
+    var(--fo-workbench-dialog-field-bg) 75%,
+    transparent
+  );
+  font-size: var(--fo-font-size-sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1056,18 +1080,15 @@ dialog.fo-dialog[open] {
 
 .fo-dialog-callout {
   display: grid;
-  gap: 0.5rem;
-  padding: 0.55rem;
-  border-width: 2px;
-  border-style: solid;
-  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
-    var(--fo-classic-light) var(--fo-classic-shadow);
-  border-radius: 0;
-  background: var(--fo-classic-face);
+  gap: 0.35rem;
+  padding: 0.45rem;
+  border: 1px solid var(--fo-workbench-dialog-border);
+  border-radius: var(--fo-radius-xs);
+  background: var(--fo-workbench-dialog-panel-bg);
 }
 
 .fo-dialog-callout strong {
-  font-size: var(--fo-font-size-lg);
+  font-size: var(--fo-font-size-md);
   color: var(--fo-text);
 }
 
@@ -1089,9 +1110,29 @@ dialog.fo-dialog[open] {
 
 .fo-destination-layout {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.75rem;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: end;
+}
+
+.fo-copy-dialog-content {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.fo-copy-source {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.fo-copy-source-path,
+.fo-copy-target-preview {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-destination-field {
+  min-width: 0;
 }
 
 .fo-destination-main {
@@ -1101,15 +1142,12 @@ dialog.fo-dialog[open] {
 }
 
 .fo-destination-sidebar {
-  width: 220px;
-  max-height: 300px;
+  width: 100%;
+  max-height: 240px;
   overflow-y: auto;
-  border-width: 2px;
-  border-style: solid;
-  border-color: var(--fo-classic-shadow) var(--fo-classic-light)
-    var(--fo-classic-light) var(--fo-classic-shadow);
-  border-radius: 0;
-  background: var(--fo-classic-window);
+  border: 1px solid var(--fo-workbench-dialog-border);
+  border-radius: var(--fo-radius-xs);
+  background: var(--fo-workbench-dialog-panel-bg);
   padding: 0.35rem;
 }
 
@@ -1258,34 +1296,38 @@ dialog.fo-dialog[open] {
 .fo-dialog-checkbox {
   display: flex;
   align-items: flex-start;
-  gap: 0.55rem;
+  gap: 0.4rem;
   min-height: auto;
   padding: 0;
   border: none;
   border-radius: 0;
   background: transparent;
-  font-size: var(--fo-font-size-lg);
+  font-size: var(--fo-font-size-md);
   line-height: 1.35;
   color: var(--fo-text);
   cursor: pointer;
 }
 
 .fo-dialog-checkbox input {
-  width: 1rem;
-  height: 1rem;
-  min-height: 1rem;
+  width: 0.9rem;
+  height: 0.9rem;
+  min-height: 0.9rem;
   margin: 0.1rem 0 0;
   padding: 0;
   flex: 0 0 auto;
   accent-color: var(--fo-accent);
   border: 1px solid var(--fo-control-border);
-  border-radius: var(--fo-radius-sm-subtle);
+  border-radius: 0;
   background: var(--fo-control-bg);
   cursor: pointer;
 }
 
 .fo-operation-dialog {
-  width: min(32rem, calc(100vw - 2rem));
+  width: min(30rem, calc(100vw - 2rem));
+}
+
+.fo-operation-dialog--copy {
+  width: min(38rem, calc(100vw - 2rem));
 }
 
 .fo-diagnostics-dialog .fo-dialog-body {

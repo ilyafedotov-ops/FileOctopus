@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   selectedItemText,
   operationDialogHeading,
@@ -17,12 +18,13 @@ import type {
   NetworkProfileDto,
 } from "@fileoctopus/ts-api";
 import type { PanelId } from "../panelStore";
+import { parentUri } from "../panelStore";
 import { Button } from "@fileoctopus/ui";
 import { DialogShell } from "../components/DialogShell";
 import { PropertiesDialog } from "../components/dialogs/PropertiesDialog";
 import { SelectionPropertiesDialog } from "../components/dialogs/SelectionPropertiesDialog";
 import { ConflictResolutionDialog } from "../components/dialogs/ConflictResolutionDialog";
-import { DestinationChooser } from "./DestinationChooser";
+import { DestinationChooser, localPathFromUri } from "./DestinationChooser";
 
 type CopyMoveKind = "copy" | "move";
 
@@ -58,6 +60,7 @@ export type OperationDialog =
       plan: FileOperationPlanDto | null;
       planning: boolean;
       step: "review" | "confirm-overwrite";
+      pendingConflictPolicy?: ConflictPolicy;
       error: string | null;
     }
   | {
@@ -153,6 +156,8 @@ export function OperationDialogView({
   recentDestinations,
   networkProfiles,
 }: OperationDialogViewProps) {
+  const [browseOpen, setBrowseOpen] = useState(false);
+
   if (!dialog) {
     return null;
   }
@@ -160,6 +165,30 @@ export function OperationDialogView({
   const heading = operationDialogHeading(dialog);
   const isProperties =
     dialog.type === "properties" || dialog.type === "selectionProperties";
+  const className = [
+    "fo-operation-dialog",
+    isProperties ? "fo-properties-dialog" : "",
+    dialog.type === "copyMove" ? "fo-operation-dialog--copy" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const hasDestinationChooser = Boolean(
+    fs ||
+    (locations && locations.length > 0) ||
+    (favorites && favorites.length > 0) ||
+    (recentDestinations && recentDestinations.length > 0) ||
+    (networkProfiles && networkProfiles.length > 0),
+  );
+  const displayDestination =
+    dialog.type === "copyMove" ? localPathFromUri(dialog.destination) : "";
+  const sourceFolder =
+    dialog.type === "copyMove"
+      ? localPathFromUri(parentUri(dialog.entries[0]?.uri ?? "") ?? "")
+      : "";
+  const targetPreview =
+    dialog.type === "copyMove" && dialog.entries.length === 1
+      ? `${displayDestination.replace(/\/$/, "")}/${dialog.entries[0].name}`
+      : "";
 
   return (
     <DialogShell
@@ -169,7 +198,7 @@ export function OperationDialogView({
       titleId={heading.titleId}
       subtitle={heading.subtitle}
       closeOnBackdrop={false}
-      className={`fo-operation-dialog${isProperties ? " fo-properties-dialog" : ""}`}
+      className={className}
     >
       {dialog.type === "createFolder" ? (
         <form
@@ -270,13 +299,14 @@ export function OperationDialogView({
             conflicts={dialog.plan?.conflicts ?? []}
             entries={dialog.entries}
             fs={fs}
+            busy={dialog.planning}
             onBack={() => onUpdate({ ...dialog, step: "review" })}
             onResolve={(result) => {
-              if (result.action === "overwrite") {
-                void onSubmitCopyMove(dialog);
-              } else {
-                onUpdate({ ...dialog, step: "review" });
-              }
+              void onSubmitCopyMove({
+                ...dialog,
+                conflictPolicy: result.action,
+                pendingConflictPolicy: result.action,
+              });
             }}
           />
         ) : (
@@ -287,13 +317,21 @@ export function OperationDialogView({
               onSubmitCopyMove(dialog);
             }}
           >
-            <div className="fo-destination-layout">
-              <div className="fo-destination-main">
-                <label className="fo-dialog-field">
+            <div className="fo-copy-dialog-content">
+              <div className="fo-copy-source">
+                {sourceFolder ? (
+                  <span className="fo-copy-source-path">
+                    From {sourceFolder}
+                  </span>
+                ) : null}
+                <OperationItemList entries={dialog.entries.slice(0, 5)} />
+              </div>
+              <div className="fo-destination-layout">
+                <label className="fo-dialog-field fo-destination-field">
                   <span>Destination</span>
                   <input
                     aria-label="Destination URI"
-                    value={dialog.destination}
+                    value={displayDestination}
                     onChange={(event) =>
                       onUpdate({
                         ...dialog,
@@ -304,6 +342,44 @@ export function OperationDialogView({
                     }
                   />
                 </label>
+                {hasDestinationChooser ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-expanded={browseOpen}
+                    onClick={() => setBrowseOpen((current) => !current)}
+                  >
+                    Browse…
+                  </Button>
+                ) : null}
+              </div>
+              {targetPreview ? (
+                <div className="fo-copy-target-preview">
+                  Target {targetPreview}
+                </div>
+              ) : null}
+              {browseOpen && hasDestinationChooser ? (
+                <div className="fo-destination-sidebar">
+                  <DestinationChooser
+                    locations={locations ?? []}
+                    favorites={favorites ?? []}
+                    recent={recentDestinations ?? []}
+                    networkProfiles={networkProfiles ?? []}
+                    fs={fs}
+                    onSelect={(uri) => {
+                      onUpdate({
+                        ...dialog,
+                        destination: uri,
+                        plan: null,
+                        error: null,
+                      });
+                      setBrowseOpen(false);
+                    }}
+                  />
+                </div>
+              ) : null}
+              <div className="fo-destination-main">
                 {dialog.advancedOptions ? (
                   <>
                     <label className="fo-dialog-field">
@@ -349,10 +425,6 @@ export function OperationDialogView({
                     </label>
                   </>
                 ) : null}
-                <div className="fo-dialog-callout fo-copy-selection">
-                  <strong>{selectedItemText(dialog.entries.length)}</strong>
-                  <OperationItemList entries={dialog.entries.slice(0, 5)} />
-                </div>
                 {dialog.entries.some((e) => e.isSymlink) ? (
                   <div className="fo-dialog-callout fo-symlink-warning">
                     <span>
@@ -389,31 +461,11 @@ export function OperationDialogView({
                   <div className="fo-operation-error">{dialog.error}</div>
                 ) : null}
               </div>
-              {fs ||
-              (locations && locations.length > 0) ||
-              (favorites && favorites.length > 0) ||
-              (recentDestinations && recentDestinations.length > 0) ||
-              (networkProfiles && networkProfiles.length > 0) ? (
-                <div className="fo-destination-sidebar">
-                  <DestinationChooser
-                    locations={locations ?? []}
-                    favorites={favorites ?? []}
-                    recent={recentDestinations ?? []}
-                    networkProfiles={networkProfiles ?? []}
-                    fs={fs}
-                    onSelect={(uri) =>
-                      onUpdate({
-                        ...dialog,
-                        destination: uri,
-                        plan: null,
-                        error: null,
-                      })
-                    }
-                  />
-                </div>
-              ) : null}
             </div>
             <div className="fo-dialog-footer">
+              <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+                Cancel
+              </Button>
               {dialog.advancedOptions && dialog.planningEnabled ? (
                 <Button
                   type="button"
@@ -452,7 +504,9 @@ export function OperationDialogView({
           }}
         >
           <div className="fo-dialog-callout">
-            <strong>Move {dialog.entries.length} item(s) to Trash</strong>
+            <strong>
+              Move {selectedItemText(dialog.entries.length)} to Trash
+            </strong>
             <OperationItemList entries={dialog.entries.slice(0, 5)} />
           </div>
           {dialog.error ? (
@@ -490,7 +544,9 @@ export function OperationDialogView({
           }}
         >
           <div className="fo-dialog-callout fo-dialog-callout--danger">
-            <strong>Permanently delete {dialog.entries.length} item(s)</strong>
+            <strong>
+              Permanently delete {selectedItemText(dialog.entries.length)}
+            </strong>
             <OperationItemList entries={dialog.entries.slice(0, 5)} />
           </div>
           {dialog.error ? (

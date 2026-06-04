@@ -110,7 +110,7 @@ impl Default for UserPreferences {
             activity_panel_width: 288,
             confirm_delete: true,
             confirm_permanent_delete: true,
-            use_trash_by_default: true,
+            use_trash_by_default: false,
             default_conflict_policy: "fail".to_string(),
             accent_color: "blue".to_string(),
             font_scale: "medium".to_string(),

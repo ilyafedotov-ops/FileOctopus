@@ -10,7 +10,7 @@ export const FALLBACK_PREFERENCES: UserPreferencesDto = {
   activityPanelWidth: 288,
   confirmDelete: true,
   confirmPermanentDelete: true,
-  useTrashByDefault: true,
+  useTrashByDefault: false,
   defaultConflictPolicy: "fail",
   accentColor: "blue",
   fontScale: "medium",

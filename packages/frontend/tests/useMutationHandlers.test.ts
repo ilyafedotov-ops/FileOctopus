@@ -59,6 +59,7 @@ function buildDeps(overrides: Record<string, unknown> = {}) {
   const refreshVisiblePanels = vi.fn();
   const refreshNavigation = vi.fn(async () => undefined);
   const startOperation = vi.fn(async () => true);
+  const startPlannedOperation = vi.fn(async () => true);
   const planOperation = vi.fn();
   const selectedEntries = vi.fn(() => []);
 
@@ -107,6 +108,7 @@ function buildDeps(overrides: Record<string, unknown> = {}) {
     coreOverride: {
       planOperation,
       startOperation,
+      startPlannedOperation,
       selectedEntries,
     },
   };
@@ -284,9 +286,122 @@ describe("useMutationHandlers", () => {
     });
   });
 
+  it("handleTrash skips dialog and executes when confirmDelete is false", () => {
+    const { deps, coreOverride, entry } = buildDeps({
+      preferences: { confirmDelete: false },
+    });
+    coreOverride.selectedEntries = vi.fn(() => [entry]);
+    coreOverride.startOperation = vi.fn(async () => true);
+
+    const { result } = renderHook(() =>
+      useMutationHandlers(deps, coreOverride),
+    );
+
+    act(() => {
+      result.current.handleTrash("left");
+    });
+
+    expect(coreOverride.startOperation).toHaveBeenCalled();
+    expect(deps.setDialog).not.toHaveBeenCalled();
+  });
+
+  it("handlePermanentDelete skips dialog and executes when confirmPermanentDelete is false", () => {
+    const { deps, coreOverride, entry } = buildDeps({
+      preferences: { confirmPermanentDelete: false },
+    });
+    coreOverride.selectedEntries = vi.fn(() => [entry]);
+    coreOverride.startOperation = vi.fn(async () => true);
+
+    const { result } = renderHook(() =>
+      useMutationHandlers(deps, coreOverride),
+    );
+
+    act(() => {
+      result.current.handlePermanentDelete("left");
+    });
+
+    expect(coreOverride.startOperation).toHaveBeenCalledWith(
+      "deletePermanently",
+      [entry.uri],
+    );
+    expect(deps.setDialog).not.toHaveBeenCalled();
+  });
+
+  it("handleDelete opens permanentDelete dialog when useTrashByDefault is false", () => {
+    const { deps, coreOverride, entry } = buildDeps({
+      preferences: { useTrashByDefault: false },
+    });
+    coreOverride.selectedEntries = vi.fn(() => [entry]);
+
+    const { result } = renderHook(() =>
+      useMutationHandlers(deps, coreOverride),
+    );
+
+    act(() => {
+      result.current.handleDelete("left");
+    });
+
+    expect(deps.setDialog).toHaveBeenCalledWith({
+      type: "permanentDelete",
+      panelId: "left",
+      entries: [entry],
+      error: null,
+    });
+  });
+
+  it("handleDelete opens permanentDelete dialog when preferences are missing", () => {
+    const { deps, coreOverride, entry } = buildDeps();
+    coreOverride.selectedEntries = vi.fn(() => [entry]);
+
+    const { result } = renderHook(() =>
+      useMutationHandlers(deps, coreOverride),
+    );
+
+    act(() => {
+      result.current.handleDelete("left");
+    });
+
+    expect(deps.setDialog).toHaveBeenCalledWith({
+      type: "permanentDelete",
+      panelId: "left",
+      entries: [entry],
+      error: null,
+    });
+  });
+
+  it("handleDelete opens trash dialog when useTrashByDefault is true", () => {
+    const { deps, coreOverride, entry } = buildDeps({
+      preferences: { useTrashByDefault: true },
+    });
+    coreOverride.selectedEntries = vi.fn(() => [entry]);
+
+    const { result } = renderHook(() =>
+      useMutationHandlers(deps, coreOverride),
+    );
+
+    act(() => {
+      result.current.handleDelete("left");
+    });
+
+    expect(deps.setDialog).toHaveBeenCalledWith({
+      type: "trash",
+      panelId: "left",
+      entries: [entry],
+      dontAskAgain: false,
+      error: null,
+    });
+  });
+
   it("submitCreateFolder validates name and clears dialog on success", async () => {
     const { deps, coreOverride } = buildDeps();
-    coreOverride.startOperation = vi.fn(async () => true);
+    const plan = {
+      operationId: "op-1",
+      totalItems: 1,
+      conflicts: [],
+      warnings: [],
+    };
+    coreOverride.planOperation = vi.fn(async () => ({ plan }));
+    coreOverride.startPlannedOperation = vi.fn(async () => true);
 
     const { result } = renderHook(() =>
       useMutationHandlers(deps, coreOverride),
@@ -303,9 +418,14 @@ describe("useMutationHandlers", () => {
       await result.current.submitCreateFolder(dialog);
     });
 
-    expect(coreOverride.startOperation).toHaveBeenCalled();
+    expect(coreOverride.planOperation).toHaveBeenCalledWith(
+      "createDirectory",
+      [],
+      "local:///MyFolder",
+    );
+    expect(coreOverride.startPlannedOperation).toHaveBeenCalledWith(plan);
     expect(deps.setDialog).toHaveBeenCalledWith(null);
-    expect(deps.refreshVisiblePanels).toHaveBeenCalled();
+    expect(deps.refreshVisiblePanels).not.toHaveBeenCalled();
   });
 
   it("submitCreateFolder shows error for invalid name", async () => {

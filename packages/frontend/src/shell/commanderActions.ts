@@ -14,7 +14,7 @@ export interface CommanderActionsDeps {
   handleCommandSelect: (id: string, panelId?: PanelId) => void;
   handleCopyOrMove: (panelId: PanelId, mode: "copy" | "move") => void;
   handleCreateFolder: (panelId: PanelId) => void;
-  handleTrash: (panelId: PanelId) => void;
+  handleDelete: (panelId: PanelId) => void;
   handleProperties: (
     panelId: PanelId,
     entry: FileEntryDto | null,
@@ -34,7 +34,7 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
     handleCommandSelect,
     handleCopyOrMove,
     handleCreateFolder,
-    handleTrash,
+    handleDelete,
     handleProperties,
     setOperationError,
   } = deps;
@@ -99,7 +99,7 @@ export function createCommanderActions(deps: CommanderActionsDeps) {
       if (!mutation.canDelete) {
         return;
       }
-      handleTrash(panelId);
+      handleDelete(panelId);
     },
     terminal: () => handleCommandSelect("op.openTerminal", panelId),
     help: () => handleCommandSelect("app.shortcuts", panelId),

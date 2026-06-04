@@ -1,12 +1,18 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import type { FileOctopusState, PanelAction } from "../../panelStore";
-import { applyBatch, renameEntryInState, updatePanel } from "../../panelStore";
+import {
+  applyBatch,
+  removeEntriesFromState,
+  renameEntryInState,
+  updatePanel,
+} from "../../panelStore";
 type ListingAction = Extract<
   PanelAction,
   | { type: "startRequest" }
   | { type: "startSession" }
   | { type: "applyBatch" }
   | { type: "renameEntry" }
+  | { type: "removeEntries" }
   | { type: "setPaneError" }
   | { type: "setArchiveEntries" }
 >;
@@ -17,6 +23,7 @@ export function isListingAction(action: PanelAction): action is ListingAction {
     action.type === "startRequest" ||
     action.type === "applyBatch" ||
     action.type === "renameEntry" ||
+    action.type === "removeEntries" ||
     action.type === "setPaneError" ||
     action.type === "setArchiveEntries"
   );
@@ -32,15 +39,30 @@ export function reduceListing(
         ...tab,
         sessionId: null,
         activeRequestId: action.requestId,
-        loadState: "loading",
+        loadState: action.backgroundRefresh ? tab.loadState : "loading",
         error: null,
         errorCode: null,
+        backgroundListing: action.backgroundRefresh
+          ? {
+              requestId: action.requestId,
+              sessionId: null,
+              entriesById: {},
+              orderedEntryIds: [],
+            }
+          : null,
       }));
     case "startSession":
       return updatePanel(state, action.panelId, (tab) => ({
         ...tab,
         sessionId: action.sessionId,
         activeRequestId: action.requestId,
+        backgroundListing:
+          tab.backgroundListing?.requestId === action.requestId
+            ? {
+                ...tab.backgroundListing,
+                sessionId: action.sessionId,
+              }
+            : tab.backgroundListing,
         loadState:
           tab.activeRequestId === action.requestId &&
           tab.loadState !== "loading"
@@ -59,6 +81,8 @@ export function reduceListing(
       }));
     case "applyBatch":
       return applyBatch(state, action.batch);
+    case "removeEntries":
+      return removeEntriesFromState(state, action.uris);
     case "renameEntry":
       return renameEntryInState(
         state,
@@ -118,5 +142,6 @@ function setArchiveEntriesReducer(
     filter: "",
     backStack,
     forwardStack: changed ? [] : current.forwardStack,
+    backgroundListing: null,
   }));
 }

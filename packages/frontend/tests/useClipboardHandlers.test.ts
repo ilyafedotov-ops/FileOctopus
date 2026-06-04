@@ -94,6 +94,10 @@ describe("useClipboardHandlers", () => {
       expect.objectContaining({
         kind: "copy",
         uris: ["local:///home/user/a.txt", "local:///home/user/b.txt"],
+        entries: expect.arrayContaining([
+          expect.objectContaining({ name: "a.txt" }),
+          expect.objectContaining({ name: "b.txt" }),
+        ]),
         providerId: "local",
       }),
     );
@@ -146,15 +150,23 @@ describe("useClipboardHandlers", () => {
     expect(coreOverride.startOperation).not.toHaveBeenCalled();
   });
 
-  it("pasteClipboard starts a copy operation and keeps clipboard", async () => {
+  it("pasteClipboard plans and starts a copy operation without conflicts", async () => {
+    const plan = {
+      operationId: "op-1",
+      totalItems: 1,
+      conflicts: [],
+      warnings: [],
+    };
     const { deps, coreOverride } = buildDeps({
       clipboard: {
         kind: "copy",
         uris: ["local:///home/user/a.txt"],
+        entries: [makeEntry({ uri: "local:///home/user/a.txt" })],
         providerId: "local",
         timestamp: Date.now(),
       },
     });
+    coreOverride.planOperation = vi.fn(async () => ({ plan }));
 
     const { result } = renderHook(() =>
       useClipboardHandlers(deps, coreOverride),
@@ -164,26 +176,80 @@ describe("useClipboardHandlers", () => {
       await result.current.pasteClipboard("left");
     });
 
-    expect(coreOverride.startOperation).toHaveBeenCalledWith(
+    expect(coreOverride.planOperation).toHaveBeenCalledWith(
       "copy",
       ["local:///home/user/a.txt"],
       expect.any(String),
       undefined,
       "renameNew",
     );
-    // Copy does NOT clear clipboard
+    expect(coreOverride.startPlannedOperation).toHaveBeenCalledWith(plan);
     expect(deps.setClipboard).not.toHaveBeenCalled();
   });
 
-  it("pasteClipboard clears clipboard after a move operation", async () => {
+  it("pasteClipboard opens conflict resolution when planning finds conflicts", async () => {
+    const clipboardEntry = makeEntry({
+      uri: "local:///home/user/a.txt",
+      name: "a.txt",
+    });
+    const plan = {
+      operationId: "op-1",
+      totalItems: 1,
+      conflicts: [
+        {
+          source: "local:///home/user/a.txt",
+          destination: "local:///home/user/dest/a.txt",
+        },
+      ],
+      warnings: [],
+    };
     const { deps, coreOverride } = buildDeps({
       clipboard: {
-        kind: "move",
+        kind: "copy",
         uris: ["local:///home/user/a.txt"],
+        entries: [clipboardEntry],
         providerId: "local",
         timestamp: Date.now(),
       },
     });
+    coreOverride.planOperation = vi.fn(async () => ({ plan }));
+
+    const { result } = renderHook(() =>
+      useClipboardHandlers(deps, coreOverride),
+    );
+
+    await act(async () => {
+      await result.current.pasteClipboard("left");
+    });
+
+    expect(coreOverride.startPlannedOperation).not.toHaveBeenCalled();
+    expect(deps.setDialog).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "copyMove",
+        entries: [clipboardEntry],
+        plan,
+        step: "confirm-overwrite",
+      }),
+    );
+  });
+
+  it("pasteClipboard clears clipboard after a move operation", async () => {
+    const plan = {
+      operationId: "op-1",
+      totalItems: 1,
+      conflicts: [],
+      warnings: [],
+    };
+    const { deps, coreOverride } = buildDeps({
+      clipboard: {
+        kind: "move",
+        uris: ["local:///home/user/a.txt"],
+        entries: [makeEntry({ uri: "local:///home/user/a.txt" })],
+        providerId: "local",
+        timestamp: Date.now(),
+      },
+    });
+    coreOverride.planOperation = vi.fn(async () => ({ plan }));
 
     const { result } = renderHook(() =>
       useClipboardHandlers(deps, coreOverride),

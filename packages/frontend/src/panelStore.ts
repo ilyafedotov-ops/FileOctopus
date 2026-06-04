@@ -61,6 +61,12 @@ export interface PanelTabState {
   backStack: string[];
   forwardStack: string[];
   hashMap: Record<string, HashState>;
+  backgroundListing: {
+    requestId: string;
+    sessionId: string | null;
+    entriesById: Record<string, FileEntryDto>;
+    orderedEntryIds: string[];
+  } | null;
 }
 
 export interface PanelState {
@@ -82,6 +88,7 @@ export type PanelAction =
       uri: string;
       replace?: boolean;
       softRefresh?: boolean;
+      backgroundRefresh?: boolean;
     }
   | { type: "goBack"; panelId: PanelId }
   | { type: "goForward"; panelId: PanelId }
@@ -89,6 +96,7 @@ export type PanelAction =
       type: "startRequest";
       panelId: PanelId;
       requestId: string;
+      backgroundRefresh?: boolean;
     }
   | {
       type: "startSession";
@@ -146,7 +154,8 @@ export type PanelAction =
       panelId: PanelId;
       uri: string;
       entries: FileEntryDto[];
-    };
+    }
+  | { type: "removeEntries"; uris: string[] };
 
 export function createInitialState(
   leftUri = homeUri(),
@@ -260,6 +269,7 @@ function createPanel(id: PanelId, uri: string): PanelState {
         backStack: [],
         forwardStack: [],
         hashMap: {},
+        backgroundListing: null,
       },
     },
   };
@@ -271,6 +281,7 @@ export function applyNavigation(
   options: {
     replace?: boolean;
     softRefresh?: boolean;
+    backgroundRefresh?: boolean;
     backStack?: string[];
     forwardStack?: string[];
   } = {},
@@ -282,6 +293,7 @@ export function applyNavigation(
       ...tab,
       sessionId: null,
       activeRequestId: null,
+      backgroundListing: null,
     };
   }
 
@@ -309,6 +321,7 @@ export function applyNavigation(
     filter: "",
     backStack,
     forwardStack,
+    backgroundListing: null,
   };
 }
 
@@ -359,12 +372,24 @@ export function applyBatch(
       loadState: terminalLoadState(0, batch.error),
       error: batch.error?.message ?? "Failed to load directory",
       errorCode: batch.error?.code ?? null,
+      backgroundListing:
+        current.backgroundListing?.requestId === batch.requestId
+          ? null
+          : current.backgroundListing,
     }));
   }
 
   return updatePanel(state, target, (current) => {
-    const entriesById = { ...current.entriesById };
-    const orderedEntryIds = [...current.orderedEntryIds];
+    const backgroundListing =
+      current.backgroundListing?.requestId === batch.requestId
+        ? current.backgroundListing
+        : null;
+    const entriesById = {
+      ...(backgroundListing?.entriesById ?? current.entriesById),
+    };
+    const orderedEntryIds = [
+      ...(backgroundListing?.orderedEntryIds ?? current.orderedEntryIds),
+    ];
 
     for (const entry of batch.entries) {
       if (!entriesById[entry.uri]) {
@@ -384,6 +409,19 @@ export function applyBatch(
       ? terminalLoadState(orderedEntryIds.length, batch.error)
       : "loading";
 
+    if (backgroundListing && !batch.isComplete) {
+      return {
+        ...current,
+        backgroundListing: {
+          ...backgroundListing,
+          entriesById,
+          orderedEntryIds,
+        },
+        error: batch.error?.message ?? null,
+        errorCode: batch.error?.code ?? null,
+      };
+    }
+
     return {
       ...current,
       entriesById,
@@ -399,8 +437,79 @@ export function applyBatch(
       loadState,
       error: batch.error?.message ?? null,
       errorCode: batch.error?.code ?? null,
+      backgroundListing:
+        backgroundListing && batch.isComplete
+          ? null
+          : current.backgroundListing,
     };
   });
+}
+
+export function removeEntriesFromState(
+  state: FileOctopusState,
+  uris: string[],
+): FileOctopusState {
+  if (uris.length === 0) {
+    return state;
+  }
+
+  const uriSet = new Set(uris);
+  const panels = (Object.keys(state.panels) as PanelId[]).reduce(
+    (nextPanels, panelId) => {
+      const panel = state.panels[panelId];
+      const tabs = Object.entries(panel.tabs).reduce(
+        (nextTabs, [tabId, tab]) => {
+          const hasRemoved = tab.orderedEntryIds.some((id) => uriSet.has(id));
+          if (!hasRemoved) {
+            nextTabs[tabId] = tab;
+            return nextTabs;
+          }
+
+          const entriesById = { ...tab.entriesById };
+          for (const uri of uris) {
+            delete entriesById[uri];
+          }
+
+          const orderedEntryIds = tab.orderedEntryIds.filter(
+            (id) => !uriSet.has(id),
+          );
+          const selectedIds = tab.selectedIds.filter((id) => !uriSet.has(id));
+          const firstId = selectedIds[0] ?? orderedEntryIds[0] ?? null;
+
+          nextTabs[tabId] = {
+            ...tab,
+            entriesById,
+            orderedEntryIds,
+            selectedIds,
+            selectedId:
+              tab.selectedId && uriSet.has(tab.selectedId)
+                ? firstId
+                : tab.selectedId,
+            focusedId:
+              tab.focusedId && uriSet.has(tab.focusedId)
+                ? firstId
+                : tab.focusedId,
+            anchorId:
+              tab.anchorId && uriSet.has(tab.anchorId) ? firstId : tab.anchorId,
+          };
+          return nextTabs;
+        },
+        {} as PanelState["tabs"],
+      );
+
+      nextPanels[panelId] = {
+        ...panel,
+        tabs,
+      };
+      return nextPanels;
+    },
+    {} as FileOctopusState["panels"],
+  );
+
+  return {
+    ...state,
+    panels,
+  };
 }
 
 export function renameEntryInState(
@@ -547,7 +656,11 @@ function findPanelBySession(
   sessionId: string,
 ): PanelId | null {
   for (const panelId of Object.keys(state.panels) as PanelId[]) {
-    if (activeTab(state.panels[panelId]).sessionId === sessionId) {
+    const tab = activeTab(state.panels[panelId]);
+    if (
+      tab.sessionId === sessionId ||
+      tab.backgroundListing?.sessionId === sessionId
+    ) {
       return panelId;
     }
   }

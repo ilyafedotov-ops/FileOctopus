@@ -641,6 +641,11 @@ describe("FileOctopusShell", () => {
     await waitFor(() => expect(listStart).toHaveBeenCalledTimes(2));
 
     clickToolbar("New Folder", 0);
+    expect(
+      within(screen.getByRole("dialog")).queryByRole("button", {
+        name: "Close",
+      }),
+    ).toBeTruthy();
     fireEvent.change(screen.getByLabelText("Folder name"), {
       target: { value: "bad/name" },
     });
@@ -661,6 +666,52 @@ describe("FileOctopusShell", () => {
       kind: "createDirectory",
       destination: "local:///Users/ilya/Reports",
     });
+  });
+
+  it("prefills a unique folder name when New Folder already exists", async () => {
+    render(<FileOctopusShell />);
+    await applyLeftEntries([folderEntry("New Folder")]);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "Folder+" })[0]);
+
+    expect(
+      (screen.getByLabelText("Folder name") as HTMLInputElement).value,
+    ).toBe("New Folder 2");
+  });
+
+  it("keeps create-folder dialog open when the destination exists", async () => {
+    planFileOperation.mockResolvedValueOnce({
+      plan: {
+        operationId: "operation-1",
+        kind: "createDirectory",
+        sources: [],
+        destination: "local:///Users/ilya/New%20Folder",
+        newName: null,
+        conflictPolicy: "fail",
+        items: [],
+        conflicts: [
+          {
+            source: "local:///Users/ilya/New%20Folder",
+            destination: "local:///Users/ilya/New%20Folder",
+          },
+        ],
+        warnings: [],
+        totalItems: 1,
+        totalBytes: 0,
+      },
+    });
+
+    render(<FileOctopusShell />);
+    await waitFor(() => expect(listStart).toHaveBeenCalledTimes(2));
+
+    clickToolbar("New Folder", 0);
+    fireEvent.click(screen.getByText("Create"));
+
+    expect(
+      await screen.findByText("A folder with this name already exists."),
+    ).toBeTruthy();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(startFileOperation).not.toHaveBeenCalled();
   });
 
   it("validates rename names and sends the backend rename request", async () => {
@@ -697,7 +748,7 @@ describe("FileOctopusShell", () => {
 
     clickToolbar("Trash", 0);
 
-    expect(screen.getByText("Move 1 item(s) to Trash")).toBeTruthy();
+    expect(screen.getByText("Move 1 selected item to Trash")).toBeTruthy();
     expect(screen.getByRole("dialog").textContent).toContain("alpha.txt");
 
     fireEvent.click(screen.getAllByText("Move to Trash").slice(-1)[0]);
@@ -719,6 +770,8 @@ describe("FileOctopusShell", () => {
 
     clickToolbar("Copy", 0);
     const dialog = within(screen.getByRole("dialog"));
+    expect(dialog.getByRole("button", { name: "Cancel" })).toBeTruthy();
+    expect(dialog.getByRole("button", { name: "Browse…" })).toBeTruthy();
     expect(
       (dialog.getByLabelText("Conflict policy") as HTMLSelectElement).value,
     ).toBe("fail");
@@ -742,6 +795,9 @@ describe("FileOctopusShell", () => {
     fireEvent.click(dialog.getByText("Plan"));
     await dialog.findByText("1 planned item, 1 conflict");
     fireEvent.click(dialog.getByRole("button", { name: "Copy" }));
+
+    expect(await dialog.findByText("Resolve Conflicts")).toBeTruthy();
+    fireEvent.click(dialog.getByRole("button", { name: "Skip" }));
 
     await waitFor(() => expect(startFileOperation).toHaveBeenCalledTimes(1));
     expect(planFileOperation.mock.calls.at(-1)?.[0].operation).toMatchObject({
@@ -817,10 +873,10 @@ describe("FileOctopusShell", () => {
     await applyLeftEntries([folderEntry("Projects"), entry("alpha.txt")]);
 
     fireEvent.keyDown(screen.getByLabelText("File panels"), { key: "Delete" });
-    expect(screen.getByText("Move 1 item(s) to Trash")).toBeTruthy();
+    expect(screen.getByText("Move 1 selected item to Trash")).toBeTruthy();
 
     fireEvent.keyDown(screen.getByLabelText("File panels"), { key: "Escape" });
-    expect(screen.queryByText("Move 1 item(s) to Trash")).toBeNull();
+    expect(screen.queryByText("Move 1 selected item to Trash")).toBeNull();
 
     fireEvent.keyDown(screen.getByLabelText("File panels"), { key: "F5" });
     expect(await screen.findByLabelText("Destination URI")).toBeTruthy();
@@ -911,7 +967,7 @@ describe("FileOctopusShell", () => {
     clickToolbar("Props");
     expect(await screen.findByText("/tmp/alpha.txt")).toBeTruthy();
 
-    fireEvent.click(screen.getByText("Close"));
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
     // Recursive search moved to shared toolbar — verify search via command
   });
 

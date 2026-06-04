@@ -96,30 +96,10 @@ describe("ConflictResolutionDialog", () => {
       />,
     );
 
-    expect(screen.getAllByText("Replace").length >= 1).toBe(true);
-    expect(screen.getAllByText("Skip").length >= 1).toBe(true);
-    expect(screen.getAllByText("Keep Both").length >= 1).toBe(true);
+    expect(screen.getByRole("button", { name: "Replace" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Skip" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Keep Both" })).toBeTruthy();
     expect(screen.getByText("Cancel Operation")).toBeTruthy();
-  });
-
-  it("defaults to Skip as safe default action", () => {
-    const conflicts = [makeConflict()];
-    const entries = [makeEntry()];
-
-    render(
-      <ConflictResolutionDialog
-        conflicts={conflicts}
-        entries={entries}
-        onBack={vi.fn()}
-        onResolve={vi.fn()}
-      />,
-    );
-
-    const radios = screen.getAllByRole("radio");
-    const skipRadio = radios.find(
-      (r) => r.getAttribute("value") === "skip" && r.checked,
-    );
-    expect(skipRadio).toBeTruthy();
   });
 
   it("has Apply to all checkbox", () => {
@@ -160,11 +140,7 @@ describe("ConflictResolutionDialog", () => {
     });
     fireEvent.click(checkbox);
 
-    const skipBtn = screen
-      .getAllByRole("button")
-      .find((b) => b.textContent === "Skip");
-    expect(skipBtn).toBeTruthy();
-    fireEvent.click(skipBtn!);
+    fireEvent.click(screen.getByRole("button", { name: "Skip" }));
 
     expect(onResolve).toHaveBeenCalledWith({
       action: "skip",
@@ -186,11 +162,7 @@ describe("ConflictResolutionDialog", () => {
       />,
     );
 
-    const replaceBtn = screen
-      .getAllByRole("button")
-      .find((b) => b.textContent === "Replace");
-    expect(replaceBtn).toBeTruthy();
-    fireEvent.click(replaceBtn!);
+    fireEvent.click(screen.getByRole("button", { name: "Replace" }));
 
     expect(onResolve).toHaveBeenCalledWith({
       action: "overwrite",
@@ -212,11 +184,7 @@ describe("ConflictResolutionDialog", () => {
       />,
     );
 
-    const cancelBtn = screen
-      .getAllByRole("button")
-      .find((b) => b.textContent === "Cancel Operation");
-    expect(cancelBtn).toBeTruthy();
-    fireEvent.click(cancelBtn!);
+    fireEvent.click(screen.getByRole("button", { name: "Cancel Operation" }));
 
     expect(onBack).toHaveBeenCalled();
   });

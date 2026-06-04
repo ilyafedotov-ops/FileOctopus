@@ -53,7 +53,7 @@ export function SettingsOperations({
             )
           }
         />
-        <span>Use trash by default</span>
+        <span>Delete key moves items to Trash</span>
       </label>
       <label className="fo-settings-checkbox">
         <input

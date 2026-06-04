@@ -27,6 +27,7 @@ pub(super) fn execute_copy(
     sink: &FileOperationEventSink,
 ) -> Result<(), FileOperationError> {
     let mut progress = ExecutionProgress::new(plan);
+    progress.emit_initial(job_id, sink);
 
     for item in &plan.items {
         check_cancelled(cancel, pause, job_id)?;
@@ -413,6 +414,10 @@ impl<'a> ExecutionProgress<'a> {
             completed_bytes: 0,
             last_emitted_bytes: 0,
         }
+    }
+
+    pub(super) fn emit_initial(&self, job_id: &JobId, sink: &FileOperationEventSink) {
+        self.emit(job_id, None, sink);
     }
 
     pub(super) fn complete_item(

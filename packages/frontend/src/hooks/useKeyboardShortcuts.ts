@@ -44,7 +44,7 @@ export interface UseKeyboardShortcutsDeps {
   handleCommandSelect: (commandId: string, panelId?: PanelId) => void;
   handleCopyOrMove: (panelId: PanelId, mode: "copy" | "move") => void;
   handleCreateFolder: (panelId: PanelId) => void;
-  handleTrash: (panelId: PanelId) => void;
+  handleDelete: (panelId: PanelId) => void;
   handleProperties: (
     panelId: PanelId,
     entry: FileEntryDto | null,
@@ -86,7 +86,7 @@ export function createKeyboardShortcutsHandler(
       handleCommandSelect,
       handleCopyOrMove,
       handleCreateFolder,
-      handleTrash,
+      handleDelete,
       handleProperties,
       setOperationError,
     } = deps;
@@ -172,7 +172,7 @@ export function createKeyboardShortcutsHandler(
       handleCommandSelect,
       handleCopyOrMove,
       handleCreateFolder,
-      handleTrash,
+      handleDelete,
       handleProperties,
       setOperationError,
     });

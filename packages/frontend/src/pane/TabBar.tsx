@@ -1,5 +1,6 @@
 import { cx } from "@fileoctopus/ui";
 import { Icons } from "@fileoctopus/ui";
+import { toolbarCommandMeta } from "../commands/toolbarConfig";
 import type { PanelId, PanelState } from "../panelStore";
 import { localPathFromUri } from "../utils/paneUtils";
 
@@ -9,6 +10,8 @@ export interface TabBarProps {
   onSwitchTab: (panelId: PanelId, tabId: string) => void;
   onCloseTab: (panelId: PanelId, tabId: string) => void;
   onOpenTab: (panelId: PanelId) => void;
+  onOpenTerminal?: () => void;
+  terminalDisabled?: boolean;
 }
 
 function tabLabel(uri: string): string {
@@ -23,9 +26,12 @@ export function TabBar({
   onSwitchTab,
   onCloseTab,
   onOpenTab,
+  onOpenTerminal,
+  terminalDisabled = false,
 }: TabBarProps) {
   const tabIds = Object.keys(panel.tabs);
   const paneLabel = panelId === "left" ? "L" : "R";
+  const terminalMeta = toolbarCommandMeta("op.openTerminal");
 
   return (
     <div className="fo-tab-bar" aria-label={`${paneLabel} pane tabs`}>
@@ -74,6 +80,21 @@ export function TabBar({
       >
         +
       </button>
+      {onOpenTerminal ? (
+        <button
+          type="button"
+          className="fo-tab fo-tab--action"
+          disabled={terminalDisabled}
+          aria-label={terminalMeta.label}
+          title={terminalMeta.tooltip}
+          onClick={(event) => {
+            event.stopPropagation();
+            onOpenTerminal();
+          }}
+        >
+          {Icons.terminal()}
+        </button>
+      ) : null}
     </div>
   );
 }
