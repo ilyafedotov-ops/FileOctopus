@@ -1,8 +1,24 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FileEntryDto, FsClient } from "@fileoctopus/ts-api";
-import { normalizeIpcError } from "@fileoctopus/ts-api";
+import { displayPathFromUri, normalizeIpcError } from "@fileoctopus/ts-api";
+import { DropdownMenu, type DropdownMenuItem } from "@fileoctopus/ui";
+import { redo, selectAll, undo } from "@codemirror/commands";
+import {
+  findNext,
+  findPrevious,
+  openSearchPanel,
+  replaceAll,
+  replaceNext,
+} from "@codemirror/search";
 import { operationErrorMessage } from "../../dialogs/OperationDialogView";
 import { EditorView } from "./EditorView";
+import type { CodeMirrorPaneHandle } from "../codemirror/CodeMirrorPane";
+import {
+  type LocalPathPicker,
+  pickLocalFileEntry,
+  localPathToResourceUri,
+  pickLocalPath as defaultPickLocalPath,
+} from "../../utils/pathPicker";
 
 interface EditorDialogProps {
   open: boolean;
@@ -10,6 +26,8 @@ interface EditorDialogProps {
   fs: FsClient;
   onClose: () => void;
   onSaved?: () => void;
+  onEntryChange?: (entry: FileEntryDto) => void;
+  pickLocalPath?: LocalPathPicker;
 }
 
 export function EditorDialog({
@@ -18,6 +36,8 @@ export function EditorDialog({
   fs,
   onClose,
   onSaved,
+  onEntryChange,
+  pickLocalPath,
 }: EditorDialogProps) {
   if (!open || !entry) return null;
 
@@ -34,6 +54,8 @@ export function EditorDialog({
           fs={fs}
           onClose={onClose}
           onSaved={onSaved}
+          onEntryChange={onEntryChange}
+          pickLocalPath={pickLocalPath}
         />
       </div>
     </div>
@@ -45,6 +67,8 @@ interface EditorContentProps {
   fs: FsClient;
   onClose: () => void;
   onSaved?: () => void;
+  onEntryChange?: (entry: FileEntryDto) => void;
+  pickLocalPath?: LocalPathPicker;
 }
 
 export function EditorContent({
@@ -52,7 +76,11 @@ export function EditorContent({
   fs,
   onClose,
   onSaved,
+  onEntryChange,
+  pickLocalPath = defaultPickLocalPath,
 }: EditorContentProps) {
+  const editorRef = useRef<CodeMirrorPaneHandle | null>(null);
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [initialDoc, setInitialDoc] = useState<string | null>(null);
   const [doc, setDoc] = useState("");
   const [loading, setLoading] = useState(false);
@@ -108,14 +136,218 @@ export function EditorContent({
     try {
       await fs.writeTextFile({ uri: entry.uri, content: doc });
       setInitialDoc(doc);
-      onSaved?.();
     } catch (err) {
       const normalized = normalizeIpcError(err);
       setError(operationErrorMessage(normalized.code, normalized.message));
     } finally {
       setSaving(false);
     }
-  }, [doc, entry, fs, isRemote, onSaved, saving]);
+  }, [doc, entry, fs, isRemote, saving]);
+
+  const reportError = useCallback((err: unknown) => {
+    if (err instanceof Error) {
+      setError(err.message);
+      return;
+    }
+    const normalized = normalizeIpcError(err);
+    setError(operationErrorMessage(normalized.code, normalized.message));
+  }, []);
+
+  const openPickedFile = useCallback(async () => {
+    if (dirty) {
+      setError("Save or discard changes before opening another file.");
+      return;
+    }
+    setError(null);
+    try {
+      const nextEntry = await pickLocalFileEntry({
+        fs,
+        title: "Open document",
+        currentPath: displayPathFromUri(entry.uri),
+        pickLocalPath,
+      });
+      if (nextEntry) onEntryChange?.(nextEntry);
+    } catch (err) {
+      reportError(err);
+    }
+  }, [dirty, entry.uri, fs, onEntryChange, pickLocalPath, reportError]);
+
+  const saveAs = useCallback(async () => {
+    if (saving || isRemote) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const selected = await pickLocalPath({
+        kind: "save",
+        title: "Save document as",
+        currentPath: displayPathFromUri(entry.uri),
+      });
+      if (!selected) return;
+      const uri = localPathToResourceUri(selected);
+      await fs.writeTextFile({ uri, content: doc });
+      const response = await fs.stat({ uri });
+      setInitialDoc(doc);
+      onSaved?.();
+      onEntryChange?.(response.entry);
+    } catch (err) {
+      reportError(err);
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    doc,
+    entry.uri,
+    fs,
+    isRemote,
+    onEntryChange,
+    onSaved,
+    pickLocalPath,
+    reportError,
+    saving,
+  ]);
+
+  const runEditorCommand = useCallback(
+    (command: Parameters<CodeMirrorPaneHandle["runCommand"]>[0]) => {
+      editorRef.current?.runCommand(command);
+      editorRef.current?.focus();
+    },
+    [],
+  );
+
+  const copyAll = useCallback(() => {
+    void navigator.clipboard?.writeText(doc);
+  }, [doc]);
+
+  const fileItems: DropdownMenuItem[] = [
+    {
+      id: "open",
+      label: "Open...",
+      onSelect: () => void openPickedFile(),
+    },
+    {
+      id: "save",
+      label: "Save",
+      shortcut: "Ctrl+S",
+      disabled: !dirty || saving || isRemote,
+      onSelect: () => void save(),
+    },
+    {
+      id: "save-as",
+      label: "Save As...",
+      disabled: saving || isRemote,
+      onSelect: () => void saveAs(),
+    },
+    {
+      id: "open-externally",
+      label: "Open Externally",
+      separatorBefore: true,
+      onSelect: () => {
+        void fs.openPathWithDefaultApp({ uri: entry.uri }).catch(reportError);
+      },
+    },
+    {
+      id: "reveal",
+      label: "Reveal in File Manager",
+      onSelect: () => {
+        void fs.revealPathInFileManager({ uri: entry.uri }).catch(reportError);
+      },
+    },
+    {
+      id: "close",
+      label: "Close",
+      separatorBefore: true,
+      onSelect: requestClose,
+    },
+  ];
+
+  const editItems: DropdownMenuItem[] = [
+    {
+      id: "undo",
+      label: "Undo",
+      shortcut: "Ctrl+Z",
+      onSelect: () => runEditorCommand(undo),
+    },
+    {
+      id: "redo",
+      label: "Redo",
+      shortcut: "Ctrl+Shift+Z",
+      onSelect: () => runEditorCommand(redo),
+    },
+    {
+      id: "cut",
+      label: "Cut",
+      separatorBefore: true,
+      onSelect: () => {
+        editorRef.current?.focus();
+        document.execCommand("cut");
+      },
+    },
+    {
+      id: "copy",
+      label: "Copy",
+      onSelect: () => {
+        editorRef.current?.focus();
+        document.execCommand("copy");
+      },
+    },
+    {
+      id: "paste",
+      label: "Paste",
+      onSelect: () => {
+        editorRef.current?.focus();
+        document.execCommand("paste");
+      },
+    },
+    {
+      id: "select-all",
+      label: "Select All",
+      shortcut: "Ctrl+A",
+      separatorBefore: true,
+      onSelect: () => runEditorCommand(selectAll),
+    },
+    {
+      id: "copy-all",
+      label: "Copy All",
+      onSelect: copyAll,
+    },
+  ];
+
+  const searchItems: DropdownMenuItem[] = [
+    {
+      id: "find",
+      label: "Find",
+      shortcut: "Ctrl+F",
+      onSelect: () => runEditorCommand(openSearchPanel),
+    },
+    {
+      id: "find-next",
+      label: "Find Next",
+      shortcut: "F3",
+      onSelect: () => runEditorCommand(findNext),
+    },
+    {
+      id: "find-previous",
+      label: "Find Previous",
+      shortcut: "Shift+F3",
+      onSelect: () => runEditorCommand(findPrevious),
+    },
+    {
+      id: "replace",
+      label: "Replace",
+      separatorBefore: true,
+      onSelect: () => runEditorCommand(openSearchPanel),
+    },
+    {
+      id: "replace-next",
+      label: "Replace Next",
+      onSelect: () => runEditorCommand(replaceNext),
+    },
+    {
+      id: "replace-all",
+      label: "Replace All",
+      onSelect: () => runEditorCommand(replaceAll),
+    },
+  ];
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -139,6 +371,32 @@ export function EditorContent({
   return (
     <>
       <div className="fo-editor-header">
+        <div className="fo-document-menubar" aria-label="Editor menus">
+          <DropdownMenu
+            label="File"
+            open={openMenu === "file"}
+            items={fileItems}
+            onOpenChange={(open) => setOpenMenu(open ? "file" : null)}
+            align="start"
+            triggerClassName="fo-document-menu-trigger"
+          />
+          <DropdownMenu
+            label="Edit"
+            open={openMenu === "edit"}
+            items={editItems}
+            onOpenChange={(open) => setOpenMenu(open ? "edit" : null)}
+            align="start"
+            triggerClassName="fo-document-menu-trigger"
+          />
+          <DropdownMenu
+            label="Search"
+            open={openMenu === "search"}
+            items={searchItems}
+            onOpenChange={(open) => setOpenMenu(open ? "search" : null)}
+            align="start"
+            triggerClassName="fo-document-menu-trigger"
+          />
+        </div>
         <span className="fo-editor-title">
           {entry.name}
           {dirty && <span className="fo-editor-dirty"> •</span>}
@@ -167,6 +425,7 @@ export function EditorContent({
         {error && <div className="fo-editor-error">{error}</div>}
         {!loading && initialDoc !== null && (
           <EditorView
+            ref={editorRef}
             key={entry.uri}
             fileName={entry.name}
             initialDoc={initialDoc}

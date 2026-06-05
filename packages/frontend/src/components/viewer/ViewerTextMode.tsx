@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import type { Ref } from "react";
 import type {
   FileEntryDto,
   FsClient,
@@ -7,12 +8,14 @@ import type {
 import { normalizeIpcError } from "@fileoctopus/ts-api";
 import { operationErrorMessage } from "../../dialogs/OperationDialogView";
 import { CodeMirrorPane } from "../codemirror/CodeMirrorPane";
+import type { CodeMirrorPaneHandle } from "../codemirror/CodeMirrorPane";
 
 const PAGE_BYTES = 256 * 1024;
 
 interface ViewerTextModeProps {
   entry: FileEntryDto;
   fs: FsClient;
+  codeMirrorRef?: Ref<CodeMirrorPaneHandle>;
 }
 
 function decodeBase64ToString(b64: string): string {
@@ -24,7 +27,11 @@ function decodeBase64ToString(b64: string): string {
   return new TextDecoder("utf-8", { fatal: false }).decode(bytes);
 }
 
-export function ViewerTextMode({ entry, fs }: ViewerTextModeProps) {
+export function ViewerTextMode({
+  entry,
+  fs,
+  codeMirrorRef,
+}: ViewerTextModeProps) {
   const [text, setText] = useState("");
   const [offset, setOffset] = useState(0);
   const [byteSize, setByteSize] = useState<number | null>(null);
@@ -84,6 +91,7 @@ export function ViewerTextMode({ entry, fs }: ViewerTextModeProps) {
     <div className="fo-viewer-text">
       {error && <div className="fo-viewer-error">{error}</div>}
       <CodeMirrorPane
+        ref={codeMirrorRef}
         key={entry.uri}
         fileName={entry.name}
         doc={text}

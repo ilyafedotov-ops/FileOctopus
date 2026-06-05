@@ -296,7 +296,17 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
   };
 
   const handleOpenExternally = () => {
-    // TODO: integrate with Tauri shell.open(path) when available
+    void fs.openPathWithDefaultApp({ uri: entry.uri }).catch((err) => {
+      const normalized = normalizeIpcError(err);
+      setError(operationErrorMessage(normalized.code, normalized.message));
+    });
+  };
+
+  const handleReveal = () => {
+    void fs.revealPathInFileManager({ uri: entry.uri }).catch((err) => {
+      const normalized = normalizeIpcError(err);
+      setError(operationErrorMessage(normalized.code, normalized.message));
+    });
   };
 
   const handleCopyPath = async () => {
@@ -333,6 +343,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
         onCopyContent={handleCopyContent}
         onOpenExternally={handleOpenExternally}
         onCopyPath={handleCopyPath}
+        onReveal={handleReveal}
       />
       <div className="fo-preview-content">
         {loading && <div className="fo-preview-loading">Loading...</div>}

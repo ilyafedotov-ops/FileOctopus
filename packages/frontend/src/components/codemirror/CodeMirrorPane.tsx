@@ -1,7 +1,16 @@
-import { useEffect, useRef } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { EditorState } from "@codemirror/state";
 import { EditorView as CMView } from "@codemirror/view";
 import { buildEditorExtensions, buildReadOnlyExtensions } from "./extensions";
+
+export type CodeMirrorCommand = (view: CMView) => boolean;
+
+export interface CodeMirrorPaneHandle {
+  runCommand: (command: CodeMirrorCommand) => boolean;
+  focus: () => void;
+  getDocument: () => string;
+  hasSelection: () => boolean;
+}
 
 interface CodeMirrorPaneProps {
   fileName: string;
@@ -14,21 +23,44 @@ interface CodeMirrorPaneProps {
   autoFocus?: boolean;
 }
 
-export function CodeMirrorPane({
-  fileName,
-  doc,
-  readOnly = false,
-  onChange,
-  onSaveRequested,
-  onScroll,
-  className = "fo-codemirror-pane",
-  autoFocus = false,
-}: CodeMirrorPaneProps) {
+export const CodeMirrorPane = forwardRef<
+  CodeMirrorPaneHandle,
+  CodeMirrorPaneProps
+>(function CodeMirrorPane(
+  {
+    fileName,
+    doc,
+    readOnly = false,
+    onChange,
+    onSaveRequested,
+    onScroll,
+    className = "fo-codemirror-pane",
+    autoFocus = false,
+  },
+  ref,
+) {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<CMView | null>(null);
   const onChangeRef = useRef(onChange);
   const onSaveRef = useRef(onSaveRequested);
   const onScrollRef = useRef(onScroll);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      runCommand: (command) => {
+        const view = viewRef.current;
+        return view ? command(view) : false;
+      },
+      focus: () => viewRef.current?.focus(),
+      getDocument: () => viewRef.current?.state.doc.toString() ?? "",
+      hasSelection: () =>
+        Boolean(
+          viewRef.current?.state.selection.ranges.some((range) => !range.empty),
+        ),
+    }),
+    [],
+  );
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -87,4 +119,4 @@ export function CodeMirrorPane({
   }, [doc, readOnly]);
 
   return <div ref={hostRef} className={className} />;
-}
+});

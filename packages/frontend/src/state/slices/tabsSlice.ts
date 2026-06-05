@@ -11,6 +11,7 @@ type TabAction = Extract<
   | { type: "openTab" }
   | { type: "openPreviewTab" }
   | { type: "openEditorTab" }
+  | { type: "replaceContentTabEntry" }
   | { type: "closeTab" }
   | { type: "switchTab" }
 >;
@@ -20,6 +21,7 @@ export function isTabAction(action: PanelAction): action is TabAction {
     action.type === "openTab" ||
     action.type === "openPreviewTab" ||
     action.type === "openEditorTab" ||
+    action.type === "replaceContentTabEntry" ||
     action.type === "closeTab" ||
     action.type === "switchTab"
   );
@@ -148,6 +150,32 @@ export function reduceTab(
             tabs: {
               ...panel.tabs,
               [tabId]: newTab,
+            },
+          },
+        },
+      };
+    }
+    case "replaceContentTabEntry": {
+      const panel = state.panels[action.panelId];
+      const tab = panel.tabs[action.tabId];
+      if (!tab || (tab.tabKind !== "preview" && tab.tabKind !== "editor")) {
+        return state;
+      }
+      const nextTab: PanelTabState = {
+        ...tab,
+        uri: action.entry.uri,
+        previewEntry: tab.tabKind === "preview" ? action.entry : null,
+        editorEntry: tab.tabKind === "editor" ? action.entry : null,
+      };
+      return {
+        ...state,
+        panels: {
+          ...state.panels,
+          [action.panelId]: {
+            ...panel,
+            tabs: {
+              ...panel.tabs,
+              [action.tabId]: nextTab,
             },
           },
         },

@@ -64,11 +64,13 @@ export function ShellOverlays() {
         viewerOpen={ctx.viewerOpen}
         viewerEntry={ctx.viewerEntry}
         setViewerOpen={ctx.setViewerOpen}
+        setViewerEntry={ctx.setViewerEntry}
         viewerSiblings={viewerSiblings}
         onViewerNavigate={ctx.setViewerEntry}
         editorOpen={ctx.editorOpen}
         editorEntry={ctx.editorEntry}
         setEditorOpen={ctx.setEditorOpen}
+        setEditorEntry={ctx.setEditorEntry}
         refreshActivePane={ctx.refreshActivePane}
         diffOpen={ctx.diffOpen}
         diffLeftUri={ctx.diffLeftUri}

@@ -7,6 +7,12 @@ const standardLocations = vi.fn(async () => ({ locations: [] }));
 const startWatching = vi.fn(async () => undefined);
 const stopWatching = vi.fn(async () => undefined);
 const onWatchChanged = vi.fn(async () => () => undefined);
+const readTextFile = vi.fn(async () => ({
+  content: "hello",
+  truncated: false,
+  byteSize: 5,
+}));
+const writeTextFile = vi.fn(async () => ({ byteSize: 5 }));
 const openPathWithDefaultApp = vi.fn(async () => undefined);
 const revealPathInFileManager = vi.fn(async () => undefined);
 const properties = vi.fn(async () => ({
@@ -128,6 +134,8 @@ vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
         startWatching,
         stopWatching,
         onWatchChanged,
+        readTextFile,
+        writeTextFile,
         openPathWithDefaultApp,
         revealPathInFileManager,
         properties,
@@ -338,7 +346,10 @@ function createDragEnterEvent(uris: string[], panelId?: string) {
   return event;
 }
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.clearAllMocks();
+});
 
 describe("FilePanel drag & drop", () => {
   it("shows drag-over state when a FileOctopus URI is dragged over the panel body", () => {
@@ -494,5 +505,41 @@ describe("FilePanel inline rename focus", () => {
     );
 
     expect(screen.queryByLabelText("Rename alpha.txt")).toBeNull();
+  });
+});
+
+describe("FilePanel editor content tab", () => {
+  it("does not refresh or close the content tab when saving the editor", async () => {
+    const editorEntry = makeEntry("notes.txt");
+    const editorTab = makeTab({
+      tabKind: "editor",
+      uri: editorEntry.uri,
+      editorEntry,
+      previewEntry: null,
+    });
+    const onRefresh = vi.fn();
+    const onCloseTab = vi.fn();
+    const props = makeProps({
+      tab: editorTab,
+      panel: {
+        ...makePanel(),
+        tabs: { default: editorTab },
+      },
+      onRefresh,
+      onCloseTab,
+    });
+
+    renderFilePanel(props);
+
+    await screen.findByText("hello");
+    fireEvent.keyDown(window, { key: "s", metaKey: true });
+
+    await screen.findAllByText("notes.txt");
+    expect(writeTextFile).toHaveBeenCalledWith({
+      uri: editorEntry.uri,
+      content: "hello",
+    });
+    expect(onRefresh).not.toHaveBeenCalled();
+    expect(onCloseTab).not.toHaveBeenCalled();
   });
 });

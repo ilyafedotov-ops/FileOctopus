@@ -44,11 +44,13 @@ export function DialogOverlaySectionWorkspace(props: DialogOverlayGroupProps) {
     viewerOpen,
     viewerEntry,
     setViewerOpen,
+    setViewerEntry,
     viewerSiblings,
     onViewerNavigate,
     editorOpen,
     editorEntry,
     setEditorOpen,
+    setEditorEntry,
     refreshActivePane,
     helpOpen,
     setHelpOpen,
@@ -132,6 +134,7 @@ export function DialogOverlaySectionWorkspace(props: DialogOverlayGroupProps) {
         onClose={() => setViewerOpen(false)}
         siblings={viewerSiblings}
         onNavigate={onViewerNavigate}
+        onEntryChange={setViewerEntry}
       />
       <EditorDialog
         open={editorOpen}
@@ -139,6 +142,7 @@ export function DialogOverlaySectionWorkspace(props: DialogOverlayGroupProps) {
         fs={fs}
         onClose={() => setEditorOpen(false)}
         onSaved={() => refreshActivePane?.()}
+        onEntryChange={setEditorEntry}
       />
       <DiffDialog
         open={diffOpen}
