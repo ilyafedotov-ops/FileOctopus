@@ -192,6 +192,49 @@ describe("panel store", () => {
     expect(activeTab(state.panels.left).loadState).toBe("loaded");
   });
 
+  it("applies directory batches to the tab that started the request when another tab is active", () => {
+    let state = createInitialState("local:///left", "local:///right");
+
+    state = panelReducer(state, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "folder-request",
+    });
+    state = panelReducer(state, {
+      type: "startSession",
+      panelId: "left",
+      sessionId: "folder-session",
+      requestId: "folder-request",
+    });
+    const folderTabId = state.panels.left.activeTabId;
+    state = panelReducer(state, {
+      type: "openEditorTab",
+      panelId: "left",
+      entry: {
+        ...entry("notes.txt"),
+        uri: "local:///left/notes.txt",
+        name: "notes.txt",
+      },
+    });
+
+    state = panelReducer(state, {
+      type: "applyBatch",
+      batch: {
+        sessionId: "folder-session",
+        requestId: "folder-request",
+        uri: "local:///left",
+        entries: [entry("loaded.txt")],
+        batchIndex: 0,
+        isComplete: true,
+      },
+    });
+
+    const folderTab = state.panels.left.tabs[folderTabId];
+    expect(folderTab.loadState).toBe("loaded");
+    expect(folderTab.orderedEntryIds).toEqual(["local:///tmp/loaded.txt"]);
+    expect(activeTab(state.panels.left).tabKind).toBe("editor");
+  });
+
   it("does not default to a developer-specific home path", () => {
     localStorage.removeItem("fileoctopus.homeUri");
 

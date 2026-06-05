@@ -208,6 +208,28 @@ describe("createNavigationController", () => {
     );
   });
 
+  it("refreshPanel does not navigate editor content tabs", async () => {
+    const deps = makeDeps();
+    const state = createInitialState();
+    state.panels.left.tabs.main = {
+      ...state.panels.left.tabs.main,
+      tabKind: "editor",
+      uri: "local:///tmp/file.txt",
+      editorEntry: makeFileEntry(),
+      loadState: "loaded",
+    };
+    deps.state = state;
+    const ctrl = createNavigationController(deps);
+
+    ctrl.refreshPanel("left");
+    await new Promise((r) => setTimeout(r, 10));
+
+    expect(deps.dispatch).not.toHaveBeenCalledWith(
+      expect.objectContaining({ type: "navigate", panelId: "left" }),
+    );
+    expect(deps.client.fs.listStart).not.toHaveBeenCalled();
+  });
+
   it("refreshVisiblePanels refreshes both panels", async () => {
     const deps = makeDeps();
     const ctrl = createNavigationController(deps);
