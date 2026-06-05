@@ -153,6 +153,12 @@ export type PanelAction =
   | { type: "openTab"; panelId: PanelId; uri: string }
   | { type: "openPreviewTab"; panelId: PanelId; entry: FileEntryDto }
   | { type: "openEditorTab"; panelId: PanelId; entry: FileEntryDto }
+  | {
+      type: "replaceContentTabEntry";
+      panelId: PanelId;
+      tabId: string;
+      entry: FileEntryDto;
+    }
   | { type: "closeTab"; panelId: PanelId; tabId: string }
   | { type: "switchTab"; panelId: PanelId; tabId: string }
   | {
@@ -360,26 +366,53 @@ export function updatePanel(
   };
 }
 
+function updatePanelTab(
+  state: FileOctopusState,
+  panelId: PanelId,
+  tabId: string,
+  update: (tab: PanelTabState) => PanelTabState,
+): FileOctopusState {
+  const panel = state.panels[panelId];
+  const tab = panel.tabs[tabId];
+  if (!tab) {
+    return state;
+  }
+
+  return {
+    ...state,
+    panels: {
+      ...state.panels,
+      [panelId]: {
+        ...panel,
+        tabs: {
+          ...panel.tabs,
+          [tabId]: update(tab),
+        },
+      },
+    },
+  };
+}
+
 export function applyBatch(
   state: FileOctopusState,
   batch: DirectoryBatchEventDto,
 ): FileOctopusState {
   const target =
-    findPanelBySession(state, batch.sessionId) ??
-    findPanelByRequest(state, batch.requestId);
+    findTabBySession(state, batch.sessionId) ??
+    findTabByRequest(state, batch.requestId);
 
   if (!target) {
     return state;
   }
 
-  const tab = activeTab(state.panels[target]);
+  const tab = state.panels[target.panelId].tabs[target.tabId];
 
   if (!shouldApplyBatch(tab.activeRequestId, batch)) {
     return state;
   }
 
   if (batch.error && batch.isComplete) {
-    return updatePanel(state, target, (current) => ({
+    return updatePanelTab(state, target.panelId, target.tabId, (current) => ({
       ...current,
       loadState: terminalLoadState(0, batch.error),
       error: batch.error?.message ?? "Failed to load directory",
@@ -391,7 +424,7 @@ export function applyBatch(
     }));
   }
 
-  return updatePanel(state, target, (current) => {
+  return updatePanelTab(state, target.panelId, target.tabId, (current) => {
     const backgroundListing =
       current.backgroundListing?.requestId === batch.requestId
         ? current.backgroundListing
@@ -663,27 +696,31 @@ export function selectEntry(
   };
 }
 
-function findPanelBySession(
+type BatchTarget = { panelId: PanelId; tabId: string };
+
+function findTabBySession(
   state: FileOctopusState,
   sessionId: string,
-): PanelId | null {
+): BatchTarget | null {
   for (const panelId of Object.keys(state.panels) as PanelId[]) {
-    const tab = activeTab(state.panels[panelId]);
-    if (
-      tab.sessionId === sessionId ||
-      tab.backgroundListing?.sessionId === sessionId
-    ) {
-      return panelId;
+    const panel = state.panels[panelId];
+    for (const [tabId, tab] of Object.entries(panel.tabs)) {
+      if (
+        tab.sessionId === sessionId ||
+        tab.backgroundListing?.sessionId === sessionId
+      ) {
+        return { panelId, tabId };
+      }
     }
   }
 
   return null;
 }
 
-function findPanelByRequest(
+function findTabByRequest(
   state: FileOctopusState,
   requestId: string,
-): PanelId | null {
+): BatchTarget | null {
   const trimmed = requestId.trim();
 
   if (!trimmed) {
@@ -691,8 +728,11 @@ function findPanelByRequest(
   }
 
   for (const panelId of Object.keys(state.panels) as PanelId[]) {
-    if (activeTab(state.panels[panelId]).activeRequestId === trimmed) {
-      return panelId;
+    const panel = state.panels[panelId];
+    for (const [tabId, tab] of Object.entries(panel.tabs)) {
+      if (tab.activeRequestId === trimmed) {
+        return { panelId, tabId };
+      }
     }
   }
 

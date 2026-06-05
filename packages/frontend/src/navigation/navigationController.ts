@@ -255,6 +255,9 @@ export function createNavigationController(
 
   function refreshPanel(panelId: PanelId, options: NavigateOptions = {}) {
     const tab = activeTab(state.panels[panelId]);
+    if (tab.tabKind !== "directory") {
+      return;
+    }
 
     void navigatePanel(panelId, tab.uri, {
       replace: options.replace ?? true,
