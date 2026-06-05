@@ -38,11 +38,13 @@ export interface DialogOverlayGroupProps {
   viewerOpen: boolean;
   viewerEntry: FileEntryDto | null;
   setViewerOpen: (open: boolean) => void;
+  setViewerEntry: (entry: FileEntryDto | null) => void;
   viewerSiblings?: FileEntryDto[];
   onViewerNavigate?: (entry: FileEntryDto) => void;
   editorOpen: boolean;
   editorEntry: FileEntryDto | null;
   setEditorOpen: (open: boolean) => void;
+  setEditorEntry: (entry: FileEntryDto | null) => void;
   refreshActivePane?: () => void;
   diagnosticsOpen: boolean;
   helpOpen: boolean;

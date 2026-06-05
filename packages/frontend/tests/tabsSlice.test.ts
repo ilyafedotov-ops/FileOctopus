@@ -320,6 +320,31 @@ describe("reduceTab — content tabs", () => {
     expect(tab.loadState).toBe("loaded");
   });
 
+  it("replaces a preview tab entry", () => {
+    const first = fileEntry({ uri: "local:///home/first.txt" });
+    const next = fileEntry({
+      uri: "local:///home/next.txt",
+      name: "next.txt",
+    });
+    const withPreview = reduceTab(state, {
+      type: "openPreviewTab",
+      panelId: "right",
+      entry: first,
+    });
+    const tabId = withPreview.panels.right.activeTabId;
+    const result = reduceTab(withPreview, {
+      type: "replaceContentTabEntry",
+      panelId: "right",
+      tabId,
+      entry: next,
+    });
+    const tab = result.panels.right.tabs[tabId];
+
+    expect(tab.uri).toBe(next.uri);
+    expect(tab.previewEntry).toEqual(next);
+    expect(tab.editorEntry).toBeNull();
+  });
+
   it("closes content tabs like directory tabs", () => {
     const withPreview = reduceTab(state, {
       type: "openPreviewTab",

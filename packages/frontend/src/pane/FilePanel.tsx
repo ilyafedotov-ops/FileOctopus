@@ -79,6 +79,7 @@ export interface FilePanelProps {
   onProperties: (entry: FileEntryDto | null) => void;
   onReveal: (entry: FileEntryDto | null) => void;
   onRefresh: () => void;
+  onReplaceContentTabEntry: (tabId: string, entry: FileEntryDto) => void;
   canPaste: boolean;
   pathFocusToken: number;
   renameFocusToken: number;
@@ -126,6 +127,7 @@ export function FilePanel({
   onPaste,
   onReveal,
   onProperties,
+  onReplaceContentTabEntry,
   canPaste,
   pathFocusToken,
   renameFocusToken,
@@ -259,6 +261,9 @@ export function FilePanel({
           entry={tab.previewEntry}
           client={client}
           onClose={() => onCloseTab(panelId, panel.activeTabId)}
+          onEntryChange={(entry) =>
+            onReplaceContentTabEntry(panel.activeTabId, entry)
+          }
         />
       </section>
     );
@@ -286,7 +291,9 @@ export function FilePanel({
             entry={tab.editorEntry}
             fs={client.fs}
             onClose={() => onCloseTab(panelId, panel.activeTabId)}
-            onSaved={onRefresh}
+            onEntryChange={(entry) =>
+              onReplaceContentTabEntry(panel.activeTabId, entry)
+            }
           />
         </div>
       </section>
@@ -503,10 +510,12 @@ function PreviewTabContent({
   entry,
   client,
   onClose,
+  onEntryChange,
 }: {
   entry: FileEntryDto;
   client: ReturnType<typeof useShell>["client"];
   onClose: () => void;
+  onEntryChange: (entry: FileEntryDto) => void;
 }) {
   const initialMode = useMemo(() => detectViewerMode(entry), [entry]);
   const [mode, setMode] = useState<ViewerMode>(initialMode);
@@ -515,29 +524,17 @@ function PreviewTabContent({
     setMode(initialMode);
   }, [initialMode]);
 
-  const openExternally = useCallback(() => {
-    void client.fs
-      .openPathWithDefaultApp({ uri: entry.uri })
-      .catch(() => undefined);
-  }, [client.fs, entry.uri]);
-
   return (
     <div className="fo-pane-content-tab fo-pane-preview-tab">
-      <div className="fo-pane-content-actions">
-        <button
-          type="button"
-          className="fo-pane-content-action"
-          onClick={openExternally}
-        >
-          Open externally
-        </button>
-      </div>
       <ViewerContent
         entry={entry}
         fs={client.fs}
         mode={mode}
         onModeChange={setMode}
         onClose={onClose}
+        onEntryChange={onEntryChange}
+        headerVariant="pane"
+        showOpenExternalAction
       />
     </div>
   );

@@ -34,6 +34,8 @@ function createMockFs() {
   return {
     readTextFile: vi.fn<() => Promise<ReadTextFileResponse>>(),
     readFileAsDataUri: vi.fn<() => Promise<ReadFileAsDataUriResponse>>(),
+    openPathWithDefaultApp: vi.fn().mockResolvedValue({ ok: true }),
+    revealPathInFileManager: vi.fn().mockResolvedValue({ ok: true }),
   };
 }
 
@@ -218,6 +220,51 @@ describe("PreviewPanel", () => {
 
     fireEvent.click(screen.getByTitle("Close preview (Esc)"));
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it("uses the More menu for external open and reveal actions", async () => {
+    const mockFs = createMockFs();
+    mockFs.readTextFile.mockResolvedValue({
+      content: "data",
+      truncated: false,
+      byteSize: 4,
+    });
+
+    render(
+      <PreviewPanel
+        entry={makeEntry({ uri: "local:///test/file.txt" })}
+        fs={mockFs as never}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("data")).toBeTruthy();
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "More preview actions" }),
+    );
+    fireEvent.click(screen.getByRole("menuitem", { name: /Open Externally/ }));
+
+    await waitFor(() =>
+      expect(mockFs.openPathWithDefaultApp).toHaveBeenCalledWith({
+        uri: "local:///test/file.txt",
+      }),
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "More preview actions" }),
+    );
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: /Reveal in File Manager/ }),
+    );
+
+    await waitFor(() =>
+      expect(mockFs.revealPathInFileManager).toHaveBeenCalledWith({
+        uri: "local:///test/file.txt",
+      }),
+    );
   });
 
   it("shows truncated indicator when file is too large", async () => {

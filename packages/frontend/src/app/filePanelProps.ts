@@ -118,6 +118,8 @@ export function buildFilePanelProps(
       handleCommandSelect("op.properties", panelId, entry),
     onReveal: (entry) => revealEntry(panelId, entry),
     onRefresh: () => runPanel("nav.refresh"),
+    onReplaceContentTabEntry: (tabId, entry) =>
+      dispatch({ type: "replaceContentTabEntry", panelId, tabId, entry }),
     onMove: (delta) => dispatch({ type: "moveSelection", panelId, delta }),
     onSort: (field) => runPanel("view.sort", { sortField: field }),
     onFilter: (filter) => dispatch({ type: "setFilter", panelId, filter }),

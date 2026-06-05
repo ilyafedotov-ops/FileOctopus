@@ -2316,18 +2316,55 @@ dialog.fo-dialog[open] {
 .fo-viewer-header {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   padding: 10px 14px;
   border-bottom: 1px solid var(--fo-border);
   flex: 0 0 auto;
 }
 
+.fo-viewer-header--pane {
+  padding: 6px 10px;
+  background: var(--fo-surface-elevated);
+}
+
+.fo-viewer-header-start,
+.fo-viewer-header-end {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fo-viewer-header-start {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  min-width: 0;
+}
+
+.fo-viewer-header-end {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+}
+
 .fo-viewer-title {
   font-weight: 600;
   flex: 1 1 auto;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.fo-document-menubar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+}
+
+.fo-document-menu-trigger {
+  min-height: 24px;
+  padding: 2px 8px;
 }
 
 .fo-viewer-modes {

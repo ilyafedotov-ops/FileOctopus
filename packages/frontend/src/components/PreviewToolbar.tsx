@@ -1,4 +1,10 @@
-import { IconButton, Icons } from "@fileoctopus/ui";
+import { useState } from "react";
+import {
+  DropdownMenu,
+  IconButton,
+  Icons,
+  type DropdownMenuItem,
+} from "@fileoctopus/ui";
 
 interface PreviewToolbarProps {
   mode: "image" | "text" | "pdf" | "media" | "unknown";
@@ -10,6 +16,7 @@ interface PreviewToolbarProps {
   onCopyContent?: () => void;
   onOpenExternally?: () => void;
   onCopyPath?: () => void;
+  onReveal?: () => void;
 }
 
 export function PreviewToolbar({
@@ -22,7 +29,37 @@ export function PreviewToolbar({
   onCopyContent,
   onOpenExternally,
   onCopyPath,
+  onReveal,
 }: PreviewToolbarProps) {
+  const [moreOpen, setMoreOpen] = useState(false);
+  const moreItems: DropdownMenuItem[] = [
+    {
+      id: "copy-content",
+      label: "Copy Content",
+      disabled: !onCopyContent,
+      onSelect: () => onCopyContent?.(),
+    },
+    {
+      id: "copy-path",
+      label: "Copy Path",
+      disabled: !onCopyPath,
+      onSelect: () => onCopyPath?.(),
+    },
+    {
+      id: "open-externally",
+      label: "Open Externally",
+      separatorBefore: true,
+      disabled: !onOpenExternally,
+      onSelect: () => onOpenExternally?.(),
+    },
+    {
+      id: "reveal",
+      label: "Reveal in File Manager",
+      disabled: !onReveal,
+      onSelect: () => onReveal?.(),
+    },
+  ];
+
   return (
     <div
       className="fo-preview-toolbar"
@@ -54,6 +91,11 @@ export function PreviewToolbar({
         </IconButton>
       )}
       <span className="fo-preview-toolbar-spacer" />
+      {onCopyPath && (
+        <IconButton size="sm" label="Copy path" onClick={onCopyPath}>
+          {Icons.copy()}
+        </IconButton>
+      )}
       {onOpenExternally && (
         <IconButton
           size="sm"
@@ -63,11 +105,15 @@ export function PreviewToolbar({
           {Icons.externalLink()}
         </IconButton>
       )}
-      {onCopyPath && (
-        <IconButton size="sm" label="Copy path" onClick={onCopyPath}>
-          {Icons.copy()}
-        </IconButton>
-      )}
+      <DropdownMenu
+        label="More"
+        open={moreOpen}
+        items={moreItems}
+        onOpenChange={setMoreOpen}
+        triggerAriaLabel="More preview actions"
+      >
+        {Icons.more()}
+      </DropdownMenu>
     </div>
   );
 }

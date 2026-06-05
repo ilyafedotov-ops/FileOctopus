@@ -1,5 +1,5 @@
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
-import { searchKeymap } from "@codemirror/search";
+import { highlightSelectionMatches, searchKeymap } from "@codemirror/search";
 import { EditorState, type Extension } from "@codemirror/state";
 import {
   keymap,
@@ -27,6 +27,7 @@ function sharedBaseExtensions(fileName?: string): Extension[] {
     syntaxHighlightExtension,
     ...languageForFileName(fileName),
     EditorView.lineWrapping,
+    highlightSelectionMatches(),
     EditorState.tabSize.of(2),
   ];
 }
@@ -69,5 +70,6 @@ export function buildReadOnlyExtensions(fileName?: string): Extension[] {
     ...sharedBaseExtensions(fileName),
     EditorState.readOnly.of(true),
     EditorView.editable.of(false),
+    keymap.of(searchKeymap),
   ];
 }

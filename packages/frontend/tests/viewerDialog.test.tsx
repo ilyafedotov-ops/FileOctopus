@@ -16,6 +16,13 @@ afterEach(() => {
 
 function makeFs(): Partial<FsClient> {
   return {
+    stat: vi.fn().mockResolvedValue({
+      entry: {
+        ...textEntry,
+        uri: "local:///tmp/picked.txt",
+        name: "picked.txt",
+      },
+    }),
     readFileRange: vi.fn().mockResolvedValue({
       bytesBase64: btoa("hello"),
       bytesRead: 5,
@@ -27,6 +34,8 @@ function makeFs(): Partial<FsClient> {
       byteSize: 4,
       mimeType: "image/png",
     }),
+    openPathWithDefaultApp: vi.fn().mockResolvedValue({ ok: true }),
+    revealPathInFileManager: vi.fn().mockResolvedValue({ ok: true }),
   };
 }
 
@@ -83,5 +92,82 @@ describe("ViewerDialog", () => {
     );
     fireEvent.keyDown(window, { key: "Escape" });
     await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("renders viewer menus and disables replace in read-only mode", async () => {
+    const fs = makeFs();
+    render(
+      <ViewerDialog
+        open
+        entry={textEntry}
+        fs={fs as FsClient}
+        onClose={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(screen.getByText(/hello/)).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "Search" }));
+
+    expect(screen.getByRole("menuitem", { name: /^Find$/ })).toBeTruthy();
+    expect(
+      screen.getByRole("menuitem", { name: /^Replace$/ }) as HTMLButtonElement,
+    ).toHaveProperty("disabled", true);
+  });
+
+  it("opens and reveals the current viewer entry from the File menu", async () => {
+    const fs = makeFs();
+    render(
+      <ViewerDialog
+        open
+        entry={textEntry}
+        fs={fs as FsClient}
+        onClose={vi.fn()}
+      />,
+    );
+    await waitFor(() => expect(screen.getByText(/hello/)).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "File" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Open Externally/ }));
+    await waitFor(() =>
+      expect(
+        fs.openPathWithDefaultApp as ReturnType<typeof vi.fn>,
+      ).toHaveBeenCalledWith({ uri: textEntry.uri }),
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "File" }));
+    fireEvent.click(
+      screen.getByRole("menuitem", { name: /Reveal in File Manager/ }),
+    );
+    await waitFor(() =>
+      expect(
+        fs.revealPathInFileManager as ReturnType<typeof vi.fn>,
+      ).toHaveBeenCalledWith({ uri: textEntry.uri }),
+    );
+  });
+
+  it("opens a picked local file in the viewer", async () => {
+    const fs = makeFs();
+    const pickLocalPath = vi.fn().mockResolvedValue("/tmp/picked.txt");
+    const onEntryChange = vi.fn();
+    render(
+      <ViewerDialog
+        open
+        entry={textEntry}
+        fs={fs as FsClient}
+        onClose={vi.fn()}
+        onEntryChange={onEntryChange}
+        pickLocalPath={pickLocalPath}
+      />,
+    );
+    await waitFor(() => expect(screen.getByText(/hello/)).toBeTruthy());
+
+    fireEvent.click(screen.getByRole("button", { name: "File" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: /Open\.\.\./ }));
+
+    await waitFor(() =>
+      expect(onEntryChange).toHaveBeenCalledWith(
+        expect.objectContaining({ uri: "local:///tmp/picked.txt" }),
+      ),
+    );
   });
 });
