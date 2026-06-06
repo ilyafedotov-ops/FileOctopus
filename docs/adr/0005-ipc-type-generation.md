@@ -33,9 +33,9 @@ Relevant facts about the DTO surface, established during the spike:
 ### Spike results
 
 Both candidates were evaluated; ts-rs was run empirically on a copy of
-`FileEntryDto` + `FileKind` in an isolated crate (`ts-rs` v12 with `serde-compat`
-
-- `chrono-impl`). Generated output vs. the hand-written target:
+`FileEntryDto` + `FileKind` in an isolated crate (`ts-rs` v12 with the
+`serde-compat` and `chrono-impl` features). Generated output vs. the
+hand-written target:
 
 | Aspect                    | Hand-written                 | ts-rs generated              | Result                                   |
 | ------------------------- | ---------------------------- | ---------------------------- | ---------------------------------------- |
