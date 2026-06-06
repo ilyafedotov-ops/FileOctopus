@@ -185,6 +185,8 @@ pub mod error_codes {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/IpcError.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct IpcError {
     pub code: String,

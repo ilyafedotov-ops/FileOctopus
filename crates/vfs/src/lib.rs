@@ -200,6 +200,8 @@ pub struct FileEntry {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "vfs/FileKind.ts"))]
 #[serde(rename_all = "camelCase")]
 pub enum FileKind {
     File,

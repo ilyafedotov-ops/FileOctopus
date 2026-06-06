@@ -1,16 +1,21 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/ListStartRequest.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct ListStartRequest {
     pub uri: String,
     pub request_id: String,
     pub panel_id: Option<String>,
+    #[cfg_attr(feature = "ts", ts(as = "Option<i32>"))]
     pub batch_size: Option<usize>,
     pub include_hidden: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/ListStartResponse.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct ListStartResponse {
     pub session_id: String,
@@ -24,6 +29,8 @@ pub struct WatchStartRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/WatchEventDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct WatchEventDto {
     pub uri: String,
@@ -31,12 +38,15 @@ pub struct WatchEventDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/FileEntryDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct FileEntryDto {
     pub uri: String,
     pub name: String,
     pub extension: Option<String>,
     pub kind: FileKind,
+    #[cfg_attr(feature = "ts", ts(as = "Option<i32>"))]
     pub size: Option<u64>,
     pub modified_at: Option<DateTime<Utc>>,
     pub created_at: Option<DateTime<Utc>>,
@@ -53,26 +63,38 @@ pub struct FileEntryDto {
     pub permissions: Option<String>,
     pub owner: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub target_uri: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub virtual_kind: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub protocol: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub status: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub description: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/DirectoryBatchEventDto.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct DirectoryBatchEventDto {
     pub session_id: String,
     pub request_id: String,
     pub uri: String,
     pub entries: Vec<FileEntryDto>,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub batch_index: u64,
     pub is_complete: bool,
+    #[cfg_attr(feature = "ts", ts(as = "Option<i32>"))]
     pub total_hint: Option<u64>,
     pub error: Option<IpcError>,
 }
