@@ -1,6 +1,8 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/AppInfoResponse.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct AppInfoResponse {
     pub name: String,

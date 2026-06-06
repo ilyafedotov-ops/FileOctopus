@@ -12,6 +12,8 @@
     "lint": "eslint \"{apps,packages}/**/*.{ts,tsx}\"",
     "format:check": "prettier --check package.json pnpm-workspace.yaml README.md \".github/**/*.{md,yml,yaml}\" \"docs/**/*.md\" \"apps/**/*.{ts,tsx,css,json,md}\" \"packages/**/*.{ts,tsx,json,md}\"",
     "format": "prettier --write package.json pnpm-workspace.yaml README.md \".github/**/*.{md,yml,yaml}\" \"docs/**/*.md\" \"apps/**/*.{ts,tsx,css,json,md}\" \"packages/**/*.{ts,tsx,json,md}\"",
+    "generate:ipc-types": "bash scripts/generate-ipc-types.sh",
+    "check:ipc-types": "bash scripts/check-ipc-types.sh",
     "test": "pnpm -r --sort --if-present test",
     "test:backend:rc": "cargo fmt --all --check && cargo check --workspace && cargo test --workspace && cargo clippy --workspace --all-targets -- -D warnings",
     "test:frontend:rc": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",

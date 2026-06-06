@@ -1,6 +1,8 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/UserPreferencesDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct UserPreferencesDto {
     pub theme: String,
@@ -96,6 +98,8 @@ pub struct UserPreferencesDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/AutostartStatusDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct AutostartStatusDto {
     pub enabled: bool,
@@ -103,12 +107,19 @@ pub struct AutostartStatusDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/GetPreferencesResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct GetPreferencesResponse {
     pub preferences: UserPreferencesDto,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/SetPreferenceRequest.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct SetPreferenceRequest {
     pub key: String,
@@ -116,6 +127,8 @@ pub struct SetPreferenceRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/SetPreferenceResponse.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct SetPreferenceResponse {
     pub preferences: UserPreferencesDto,

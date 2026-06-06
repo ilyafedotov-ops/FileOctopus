@@ -51,6 +51,8 @@ pub struct GitDirectoryStatus {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "git/GitFileStatus.ts"))]
 #[serde(rename_all = "camelCase")]
 pub enum GitFileStatus {
     Clean,
