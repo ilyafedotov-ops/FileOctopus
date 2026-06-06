@@ -15,6 +15,7 @@ import {
   selectEntry,
 } from "../src/panelStore";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
+import type { FileOctopusState } from "../src/panelStore";
 
 function entry(
   name: string,
@@ -37,22 +38,33 @@ function entry(
   };
 }
 
+function startPanelSession(
+  state: FileOctopusState,
+  panelId: "left" | "right",
+  sessionId: string,
+  requestId: string,
+): FileOctopusState {
+  return panelReducer(
+    panelReducer(state, {
+      type: "startRequest",
+      panelId,
+      requestId,
+    }),
+    {
+      type: "startSession",
+      panelId,
+      sessionId,
+      requestId,
+    },
+  );
+}
+
 describe("panel store", () => {
   it("keeps left and right panel sessions independent", () => {
     let state = createInitialState("local:///left", "local:///right");
 
-    state = panelReducer(state, {
-      type: "startSession",
-      panelId: "left",
-      sessionId: "left-session",
-      requestId: "left-request",
-    });
-    state = panelReducer(state, {
-      type: "startSession",
-      panelId: "right",
-      sessionId: "right-session",
-      requestId: "right-request",
-    });
+    state = startPanelSession(state, "left", "left-session", "left-request");
+    state = startPanelSession(state, "right", "right-session", "right-request");
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
@@ -101,12 +113,7 @@ describe("panel store", () => {
   it("ignores stale directory batches by session and request id", () => {
     let state = createInitialState("local:///left", "local:///right");
 
-    state = panelReducer(state, {
-      type: "startSession",
-      panelId: "left",
-      sessionId: "new-session",
-      requestId: "new-request",
-    });
+    state = startPanelSession(state, "left", "new-session", "new-request");
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
@@ -139,12 +146,7 @@ describe("panel store", () => {
   it("ignores batches with empty request id while pane expects correlation", () => {
     let state = createInitialState("local:///left", "local:///right");
 
-    state = panelReducer(state, {
-      type: "startSession",
-      panelId: "left",
-      sessionId: "new-session",
-      requestId: "new-request",
-    });
+    state = startPanelSession(state, "left", "new-session", "new-request");
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
@@ -244,12 +246,7 @@ describe("panel store", () => {
   it("transitions to empty and loaded terminal states", () => {
     let state = createInitialState("local:///left", "local:///right");
 
-    state = panelReducer(state, {
-      type: "startSession",
-      panelId: "left",
-      sessionId: "session",
-      requestId: "request",
-    });
+    state = startPanelSession(state, "left", "session", "request");
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
@@ -282,12 +279,7 @@ describe("panel store", () => {
   it("maps permission and timeout errors to pane states", () => {
     let state = createInitialState("local:///left", "local:///right");
 
-    state = panelReducer(state, {
-      type: "startSession",
-      panelId: "left",
-      sessionId: "session",
-      requestId: "request",
-    });
+    state = startPanelSession(state, "left", "session", "request");
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
@@ -303,12 +295,7 @@ describe("panel store", () => {
 
     expect(activeTab(state.panels.left).loadState).toBe("permissionDenied");
 
-    state = panelReducer(state, {
-      type: "startSession",
-      panelId: "left",
-      sessionId: "session-2",
-      requestId: "request-2",
-    });
+    state = startPanelSession(state, "left", "session-2", "request-2");
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
@@ -328,12 +315,7 @@ describe("panel store", () => {
   it("sorts directories first and filters by name", () => {
     let state = createInitialState("local:///left", "local:///right");
 
-    state = panelReducer(state, {
-      type: "startSession",
-      panelId: "left",
-      sessionId: "session",
-      requestId: "request",
-    });
+    state = startPanelSession(state, "left", "session", "request");
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
@@ -365,12 +347,7 @@ describe("panel store", () => {
   it("supports toggle and range multi-selection", () => {
     let state = createInitialState("local:///left", "local:///right");
 
-    state = panelReducer(state, {
-      type: "startSession",
-      panelId: "left",
-      sessionId: "session",
-      requestId: "request",
-    });
+    state = startPanelSession(state, "left", "session", "request");
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {
@@ -405,12 +382,7 @@ describe("panel store", () => {
   it("inverts visible selection", () => {
     let state = createInitialState("local:///left", "local:///right");
 
-    state = panelReducer(state, {
-      type: "startSession",
-      panelId: "left",
-      sessionId: "session",
-      requestId: "request",
-    });
+    state = startPanelSession(state, "left", "session", "request");
     state = panelReducer(state, {
       type: "applyBatch",
       batch: {

@@ -232,17 +232,30 @@ describe("reduceListing — startSession", () => {
     const tab = activeTab(result.panels.left);
     expect(tab.loadState).toBe("loaded");
   });
-  it("sets loadState to loading when requestId does not match", () => {
-    const result = reduceListing(state, {
+  it("ignores stale sessions when a newer request is active", () => {
+    const first = reduceListing(state, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "r1",
+    });
+    const second = reduceListing(first, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "r2",
+    });
+    const result = reduceListing(second, {
       type: "startSession",
       panelId: "left",
       sessionId: "s1",
-      requestId: "r-new",
+      requestId: "r1",
     });
     const tab = activeTab(result.panels.left);
+    expect(tab.activeRequestId).toBe("r2");
+    expect(tab.sessionId).toBeNull();
     expect(tab.loadState).toBe("loading");
   });
-  it("clears error when requestId does not match", () => {
+
+  it("preserves error state for stale sessions", () => {
     const errorState: FileOctopusState = {
       ...state,
       panels: {
@@ -253,8 +266,10 @@ describe("reduceListing — startSession", () => {
             ...state.panels.left.tabs,
             main: {
               ...state.panels.left.tabs.main,
+              activeRequestId: "r2",
               error: "old error",
               errorCode: "err",
+              loadState: "error",
             },
           },
         },
@@ -264,11 +279,13 @@ describe("reduceListing — startSession", () => {
       type: "startSession",
       panelId: "left",
       sessionId: "s1",
-      requestId: "r-new",
+      requestId: "r1",
     });
     const tab = activeTab(result.panels.left);
-    expect(tab.error).toBeNull();
-    expect(tab.errorCode).toBeNull();
+    expect(tab.activeRequestId).toBe("r2");
+    expect(tab.error).toBe("old error");
+    expect(tab.errorCode).toBe("err");
+    expect(tab.loadState).toBe("error");
   });
 });
 

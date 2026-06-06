@@ -9,7 +9,10 @@ import {
 } from "@testing-library/react";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 
-const listStart = vi.fn(async () => ({ requestId: "r1", sessionId: "s1" }));
+const listStart = vi.fn(async (request: { requestId: string }) => ({
+  requestId: request.requestId,
+  sessionId: `s-${request.requestId}`,
+}));
 const onDirectoryBatch = vi.fn(async () => () => undefined);
 const standardLocations = vi.fn(async () => ({
   locations: [
@@ -244,10 +247,13 @@ describe("Filter Input wiring", () => {
     render(<FileOctopusShell />);
     await waitFor(() => expect(listStart).toHaveBeenCalledTimes(2));
 
+    const requestId = listStart.mock.calls[0]?.[0]?.requestId;
+    expect(requestId).toBeTruthy();
+
     await act(async () => {
       batchHandler?.({
-        sessionId: "s1",
-        requestId: "r1",
+        sessionId: `s-${requestId}`,
+        requestId,
         uri: "local:///Users/ilya",
         entries: [entry("alpha.txt"), entry("beta.txt"), entry("gamma.txt")],
         batchIndex: 0,

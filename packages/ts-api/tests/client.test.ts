@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   DIAGNOSTICS_LOG_EVENT,
   DIRECTORY_BATCH_EVENT,
@@ -12,8 +12,22 @@ import {
   isKnownFileOperationWarningCode,
   isKnownIpcErrorCode,
   normalizeIpcError,
+  createTauriTransport,
 } from "../src";
 import type { IpcTransport } from "../src/types";
+
+const tauriMocks = vi.hoisted(() => ({
+  invoke: vi.fn(),
+  listen: vi.fn(),
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: tauriMocks.invoke,
+}));
+
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: tauriMocks.listen,
+}));
 
 describe("FileOctopusClient", () => {
   it("routes app info through the transport", async () => {
@@ -825,5 +839,42 @@ describe("FileOctopusClient", () => {
       code: IPC_ERROR_CODES.NOT_FOUND,
       message: "no such uri",
     });
+  });
+
+  it("returns idempotent Tauri event unlisteners", async () => {
+    const nativeUnlisten = vi.fn();
+    tauriMocks.listen.mockResolvedValue(nativeUnlisten);
+
+    const unlisten = await createTauriTransport().listen?.(
+      "directory:batch",
+      () => {},
+    );
+
+    unlisten?.();
+    unlisten?.();
+
+    expect(tauriMocks.listen).toHaveBeenCalledTimes(1);
+    expect(nativeUnlisten).toHaveBeenCalledTimes(1);
+  });
+
+  it("absorbs rejected Tauri unlisten promises", async () => {
+    const nativeUnlisten = vi.fn(() =>
+      Promise.reject(
+        new TypeError(
+          "undefined is not an object (evaluating 'listeners[eventId].handlerId')",
+        ),
+      ),
+    );
+    tauriMocks.listen.mockResolvedValue(nativeUnlisten);
+
+    const unlisten = await createTauriTransport().listen?.(
+      "directory:batch",
+      () => {},
+    );
+
+    unlisten?.();
+    await Promise.resolve();
+
+    expect(nativeUnlisten).toHaveBeenCalledTimes(1);
   });
 });
