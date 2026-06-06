@@ -38,6 +38,7 @@ import {
   viewModeFromPreference,
   type DensityPreference,
 } from "../applyPreferences";
+import { resolveStartupAppInfo } from "./startupAppInfo";
 import { migrateStartupPreferences } from "./startupPreferences";
 import { resolveStartupNavigation } from "./startupNavigation";
 import { formatSize } from "../pane/fileTableUtils";
@@ -694,14 +695,12 @@ export function useAppInit({
       let initialLeftUri = activeTab(state.panels.left).uri;
       let initialRightUri = activeTab(state.panels.right).uri;
 
-      try {
-        const info = await client.getAppInfo();
-        setAppInfo(info);
-        if (info.networkEnabled) {
+      const startupAppInfo = await resolveStartupAppInfo(client);
+      if (startupAppInfo) {
+        setAppInfo(startupAppInfo.appInfo);
+        if (startupAppInfo.refreshNetworkProfiles) {
           void refreshNetworkProfiles();
         }
-      } catch {
-        /* app info unavailable */
       }
 
       try {
