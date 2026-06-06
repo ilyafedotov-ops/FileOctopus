@@ -41,6 +41,10 @@ import {
 import { resolveStartupAppInfo } from "./startupAppInfo";
 import { migrateStartupPreferences } from "./startupPreferences";
 import { resolveStartupNavigation } from "./startupNavigation";
+import { useFileSystemWatchers } from "./useFileSystemWatchers";
+import { useMetadataEventListeners } from "./useMetadataEventListeners";
+import { useNetworkStatusEvents } from "./useNetworkStatusEvents";
+import { useSelectedFileHash } from "./useSelectedFileHash";
 import { formatSize } from "../pane/fileTableUtils";
 import type { ToastMessage } from "../components/ToastStack";
 import type { OperationDialog } from "../dialogs/OperationDialogView";
@@ -242,84 +246,14 @@ export function useAppInit({
     };
   }, []);
 
-  // ── File system watcher: directory batch ────────────────────────
-  useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    let disposed = false;
-    client.fs
-      .onDirectoryBatch((event) => {
-        dispatch({ type: "applyBatch", batch: event });
-      })
-      .then((value) => {
-        if (disposed) {
-          value();
-          return;
-        }
-        unlisten = value;
-      })
-      .catch((error) => {
-        const normalized = normalizeIpcError(error);
-        dispatch({
-          type: "setPaneError",
-          panelId: "left",
-          error: normalized.message,
-          errorCode: normalized.code,
-          loadState: "error",
-        });
-      });
-
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, [client]);
-
-  useEffect(() => {
-    const activePanelId = state.activePanelId;
-    const activeUri = activeTab(state.panels[activePanelId]).uri;
-
-    if (!activeUri.startsWith("local://")) {
-      return;
-    }
-
-    void client.fs.startWatching({ uri: activeUri }).catch(() => undefined);
-
-    return () => {
-      void client.fs.stopWatching().catch(() => undefined);
-    };
-  }, [client, state.activePanelId, left.uri, right.uri]);
-
-  // ── Active URI navigation: watch changed ────────────────────────
-  useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    let disposed = false;
-    const activePanelId = state.activePanelId;
-    const activeUri = activeTab(state.panels[activePanelId]).uri;
-
-    client.fs
-      .onWatchChanged((event) => {
-        if (event.uri === activeUri) {
-          refreshPanel(activePanelId, {
-            replace: true,
-            softRefresh: true,
-            backgroundRefresh: true,
-          });
-        }
-      })
-      .then((value) => {
-        if (disposed) {
-          value();
-          return;
-        }
-        unlisten = value;
-      })
-      .catch(() => undefined);
-
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, [client, state.activePanelId, left.uri, right.uri]);
+  useFileSystemWatchers({
+    client,
+    state,
+    left,
+    right,
+    dispatch,
+    refreshPanel,
+  });
 
   // ── Job event listeners with metrics ────────────────────────────
   useEffect(() => {
@@ -548,140 +482,22 @@ export function useAppInit({
     };
   }, [client, left.uri, right.uri]);
 
-  // ── Folder-size + recursive-search listeners ────────────────────
-  useEffect(() => {
-    const unlisteners: Array<() => void> = [];
-    let disposed = false;
-
-    Promise.all([
-      client.fs.onFolderSizeCompleted((event) =>
-        applyFolderSizeCompleted(event),
-      ),
-      client.fs.onRecursiveSearchMatch((event) =>
-        applyRecursiveSearchMatch(event),
-      ),
-      client.fs.onRecursiveSearchCompleted((event) =>
-        applyRecursiveSearchCompleted(event),
-      ),
-      client.fs.onContentSearchMatch((event) => applyContentSearchMatch(event)),
-      client.fs.onContentSearchCompleted((event) =>
-        applyContentSearchCompleted(event),
-      ),
-    ])
-      .then((items) => {
-        if (disposed) {
-          for (const unlisten of items) {
-            unlisten();
-          }
-          return;
-        }
-        unlisteners.push(...items);
-      })
-      .catch(() => undefined);
-
-    return () => {
-      disposed = true;
-      for (const unlisten of unlisteners) {
-        unlisten();
-      }
-    };
-  }, [client]);
-
-  useEffect(() => {
-    if (!appInfo?.networkEnabled) {
-      return;
-    }
-
-    let dispose: (() => void) | null = null;
-    void client.network
-      .subscribeStatusEvents((event) => {
-        setNetworkStatuses((current) => {
-          const others = current.filter(
-            (status) => status.profileId !== event.profileId,
-          );
-          return [
-            ...others,
-            {
-              profileId: event.profileId,
-              status: event.status,
-              message: event.message,
-            },
-          ];
-        });
-      })
-      .then((unsub) => {
-        dispose = unsub;
-      })
-      .catch(() => undefined);
-
-    return () => {
-      dispose?.();
-    };
-  }, [appInfo?.networkEnabled, client, setNetworkStatuses]);
-
-  // ── On-demand hash computation for selected file ──────────────────
-  useEffect(() => {
-    const panelId = state.activePanelId;
-    const tab = activeTab(state.panels[panelId]);
-    const selectedEntry =
-      selectVisibleEntries(tab).find((e) => e.uri === tab.selectedId) ?? null;
-
-    if (
-      !selectedEntry ||
-      selectedEntry.kind === "directory" ||
-      tab.hashMap[selectedEntry.uri] !== undefined
-    ) {
-      return;
-    }
-
-    const uri = selectedEntry.uri;
-    let disposed = false;
-
-    dispatch({
-      type: "setHash",
-      panelId,
-      entryId: uri,
-      hashState: "computing",
-    });
-
-    void client.fs
-      .computeHash({ uri, algorithm: "sha256" })
-      .then((res) => {
-        if (!disposed) {
-          dispatch({
-            type: "setHash",
-            panelId,
-            entryId: uri,
-            hashState: res.hash,
-          });
-        }
-      })
-      .catch(() => {
-        if (!disposed) {
-          dispatch({
-            type: "setHash",
-            panelId,
-            entryId: uri,
-            hashState: "error",
-          });
-        }
-      });
-
-    return () => {
-      disposed = true;
-    };
-  }, [
+  useMetadataEventListeners({
     client,
-    state.activePanelId,
-    left.hashMap,
-    right.hashMap,
-    left.selectedId,
-    right.selectedId,
-    left.uri,
-    right.uri,
-    left.orderedEntryIds.length,
-    right.orderedEntryIds.length,
-  ]);
+    applyFolderSizeCompleted,
+    applyRecursiveSearchMatch,
+    applyRecursiveSearchCompleted,
+    applyContentSearchMatch,
+    applyContentSearchCompleted,
+  });
+
+  useNetworkStatusEvents({
+    client,
+    networkEnabled: Boolean(appInfo?.networkEnabled),
+    setNetworkStatuses,
+  });
+
+  useSelectedFileHash({ client, state, left, right, dispatch });
 
   // ── Initialization: preferences, navigation, locations, etc. ────
   useEffect(() => {
