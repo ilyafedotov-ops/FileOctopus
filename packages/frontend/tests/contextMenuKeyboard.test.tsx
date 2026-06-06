@@ -26,6 +26,7 @@ const baseProps = {
   onCopy: vi.fn(),
   onCut: vi.fn(),
   onPaste: vi.fn(),
+  onDelete: vi.fn(),
   onTrash: vi.fn(),
   onToggleStarred: vi.fn(),
   onPermanentDelete: vi.fn(),
@@ -173,6 +174,133 @@ describe("ContextMenu keyboard navigation", () => {
     expect(baseProps.onClose).toHaveBeenCalled();
   });
 
+  it("repositions upward instead of making a fitting menu scroll", () => {
+    const originalInnerHeight = window.innerHeight;
+    const originalInnerWidth = window.innerWidth;
+    const rectSpy = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.classList.contains("fo-context-menu")) {
+          return {
+            bottom: 850,
+            height: 600,
+            left: 100,
+            right: 348,
+            top: 250,
+            width: 248,
+            x: 100,
+            y: 250,
+            toJSON: () => ({}),
+          };
+        }
+
+        return {
+          bottom: 0,
+          height: 0,
+          left: 0,
+          right: 0,
+          top: 0,
+          width: 0,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        };
+      });
+
+    try {
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: 800,
+      });
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: 1000,
+      });
+
+      render(
+        <ContextMenu {...baseProps} menu={{ ...mockMenu, x: 100, y: 250 }} />,
+      );
+
+      const menu = document.querySelector<HTMLElement>(".fo-context-menu");
+      expect(menu?.style.top).toBe("192px");
+      expect(menu?.style.maxHeight).toBe("");
+    } finally {
+      rectSpy.mockRestore();
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: originalInnerHeight,
+      });
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: originalInnerWidth,
+      });
+    }
+  });
+
+  it("scrolls only when the menu is taller than the viewport", () => {
+    const originalInnerHeight = window.innerHeight;
+    const originalInnerWidth = window.innerWidth;
+    const rectSpy = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.classList.contains("fo-context-menu")) {
+          return {
+            bottom: 1000,
+            height: 900,
+            left: 100,
+            right: 348,
+            top: 100,
+            width: 248,
+            x: 100,
+            y: 100,
+            toJSON: () => ({}),
+          };
+        }
+
+        return {
+          bottom: 0,
+          height: 0,
+          left: 0,
+          right: 0,
+          top: 0,
+          width: 0,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        };
+      });
+
+    try {
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: 800,
+      });
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: 1000,
+      });
+
+      render(
+        <ContextMenu {...baseProps} menu={{ ...mockMenu, x: 100, y: 100 }} />,
+      );
+
+      const menu = document.querySelector<HTMLElement>(".fo-context-menu");
+      expect(menu?.style.top).toBe("8px");
+      expect(menu?.style.maxHeight).toBe("784px");
+      expect(menu?.style.overflowY).toBe("auto");
+    } finally {
+      rectSpy.mockRestore();
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: originalInnerHeight,
+      });
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: originalInnerWidth,
+      });
+    }
+  });
+
   it("opens a folder context target in a new tab through the overlay", () => {
     const state = createInitialState();
     const folder: FileEntryDto = {
@@ -195,6 +323,7 @@ describe("ContextMenu keyboard navigation", () => {
         menu={{ panelId: "left", x: 100, y: 100, entry: folder }}
         state={state}
         clipboard={null}
+        preferences={null}
         starredUriSet={new Set()}
         dispatch={dispatch}
         onClose={vi.fn()}

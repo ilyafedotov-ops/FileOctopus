@@ -187,6 +187,7 @@ function makeCtx(
     triggerInlineRename: vi.fn(),
     copySelectionToFileClipboard: vi.fn(),
     pasteClipboard: vi.fn(),
+    handleDelete: vi.fn(),
     handleTrash: vi.fn(),
     toggleStarredForEntry: vi.fn(),
     handlePermanentDelete: vi.fn(),

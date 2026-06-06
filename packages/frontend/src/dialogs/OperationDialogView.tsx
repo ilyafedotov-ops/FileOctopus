@@ -530,7 +530,7 @@ export function OperationDialogView({
               Cancel
             </Button>
             <Button type="submit" variant="primary" size="sm">
-              Move to Trash
+              Delete
             </Button>
           </div>
         </form>

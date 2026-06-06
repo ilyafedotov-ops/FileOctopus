@@ -33,6 +33,7 @@ function createHandlers(): ToolbarActionHandlers {
       onCopyOperation: noop(),
       onMove: noop(),
       onPaste: noop(),
+      onDelete: noop(),
       onTrash: noop(),
       onPermanentDelete: noop(),
       onCopyPath: noop(),
@@ -153,6 +154,12 @@ describe("runToolbarCommand", () => {
     const handlers = createHandlers();
     runToolbarCommand("op.moveTo", handlers);
     expect(handlers.dropdowns.onMove).toHaveBeenCalledOnce();
+  });
+
+  it("dispatches op.delete to dropdowns.onDelete", () => {
+    const handlers = createHandlers();
+    runToolbarCommand("op.delete", handlers);
+    expect(handlers.dropdowns.onDelete).toHaveBeenCalledOnce();
   });
 
   it("dispatches op.trash to dropdowns.onTrash", () => {

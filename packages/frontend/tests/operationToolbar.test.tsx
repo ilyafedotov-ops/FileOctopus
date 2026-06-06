@@ -52,6 +52,7 @@ function createProps(
     onCopyOperation: noop,
     onMove: noop,
     onPaste: noop,
+    onDelete: noop,
     onTrash: noop,
     onPermanentDelete: noop,
     onCopyPath: noop,
@@ -83,7 +84,7 @@ describe("OperationToolbar", () => {
     renderToolbar();
 
     expect(screen.getByRole("button", { name: "View" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Trash" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Delete" })).toBeTruthy();
     expect(screen.queryByText("F3")).toBeNull();
     expect(screen.queryByText("F8")).toBeNull();
   });

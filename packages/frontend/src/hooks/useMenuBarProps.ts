@@ -86,6 +86,7 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     onRename: () => handleRename(panelId),
     onCopyTo: () => runCommand("op.copyTo"),
     onMoveTo: () => runCommand("op.moveTo"),
+    onDelete: () => runCommand("op.delete"),
     onTrash: () => runCommand("op.trash"),
     onCompress: () => runCommand("op.compress"),
     onExtract: () => runCommand("op.extract"),

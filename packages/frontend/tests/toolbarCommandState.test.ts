@@ -74,6 +74,7 @@ describe("isToolbarCommandDisabled", () => {
     "op.cut",
     "op.copyTo",
     "op.moveTo",
+    "op.delete",
     "op.trash",
     "op.deletePermanent",
     "op.reveal",

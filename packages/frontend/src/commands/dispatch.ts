@@ -82,6 +82,7 @@ export interface CommandDispatchDeps {
   handleCreateFolder: (panelId: PanelId) => void;
   handleCreateFile: (panelId: PanelId) => void;
   startInlineRename: (panelId: PanelId) => void;
+  handleDelete: (panelId: PanelId) => void;
   handleTrash: (panelId: PanelId) => void;
   handlePermanentDelete: (panelId: PanelId) => void;
   handleProperties: (
@@ -421,6 +422,9 @@ export function dispatchCommand(
       return true;
     case "op.paste":
       void deps.pasteClipboard(panelId);
+      return true;
+    case "op.delete":
+      deps.handleDelete(panelId);
       return true;
     case "op.trash":
       deps.handleTrash(panelId);

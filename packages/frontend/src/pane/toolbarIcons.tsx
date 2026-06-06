@@ -20,6 +20,7 @@ export function toolbarCommandIcon(commandId: CommandId): ReactNode | null {
       return Icons.move();
     case "create.folder":
       return Icons.folderPlus();
+    case "op.delete":
     case "op.trash":
       return Icons.trash();
     case "op.properties":

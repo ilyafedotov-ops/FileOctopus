@@ -66,7 +66,9 @@ function CommanderToolbarButton({
   const meta = toolbarCommandMeta(commandId);
   const disabled = isToolbarCommandDisabled(commandId, commandContext);
   const destructive =
-    commandId === "op.trash" || commandId === "op.deletePermanent";
+    commandId === "op.delete" ||
+    commandId === "op.trash" ||
+    commandId === "op.deletePermanent";
   const icon = toolbarCommandIcon(commandId);
 
   return (

@@ -62,7 +62,7 @@ const FKEY_COMMAND_IDS: ReadonlySet<string> = new Set([
   "op.copyTo", // F5
   "op.moveTo", // F6
   "create.folder", // F7
-  "op.trash", // F8
+  "op.delete", // F8
   "op.rename", // F2 (often shown on function bar)
   "app.settings", // F10 → Settings/Exit
 ]);

@@ -66,7 +66,7 @@ const appPreferences: UserPreferencesDto = {
   activityPanelWidth: 288,
   confirmDelete: true,
   confirmPermanentDelete: true,
-  useTrashByDefault: true,
+  useTrashByDefault: false,
   defaultConflictPolicy: "fail",
   accentColor: "blue",
   fontScale: "medium",
@@ -760,16 +760,31 @@ describe("FileOctopusShell", () => {
     });
   });
 
-  it("requires explicit trash confirmation before starting delete-to-trash", async () => {
+  it("requires explicit permanent delete confirmation by default", async () => {
     render(<FileOctopusShell />);
     await applyLeftEntries([entry("alpha.txt")]);
 
-    clickToolbar("Trash", 0);
+    clickToolbar("Delete", 0);
+
+    expect(startFileOperation).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(/Permanently delete 1 selected item/),
+    ).toBeTruthy();
+  });
+
+  it("requires explicit trash confirmation before starting delete-to-trash", async () => {
+    preferencesGet.mockResolvedValueOnce({
+      preferences: { ...appPreferences, useTrashByDefault: true },
+    });
+    render(<FileOctopusShell />);
+    await applyLeftEntries([entry("alpha.txt")]);
+
+    clickToolbar("Delete", 0);
 
     expect(screen.getByText("Move 1 selected item to Trash")).toBeTruthy();
     expect(screen.getByRole("dialog").textContent).toContain("alpha.txt");
 
-    fireEvent.click(screen.getAllByText("Move to Trash").slice(-1)[0]);
+    fireEvent.click(screen.getAllByText("Delete").slice(-1)[0]);
 
     await waitFor(() => expect(startFileOperation).toHaveBeenCalledTimes(1));
     expect(planFileOperation.mock.calls[0][0].operation).toMatchObject({
@@ -891,10 +906,16 @@ describe("FileOctopusShell", () => {
     await applyLeftEntries([folderEntry("Projects"), entry("alpha.txt")]);
 
     fireEvent.keyDown(screen.getByLabelText("File panels"), { key: "Delete" });
-    expect(screen.getByText("Move 1 selected item to Trash")).toBeTruthy();
+    expect(
+      await screen.findByText(/Permanently delete 1 selected item/),
+    ).toBeTruthy();
 
     fireEvent.keyDown(screen.getByLabelText("File panels"), { key: "Escape" });
-    expect(screen.queryByText("Move 1 selected item to Trash")).toBeNull();
+    await waitFor(() =>
+      expect(
+        screen.queryByText(/Permanently delete 1 selected item/),
+      ).toBeNull(),
+    );
 
     fireEvent.keyDown(screen.getByLabelText("File panels"), { key: "F5" });
     expect(await screen.findByLabelText("Destination URI")).toBeTruthy();

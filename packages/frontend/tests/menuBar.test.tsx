@@ -23,6 +23,7 @@ function createMenuBarProps(
     onRename: noop,
     onCopyTo: noop,
     onMoveTo: noop,
+    onDelete: noop,
     onTrash: noop,
     onCompress: noop,
     onExtract: noop,
@@ -185,5 +186,16 @@ describe("MenuBar", () => {
     fireEvent.click(screen.getByRole("menuitem", { name: /Pack/ }));
 
     expect(onCompress).toHaveBeenCalledOnce();
+  });
+
+  it("shows Delete as the primary delete action", () => {
+    render(<MenuBar {...createMenuBarProps({ hasSelection: true })} />);
+
+    openTopMenu("File");
+
+    expect(screen.getByRole("menuitem", { name: /^Delete…/ })).toBeTruthy();
+    expect(
+      screen.queryByRole("menuitem", { name: /Move to Trash/ }),
+    ).toBeNull();
   });
 });

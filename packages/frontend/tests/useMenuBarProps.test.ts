@@ -72,6 +72,14 @@ describe("useMenuBarProps", () => {
     expect(handleRename).toHaveBeenCalledWith("left");
   });
 
+  it("calls runCommand for op.delete on onDelete", () => {
+    const runCommand = vi.fn();
+    const params = makeParams({ runCommand });
+    const { result } = renderHook(() => useMenuBarProps(params));
+    result.current.onDelete();
+    expect(runCommand).toHaveBeenCalledWith("op.delete");
+  });
+
   it("calls runCommand with viewMode command for known view modes", () => {
     const runCommand = vi.fn();
     const params = makeParams({ runCommand });

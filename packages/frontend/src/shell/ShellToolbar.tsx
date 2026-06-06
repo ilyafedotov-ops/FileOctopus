@@ -173,6 +173,7 @@ export function ShellToolbar() {
           onCopyOperation={() => ctx.handleCopyOrMove(pid, "copy")}
           onMove={() => ctx.handleCopyOrMove(pid, "move")}
           onPaste={() => void ctx.pasteClipboard(pid)}
+          onDelete={() => ctx.handleDelete(pid)}
           onTrash={() => ctx.handleTrash(pid)}
           onPermanentDelete={() => ctx.handlePermanentDelete(pid)}
           onCopyPath={() => void ctx.copyTextFromSelection(pid, "path")}

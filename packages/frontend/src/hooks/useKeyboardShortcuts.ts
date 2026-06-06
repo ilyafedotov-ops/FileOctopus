@@ -195,7 +195,7 @@ export function createKeyboardShortcutsHandler(
       "op.copyTo": commander.copy,
       "op.moveTo": commander.move,
       "create.folder": commander.newFolder,
-      "op.trash": commander.delete,
+      "op.delete": commander.delete,
       "op.openTerminal": commander.terminal,
     };
 

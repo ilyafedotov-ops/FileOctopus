@@ -37,6 +37,7 @@ function makeHandlers(): ToolbarActionHandlers {
       onCopyOperation: noop(),
       onMove: noop(),
       onPaste: noop(),
+      onDelete: noop(),
       onTrash: noop(),
       onPermanentDelete: noop(),
       onCopyPath: noop(),

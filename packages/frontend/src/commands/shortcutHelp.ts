@@ -105,7 +105,7 @@ const SUPPLEMENTAL_SHORTCUTS: ShortcutHelpEntry[] = [
   },
   {
     id: "delete-f8",
-    label: "Move to trash",
+    label: "Delete",
     mac: "F8",
     windowsLinux: "F8",
     category: "File operations",

@@ -59,7 +59,7 @@ describe("UPP-B1: Command surface model", () => {
       "op.copyTo", // F5
       "op.moveTo", // F6
       "create.folder", // F7
-      "op.trash", // F8
+      "op.delete", // F8
     ]);
 
     for (const cmd of COMMAND_DEFINITIONS) {
@@ -83,7 +83,7 @@ describe("UPP-B1: Command surface model", () => {
     expect(toolbarIds.has("op.paste")).toBe(true);
     expect(toolbarIds.has("op.open")).toBe(true);
     expect(toolbarIds.has("op.rename")).toBe(true);
-    expect(toolbarIds.has("op.trash")).toBe(true);
+    expect(toolbarIds.has("op.delete")).toBe(true);
   });
 
   it("toolbar does NOT include app-level toggles", () => {
@@ -100,7 +100,7 @@ describe("UPP-B1: Command surface model", () => {
     expect(contextIds.has("op.copyTo")).toBe(true);
     expect(contextIds.has("op.moveTo")).toBe(true);
     expect(contextIds.has("op.rename")).toBe(true);
-    expect(contextIds.has("op.trash")).toBe(true);
+    expect(contextIds.has("op.delete")).toBe(true);
     expect(contextIds.has("op.properties")).toBe(true);
   });
 

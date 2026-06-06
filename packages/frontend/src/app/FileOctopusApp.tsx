@@ -519,6 +519,7 @@ function FileOctopusAppInner({
     handleCreateFolder,
     handleCreateFile,
     startInlineRename: triggerInlineRename,
+    handleDelete,
     handleTrash,
     handlePermanentDelete,
     handleProperties,

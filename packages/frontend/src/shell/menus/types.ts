@@ -29,6 +29,7 @@ export interface MenuBarProps {
   onRename: () => void;
   onCopyTo: () => void;
   onMoveTo: () => void;
+  onDelete: () => void;
   onTrash: () => void;
   onCompress: () => void;
   onExtract: () => void;

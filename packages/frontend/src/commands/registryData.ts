@@ -198,12 +198,18 @@ export const COMMAND_REGISTRY = [
     surfaces: ["toolbar", "menu", "fkey", "palette", "context"],
   },
   {
-    id: "op.trash",
-    label: "Move to Trash",
+    id: "op.delete",
+    label: "Delete",
     group: "operation",
     shortcutMac: "F8",
     shortcutWin: "F8",
     surfaces: ["toolbar", "menu", "fkey", "palette", "context"],
+  },
+  {
+    id: "op.trash",
+    label: "Move to Trash",
+    group: "operation",
+    surfaces: ["palette", "context"],
   },
   {
     id: "op.deletePermanent",

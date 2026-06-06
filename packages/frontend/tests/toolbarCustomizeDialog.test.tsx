@@ -17,7 +17,7 @@ afterEach(() => {
 const sampleEntries: ToolbarEntry[] = [
   { kind: "command", commandId: "op.copy" },
   { kind: "separator" },
-  { kind: "command", commandId: "op.trash" },
+  { kind: "command", commandId: "op.delete" },
 ];
 
 function createProps(overrides: Record<string, unknown> = {}) {
@@ -46,7 +46,7 @@ describe("ToolbarCustomizeDialog", () => {
     const list = screen.getByRole("list");
     expect(within(list).getByText("Copy")).toBeTruthy();
     expect(within(list).getByText("Separator")).toBeTruthy();
-    expect(within(list).getByText("Trash")).toBeTruthy();
+    expect(within(list).getByText("Delete")).toBeTruthy();
   });
 
   it("calls onSave with updated entries when Save is clicked", () => {

@@ -180,7 +180,8 @@
   display: grid;
   gap: 1px;
   min-width: 248px;
-  max-height: min(80vh, calc(100vh - 16px));
+  max-height: none;
+  overflow: visible;
   padding: 4px;
 }
 
@@ -265,9 +266,9 @@
 
 .fo-context-submenu {
   display: none;
-  position: absolute;
-  left: 100%;
-  top: -4px;
+  position: fixed;
+  left: auto;
+  top: auto;
   min-width: 160px;
   gap: 2px;
   border: 1px solid var(--fo-dialog-border);

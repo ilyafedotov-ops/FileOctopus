@@ -1,4 +1,4 @@
-import type { FileEntryDto } from "@fileoctopus/ts-api";
+import type { FileEntryDto, UserPreferencesDto } from "@fileoctopus/ts-api";
 import type { PanelId, FileOctopusState, PanelAction } from "../panelStore";
 import {
   activeTab,
@@ -21,6 +21,7 @@ export interface ContextMenuOverlayProps {
   menu: ContextMenuState | null;
   state: FileOctopusState;
   clipboard: FileClipboardState | null;
+  preferences: UserPreferencesDto | null;
   starredUriSet: Set<string>;
   dispatch: React.Dispatch<PanelAction>;
   onClose: () => void;
@@ -40,6 +41,7 @@ export function ContextMenuOverlay({
   menu,
   state,
   clipboard,
+  preferences,
   starredUriSet,
   dispatch,
   onClose,
@@ -100,6 +102,7 @@ export function ContextMenuOverlay({
           : undefined
       }
       shortcutPlatform={shortcutPlatform}
+      useTrashByDefault={preferences?.useTrashByDefault === true}
       showHidden={
         menu?.panelId ? activeTab(state.panels[menu.panelId]).showHidden : false
       }
@@ -113,6 +116,7 @@ export function ContextMenuOverlay({
       onCopy={() => run("op.copy")}
       onCut={() => run("op.cut")}
       onPaste={() => run("op.paste")}
+      onDelete={() => run("op.delete")}
       onTrash={() => run("op.trash")}
       onToggleStarred={() => run("op.toggleStarred")}
       onPermanentDelete={() => run("op.deletePermanent")}

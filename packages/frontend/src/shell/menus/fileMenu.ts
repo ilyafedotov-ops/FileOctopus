@@ -71,11 +71,12 @@ export function buildFileItems(
       onSelect: wrap(props.onMoveTo),
     },
     {
-      id: "trash",
-      label: "Move to Trash…",
-      shortcut: menuShortcut("op.trash"),
+      id: "delete-default",
+      label: "Delete…",
+      shortcut: menuShortcut("op.delete"),
       disabled: !props.hasSelection,
-      onSelect: wrap(props.onTrash),
+      danger: true,
+      onSelect: wrap(props.onDelete),
     },
     {
       id: "compress",

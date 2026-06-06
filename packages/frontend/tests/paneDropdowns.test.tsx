@@ -64,6 +64,7 @@ function makeProps(overrides: Record<string, unknown> = {}) {
     onCopyOperation: noop,
     onMove: noop,
     onPaste: noop,
+    onDelete: noop,
     onTrash: noop,
     onPermanentDelete: noop,
     onCopyPath: noop,
@@ -136,8 +137,8 @@ describe("ToolbarDropdowns", () => {
     expect(screen.getByTestId("item-new-file")).toBeTruthy();
     expect(screen.getByTestId("item-rename")).toBeTruthy();
     expect(screen.getByTestId("item-paste")).toBeTruthy();
-    expect(screen.getByTestId("item-trash")).toBeTruthy();
     expect(screen.getByTestId("item-delete")).toBeTruthy();
+    expect(screen.getByTestId("item-delete-permanent")).toBeTruthy();
     expect(screen.getByTestId("item-properties")).toBeTruthy();
     expect(screen.getByTestId("item-select-all")).toBeTruthy();
   });

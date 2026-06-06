@@ -1,4 +1,10 @@
-import type { ReactNode } from "react";
+import {
+  useCallback,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 import { Button, Icons } from "@fileoctopus/ui";
 
 export function ContextMenuItem({
@@ -70,10 +76,69 @@ export function ContextMenuSubmenu({
   icon?: ReactNode;
   label: ReactNode;
 }) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const submenuRef = useRef<HTMLDivElement>(null);
+  const [submenuStyle, setSubmenuStyle] = useState<CSSProperties>();
+
+  const updateSubmenuPosition = useCallback(() => {
+    const wrapper = wrapperRef.current;
+    const submenu = submenuRef.current;
+    if (!wrapper || !submenu) return;
+
+    const pad = 8;
+    const triggerRect = wrapper.getBoundingClientRect();
+    const submenuRect = submenu.getBoundingClientRect();
+    const submenuWidth = Math.max(submenuRect.width, 160);
+    const submenuHeight = Math.max(submenu.scrollHeight, submenuRect.height);
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const maxUsableHeight = Math.max(0, vh - pad * 2);
+    let left = triggerRect.right - 1;
+    let top = triggerRect.top - 4;
+
+    if (left + submenuWidth > vw - pad) {
+      left = triggerRect.left - submenuWidth + 1;
+    }
+    left = Math.min(
+      Math.max(pad, left),
+      Math.max(pad, vw - submenuWidth - pad),
+    );
+
+    if (submenuHeight > maxUsableHeight) {
+      setSubmenuStyle({
+        left,
+        top: pad,
+        maxHeight: maxUsableHeight,
+        overflowY: "auto",
+      });
+      return;
+    }
+
+    top = Math.min(Math.max(pad, top), Math.max(pad, vh - submenuHeight - pad));
+    setSubmenuStyle({ left, top });
+  }, []);
+
+  const scheduleSubmenuPosition = useCallback(() => {
+    updateSubmenuPosition();
+    if (typeof window.requestAnimationFrame === "function") {
+      window.requestAnimationFrame(updateSubmenuPosition);
+    }
+  }, [updateSubmenuPosition]);
+
   return (
-    <div className="fo-context-menu-submenu">
+    <div
+      ref={wrapperRef}
+      className="fo-context-menu-submenu"
+      onFocusCapture={scheduleSubmenuPosition}
+      onMouseEnter={scheduleSubmenuPosition}
+    >
       <ContextMenuItem icon={icon} label={label} onClick={() => {}} submenu />
-      <div className="fo-context-submenu" role="menu">
+      <div
+        ref={submenuRef}
+        className="fo-context-submenu"
+        role="menu"
+        style={submenuStyle}
+      >
         {children}
       </div>
     </div>

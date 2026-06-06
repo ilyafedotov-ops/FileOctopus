@@ -165,7 +165,7 @@ test.describe("Context Menu", () => {
     );
   });
 
-  test("contains delete group: Move to Trash…, Delete Permanently…", async ({
+  test("contains delete group: Delete…, Delete Permanently…", async ({
     page,
   }) => {
     await openContextMenuOnFileRow(page);
@@ -173,16 +173,22 @@ test.describe("Context Menu", () => {
     const texts = await getMenuItemTexts(page);
     const trimmed = texts.map((t) => t.trim());
 
-    const hasTrash = trimmed.some((t) => t.startsWith("Move to Trash"));
-    const hasDelete = trimmed.some((t) => t.startsWith("Delete Permanently"));
-    expect(hasTrash).toBe(true);
-    expect(hasDelete).toBe(true);
-
-    const trashIdx = trimmed.findIndex((t) => t.startsWith("Move to Trash"));
-    const deleteIdx = trimmed.findIndex((t) =>
+    const hasDefaultDelete = trimmed.some((t) => t.startsWith("Delete"));
+    const hasPermanentDelete = trimmed.some((t) =>
       t.startsWith("Delete Permanently"),
     );
-    expect(trashIdx).toBeLessThan(deleteIdx);
+    const hasTrash = trimmed.some((t) => t.startsWith("Move to Trash"));
+    expect(hasDefaultDelete).toBe(true);
+    expect(hasPermanentDelete).toBe(true);
+    expect(hasTrash).toBe(false);
+
+    const defaultDeleteIdx = trimmed.findIndex(
+      (t) => t.startsWith("Delete") && !t.startsWith("Delete Permanently"),
+    );
+    const permanentDeleteIdx = trimmed.findIndex((t) =>
+      t.startsWith("Delete Permanently"),
+    );
+    expect(defaultDeleteIdx).toBeLessThan(permanentDeleteIdx);
   });
 
   test("contains info group: Copy Path, Copy Name, Properties…", async ({

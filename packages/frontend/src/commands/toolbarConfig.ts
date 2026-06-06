@@ -23,7 +23,7 @@ const TOOLBAR_LABELS: Partial<Record<CommandId, string>> = {
   "op.copyTo": "Copy",
   "op.moveTo": "Move",
   "create.folder": "Folder+",
-  "op.trash": "Trash",
+  "op.delete": "Delete",
   "op.properties": "Props",
 };
 
@@ -35,7 +35,7 @@ const TOOLBAR_DESCRIPTIONS: Partial<Record<CommandId, string>> = {
   "op.copyTo": "Copy selected items to the opposite pane",
   "op.moveTo": "Move selected items to the opposite pane",
   "create.folder": "Create a new folder in the active pane",
-  "op.trash": "Move selected items to Trash",
+  "op.delete": "Delete selected items",
   "op.properties": "Show properties for selected item",
   "op.compress": "Create archive from selection",
   "op.extract": "Extract selected archive",
@@ -60,7 +60,7 @@ export const DEFAULT_TOOLBAR_ENTRIES: ToolbarEntry[] = [
   { kind: "command", commandId: "op.copyTo" },
   { kind: "command", commandId: "op.moveTo" },
   { kind: "command", commandId: "create.folder" },
-  { kind: "command", commandId: "op.trash" },
+  { kind: "command", commandId: "op.delete" },
   { kind: "command", commandId: "op.properties" },
 ];
 

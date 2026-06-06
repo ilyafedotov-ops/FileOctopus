@@ -33,6 +33,7 @@ export function isToolbarCommandDisabled(
     commandId === "op.cut" ||
     commandId === "op.copyTo" ||
     commandId === "op.moveTo" ||
+    commandId === "op.delete" ||
     commandId === "op.trash" ||
     commandId === "op.deletePermanent" ||
     commandId === "op.reveal" ||

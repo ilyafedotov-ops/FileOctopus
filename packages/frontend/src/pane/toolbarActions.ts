@@ -79,6 +79,9 @@ export function runToolbarCommand(
     case "op.moveTo":
       dropdowns.onMove();
       return;
+    case "op.delete":
+      dropdowns.onDelete();
+      return;
     case "op.trash":
       dropdowns.onTrash();
       return;

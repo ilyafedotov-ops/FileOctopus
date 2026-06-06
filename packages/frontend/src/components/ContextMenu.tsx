@@ -3,6 +3,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
@@ -30,6 +31,7 @@ interface ContextMenuProps {
   selectedCount?: number;
   capabilities?: FileMutationCapabilities;
   shortcutPlatform?: "mac" | "windowsLinux";
+  useTrashByDefault?: boolean;
   onClose: () => void;
   onOpen: (panelId: PanelId, entry: FileEntryDto | null) => void;
   onOpenInNewTab: (panelId: PanelId, uri: string) => void;
@@ -37,6 +39,7 @@ interface ContextMenuProps {
   onCopy: (panelId: PanelId) => void;
   onCut: (panelId: PanelId) => void;
   onPaste: (panelId: PanelId) => void;
+  onDelete: (panelId: PanelId) => void;
   onTrash: (panelId: PanelId) => void;
   onToggleStarred: (panelId: PanelId, entry: FileEntryDto) => void;
   onPermanentDelete: (panelId: PanelId) => void;
@@ -78,6 +81,7 @@ export function ContextMenu({
   selectedCount,
   capabilities,
   shortcutPlatform,
+  useTrashByDefault,
   onClose,
   onOpen,
   onOpenInNewTab,
@@ -85,6 +89,7 @@ export function ContextMenu({
   onCopy,
   onCut,
   onPaste,
+  onDelete,
   onTrash,
   onToggleStarred,
   onPermanentDelete,
@@ -143,15 +148,12 @@ export function ContextMenu({
       left = Math.max(pad, vw - rect.width - pad);
     }
 
-    const availableBelow = vh - top - pad;
-    if (rect.height > availableBelow) {
-      const availableAbove = top - pad;
-      if (availableAbove > availableBelow) {
-        top = Math.max(pad, vh - rect.height - pad);
-        maxHeight = vh - top - pad;
-      } else {
-        maxHeight = availableBelow;
-      }
+    const maxUsableHeight = Math.max(0, vh - pad * 2);
+    if (rect.height > maxUsableHeight) {
+      top = pad;
+      maxHeight = maxUsableHeight;
+    } else {
+      top = Math.min(Math.max(pad, top), Math.max(pad, vh - rect.height - pad));
     }
 
     setPos({ left, top, maxHeight });
@@ -214,6 +216,16 @@ export function ContextMenu({
     onClose();
   };
 
+  const menuStyle: CSSProperties = pos
+    ? {
+        left: pos.left,
+        top: pos.top,
+        ...(pos.maxHeight !== undefined
+          ? { maxHeight: pos.maxHeight, overflowY: "auto" }
+          : {}),
+      }
+    : { left: menu.x, top: menu.y };
+
   const shell = (content: ReactNode) => (
     <div
       className="fo-menu-backdrop"
@@ -226,11 +238,7 @@ export function ContextMenu({
         className="fo-context-menu"
         role="menu"
         tabIndex={-1}
-        style={
-          pos
-            ? { left: pos.left, top: pos.top, maxHeight: pos.maxHeight }
-            : { left: menu.x, top: menu.y }
-        }
+        style={menuStyle}
         onClick={(event) => event.stopPropagation()}
       >
         {content}
@@ -281,6 +289,7 @@ export function ContextMenu({
       selectedCount,
       capabilities,
       shortcutPlatform,
+      useTrashByDefault,
       run,
       onOpen,
       onOpenInNewTab,
@@ -296,6 +305,7 @@ export function ContextMenu({
       onRename,
       onCopyTo,
       onMoveTo,
+      onDelete,
       onTrash,
       onPermanentDelete,
       onToggleStarred,

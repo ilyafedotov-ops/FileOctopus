@@ -32,11 +32,11 @@ describe("buildDefaultBindings", () => {
     expect(search!.combos.length).toBeGreaterThan(0);
   });
 
-  it("includes trash command (Delete)", () => {
+  it("includes delete command (Delete)", () => {
     const bindings = buildDefaultBindings();
-    const trash = bindings.find((b) => b.commandId === "op.trash");
-    expect(trash).toBeTruthy();
-    expect(trash!.combos.length).toBeGreaterThan(0);
+    const del = bindings.find((b) => b.commandId === "op.delete");
+    expect(del).toBeTruthy();
+    expect(del!.combos.length).toBeGreaterThan(0);
   });
 
   it("includes app.shortcuts with F1", () => {
@@ -65,7 +65,7 @@ describe("buildDefaultBindings", () => {
     const ids = bindings.map((b) => b.commandId);
     const uniqueIds = new Set(ids);
     // addOrExtendBinding replaces existing entries for app.shortcuts,
-    // app.commandPalette, and op.trash — so total may be > unique
+    // app.commandPalette, and op.delete — so total may be > unique
     expect(uniqueIds.size).toBeLessThanOrEqual(ids.length);
     expect(uniqueIds.size).toBeGreaterThan(0);
   });

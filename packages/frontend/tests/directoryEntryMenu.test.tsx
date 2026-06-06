@@ -116,6 +116,7 @@ function makeMenuProps(overrides: Record<string, unknown> = {}) {
     onRename: vi.fn(),
     onCopyTo: vi.fn(),
     onMoveTo: vi.fn(),
+    onDelete: vi.fn(),
     onTrash: vi.fn(),
     onPermanentDelete: vi.fn(),
     onToggleStarred: vi.fn(),
@@ -261,21 +262,22 @@ describe("buildFileEntryMenu", () => {
       entry: makeEntry({ canDelete: false }),
     });
     render(<>{buildFileEntryMenu(props)}</>);
-    const trashBtn = screen.getByText("Move to Trash…").closest("button")!;
+    const deleteBtn = screen.getByText("Delete…").closest("button")!;
     const deletePermBtn = screen
       .getByText("Delete Permanently…")
       .closest("button")!;
-    expect(trashBtn.disabled).toBe(true);
+    expect(deleteBtn.disabled).toBe(true);
     expect(deletePermBtn.disabled).toBe(true);
   });
 
-  it("shows Delete… for remote URIs and Move to Trash… for local", () => {
+  it("shows Delete… as the default delete action", () => {
     const localProps = makeMenuProps({
       currentTabUri: "local:///home/user",
       entry: makeEntry(),
     });
     render(<>{buildFileEntryMenu(localProps)}</>);
-    expect(screen.getByText("Move to Trash…")).toBeTruthy();
+    expect(screen.getByText("Delete…")).toBeTruthy();
+    expect(screen.queryByText("Move to Trash…")).toBeNull();
     cleanup();
 
     const remoteProps = makeMenuProps({
@@ -284,6 +286,13 @@ describe("buildFileEntryMenu", () => {
     });
     render(<>{buildFileEntryMenu(remoteProps)}</>);
     expect(screen.getByText("Delete…")).toBeTruthy();
+  });
+
+  it("shows Move to Trash… only when trash is enabled by preference", () => {
+    const props = makeMenuProps({ useTrashByDefault: true });
+    render(<>{buildFileEntryMenu(props)}</>);
+    expect(screen.getByText("Delete…")).toBeTruthy();
+    expect(screen.getByText("Move to Trash…")).toBeTruthy();
   });
 
   it("shows Add Star when not starred, Remove Star when starred", () => {
@@ -332,6 +341,96 @@ describe("buildFileEntryMenu", () => {
     expect(screen.queryByText("Select All")).toBeNull();
     expect(screen.queryByText("Clear Selection")).toBeNull();
     expect(screen.getByText("Properties…")).toBeTruthy();
+  });
+
+  it("positions submenu flyouts in viewport coordinates", () => {
+    const originalInnerHeight = window.innerHeight;
+    const originalInnerWidth = window.innerWidth;
+    const rectSpy = vi
+      .spyOn(HTMLElement.prototype, "getBoundingClientRect")
+      .mockImplementation(function (this: HTMLElement) {
+        if (this.classList.contains("fo-context-menu-submenu")) {
+          return {
+            bottom: 630,
+            height: 30,
+            left: 700,
+            right: 948,
+            top: 600,
+            width: 248,
+            x: 700,
+            y: 600,
+            toJSON: () => ({}),
+          };
+        }
+
+        if (this.classList.contains("fo-context-submenu")) {
+          return {
+            bottom: 760,
+            height: 160,
+            left: 0,
+            right: 200,
+            top: 600,
+            width: 200,
+            x: 0,
+            y: 600,
+            toJSON: () => ({}),
+          };
+        }
+
+        return {
+          bottom: 0,
+          height: 0,
+          left: 0,
+          right: 0,
+          top: 0,
+          width: 0,
+          x: 0,
+          y: 0,
+          toJSON: () => ({}),
+        };
+      });
+
+    try {
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: 800,
+      });
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: 1000,
+      });
+
+      const props = makeMenuProps();
+      render(<>{buildFileEntryMenu(props)}</>);
+
+      const submenuTrigger = screen
+        .getAllByRole("menuitem", { name: /Copy/ })
+        .find((item) => item.getAttribute("aria-haspopup") === "menu");
+      const submenuWrapper = submenuTrigger?.closest(
+        ".fo-context-menu-submenu",
+      );
+      const submenu = submenuWrapper?.querySelector<HTMLElement>(
+        ".fo-context-submenu",
+      );
+
+      expect(submenuTrigger).toBeTruthy();
+      expect(submenuWrapper).toBeTruthy();
+
+      fireEvent.mouseEnter(submenuWrapper!);
+
+      expect(submenu?.style.left).toBe("501px");
+      expect(submenu?.style.top).toBe("596px");
+    } finally {
+      rectSpy.mockRestore();
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: originalInnerHeight,
+      });
+      Object.defineProperty(window, "innerWidth", {
+        configurable: true,
+        value: originalInnerWidth,
+      });
+    }
   });
 
   it("shows Unpack only for local archive files", () => {

@@ -66,7 +66,7 @@ export function buildDefaultBindings(): KeyBinding[] {
   });
 
   bindings.push({
-    commandId: "op.trash",
+    commandId: "op.delete",
     combos: parseKeyCombo("Delete") ? [parseKeyCombo("Delete")!] : [],
   });
 

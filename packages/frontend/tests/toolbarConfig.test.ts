@@ -23,7 +23,7 @@ describe("toolbarConfig", () => {
       "Copy",
       "Move",
       "Folder+",
-      "Trash",
+      "Delete",
       "Props",
     ]);
   });

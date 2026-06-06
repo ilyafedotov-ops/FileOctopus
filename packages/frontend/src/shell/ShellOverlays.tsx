@@ -208,6 +208,7 @@ export function ShellOverlays() {
         menu={ctx.contextMenu}
         state={ctx.state}
         clipboard={ctx.clipboard}
+        preferences={ctx.preferences}
         starredUriSet={ctx.starredUriSet}
         dispatch={ctx.dispatch}
         onClose={() => ctx.setContextMenu(null)}

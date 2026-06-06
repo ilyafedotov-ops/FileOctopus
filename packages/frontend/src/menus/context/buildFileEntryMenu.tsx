@@ -26,6 +26,7 @@ interface FileEntryMenuParams {
   selectedCount?: number;
   capabilities?: FileMutationCapabilities;
   shortcutPlatform?: ShortcutPlatform;
+  useTrashByDefault?: boolean;
   entryTagColors?: TagColor[];
   run: (action: () => void) => void;
   onOpen: (panelId: PanelId, entry: FileEntryDto | null) => void;
@@ -42,6 +43,7 @@ interface FileEntryMenuParams {
   onRename: (panelId: PanelId) => void;
   onCopyTo: (panelId: PanelId) => void;
   onMoveTo: (panelId: PanelId) => void;
+  onDelete: (panelId: PanelId) => void;
   onTrash: (panelId: PanelId) => void;
   onPermanentDelete: (panelId: PanelId) => void;
   onToggleStarred: (panelId: PanelId, entry: FileEntryDto) => void;
@@ -66,6 +68,7 @@ export function buildFileEntryMenu({
   selectedCount = 1,
   capabilities,
   shortcutPlatform = "windowsLinux",
+  useTrashByDefault = false,
   entryTagColors,
   run,
   onOpen,
@@ -82,6 +85,7 @@ export function buildFileEntryMenu({
   onRename,
   onCopyTo,
   onMoveTo,
+  onDelete,
   onTrash,
   onPermanentDelete,
   onToggleStarred,
@@ -350,10 +354,19 @@ export function buildFileEntryMenu({
         disabled={!canDelete}
         disabledReason={`${selectionLabel} cannot be deleted`}
         icon={Icons.trash()}
-        label={remotePane ? "Delete…" : "Move to Trash…"}
-        onClick={() => run(() => onTrash(panelId))}
-        shortcut={formatCommandShortcut("op.trash", shortcutPlatform)}
+        label="Delete…"
+        onClick={() => run(() => onDelete(panelId))}
+        shortcut={formatCommandShortcut("op.delete", shortcutPlatform)}
       />
+      {useTrashByDefault && !remotePane ? (
+        <ContextMenuItem
+          disabled={!canDelete}
+          disabledReason={`${selectionLabel} cannot be moved to Trash`}
+          icon={Icons.trash()}
+          label="Move to Trash…"
+          onClick={() => run(() => onTrash(panelId))}
+        />
+      ) : null}
       <ContextMenuSeparator />
       <ContextMenuItem
         icon={Icons.info()}

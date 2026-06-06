@@ -17,6 +17,7 @@ export interface ToolbarDropdownsProps {
   onCopyOperation: () => void;
   onMove: () => void;
   onPaste: () => void;
+  onDelete: () => void;
   onTrash: () => void;
   onPermanentDelete: () => void;
   onCopyPath: () => void;
@@ -49,7 +50,7 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
     onCopyOperation,
     onMove,
     onPaste,
-    onTrash,
+    onDelete,
     onPermanentDelete,
     onCopyPath,
     onCopyName,
@@ -278,16 +279,16 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
             onSelect: onCopyName,
           },
           {
-            id: "trash",
-            label: "Trash",
+            id: "delete",
+            label: "Delete",
             icon: Icons.trash(),
             danger: true,
             separatorBefore: true,
             disabled: selectedCount === 0,
-            onSelect: onTrash,
+            onSelect: onDelete,
           },
           {
-            id: "delete",
+            id: "delete-permanent",
             label: "Delete Permanently",
             icon: Icons.trash(),
             danger: true,

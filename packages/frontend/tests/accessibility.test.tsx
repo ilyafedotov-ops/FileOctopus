@@ -102,6 +102,7 @@ describe("accessibility basics", () => {
         onCopy={noop}
         onCut={noop}
         onPaste={noop}
+        onDelete={noop}
         onTrash={noop}
         onToggleStarred={noop}
         onPermanentDelete={noop}

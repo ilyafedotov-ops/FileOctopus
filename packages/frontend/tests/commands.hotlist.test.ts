@@ -108,6 +108,7 @@ function createMinimalDeps(
     handleCreateFolder: vi.fn(),
     handleCreateFile: vi.fn(),
     startInlineRename: vi.fn(),
+    handleDelete: vi.fn(),
     handleTrash: vi.fn(),
     handlePermanentDelete: vi.fn(),
     handleProperties: vi.fn(),
