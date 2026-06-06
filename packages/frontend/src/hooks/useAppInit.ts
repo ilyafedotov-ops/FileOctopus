@@ -6,11 +6,7 @@ import {
   type MutableRefObject,
   type SetStateAction,
 } from "react";
-import {
-  isNetworkUri,
-  normalizeIpcError,
-  type FileOctopusClient,
-} from "@fileoctopus/ts-api";
+import { normalizeIpcError, type FileOctopusClient } from "@fileoctopus/ts-api";
 import type {
   AutostartStatusDto,
   AppInfoResponse,
@@ -28,8 +24,6 @@ import type {
 } from "@fileoctopus/ts-api";
 import {
   activeTab,
-  documentsUri,
-  homeUri,
   selectVisibleEntries,
   type FileOctopusState,
   type PanelAction,
@@ -45,6 +39,7 @@ import {
   type DensityPreference,
 } from "../applyPreferences";
 import { migrateStartupPreferences } from "./startupPreferences";
+import { resolveStartupNavigation } from "./startupNavigation";
 import { formatSize } from "../pane/fileTableUtils";
 import type { ToastMessage } from "../components/ToastStack";
 import type { OperationDialog } from "../dialogs/OperationDialogView";
@@ -76,31 +71,6 @@ export function shouldRefreshOperationCompleted(
   kind: FileOperationKind,
 ): boolean {
   return kind !== "rename";
-}
-
-async function resolveStartupUri(
-  client: FileOctopusClient,
-  uri: string,
-  fallbackUri: string,
-): Promise<string> {
-  if (!uri.startsWith("local://") || isNetworkUri(uri)) {
-    return uri;
-  }
-
-  try {
-    await client.fs.stat({ uri });
-    return uri;
-  } catch (error) {
-    const normalized = normalizeIpcError(error);
-    if (
-      normalized.code === "not_found" ||
-      normalized.code === "folder_not_found" ||
-      normalized.code === "invalid_uri"
-    ) {
-      return fallbackUri;
-    }
-    return uri;
-  }
 }
 
 export interface UseAppInitParams {
@@ -735,27 +705,14 @@ export function useAppInit({
       }
 
       try {
-        const response = await client.fs.standardLocations();
-        setLocations(response.locations);
-        const homeLocation = response.locations.find(
-          (location) => location.id === "home",
+        const startupNavigation = await resolveStartupNavigation(
+          client,
+          initialLeftUri,
+          initialRightUri,
         );
-        const documentsLocation = response.locations.find(
-          (location) => location.id === "documents",
-        );
-        const fallbackLeftUri = homeLocation?.uri ?? homeUri();
-        const fallbackRightUri = documentsLocation?.uri ?? documentsUri();
-
-        if (initialLeftUri === homeUri() && homeLocation) {
-          initialLeftUri = homeLocation.uri;
-        }
-        if (initialRightUri === documentsUri() && documentsLocation) {
-          initialRightUri = documentsLocation.uri;
-        }
-        [initialLeftUri, initialRightUri] = await Promise.all([
-          resolveStartupUri(client, initialLeftUri, fallbackLeftUri),
-          resolveStartupUri(client, initialRightUri, fallbackRightUri),
-        ]);
+        setLocations(startupNavigation.locations);
+        initialLeftUri = startupNavigation.leftUri;
+        initialRightUri = startupNavigation.rightUri;
       } catch {
         void refreshLocations();
       }
