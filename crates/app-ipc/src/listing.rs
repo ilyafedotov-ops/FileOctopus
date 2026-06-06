@@ -23,6 +23,8 @@ pub struct ListStartResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/WatchStartRequest.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct WatchStartRequest {
     pub uri: String,
@@ -100,12 +102,19 @@ pub struct DirectoryBatchEventDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/ListDirectoriesRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct ListDirectoriesRequest {
     pub uri: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/DirectoryEntryDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct DirectoryEntryDto {
     pub name: String,
@@ -113,6 +122,11 @@ pub struct DirectoryEntryDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/ListDirectoriesResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct ListDirectoriesResponse {
     pub directories: Vec<DirectoryEntryDto>,

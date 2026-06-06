@@ -1,6 +1,8 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/NetworkProfileDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfileDto {
     pub id: String,
@@ -14,6 +16,7 @@ pub struct NetworkProfileDto {
     pub default_path: String,
     pub default_uri: String,
     pub host_key_fingerprint: Option<String>,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub sort_order: i64,
     pub last_connected_at: Option<String>,
     pub last_error: Option<String>,
@@ -24,6 +27,11 @@ pub struct NetworkProfileDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProtocolOptionsDto.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProtocolOptionsDto {
     #[serde(default)]
@@ -35,6 +43,8 @@ pub struct NetworkProtocolOptionsDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/SshProtocolOptionsDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct SshProtocolOptionsDto {
     pub use_agent: Option<bool>,
@@ -50,6 +60,8 @@ pub struct SshProtocolOptionsDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/SmbProtocolOptionsDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct SmbProtocolOptionsDto {
     pub workgroup: Option<String>,
@@ -59,6 +71,8 @@ pub struct SmbProtocolOptionsDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/S3ProtocolOptionsDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct S3ProtocolOptionsDto {
     pub region: Option<String>,
@@ -68,6 +82,8 @@ pub struct S3ProtocolOptionsDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/NetworkEnvVarDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkEnvVarDto {
     pub name: String,
@@ -75,6 +91,11 @@ pub struct NetworkEnvVarDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkConnectionStatusDto.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkConnectionStatusDto {
     pub profile_id: String,
@@ -83,6 +104,8 @@ pub struct NetworkConnectionStatusDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/NetworkStatusEventDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkStatusEventDto {
     pub profile_id: String,
@@ -91,12 +114,22 @@ pub struct NetworkStatusEventDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProfilesListResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfilesListResponse {
     pub profiles: Vec<NetworkProfileDto>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProviderCapabilityDto.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProviderCapabilityDto {
     pub scheme: String,
@@ -112,12 +145,22 @@ pub struct NetworkProviderCapabilityDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProvidersListResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProvidersListResponse {
     pub providers: Vec<NetworkProviderCapabilityDto>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProfileAddRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfileAddRequest {
     pub label: String,
@@ -133,6 +176,11 @@ pub struct NetworkProfileAddRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProfileUpdateRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfileUpdateRequest {
     pub id: String,
@@ -148,6 +196,11 @@ pub struct NetworkProfileUpdateRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProfileDraftDto.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfileDraftDto {
     pub label: String,
@@ -163,6 +216,11 @@ pub struct NetworkProfileDraftDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProfileTestRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfileTestRequest {
     pub id: Option<String>,
@@ -172,6 +230,11 @@ pub struct NetworkProfileTestRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProfileTestResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfileTestResponse {
     pub ok: bool,
@@ -185,18 +248,33 @@ pub struct NetworkProfileTestResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProfileResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfileResponse {
     pub profile: NetworkProfileDto,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProfileDeleteRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfileDeleteRequest {
     pub id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProfileSetSecretRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfileSetSecretRequest {
     pub id: String,
@@ -205,6 +283,11 @@ pub struct NetworkProfileSetSecretRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProfileTrustFingerprintRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfileTrustFingerprintRequest {
     pub id: String,
@@ -212,24 +295,44 @@ pub struct NetworkProfileTrustFingerprintRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkProfileActionRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkProfileActionRequest {
     pub id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkConnectionStatusResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkConnectionStatusResponse {
     pub statuses: Vec<NetworkConnectionStatusDto>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkNeighborhoodRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkNeighborhoodRequest {
     pub uri: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/NetworkNeighborhoodResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct NetworkNeighborhoodResponse {
     pub uri: String,

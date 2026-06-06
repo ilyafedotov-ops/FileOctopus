@@ -1,47 +1,65 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/OpenTerminalRequest.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct OpenTerminalRequest {
     pub uri: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/OpenTerminalResponse.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct OpenTerminalResponse {
     pub success: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/TerminalSpawnRequest.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalSpawnRequest {
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub uri: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub profile_id: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub terminal_profile_id: Option<String>,
     pub cols: u16,
     pub rows: u16,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub shell: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub args: Option<Vec<String>>,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub env: Option<Vec<TerminalEnvVarDto>>,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub initial_command: Option<String>,
     #[serde(default)]
+    #[cfg_attr(feature = "ts", ts(optional = nullable))]
     pub title: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/TerminalSpawnResponse.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalSpawnResponse {
     pub session_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/TerminalWriteRequest.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalWriteRequest {
     pub session_id: String,
@@ -49,6 +67,8 @@ pub struct TerminalWriteRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/TerminalResizeRequest.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalResizeRequest {
     pub session_id: String,
@@ -57,18 +77,24 @@ pub struct TerminalResizeRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/TerminalKillRequest.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalKillRequest {
     pub session_id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/TerminalOkResponse.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalOkResponse {
     pub success: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/TerminalEnvVarDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalEnvVarDto {
     pub key: String,
@@ -76,6 +102,11 @@ pub struct TerminalEnvVarDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalOutputEventDto.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalOutputEventDto {
     pub session_id: String,
@@ -83,6 +114,8 @@ pub struct TerminalOutputEventDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/TerminalExitEventDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalExitEventDto {
     pub session_id: String,
@@ -90,6 +123,11 @@ pub struct TerminalExitEventDto {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalProfileScopeDto.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub enum TerminalProfileScopeDto {
     Local,
@@ -97,6 +135,11 @@ pub enum TerminalProfileScopeDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalProfileInputDto.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalProfileInputDto {
     pub name: String,
@@ -124,6 +167,8 @@ pub struct TerminalProfileInputDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/TerminalProfileDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalProfileDto {
     pub id: String,
@@ -149,6 +194,7 @@ pub struct TerminalProfileDto {
     pub right_click_action: String,
     pub paste_confirmation: bool,
     pub link_handling: String,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub sort_order: i64,
     pub is_default: bool,
     pub created_at: String,
@@ -156,6 +202,11 @@ pub struct TerminalProfileDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalProfilesListResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalProfilesListResponse {
     pub profiles: Vec<TerminalProfileDto>,
@@ -163,18 +214,33 @@ pub struct TerminalProfilesListResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalProfileResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalProfileResponse {
     pub profile: TerminalProfileDto,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalProfileAddRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalProfileAddRequest {
     pub profile: TerminalProfileInputDto,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalProfileUpdateRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalProfileUpdateRequest {
     pub id: String,
@@ -182,12 +248,22 @@ pub struct TerminalProfileUpdateRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalProfileActionRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalProfileActionRequest {
     pub id: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalCapabilitiesResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalCapabilitiesResponse {
     pub default_shell: String,
@@ -199,6 +275,11 @@ pub struct TerminalCapabilitiesResponse {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalSessionStatusDto.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub enum TerminalSessionStatusDto {
     Starting,
@@ -207,6 +288,8 @@ pub enum TerminalSessionStatusDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/TerminalSessionDto.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalSessionDto {
     pub session_id: String,
@@ -221,12 +304,22 @@ pub struct TerminalSessionDto {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalSessionsListResponse.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalSessionsListResponse {
     pub sessions: Vec<TerminalSessionDto>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalSendTextRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalSendTextRequest {
     pub session_id: String,
@@ -234,6 +327,11 @@ pub struct TerminalSendTextRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalRunCommandRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalRunCommandRequest {
     pub session_id: String,
@@ -243,6 +341,11 @@ pub struct TerminalRunCommandRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalSpawnAndRunRequest.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalSpawnAndRunRequest {
     pub uri: Option<String>,
@@ -255,6 +358,11 @@ pub struct TerminalSpawnAndRunRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/TerminalSessionEventDto.ts")
+)]
 #[serde(rename_all = "camelCase")]
 pub struct TerminalSessionEventDto {
     pub kind: String,

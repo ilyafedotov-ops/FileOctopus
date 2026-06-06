@@ -23,6 +23,8 @@ impl JobId {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "jobs/JobStatus.ts"))]
 #[serde(rename_all = "camelCase")]
 pub enum JobStatus {
     Queued,
@@ -34,15 +36,22 @@ pub enum JobStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "jobs/JobSnapshot.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct JobSnapshot {
+    #[cfg_attr(feature = "ts", ts(as = "String"))]
     pub job_id: JobId,
     pub operation_kind: FileOperationKind,
     pub status: JobStatus,
     pub current_item: Option<String>,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub completed_items: u64,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub total_items: u64,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub completed_bytes: u64,
+    #[cfg_attr(feature = "ts", ts(as = "Option<i32>"))]
     pub total_bytes: Option<u64>,
     pub error_code: Option<String>,
     pub message: Option<String>,

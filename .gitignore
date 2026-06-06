@@ -9,6 +9,7 @@ coverage/
 .env.*
 !.env.example
 apps/desktop-tauri/src-tauri/gen/
+crates/app-ipc/bindings/
 
 .playwright-mcp/
 e2e-report/
