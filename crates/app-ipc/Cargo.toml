@@ -12,5 +12,17 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 plugin-core = { path = "../plugin-core" }
 vfs = { path = "../vfs" }
+ts-rs = { version = "12", optional = true, features = ["serde-compat", "chrono-impl"] }
+
+[features]
+# Enables ts-rs TS derives across the IPC DTOs and the domain crates they
+# reference, so `cargo test -p app-ipc --features ts` regenerates the TS
+# bindings. Off by default — normal builds pull no ts-rs.
+ts = [
+    "dep:ts-rs",
+    "vfs/ts",
+    "jobs/ts",
+    "git-intel/ts",
+]
 
 [dev-dependencies]

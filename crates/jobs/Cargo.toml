@@ -7,6 +7,10 @@ edition.workspace = true
 chrono = { version = "0.4", features = ["serde"] }
 serde = { version = "1", features = ["derive"] }
 vfs = { path = "../vfs" }
+ts-rs = { version = "12", optional = true, features = ["serde-compat", "chrono-impl"] }
+
+[features]
+ts = ["dep:ts-rs", "vfs/ts"]
 
 [dev-dependencies]
 serde_json = "1"

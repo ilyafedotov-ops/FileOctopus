@@ -1,12 +1,16 @@
 use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GetAclRequest.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct GetAclRequest {
     pub uri: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/AclEntry.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct AclEntry {
     pub principal: String,
@@ -16,6 +20,8 @@ pub struct AclEntry {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GetAclResponse.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct GetAclResponse {
     pub owner: Option<String>,
@@ -25,6 +31,8 @@ pub struct GetAclResponse {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/SetAclRequest.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct SetAclRequest {
     pub uri: String,
@@ -33,6 +41,8 @@ pub struct SetAclRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/SetAclResponse.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct SetAclResponse {
     pub success: bool,

@@ -1,5 +1,6 @@
 mod blocking;
 mod error;
+pub mod neighborhood;
 pub mod secrets;
 mod session;
 

@@ -1,16 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { activeTab, parentUri, type SortField } from "../panelStore";
-import type { FileOperationPlanDto } from "@fileoctopus/ts-api";
-import { normalizeIpcError } from "@fileoctopus/ts-api";
-import { operationErrorMessage } from "../dialogs/operationJobState";
+import { activeTab, type SortField } from "../panelStore";
 import { applySplitRatio, applyThemePreference } from "../applyPreferences";
 import { useWorkspaceLayout } from "../hooks/useWorkspaceLayout";
 import { useMenuBarProps } from "../hooks/useMenuBarProps";
 import { useEventHandlers } from "../hooks/useEventHandlers";
 import { useAppInit } from "../hooks/useAppInit";
+import { useCancelActiveJob } from "../hooks/useCancelActiveJob";
 import { createKeyboardShortcutsHandler } from "../hooks/useKeyboardShortcuts";
 import { useFileOpHandlers } from "../hooks/useFileOpHandlers";
 import { useNetworkHandlers } from "../hooks/useNetworkHandlers";
+import { useOperationRefreshTargets } from "../hooks/useOperationRefreshTargets";
 import { useCommandDispatch } from "../hooks/useCommandDispatch";
 import type { CommandEntry } from "../components/CommandPalette";
 import { TerminalCommandDialog } from "../components/dialogs/TerminalCommandDialog";
@@ -322,94 +321,15 @@ function FileOctopusAppInner({
 
   const left = activeTab(state.panels.left);
   const right = activeTab(state.panels.right);
-  const operationRefreshTargetsRef = useRef(
-    new Map<string, { folderUris: string[]; removedEntryUris: string[] }>(),
-  );
-
-  const registerOperationRefresh = useCallback(
-    (jobId: string, plan: FileOperationPlanDto) => {
-      const folderUris = new Set<string>();
-      const removedEntryUris: string[] = [];
-      const addParent = (uri: string | null | undefined) => {
-        if (!uri) {
-          return;
-        }
-        folderUris.add(parentUri(uri) ?? uri);
-      };
-      const addDestination = () => {
-        addParent(plan.destination);
-      };
-      const addSources = () => {
-        for (const source of plan.sources) {
-          addParent(source);
-        }
-      };
-
-      switch (plan.kind) {
-        case "copy":
-        case "createArchive":
-        case "extractArchive":
-        case "createDirectory":
-        case "createFile":
-        case "writeTextFile":
-          addDestination();
-          break;
-        case "move":
-          addSources();
-          addDestination();
-          break;
-        case "deleteToTrash":
-        case "deletePermanently":
-          for (const source of plan.sources) {
-            removedEntryUris.push(source);
-            addParent(source);
-          }
-          break;
-        default:
-          addSources();
-          addDestination();
-          break;
-      }
-
-      operationRefreshTargetsRef.current.set(jobId, {
-        folderUris: [...folderUris],
-        removedEntryUris,
-      });
-    },
-    [],
-  );
-
-  const takeOperationRefreshTargets = useCallback((jobId: string) => {
-    const targets = operationRefreshTargetsRef.current.get(jobId) ?? null;
-    operationRefreshTargetsRef.current.delete(jobId);
-    return targets;
-  }, []);
-
-  const refreshOperationTargets = useCallback(
-    (targets: string[] | null, options?: { fullReload?: boolean }) => {
-      const fullReload = options?.fullReload === true;
-      const refreshOptions = {
-        replace: true,
-        softRefresh: !fullReload,
-        backgroundRefresh: !fullReload,
-      };
-      const folderUris = targets ?? null;
-      const panelIds = (["left", "right"] as const).filter((panelId) => {
-        const tab = activeTab(state.panels[panelId]);
-        return folderUris?.includes(tab.uri);
-      });
-
-      if (panelIds.length === 0) {
-        refreshVisiblePanels(refreshOptions);
-        return;
-      }
-
-      for (const panelId of panelIds) {
-        refreshPanel(panelId, refreshOptions);
-      }
-    },
-    [refreshPanel, refreshVisiblePanels, state.panels],
-  );
+  const {
+    registerOperationRefresh,
+    takeOperationRefreshTargets,
+    refreshOperationTargets,
+  } = useOperationRefreshTargets({
+    state,
+    refreshPanel,
+    refreshVisiblePanels,
+  });
 
   const { starredUriSet, rowHeight, previewEntry } = useAppInit({
     client,
@@ -513,40 +433,11 @@ function FileOctopusAppInner({
     registerOperationRefresh,
   });
 
-  const cancelActiveJob = useCallback(
-    (jobId: string) => {
-      void (async () => {
-        setOperationError(null);
-        try {
-          await client.jobs.cancelJob({ jobId });
-          setJobs((current) => {
-            const existing = current[jobId];
-            if (!existing) {
-              return current;
-            }
-            return {
-              ...current,
-              [jobId]: { ...existing, status: "cancelled" },
-            };
-          });
-        } catch (error) {
-          const normalized = normalizeIpcError(error);
-          if (normalized.code === "not_found") {
-            setJobs((current) => {
-              const next = { ...current };
-              delete next[jobId];
-              return next;
-            });
-            return;
-          }
-          setOperationError(
-            operationErrorMessage(normalized.code, normalized.message),
-          );
-        }
-      })();
-    },
-    [client, setJobs, setOperationError],
-  );
+  const cancelActiveJob = useCancelActiveJob({
+    client,
+    setJobs,
+    setOperationError,
+  });
 
   const triggerInlineRename = useCallback(
     (panelId: "left" | "right") => {

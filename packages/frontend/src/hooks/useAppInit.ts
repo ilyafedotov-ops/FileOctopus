@@ -1,8 +1,4 @@
 import {
-  isDefaultViewModeDetailsMigrationDone,
-  markDefaultViewModeDetailsMigrationDone,
-} from "./viewModeMigration";
-import {
   useEffect,
   useMemo,
   useRef,
@@ -10,15 +6,10 @@ import {
   type MutableRefObject,
   type SetStateAction,
 } from "react";
-import {
-  isNetworkUri,
-  normalizeIpcError,
-  type FileOctopusClient,
-} from "@fileoctopus/ts-api";
+import type { FileOctopusClient } from "@fileoctopus/ts-api";
 import type {
   AutostartStatusDto,
   AppInfoResponse,
-  FileOperationKind,
   JobSnapshot,
   StarredEntryDto,
   UserPreferencesDto,
@@ -32,8 +23,6 @@ import type {
 } from "@fileoctopus/ts-api";
 import {
   activeTab,
-  documentsUri,
-  homeUri,
   selectVisibleEntries,
   type FileOctopusState,
   type PanelAction,
@@ -41,71 +30,19 @@ import {
   type PanelTabState,
 } from "../panelStore";
 import {
-  applyAllPreferences,
-  applyDensityPreference,
-  applyLayoutPreferences,
   rowHeightForDensity,
-  viewModeFromPreference,
   type DensityPreference,
 } from "../applyPreferences";
-import { migrateLegacyChromePreferences } from "../state/chromeStore";
-import { formatSize } from "../pane/fileTableUtils";
+import { useFileSystemWatchers } from "./useFileSystemWatchers";
+import { useJobEventListeners } from "./useJobEventListeners";
+import { useMetadataEventListeners } from "./useMetadataEventListeners";
+import { useNetworkStatusEvents } from "./useNetworkStatusEvents";
+import { useSelectedFileHash } from "./useSelectedFileHash";
+import { useStartupInitialization } from "./useStartupInitialization";
 import type { ToastMessage } from "../components/ToastStack";
 import type { OperationDialog } from "../dialogs/OperationDialogView";
 import type { JobMetrics } from "../app/providers/JobsProvider";
-import {
-  jobIdValue,
-  snapshotFromStarted,
-  mergeProgress,
-  mergeCompleted,
-  mergeFailed,
-  mergeCancelled,
-  mergePaused,
-  mergeResumed,
-} from "../dialogs/OperationDialogView";
 import type { SearchState } from "../pane/PaneFilterBar";
-
-function shouldPopupOperationCompleted(kind: FileOperationKind): boolean {
-  return (
-    kind !== "rename" &&
-    kind !== "createFile" &&
-    kind !== "createDirectory" &&
-    kind !== "deleteToTrash" &&
-    kind !== "deletePermanently" &&
-    kind !== "writeTextFile"
-  );
-}
-
-export function shouldRefreshOperationCompleted(
-  kind: FileOperationKind,
-): boolean {
-  return kind !== "rename";
-}
-
-async function resolveStartupUri(
-  client: FileOctopusClient,
-  uri: string,
-  fallbackUri: string,
-): Promise<string> {
-  if (!uri.startsWith("local://") || isNetworkUri(uri)) {
-    return uri;
-  }
-
-  try {
-    await client.fs.stat({ uri });
-    return uri;
-  } catch (error) {
-    const normalized = normalizeIpcError(error);
-    if (
-      normalized.code === "not_found" ||
-      normalized.code === "folder_not_found" ||
-      normalized.code === "invalid_uri"
-    ) {
-      return fallbackUri;
-    }
-    return uri;
-  }
-}
 
 export interface UseAppInitParams {
   client: FileOctopusClient;
@@ -275,554 +212,68 @@ export function useAppInit({
     };
   }, []);
 
-  // ── File system watcher: directory batch ────────────────────────
-  useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    let disposed = false;
-    client.fs
-      .onDirectoryBatch((event) => {
-        dispatch({ type: "applyBatch", batch: event });
-      })
-      .then((value) => {
-        if (disposed) {
-          value();
-          return;
-        }
-        unlisten = value;
-      })
-      .catch((error) => {
-        const normalized = normalizeIpcError(error);
-        dispatch({
-          type: "setPaneError",
-          panelId: "left",
-          error: normalized.message,
-          errorCode: normalized.code,
-          loadState: "error",
-        });
-      });
-
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, [client]);
-
-  useEffect(() => {
-    const activePanelId = state.activePanelId;
-    const activeUri = activeTab(state.panels[activePanelId]).uri;
-
-    if (!activeUri.startsWith("local://")) {
-      return;
-    }
-
-    void client.fs.startWatching({ uri: activeUri }).catch(() => undefined);
-
-    return () => {
-      void client.fs.stopWatching().catch(() => undefined);
-    };
-  }, [client, state.activePanelId, left.uri, right.uri]);
-
-  // ── Active URI navigation: watch changed ────────────────────────
-  useEffect(() => {
-    let unlisten: (() => void) | null = null;
-    let disposed = false;
-    const activePanelId = state.activePanelId;
-    const activeUri = activeTab(state.panels[activePanelId]).uri;
-
-    client.fs
-      .onWatchChanged((event) => {
-        if (event.uri === activeUri) {
-          refreshPanel(activePanelId, {
-            replace: true,
-            softRefresh: true,
-            backgroundRefresh: true,
-          });
-        }
-      })
-      .then((value) => {
-        if (disposed) {
-          value();
-          return;
-        }
-        unlisten = value;
-      })
-      .catch(() => undefined);
-
-    return () => {
-      disposed = true;
-      unlisten?.();
-    };
-  }, [client, state.activePanelId, left.uri, right.uri]);
-
-  // ── Job event listeners with metrics ────────────────────────────
-  useEffect(() => {
-    const unlisteners: Array<() => void> = [];
-    let disposed = false;
-    const remember = (event: JobSnapshot) =>
-      setJobs((current) => ({
-        ...current,
-        [jobIdValue(event.jobId)]: event,
-      }));
-
-    Promise.all([
-      client.fileOperations.onJobStarted((event) => {
-        remember(snapshotFromStarted(event));
-        if (preferencesRef.current?.jobDrawerBehavior === "openOnStart") {
-          setActivityCollapsed(false);
-          void updatePreference("activityPanelVisible", "true");
-        }
-      }),
-      client.fileOperations.onJobProgress((event) => {
-        setJobs((current) => ({
-          ...current,
-          [jobIdValue(event.jobId)]: mergeProgress(current, event),
-        }));
-        setJobMetrics((current) => {
-          const id = jobIdValue(event.jobId);
-          const previous = current[id];
-          const now = Date.now();
-          const deltaBytes = previous
-            ? event.completedBytes - previous.lastBytes
-            : 0;
-          const deltaMs = previous ? now - previous.lastAt : 0;
-          let speedLabel: string | null = null;
-          let etaLabel: string | null = null;
-
-          if (deltaMs > 0 && deltaBytes > 0) {
-            const bytesPerSecond = (deltaBytes * 1000) / deltaMs;
-            speedLabel = `${formatSize(bytesPerSecond)}/s`;
-            const totalBytes = event.totalBytes ?? 0;
-            const remaining = totalBytes - event.completedBytes;
-            if (remaining > 0 && bytesPerSecond > 0 && totalBytes > 0) {
-              const seconds = Math.round(remaining / bytesPerSecond);
-              etaLabel = `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")} left`;
-            }
-          }
-
-          return {
-            ...current,
-            [id]: {
-              speedLabel,
-              etaLabel,
-              lastBytes: event.completedBytes,
-              lastAt: now,
-            },
-          };
-        });
-      }),
-      client.fileOperations.onJobCompleted((event) => {
-        setJobs((current) => ({
-          ...current,
-          [jobIdValue(event.jobId)]: mergeCompleted(current, event),
-        }));
-        pushToast({
-          tone: "success",
-          title: "Operation completed",
-          detail: event.operationKind,
-          popup: shouldPopupOperationCompleted(event.operationKind),
-        });
-        if (shouldRefreshOperationCompleted(event.operationKind)) {
-          const refreshPlan = takeOperationRefreshTargets(event.jobId);
-          if (refreshPlan?.removedEntryUris.length) {
-            dispatch({
-              type: "removeEntries",
-              uris: refreshPlan.removedEntryUris,
-            });
-          }
-          refreshOperationTargets(
-            refreshPlan?.folderUris.length ? refreshPlan.folderUris : null,
-            {
-              fullReload:
-                event.operationKind === "deleteToTrash" ||
-                event.operationKind === "deletePermanently",
-            },
-          );
-        }
-        void refreshHistory();
-      }),
-      client.fileOperations.onJobFailed((event) => {
-        setJobs((current) => ({
-          ...current,
-          [jobIdValue(event.jobId)]: mergeFailed(current, event),
-        }));
-        pushToast({
-          tone: "error",
-          title: "Operation failed",
-          detail: event.message,
-          actionLabel: "View details",
-          onAction: () => setOperationError(event.message),
-        });
-        if (preferencesRef.current?.jobDrawerBehavior === "openOnError") {
-          setActivityCollapsed(false);
-          void updatePreference("activityPanelVisible", "true");
-        }
-        setSearch((current) =>
-          current?.jobId === jobIdValue(event.jobId)
-            ? { ...current, running: false, error: event.message }
-            : current,
-        );
-        setDialog((current) => {
-          const jobId = jobIdValue(event.jobId);
-          if (
-            current?.type === "selectionProperties" &&
-            current.folderSizeJobIds.includes(jobId)
-          ) {
-            const pendingFolderSizeJobs = current.pendingFolderSizeJobs - 1;
-            if (pendingFolderSizeJobs > 0) {
-              return {
-                ...current,
-                pendingFolderSizeJobs,
-                error: event.message,
-              };
-            }
-            return {
-              ...current,
-              pendingFolderSizeJobs: 0,
-              calculatingSize: false,
-              error: event.message,
-            };
-          }
-          if (
-            current?.type === "properties" &&
-            current.folderSizeJobId === jobId
-          ) {
-            return { ...current, loading: false, error: event.message };
-          }
-          return current;
-        });
-        const refreshPlan = takeOperationRefreshTargets(event.jobId);
-        refreshOperationTargets(
-          refreshPlan?.folderUris.length ? refreshPlan.folderUris : null,
-        );
-        void refreshHistory();
-      }),
-      client.fileOperations.onJobCancelled((event) => {
-        setJobs((current) => ({
-          ...current,
-          [jobIdValue(event.jobId)]: mergeCancelled(current, event),
-        }));
-        pushToast({
-          tone: "info",
-          title: "Operation cancelled",
-          detail: event.operationKind,
-        });
-        setSearch((current) =>
-          current?.jobId === jobIdValue(event.jobId)
-            ? { ...current, running: false, error: "Operation cancelled." }
-            : current,
-        );
-        setDialog((current) => {
-          const jobId = jobIdValue(event.jobId);
-          if (
-            current?.type === "selectionProperties" &&
-            current.folderSizeJobIds.includes(jobId)
-          ) {
-            const pendingFolderSizeJobs = current.pendingFolderSizeJobs - 1;
-            if (pendingFolderSizeJobs > 0) {
-              return { ...current, pendingFolderSizeJobs };
-            }
-            return {
-              ...current,
-              pendingFolderSizeJobs: 0,
-              calculatingSize: false,
-              totalSize:
-                current.folderSizeBytes > 0
-                  ? current.fileSizeBaseline + current.folderSizeBytes
-                  : current.totalSize,
-            };
-          }
-          if (
-            current?.type === "properties" &&
-            current.folderSizeJobId === jobId
-          ) {
-            return { ...current, loading: false };
-          }
-          return current;
-        });
-        const cancelledRefreshPlan = takeOperationRefreshTargets(event.jobId);
-        refreshOperationTargets(
-          cancelledRefreshPlan?.folderUris.length
-            ? cancelledRefreshPlan.folderUris
-            : null,
-        );
-        void refreshHistory();
-      }),
-      client.fileOperations.onJobPaused((event) => {
-        setJobs((current) => ({
-          ...current,
-          [jobIdValue(event.jobId)]: mergePaused(current, event),
-        }));
-      }),
-      client.fileOperations.onJobResumed((event) => {
-        setJobs((current) => ({
-          ...current,
-          [jobIdValue(event.jobId)]: mergeResumed(current, event),
-        }));
-      }),
-    ])
-      .then((items) => {
-        if (disposed) {
-          for (const unlisten of items) {
-            unlisten();
-          }
-          return;
-        }
-        unlisteners.push(...items);
-      })
-      .catch((error) => {
-        setOperationError(normalizeIpcError(error).message);
-      });
-
-    return () => {
-      disposed = true;
-      for (const unlisten of unlisteners) {
-        unlisten();
-      }
-    };
-  }, [client, left.uri, right.uri]);
-
-  // ── Folder-size + recursive-search listeners ────────────────────
-  useEffect(() => {
-    const unlisteners: Array<() => void> = [];
-    let disposed = false;
-
-    Promise.all([
-      client.fs.onFolderSizeCompleted((event) =>
-        applyFolderSizeCompleted(event),
-      ),
-      client.fs.onRecursiveSearchMatch((event) =>
-        applyRecursiveSearchMatch(event),
-      ),
-      client.fs.onRecursiveSearchCompleted((event) =>
-        applyRecursiveSearchCompleted(event),
-      ),
-      client.fs.onContentSearchMatch((event) => applyContentSearchMatch(event)),
-      client.fs.onContentSearchCompleted((event) =>
-        applyContentSearchCompleted(event),
-      ),
-    ])
-      .then((items) => {
-        if (disposed) {
-          for (const unlisten of items) {
-            unlisten();
-          }
-          return;
-        }
-        unlisteners.push(...items);
-      })
-      .catch(() => undefined);
-
-    return () => {
-      disposed = true;
-      for (const unlisten of unlisteners) {
-        unlisten();
-      }
-    };
-  }, [client]);
-
-  useEffect(() => {
-    if (!appInfo?.networkEnabled) {
-      return;
-    }
-
-    let dispose: (() => void) | null = null;
-    void client.network
-      .subscribeStatusEvents((event) => {
-        setNetworkStatuses((current) => {
-          const others = current.filter(
-            (status) => status.profileId !== event.profileId,
-          );
-          return [
-            ...others,
-            {
-              profileId: event.profileId,
-              status: event.status,
-              message: event.message,
-            },
-          ];
-        });
-      })
-      .then((unsub) => {
-        dispose = unsub;
-      })
-      .catch(() => undefined);
-
-    return () => {
-      dispose?.();
-    };
-  }, [appInfo?.networkEnabled, client, setNetworkStatuses]);
-
-  // ── On-demand hash computation for selected file ──────────────────
-  useEffect(() => {
-    const panelId = state.activePanelId;
-    const tab = activeTab(state.panels[panelId]);
-    const selectedEntry =
-      selectVisibleEntries(tab).find((e) => e.uri === tab.selectedId) ?? null;
-
-    if (
-      !selectedEntry ||
-      selectedEntry.kind === "directory" ||
-      tab.hashMap[selectedEntry.uri] !== undefined
-    ) {
-      return;
-    }
-
-    const uri = selectedEntry.uri;
-    let disposed = false;
-
-    dispatch({
-      type: "setHash",
-      panelId,
-      entryId: uri,
-      hashState: "computing",
-    });
-
-    void client.fs
-      .computeHash({ uri, algorithm: "sha256" })
-      .then((res) => {
-        if (!disposed) {
-          dispatch({
-            type: "setHash",
-            panelId,
-            entryId: uri,
-            hashState: res.hash,
-          });
-        }
-      })
-      .catch(() => {
-        if (!disposed) {
-          dispatch({
-            type: "setHash",
-            panelId,
-            entryId: uri,
-            hashState: "error",
-          });
-        }
-      });
-
-    return () => {
-      disposed = true;
-    };
-  }, [
+  useFileSystemWatchers({
     client,
-    state.activePanelId,
-    left.hashMap,
-    right.hashMap,
-    left.selectedId,
-    right.selectedId,
-    left.uri,
-    right.uri,
-    left.orderedEntryIds.length,
-    right.orderedEntryIds.length,
-  ]);
+    state,
+    left,
+    right,
+    dispatch,
+    refreshPanel,
+  });
 
-  // ── Initialization: preferences, navigation, locations, etc. ────
-  useEffect(() => {
-    if (hasInitializedRef.current) {
-      return;
-    }
-    hasInitializedRef.current = true;
+  useJobEventListeners({
+    client,
+    leftUri: left.uri,
+    rightUri: right.uri,
+    preferencesRef,
+    setJobs,
+    setJobMetrics,
+    setActivityCollapsed,
+    updatePreference,
+    pushToast,
+    takeOperationRefreshTargets,
+    dispatch,
+    refreshOperationTargets,
+    refreshHistory,
+    setOperationError,
+    setSearch,
+    setDialog,
+  });
 
-    void (async () => {
-      let showHidden = false;
-      let initialLeftUri = activeTab(state.panels.left).uri;
-      let initialRightUri = activeTab(state.panels.right).uri;
+  useMetadataEventListeners({
+    client,
+    applyFolderSizeCompleted,
+    applyRecursiveSearchMatch,
+    applyRecursiveSearchCompleted,
+    applyContentSearchMatch,
+    applyContentSearchCompleted,
+  });
 
-      try {
-        const info = await client.getAppInfo();
-        setAppInfo(info);
-        if (info.networkEnabled) {
-          void refreshNetworkProfiles();
-        }
-      } catch {
-        /* app info unavailable */
-      }
+  useNetworkStatusEvents({
+    client,
+    networkEnabled: Boolean(appInfo?.networkEnabled),
+    setNetworkStatuses,
+  });
 
-      try {
-        const response = await client.fs.standardLocations();
-        setLocations(response.locations);
-        const homeLocation = response.locations.find(
-          (location) => location.id === "home",
-        );
-        const documentsLocation = response.locations.find(
-          (location) => location.id === "documents",
-        );
-        const fallbackLeftUri = homeLocation?.uri ?? homeUri();
-        const fallbackRightUri = documentsLocation?.uri ?? documentsUri();
+  useSelectedFileHash({ client, state, left, right, dispatch });
 
-        if (initialLeftUri === homeUri() && homeLocation) {
-          initialLeftUri = homeLocation.uri;
-        }
-        if (initialRightUri === documentsUri() && documentsLocation) {
-          initialRightUri = documentsLocation.uri;
-        }
-        [initialLeftUri, initialRightUri] = await Promise.all([
-          resolveStartupUri(client, initialLeftUri, fallbackLeftUri),
-          resolveStartupUri(client, initialRightUri, fallbackRightUri),
-        ]);
-      } catch {
-        void refreshLocations();
-      }
-      void refreshNavigation();
-
-      try {
-        const response = await client.preferences.get();
-        let loadedPreferences = response.preferences;
-        try {
-          loadedPreferences = await migrateLegacyChromePreferences(
-            client,
-            loadedPreferences,
-          );
-        } catch {
-          /* keep loaded preferences */
-        }
-        const shouldMigrateDefaultViewMode =
-          loadedPreferences.defaultViewMode !== "details" &&
-          !isDefaultViewModeDetailsMigrationDone();
-
-        if (shouldMigrateDefaultViewMode) {
-          try {
-            const updated = await client.preferences.set({
-              key: "defaultViewMode",
-              value: "details",
-            });
-            loadedPreferences = updated.preferences;
-            markDefaultViewModeDetailsMigrationDone();
-          } catch {
-            loadedPreferences = {
-              ...loadedPreferences,
-              defaultViewMode: "details",
-            };
-          }
-        }
-        setPreferences(loadedPreferences);
-        applyAllPreferences(loadedPreferences);
-        applyLayoutPreferences(loadedPreferences);
-        setDensity(applyDensityPreference(loadedPreferences.density));
-        setActivityCollapsed(!loadedPreferences.activityPanelVisible);
-        showHidden = loadedPreferences.showHiddenFiles;
-        dispatch({
-          type: "hydratePreferences",
-          showHidden,
-          viewMode: viewModeFromPreference(loadedPreferences.defaultViewMode),
-        });
-      } catch {
-        // Fall back to localStorage-backed defaults in panelStore.
-      }
-
-      await Promise.allSettled([
-        navigatePanel("left", initialLeftUri, {
-          includeHidden: showHidden,
-        }),
-        navigatePanel("right", initialRightUri, {
-          includeHidden: showHidden,
-        }),
-      ]);
-      void refreshLocations();
-      void refreshHistory();
-      void refreshDiagnostics();
-    })();
-  }, []);
+  useStartupInitialization({
+    client,
+    state,
+    dispatch,
+    hasInitializedRef,
+    refreshHistory,
+    refreshLocations,
+    refreshNetworkProfiles,
+    refreshNavigation,
+    refreshDiagnostics,
+    setLocations,
+    setAppInfo,
+    navigatePanel,
+    setPreferences,
+    setDensity,
+    setActivityCollapsed,
+  });
 
   return { starredUriSet, rowHeight, previewEntry };
 }

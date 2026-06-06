@@ -200,6 +200,8 @@ pub struct FileEntry {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "vfs/FileKind.ts"))]
 #[serde(rename_all = "camelCase")]
 pub enum FileKind {
     File,
@@ -340,6 +342,8 @@ pub type DirectorySink = tokio::sync::mpsc::Sender<DirectoryBatch>;
 
 /// File operation supported by the local operation pipeline.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "vfs/FileOperationKind.ts"))]
 #[serde(rename_all = "camelCase")]
 pub enum FileOperationKind {
     Copy,
@@ -358,6 +362,8 @@ pub enum FileOperationKind {
 
 /// Conflict behavior selected before an operation mutates the filesystem.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "vfs/ConflictPolicy.ts"))]
 #[serde(rename_all = "camelCase")]
 pub enum ConflictPolicy {
     Fail,
