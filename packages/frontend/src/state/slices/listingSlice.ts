@@ -52,33 +52,27 @@ export function reduceListing(
           : null,
       }));
     case "startSession":
-      return updatePanel(state, action.panelId, (tab) => ({
-        ...tab,
-        sessionId: action.sessionId,
-        activeRequestId: action.requestId,
-        backgroundListing:
-          tab.backgroundListing?.requestId === action.requestId
-            ? {
-                ...tab.backgroundListing,
-                sessionId: action.sessionId,
-              }
-            : tab.backgroundListing,
-        loadState:
-          tab.activeRequestId === action.requestId &&
-          tab.loadState !== "loading"
-            ? tab.loadState
-            : "loading",
-        error:
-          tab.activeRequestId === action.requestId &&
-          tab.loadState !== "loading"
-            ? tab.error
-            : null,
-        errorCode:
-          tab.activeRequestId === action.requestId &&
-          tab.loadState !== "loading"
-            ? tab.errorCode
-            : null,
-      }));
+      return updatePanel(state, action.panelId, (tab) => {
+        if (tab.activeRequestId !== action.requestId) {
+          return tab;
+        }
+
+        return {
+          ...tab,
+          sessionId: action.sessionId,
+          activeRequestId: action.requestId,
+          backgroundListing:
+            tab.backgroundListing?.requestId === action.requestId
+              ? {
+                  ...tab.backgroundListing,
+                  sessionId: action.sessionId,
+                }
+              : tab.backgroundListing,
+          loadState: tab.loadState !== "loading" ? tab.loadState : "loading",
+          error: tab.loadState !== "loading" ? tab.error : null,
+          errorCode: tab.loadState !== "loading" ? tab.errorCode : null,
+        };
+      });
     case "applyBatch":
       return applyBatch(state, action.batch);
     case "removeEntries":

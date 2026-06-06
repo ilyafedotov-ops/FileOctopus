@@ -8,6 +8,8 @@ type EventBridgeWindow = Window & {
   __FO_EVENT_BUFFER__?: Record<string, unknown[]>;
 };
 
+type NativeUnlistenFn = () => void | Promise<void>;
+
 /** WebKitGTK on Linux often misses native Tauri events; use the eval bridge there only. */
 export function needsEvalEventBridge(): boolean {
   if (typeof navigator === "undefined") {
@@ -26,7 +28,7 @@ export function createTauriTransport(): IpcTransport {
       handler: (payload: TPayload) => void,
     ) {
       const useEvalBridge = needsEvalEventBridge();
-      let tauriUnlisten = () => {};
+      let tauriUnlisten: NativeUnlistenFn = () => {};
 
       if (!useEvalBridge) {
         tauriUnlisten = await tauriListen<TPayload>(event, (tauriEvent) =>
@@ -62,8 +64,13 @@ export function createTauriTransport(): IpcTransport {
         };
       }
 
+      let disposed = false;
       return () => {
-        tauriUnlisten();
+        if (disposed) {
+          return;
+        }
+        disposed = true;
+        Promise.resolve(tauriUnlisten()).catch(() => undefined);
         removeEvalHandler?.();
       };
     },
