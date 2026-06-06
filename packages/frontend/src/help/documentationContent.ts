@@ -72,7 +72,7 @@ export const documentationSections: DocSection[] = [
           "Copy / Cut / Paste with Ctrl/Cmd+C, Ctrl/Cmd+X, Ctrl/Cmd+V (internal clipboard).",
           "Copy To… (F5) and Move To… (F6) copy or move the selection to a chosen folder.",
           "Rename with F2; rename many items at once with Tools → Multi-Rename.",
-          "Delete with Delete permanently removes items by default; enable Use Trash for Delete in Settings to move items to Trash instead. Shift+Delete always deletes permanently.",
+          "Delete with Delete or F8 permanently removes items; enable Show Move to Trash in menus in Settings for an optional trash action. Shift+Delete also deletes permanently.",
           "Properties (Ctrl/Cmd+I or Alt+Enter) shows size, paths, and an optional checksum.",
         ],
       },

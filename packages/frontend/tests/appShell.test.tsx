@@ -772,14 +772,15 @@ describe("FileOctopusShell", () => {
     ).toBeTruthy();
   });
 
-  it("requires explicit trash confirmation before starting delete-to-trash", async () => {
+  it("requires explicit trash confirmation when using Move to Trash", async () => {
     preferencesGet.mockResolvedValueOnce({
       preferences: { ...appPreferences, useTrashByDefault: true },
     });
     render(<FileOctopusShell />);
     await applyLeftEntries([entry("alpha.txt")]);
 
-    clickToolbar("Delete", 0);
+    fireEvent.contextMenu(screen.getByText("alpha.txt"));
+    fireEvent.click(await screen.findByText("Move to Trash…"));
 
     expect(screen.getByText("Move 1 selected item to Trash")).toBeTruthy();
     expect(screen.getByRole("dialog").textContent).toContain("alpha.txt");

@@ -53,7 +53,7 @@ export function SettingsOperations({
             )
           }
         />
-        <span>Use Trash for Delete by default</span>
+        <span>Show Move to Trash in menus</span>
       </label>
       <label className="fo-settings-checkbox">
         <input

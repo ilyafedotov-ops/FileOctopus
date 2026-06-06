@@ -116,7 +116,7 @@ describe("SettingsDialog — Operations", () => {
   it("shows use trash by default checkbox", () => {
     renderDialog();
     clickOperationsTab();
-    expect(screen.getByText("Use Trash for Delete by default")).toBeTruthy();
+    expect(screen.getByText("Show Move to Trash in menus")).toBeTruthy();
   });
 
   it("toggling confirm delete fires onChange", () => {

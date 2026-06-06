@@ -327,9 +327,9 @@ describe("useMutationHandlers", () => {
     expect(deps.setDialog).not.toHaveBeenCalled();
   });
 
-  it("handleDelete opens permanentDelete dialog when useTrashByDefault is false", () => {
+  it("handleDelete opens permanentDelete dialog when useTrashByDefault is true", () => {
     const { deps, coreOverride, entry } = buildDeps({
-      preferences: { useTrashByDefault: false },
+      preferences: { useTrashByDefault: true },
     });
     coreOverride.selectedEntries = vi.fn(() => [entry]);
 
@@ -365,29 +365,6 @@ describe("useMutationHandlers", () => {
       type: "permanentDelete",
       panelId: "left",
       entries: [entry],
-      error: null,
-    });
-  });
-
-  it("handleDelete opens trash dialog when useTrashByDefault is true", () => {
-    const { deps, coreOverride, entry } = buildDeps({
-      preferences: { useTrashByDefault: true },
-    });
-    coreOverride.selectedEntries = vi.fn(() => [entry]);
-
-    const { result } = renderHook(() =>
-      useMutationHandlers(deps, coreOverride),
-    );
-
-    act(() => {
-      result.current.handleDelete("left");
-    });
-
-    expect(deps.setDialog).toHaveBeenCalledWith({
-      type: "trash",
-      panelId: "left",
-      entries: [entry],
-      dontAskAgain: false,
       error: null,
     });
   });
