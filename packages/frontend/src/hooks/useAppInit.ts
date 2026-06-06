@@ -1,8 +1,4 @@
 import {
-  isDefaultViewModeDetailsMigrationDone,
-  markDefaultViewModeDetailsMigrationDone,
-} from "./viewModeMigration";
-import {
   useEffect,
   useMemo,
   useRef,
@@ -48,7 +44,7 @@ import {
   viewModeFromPreference,
   type DensityPreference,
 } from "../applyPreferences";
-import { migrateLegacyChromePreferences } from "../state/chromeStore";
+import { migrateStartupPreferences } from "./startupPreferences";
 import { formatSize } from "../pane/fileTableUtils";
 import type { ToastMessage } from "../components/ToastStack";
 import type { OperationDialog } from "../dialogs/OperationDialogView";
@@ -767,34 +763,10 @@ export function useAppInit({
 
       try {
         const response = await client.preferences.get();
-        let loadedPreferences = response.preferences;
-        try {
-          loadedPreferences = await migrateLegacyChromePreferences(
-            client,
-            loadedPreferences,
-          );
-        } catch {
-          /* keep loaded preferences */
-        }
-        const shouldMigrateDefaultViewMode =
-          loadedPreferences.defaultViewMode !== "details" &&
-          !isDefaultViewModeDetailsMigrationDone();
-
-        if (shouldMigrateDefaultViewMode) {
-          try {
-            const updated = await client.preferences.set({
-              key: "defaultViewMode",
-              value: "details",
-            });
-            loadedPreferences = updated.preferences;
-            markDefaultViewModeDetailsMigrationDone();
-          } catch {
-            loadedPreferences = {
-              ...loadedPreferences,
-              defaultViewMode: "details",
-            };
-          }
-        }
+        const loadedPreferences = await migrateStartupPreferences(
+          client,
+          response.preferences,
+        );
         setPreferences(loadedPreferences);
         applyAllPreferences(loadedPreferences);
         applyLayoutPreferences(loadedPreferences);
