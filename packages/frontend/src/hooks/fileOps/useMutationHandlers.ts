@@ -147,11 +147,6 @@ export function useMutationHandlers(
   }
 
   function handleDelete(panelId: PanelId) {
-    if (preferences?.useTrashByDefault) {
-      handleTrash(panelId);
-      return;
-    }
-
     handlePermanentDelete(panelId);
   }
 
