@@ -19,6 +19,7 @@ import {
 } from "react";
 import {
   isDriveTargetActive,
+  isBrowseableProfile,
   networkProfileBadge,
   networkProfileTitle,
 } from "../navigation/driveTargets";
@@ -190,15 +191,17 @@ export function Sidebar({
       kind: "network" as const,
       id: profile.id,
       label: profile.label,
-      uri: profile.defaultUri,
+      uri: isBrowseableProfile(profile)
+        ? profile.defaultUri
+        : `ssh://${profile.id}`,
       profile,
       status,
+      action: isBrowseableProfile(profile)
+        ? { type: "navigate" as const, uri: profile.defaultUri }
+        : { type: "openTerminal" as const, profile },
     };
 
-    const browseable =
-      profile.scheme === "sftp" ||
-      profile.scheme === "smb" ||
-      profile.scheme === "s3";
+    const browseable = isBrowseableProfile(profile);
     return (
       <SidebarItem
         key={`network-${profile.id}`}

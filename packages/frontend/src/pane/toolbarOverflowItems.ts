@@ -6,6 +6,7 @@ import {
   type ToolbarCommandContext,
 } from "../commands/toolbarCommandState";
 import type { HotlistTarget } from "../shell/hotlistTargets";
+import type { PaneLocationTargetAction } from "../navigation/driveTargets";
 import {
   runToolbarCommand,
   type ToolbarActionHandlers,
@@ -21,7 +22,7 @@ export interface CollapsedToolbarItemsParams {
   handlers: ToolbarActionHandlers;
   hotlistTargets: HotlistTarget[];
   hotlistOverflow: HotlistTarget[];
-  onOpenHotlistTarget: (uri: string) => void;
+  onOpenTargetAction: (action: PaneLocationTargetAction) => void;
 }
 
 export function buildCollapsedToolbarItems({
@@ -30,7 +31,7 @@ export function buildCollapsedToolbarItems({
   handlers,
   hotlistTargets,
   hotlistOverflow,
-  onOpenHotlistTarget,
+  onOpenTargetAction,
 }: CollapsedToolbarItemsParams): DropdownMenuItem[] {
   const items: DropdownMenuItem[] = [];
 
@@ -91,7 +92,7 @@ export function buildCollapsedToolbarItems({
           label: target.label,
           icon: target.glyph,
           separatorBefore: hotlistStartIndex > 0 && index === 0,
-          onSelect: () => onOpenHotlistTarget(target.uri),
+          onSelect: () => onOpenTargetAction(target.action),
         })),
       );
     } else {

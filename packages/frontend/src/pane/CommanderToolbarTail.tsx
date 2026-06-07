@@ -12,6 +12,7 @@ import type { ToolbarCommandContext } from "../commands/toolbarCommandState";
 import { isToolbarCommandDisabled } from "../commands/toolbarCommandState";
 import type { CommandId } from "../commands/types";
 import type { HotlistTarget } from "../shell/hotlistTargets";
+import type { PaneLocationTargetAction } from "../navigation/driveTargets";
 import {
   runToolbarCommand,
   type ToolbarActionHandlers,
@@ -30,7 +31,7 @@ export interface CommanderToolbarTailProps {
   hotlistTargets: HotlistTarget[];
   hotlistOverflow: HotlistTarget[];
   jobsDisplay: ToolbarJobsDisplay;
-  onOpenHotlistTarget: (uri: string) => void;
+  onOpenTargetAction: (action: PaneLocationTargetAction) => void;
 }
 
 function TailButton({
@@ -69,7 +70,7 @@ export function CommanderToolbarTail({
   hotlistTargets,
   hotlistOverflow,
   jobsDisplay,
-  onOpenHotlistTarget,
+  onOpenTargetAction,
 }: CommanderToolbarTailProps) {
   const [syncOpen, setSyncOpen] = useState(false);
   const [hotlistOpen, setHotlistOpen] = useState(false);
@@ -87,13 +88,13 @@ export function CommanderToolbarTail({
       id: target.id,
       label: target.label,
       icon: target.glyph,
-      onSelect: () => onOpenHotlistTarget(target.uri),
+      onSelect: () => onOpenTargetAction(target.action),
     })),
     ...hotlistOverflow.map((target) => ({
       id: target.id,
       label: target.label,
       icon: target.glyph,
-      onSelect: () => onOpenHotlistTarget(target.uri),
+      onSelect: () => onOpenTargetAction(target.action),
     })),
   ];
 

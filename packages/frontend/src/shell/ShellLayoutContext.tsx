@@ -15,6 +15,7 @@ import type {
   OperationHistoryRecordDto,
   NetworkConnectionStatusDto,
   NetworkConnectionDraftDto,
+  NetworkProfileTestResponse,
   NetworkProtocolOptionsDto,
   NetworkProfileDto,
   RecentEntryDto,
@@ -50,6 +51,7 @@ export interface ShellLayoutContextValue {
   starred: StarredEntryDto[];
   networkProfiles: NetworkProfileDto[];
   networkStatuses: NetworkConnectionStatusDto[];
+  networkQuickEntries: FileEntryDto[];
   preferences: UserPreferencesDto | null;
   updatePreference: (key: string, value: string) => Promise<void>;
   settingsPreferenceChange: (key: string, value: string) => void;
@@ -120,6 +122,19 @@ export interface ShellLayoutContextValue {
   testConnection: (
     profileId: string,
   ) => Promise<{ ok: boolean; message: string }>;
+  testConnectionDraft: (payload: {
+    scheme: "sftp" | "ssh" | "smb" | "s3" | "webdav";
+    label: string;
+    host: string;
+    port: number;
+    username: string;
+    authKind: "password" | "privateKey" | "accessKey";
+    privateKeyPath: string | null;
+    defaultPath: string;
+    options: NetworkProtocolOptionsDto;
+    password: string;
+    passphrase: string;
+  }) => Promise<NetworkProfileTestResponse>;
   saveProfile: (payload: {
     id?: string;
     scheme: "sftp" | "ssh" | "smb" | "s3" | "webdav";
@@ -135,6 +150,7 @@ export interface ShellLayoutContextValue {
     passphrase: string;
   }) => Promise<NetworkProfileDto>;
   refreshNetworkProfiles: () => Promise<void>;
+  refreshNetworkQuickEntries: () => Promise<void>;
   openProfileTerminalTab: (
     profile: NetworkProfileDto,
     panelId?: PanelId,

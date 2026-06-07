@@ -28,6 +28,7 @@ export interface FilePanelPropsBuilderArgs {
   locations: StandardLocationDto[];
   networkProfiles: NetworkProfileDto[];
   networkStatuses: NetworkConnectionStatusDto[];
+  networkQuickEntries: FileEntryDto[];
   favorites: FavoriteEntryDto[];
   starred: StarredEntryDto[];
   recentEntries: RecentEntryDto[];
@@ -41,6 +42,10 @@ export interface FilePanelPropsBuilderArgs {
   preferences: UserPreferencesDto | null;
   dispatch: Dispatch<PanelAction>;
   navigatePanel: (panelId: PanelId, uri: string) => void;
+  openProfileTerminalTab: (
+    profile: NetworkProfileDto,
+    panelId?: PanelId,
+  ) => Promise<void>;
   handleCommandSelect: (
     commandId: string,
     panelId?: PanelId,
@@ -67,6 +72,7 @@ export function buildFilePanelProps(
     locations,
     networkProfiles,
     networkStatuses,
+    networkQuickEntries,
     favorites,
     starred,
     recentEntries,
@@ -80,6 +86,7 @@ export function buildFilePanelProps(
     preferences,
     dispatch,
     navigatePanel,
+    openProfileTerminalTab,
     handleCommandSelect,
     revealEntry,
     activateEntry,
@@ -93,6 +100,7 @@ export function buildFilePanelProps(
     locations,
     networkProfiles,
     networkStatuses,
+    networkQuickEntries,
     favorites,
     starred,
     recentEntries,
@@ -107,6 +115,9 @@ export function buildFilePanelProps(
     active: state.activePanelId === panelId,
     onActivate: () => dispatch({ type: "setActivePanel", panelId }),
     onNavigate: (uri) => navigatePanel(panelId, uri),
+    onOpenProfileTerminal: (profile) =>
+      void openProfileTerminalTab(profile, panelId),
+    onAddServer: () => handleCommandSelect("nav.addServer"),
     locationTargets,
     onSelect: (entryId) => dispatch({ type: "setSelection", panelId, entryId }),
     onEntrySelect: (entryId, mode) =>

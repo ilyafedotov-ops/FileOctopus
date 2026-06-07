@@ -1,33 +1,121 @@
 import type {
   FsClient,
   NetworkConnectionDraftDto,
+  NetworkProfileTestResponse,
   NetworkProtocolOptionsDto,
+  NetworkProviderCapabilityDto,
   NetworkProfileDto,
+  StandardLocationDto,
+  UserPreferencesDto,
 } from "@fileoctopus/ts-api";
-import { remotePathFromUri, rootUriForUri } from "@fileoctopus/ts-api";
-import { Button } from "@fileoctopus/ui";
-import { useEffect, useState } from "react";
-import { WizardShell } from "../WizardShell";
+import {
+  displayPathFromUri,
+  remotePathFromUri,
+  rootUriForUri,
+} from "@fileoctopus/ts-api";
+import { Button, Icons, cx } from "@fileoctopus/ui";
+import { useEffect, useMemo, useState } from "react";
 import { PathBrowseField } from "../PathBrowseField";
 import { DialogShell } from "../DialogShell";
 import { FolderTree } from "../../dialogs/FolderTree";
 import {
   pickLocalPath as defaultPickLocalPath,
-  SSH_KEY_FILTERS,
   type LocalPathPicker,
 } from "../../utils/pathPicker";
 
 type SchemeType = "sftp" | "ssh" | "smb" | "s3" | "webdav";
 type AuthKindType = "password" | "privateKey" | "accessKey";
-type WizardStep = "target" | "credentials" | "test" | "save";
+type ConnectTab = "general" | "ssh" | "smb" | "s3" | "test";
 
-const STEP_ORDER: WizardStep[] = ["target", "credentials", "test", "save"];
-const STEP_LABELS = ["Target", "Credentials", "Test", "Save"];
+const SSH_KEY_NAMES = ["id_ed25519", "id_ecdsa", "id_rsa", "id_dsa"];
+
+const DEFAULT_PROVIDER_CAPABILITIES: NetworkProviderCapabilityDto[] = [
+  {
+    scheme: "sftp",
+    label: "SFTP",
+    category: "server",
+    defaultPort: 22,
+    authKinds: ["password", "privateKey"],
+    fileCapable: true,
+    terminalCapable: true,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: [
+      "useAgent",
+      "sshConfigHost",
+      "proxyJump",
+      "proxyCommand",
+      "keepaliveSecs",
+      "compression",
+      "addressFamily",
+    ],
+  },
+  {
+    scheme: "ssh",
+    label: "SSH",
+    category: "server",
+    defaultPort: 22,
+    authKinds: ["password", "privateKey"],
+    fileCapable: false,
+    terminalCapable: true,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: [
+      "useAgent",
+      "sshConfigHost",
+      "proxyJump",
+      "proxyCommand",
+      "keepaliveSecs",
+      "compression",
+      "addressFamily",
+      "terminalInitialCommand",
+      "terminalEnv",
+    ],
+  },
+  {
+    scheme: "smb",
+    label: "SMB / CIFS",
+    category: "server",
+    defaultPort: 445,
+    authKinds: ["password"],
+    fileCapable: true,
+    terminalCapable: false,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: ["workgroup", "minProtocol", "signingMode", "sharePath"],
+  },
+  {
+    scheme: "s3",
+    label: "S3",
+    category: "server",
+    defaultPort: 443,
+    authKinds: ["accessKey"],
+    fileCapable: true,
+    terminalCapable: false,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: ["region", "useTls", "pathStyle", "rootPrefix"],
+  },
+  {
+    scheme: "webdav",
+    label: "WebDAV",
+    category: "server",
+    defaultPort: 443,
+    authKinds: ["password"],
+    fileCapable: false,
+    terminalCapable: false,
+    status: "unavailable",
+    missingDependency: "WebDAV provider is not registered yet.",
+    supportedOptions: [],
+  },
+];
 
 interface ConnectServerDialogProps {
   open: boolean;
   editingProfile: NetworkProfileDto | null;
   initialDraft?: NetworkConnectionDraftDto | null;
+  networkProfiles?: NetworkProfileDto[];
+  providerCapabilities?: NetworkProviderCapabilityDto[];
   onClose: () => void;
   onSave: (payload: {
     id?: string;
@@ -43,8 +131,24 @@ interface ConnectServerDialogProps {
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileDto>;
+  onConnectProfile?: (profile: NetworkProfileDto) => void;
   onForgetFingerprint?: (profileId: string) => Promise<void>;
   onTest?: (profileId: string) => Promise<{ ok: boolean; message: string }>;
+  onTestDraft?: (payload: {
+    scheme: SchemeType;
+    label: string;
+    host: string;
+    port: number;
+    username: string;
+    authKind: AuthKindType;
+    privateKeyPath: string | null;
+    defaultPath: string;
+    options: NetworkProtocolOptionsDto;
+    password: string;
+    passphrase: string;
+  }) => Promise<NetworkProfileTestResponse>;
+  preferences?: UserPreferencesDto;
+  locations?: StandardLocationDto[];
   pickLocalPath?: LocalPathPicker;
   fs?: FsClient;
 }
@@ -52,40 +156,106 @@ interface ConnectServerDialogProps {
 type TestState =
   | { status: "idle" }
   | { status: "testing" }
-  | { status: "success"; message: string }
-  | { status: "error"; message: string };
+  | {
+      status: "success";
+      message: string;
+      durationMs?: number | null;
+      resolvedUri?: string | null;
+      fingerprint?: string | null;
+      trustState?: string | null;
+      warnings?: string[];
+    }
+  | {
+      status: "error";
+      message: string;
+      durationMs?: number | null;
+      resolvedUri?: string | null;
+      fingerprint?: string | null;
+      trustState?: string | null;
+      warnings?: string[];
+    };
 
-function defaultPort(scheme: SchemeType): number {
-  if (scheme === "sftp" || scheme === "ssh") return 22;
-  if (scheme === "smb") return 445;
-  if (scheme === "s3") return 443;
-  if (scheme === "webdav") return 443;
-  return 22;
+function providerFor(
+  providers: NetworkProviderCapabilityDto[],
+  scheme: SchemeType,
+): NetworkProviderCapabilityDto | undefined {
+  return providers.find((provider) => provider.scheme === scheme);
 }
 
-function defaultAuthKinds(scheme: SchemeType): AuthKindType[] {
-  if (scheme === "sftp" || scheme === "ssh") return ["password", "privateKey"];
-  if (scheme === "smb") return ["password"];
+function defaultPort(
+  scheme: SchemeType,
+  providers: NetworkProviderCapabilityDto[],
+): number {
+  return (
+    providerFor(providers, scheme)?.defaultPort ?? (scheme === "smb" ? 445 : 22)
+  );
+}
+
+function defaultAuthKinds(
+  scheme: SchemeType,
+  providers: NetworkProviderCapabilityDto[],
+): AuthKindType[] {
+  const kinds = providerFor(providers, scheme)?.authKinds.filter(
+    (kind): kind is AuthKindType =>
+      kind === "password" || kind === "privateKey" || kind === "accessKey",
+  );
+  if (kinds?.length) return kinds;
   if (scheme === "s3") return ["accessKey"];
-  if (scheme === "webdav") return ["password"];
+  if (scheme === "sftp" || scheme === "ssh") return ["password", "privateKey"];
   return ["password"];
 }
 
-function defaultAuthKind(scheme: SchemeType): AuthKindType {
-  return defaultAuthKinds(scheme)[0];
+function defaultAuthKind(
+  scheme: SchemeType,
+  providers: NetworkProviderCapabilityDto[],
+): AuthKindType {
+  return defaultAuthKinds(scheme, providers)[0] ?? "password";
+}
+
+function protocolLabel(scheme: string): string {
+  if (scheme === "sftp") return "SFTP";
+  if (scheme === "ssh") return "SSH";
+  if (scheme === "smb") return "SMB";
+  if (scheme === "s3") return "S3";
+  if (scheme === "webdav") return "WebDAV";
+  return scheme.toUpperCase();
+}
+
+function providerMode(
+  provider: NetworkProviderCapabilityDto | undefined,
+): string {
+  if (!provider) return "Saved profile";
+  if (provider.fileCapable && provider.terminalCapable)
+    return "Files + terminal";
+  if (provider.fileCapable) return "Files";
+  if (provider.terminalCapable) return "Terminal only";
+  return "Unavailable";
 }
 
 export function ConnectServerDialog({
   open,
   editingProfile,
   initialDraft,
+  networkProfiles = [],
+  providerCapabilities = DEFAULT_PROVIDER_CAPABILITIES,
   onClose,
   onSave,
+  onConnectProfile,
   onForgetFingerprint,
   onTest,
+  onTestDraft,
+  preferences,
+  locations = [],
   pickLocalPath = defaultPickLocalPath,
   fs,
 }: ConnectServerDialogProps) {
+  const providers = providerCapabilities.length
+    ? providerCapabilities
+    : DEFAULT_PROVIDER_CAPABILITIES;
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(
+    null,
+  );
+  const [activeTab, setActiveTab] = useState<ConnectTab>("general");
   const [label, setLabel] = useState("");
   const [scheme, setScheme] = useState<SchemeType>("sftp");
   const [host, setHost] = useState("");
@@ -97,83 +267,79 @@ export function ConnectServerDialog({
   const [useAgent, setUseAgent] = useState(false);
   const [sshConfigHost, setSshConfigHost] = useState("");
   const [proxyJump, setProxyJump] = useState("");
+  const [proxyCommand, setProxyCommand] = useState("");
   const [keepaliveSecs, setKeepaliveSecs] = useState("");
+  const [compression, setCompression] = useState(false);
+  const [addressFamily, setAddressFamily] = useState("auto");
+  const [terminalInitialCommand, setTerminalInitialCommand] = useState("");
+  const [smbWorkgroup, setSmbWorkgroup] = useState("");
+  const [smbMinProtocol, setSmbMinProtocol] = useState("");
+  const [smbSigningMode, setSmbSigningMode] = useState("default");
+  const [smbSharePath, setSmbSharePath] = useState("");
+  const [s3Region, setS3Region] = useState("");
+  const [s3UseTls, setS3UseTls] = useState(true);
+  const [s3PathStyle, setS3PathStyle] = useState(false);
+  const [s3RootPrefix, setS3RootPrefix] = useState("");
   const [password, setPassword] = useState("");
   const [passphrase, setPassphrase] = useState("");
-  const [step, setStep] = useState<WizardStep>("target");
   const [testState, setTestState] = useState<TestState>({ status: "idle" });
+  const [detectedSshKeys, setDetectedSshKeys] = useState<string[]>([]);
+  const [detectingSshKeys, setDetectingSshKeys] = useState(false);
+  const [localProfiles, setLocalProfiles] = useState<NetworkProfileDto[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [invalidFields, setInvalidFields] = useState<Set<string>>(new Set());
   const [remotePathPickerOpen, setRemotePathPickerOpen] = useState(false);
 
-  const clearFieldError = (field: string) => {
-    setInvalidFields((current) => {
-      if (!current.has(field)) return current;
-      const next = new Set(current);
-      next.delete(field);
-      return next;
-    });
-  };
+  const currentProfile = useMemo(
+    () =>
+      selectedProfileId
+        ? (localProfiles.find((profile) => profile.id === selectedProfileId) ??
+          networkProfiles.find((profile) => profile.id === selectedProfileId) ??
+          (editingProfile?.id === selectedProfileId ? editingProfile : null))
+        : null,
+    [editingProfile, localProfiles, networkProfiles, selectedProfileId],
+  );
 
-  useEffect(() => {
-    if (!open) {
-      return;
+  const profileList = useMemo(() => {
+    const merged = [...localProfiles, ...networkProfiles];
+    const uniqueProfiles = merged.filter(
+      (profile, index, profiles) =>
+        profiles.findIndex((item) => item.id === profile.id) === index,
+    );
+    if (
+      editingProfile &&
+      !uniqueProfiles.some((profile) => profile.id === editingProfile.id)
+    ) {
+      return [editingProfile, ...uniqueProfiles];
     }
-    const candidateScheme =
-      editingProfile?.scheme ?? initialDraft?.scheme ?? "sftp";
-    const profileScheme = (
-      ["sftp", "ssh", "smb", "s3", "webdav"].indexOf(candidateScheme) !== -1
-        ? candidateScheme
-        : "sftp"
-    ) as SchemeType;
-    setLabel(editingProfile?.label ?? initialDraft?.label ?? "");
-    setScheme(profileScheme);
-    setHost(editingProfile?.host ?? initialDraft?.host ?? "");
-    setPort(String(editingProfile?.port ?? defaultPort(profileScheme)));
-    setUsername(editingProfile?.username ?? "");
-    const profileAuth = editingProfile?.authKind;
-    const validAuthKinds = defaultAuthKinds(profileScheme);
-    setAuthKind(
-      profileAuth && validAuthKinds.indexOf(profileAuth as AuthKindType) !== -1
-        ? (profileAuth as AuthKindType)
-        : defaultAuthKind(profileScheme),
-    );
-    setPrivateKeyPath(editingProfile?.privateKeyPath ?? "");
-    setDefaultPath(
-      editingProfile?.defaultPath ?? initialDraft?.defaultPath ?? "/",
-    );
-    setUseAgent(editingProfile?.options?.ssh?.useAgent === true);
-    setSshConfigHost(editingProfile?.options?.ssh?.sshConfigHost ?? "");
-    setProxyJump(editingProfile?.options?.ssh?.proxyJump ?? "");
-    setKeepaliveSecs(
-      editingProfile?.options?.ssh?.keepaliveSecs
-        ? String(editingProfile.options.ssh.keepaliveSecs)
-        : "",
-    );
-    setPassword("");
-    setPassphrase("");
-    setStep("target");
-    setTestState({ status: "idle" });
-    setError(null);
-    setInvalidFields(new Set());
-    setRemotePathPickerOpen(false);
-  }, [editingProfile, initialDraft, open]);
+    return uniqueProfiles;
+  }, [editingProfile, localProfiles, networkProfiles]);
 
-  function handleSchemeChange(newScheme: SchemeType) {
-    setScheme(newScheme);
-    setPort(String(defaultPort(newScheme)));
-    setAuthKind(defaultAuthKind(newScheme));
-    setDefaultPath("/");
-  }
-
-  const showPasswordField = authKind === "password" || authKind === "accessKey";
-  const showPrivateKeyField = authKind === "privateKey";
-  const showSshOptions = scheme === "sftp" || scheme === "ssh";
+  const selectedProvider = providerFor(providers, scheme);
+  const authKinds = defaultAuthKinds(scheme, providers);
   const showDefaultPath =
     scheme === "sftp" || scheme === "smb" || scheme === "webdav";
   const showBucketField = scheme === "s3";
-  const authKinds = defaultAuthKinds(scheme);
+  const showPasswordField = authKind === "password" || authKind === "accessKey";
+  const showPrivateKeyField = authKind === "privateKey";
+  const savedProfileSelected = currentProfile !== null;
+  const unavailableMessage =
+    selectedProvider?.status === "unavailable"
+      ? (selectedProvider.missingDependency ??
+        `${selectedProvider.label} is unavailable.`)
+      : null;
+  const unavailableProviders = providers.filter(
+    (provider) => provider.status === "unavailable",
+  );
+  const tabs = useMemo<ConnectTab[]>(() => {
+    const next: ConnectTab[] = ["general"];
+    if (scheme === "sftp" || scheme === "ssh") next.push("ssh");
+    if (scheme === "smb") next.push("smb");
+    if (scheme === "s3") next.push("s3");
+    next.push("test");
+    return next;
+  }, [scheme]);
 
   const hostLabel = scheme === "s3" ? "Endpoint URL" : "Host";
   const hostPlaceholder =
@@ -196,94 +362,328 @@ export function ConnectServerDialog({
         : scheme === "webdav"
           ? "/remote.php/dav/files/user"
           : "/home/deploy";
-  const stepIndex = STEP_ORDER.indexOf(step);
   const canBrowseRemoteDefaultPath =
     Boolean(fs) &&
-    editingProfile !== null &&
+    currentProfile !== null &&
     showDefaultPath &&
     (scheme === "sftp" || scheme === "smb" || scheme === "webdav");
   const remoteDefaultPathRootUri =
-    editingProfile && canBrowseRemoteDefaultPath
-      ? rootUriForUri(editingProfile.defaultUri)
+    currentProfile && canBrowseRemoteDefaultPath
+      ? rootUriForUri(currentProfile.defaultUri)
       : null;
+
+  useEffect(() => {
+    if (!open) {
+      setLocalProfiles([]);
+      return;
+    }
+    if (editingProfile) {
+      loadProfile(editingProfile);
+    } else {
+      loadNewConnection(initialDraft);
+    }
+  }, [editingProfile, initialDraft, open]);
+
+  useEffect(() => {
+    if (!tabs.includes(activeTab)) {
+      setActiveTab("general");
+    }
+  }, [activeTab, tabs]);
+
+  useEffect(() => {
+    if (!open || !fs || (scheme !== "sftp" && scheme !== "ssh")) {
+      return;
+    }
+    let cancelled = false;
+    const homeLocation =
+      locations.find((location) => location.id === "home") ??
+      locations.find(
+        (location) =>
+          location.section === "Favorites" &&
+          location.name.toLowerCase() === "home",
+      );
+    if (!homeLocation?.uri?.startsWith("local://")) {
+      return;
+    }
+    const homeBase = homeLocation.uri.replace(/\/+$/, "");
+    setDetectingSshKeys(true);
+    void Promise.all(
+      SSH_KEY_NAMES.map(async (name) => {
+        const uri = `${homeBase}/.ssh/${name}`;
+        try {
+          const response = await fs.stat({ uri });
+          return response.entry.kind === "file"
+            ? displayPathFromUri(uri)
+            : null;
+        } catch {
+          return null;
+        }
+      }),
+    ).then((keys) => {
+      if (cancelled) return;
+      const detected = keys.filter((key): key is string => Boolean(key));
+      setDetectedSshKeys(detected);
+      setDetectingSshKeys(false);
+      if (!privateKeyPath && detected[0]) {
+        setPrivateKeyPath(detected[0]);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [fs, locations, open, privateKeyPath, scheme]);
+
+  function resetVolatileState() {
+    setPassword("");
+    setPassphrase("");
+    setTestState({ status: "idle" });
+    setError(null);
+    setInvalidFields(new Set());
+    setRemotePathPickerOpen(false);
+  }
+
+  function applySchemeDefaults(nextScheme: SchemeType) {
+    setScheme(nextScheme);
+    setPort(String(defaultPort(nextScheme, providers)));
+    setAuthKind(defaultAuthKind(nextScheme, providers));
+    setDefaultPath("/");
+  }
+
+  function loadNewConnection(draft?: NetworkConnectionDraftDto | null) {
+    const candidate = draft?.scheme ?? "sftp";
+    const nextScheme = (
+      ["sftp", "ssh", "smb", "s3", "webdav"].includes(candidate)
+        ? candidate
+        : "sftp"
+    ) as SchemeType;
+    setSelectedProfileId(null);
+    setLabel(draft?.label ?? "");
+    setScheme(nextScheme);
+    setHost(draft?.host ?? "");
+    setPort(String(defaultPort(nextScheme, providers)));
+    setUsername("");
+    setAuthKind(defaultAuthKind(nextScheme, providers));
+    setPrivateKeyPath(preferences?.networkSshKeyPath ?? "");
+    setDefaultPath(draft?.defaultPath ?? "/");
+    setUseAgent(preferences?.networkUseSshAgent ?? false);
+    setSshConfigHost("");
+    setProxyJump("");
+    setProxyCommand("");
+    setKeepaliveSecs("");
+    setCompression(false);
+    setAddressFamily("auto");
+    setTerminalInitialCommand("");
+    setSmbWorkgroup("");
+    setSmbMinProtocol("");
+    setSmbSigningMode("default");
+    setSmbSharePath("");
+    setS3Region("");
+    setS3UseTls(true);
+    setS3PathStyle(false);
+    setS3RootPrefix("");
+    setActiveTab("general");
+    resetVolatileState();
+  }
+
+  function loadProfile(profile: NetworkProfileDto) {
+    const nextScheme = (
+      ["sftp", "ssh", "smb", "s3", "webdav"].includes(profile.scheme)
+        ? profile.scheme
+        : "sftp"
+    ) as SchemeType;
+    const validAuthKinds = defaultAuthKinds(nextScheme, providers);
+    const nextAuthKind = validAuthKinds.includes(
+      profile.authKind as AuthKindType,
+    )
+      ? (profile.authKind as AuthKindType)
+      : defaultAuthKind(nextScheme, providers);
+    setSelectedProfileId(profile.id);
+    setLabel(profile.label);
+    setScheme(nextScheme);
+    setHost(profile.host);
+    setPort(String(profile.port));
+    setUsername(profile.username);
+    setAuthKind(nextAuthKind);
+    setPrivateKeyPath(
+      profile.privateKeyPath ?? preferences?.networkSshKeyPath ?? "",
+    );
+    setDefaultPath(profile.defaultPath || "/");
+    setUseAgent(
+      profile.options?.ssh?.useAgent ??
+        preferences?.networkUseSshAgent ??
+        false,
+    );
+    setSshConfigHost(profile.options?.ssh?.sshConfigHost ?? "");
+    setProxyJump(profile.options?.ssh?.proxyJump ?? "");
+    setProxyCommand(profile.options?.ssh?.proxyCommand ?? "");
+    setKeepaliveSecs(
+      profile.options?.ssh?.keepaliveSecs
+        ? String(profile.options.ssh.keepaliveSecs)
+        : "",
+    );
+    setCompression(profile.options?.ssh?.compression === true);
+    setAddressFamily(profile.options?.ssh?.addressFamily ?? "auto");
+    setTerminalInitialCommand(
+      profile.options?.ssh?.terminalInitialCommand ?? "",
+    );
+    setSmbWorkgroup(profile.options?.smb?.workgroup ?? "");
+    setSmbMinProtocol(profile.options?.smb?.minProtocol ?? "");
+    setSmbSigningMode(profile.options?.smb?.signingMode ?? "default");
+    setSmbSharePath(profile.options?.smb?.sharePath ?? "");
+    setS3Region(profile.options?.s3?.region ?? "");
+    setS3UseTls(profile.options?.s3?.useTls !== false);
+    setS3PathStyle(profile.options?.s3?.pathStyle === true);
+    setS3RootPrefix(profile.options?.s3?.rootPrefix ?? "");
+    setActiveTab("general");
+    resetVolatileState();
+  }
 
   async function browsePrivateKeyPath() {
     const selected = await pickLocalPath({
       kind: "file",
       currentPath: privateKeyPath,
       title: "Choose private key",
-      filters: SSH_KEY_FILTERS,
     });
     if (selected) {
       setPrivateKeyPath(selected);
     }
   }
 
-  function credentialsError(): string | null {
-    const trimmedUsername = username.trim();
-    if (scheme !== "s3" && !trimmedUsername) {
-      return "Username is required.";
+  function handleSchemeChange(nextScheme: SchemeType) {
+    const provider = providerFor(providers, nextScheme);
+    if (provider?.status === "unavailable") {
+      return;
     }
-    if (authKind === "privateKey" && !privateKeyPath.trim()) {
-      return "Private key path is required.";
-    }
-    if (showPasswordField && !editingProfile && !password) {
-      return `${passwordLabel} is required for a new server.`;
-    }
-    return null;
+    applySchemeDefaults(nextScheme);
+    setTestState({ status: "idle" });
   }
 
-  function handleNextStep() {
+  function buildProtocolOptions(): NetworkProtocolOptionsDto {
+    const options: NetworkProtocolOptionsDto = {};
+    if (scheme === "sftp" || scheme === "ssh") {
+      options.ssh = {
+        useAgent,
+        sshConfigHost: sshConfigHost.trim() || null,
+        proxyJump: proxyJump.trim() || null,
+        proxyCommand: proxyCommand.trim() || null,
+        keepaliveSecs:
+          keepaliveSecs.trim() === "" ? null : Number(keepaliveSecs),
+        compression,
+        addressFamily,
+        terminalInitialCommand: terminalInitialCommand.trim() || null,
+      };
+    }
+    if (scheme === "smb") {
+      options.smb = {
+        workgroup: smbWorkgroup.trim() || null,
+        minProtocol: smbMinProtocol.trim() || null,
+        signingMode: smbSigningMode,
+        sharePath: smbSharePath.trim() || null,
+      };
+    }
+    if (scheme === "s3") {
+      options.s3 = {
+        region: s3Region.trim() || null,
+        useTls: s3UseTls,
+        pathStyle: s3PathStyle,
+        rootPrefix: s3RootPrefix.trim() || null,
+      };
+    }
+    return options;
+  }
+
+  function buildPayload() {
+    return {
+      id: currentProfile?.id,
+      scheme,
+      label: label.trim(),
+      host: host.trim(),
+      port: Number(port),
+      username: username.trim(),
+      authKind,
+      privateKeyPath: authKind === "privateKey" ? privateKeyPath.trim() : null,
+      defaultPath: defaultPath.trim() || "/",
+      options: buildProtocolOptions(),
+      password,
+      passphrase,
+    };
+  }
+
+  function validate(): boolean {
+    const invalid = new Set<string>();
+    const parsedPort = Number(port);
+    if (!label.trim()) invalid.add("label");
+    if (!host.trim()) invalid.add("host");
+    if (!Number.isFinite(parsedPort) || parsedPort <= 0 || parsedPort > 65535) {
+      invalid.add("port");
+    }
+    if (!username.trim()) invalid.add("username");
+    if (authKind === "privateKey" && !privateKeyPath.trim()) {
+      invalid.add("privateKey");
+    }
+    if (showPasswordField && !currentProfile && !password) {
+      invalid.add("password");
+    }
+    if (unavailableMessage) {
+      setError(unavailableMessage);
+      return false;
+    }
+    if (invalid.size > 0) {
+      setInvalidFields(invalid);
+      if (invalid.has("port") && invalid.size === 1) {
+        setError("Enter a valid port.");
+      } else if (invalid.has("privateKey")) {
+        setError("Private key path is required.");
+      } else if (invalid.has("password")) {
+        setError(`${passwordLabel} is required for a new connection.`);
+      } else {
+        setError("Profile name, host, username, and port are required.");
+      }
+      return false;
+    }
+    setInvalidFields(new Set());
     setError(null);
-    if (step === "target") {
-      const invalid = new Set<string>();
-      if (!label.trim()) invalid.add("label");
-      if (!host.trim()) invalid.add("host");
-      const parsedPort = Number(port);
-      if (!Number.isFinite(parsedPort) || parsedPort <= 0) invalid.add("port");
-      if (invalid.size > 0) {
-        setInvalidFields(invalid);
-        setError(
-          invalid.has("port") && invalid.size === 1
-            ? "Enter a valid port."
-            : "Label and host are required.",
-        );
-        return;
-      }
-      setInvalidFields(new Set());
-      setStep("credentials");
-      return;
-    }
-    if (step === "credentials") {
-      const invalid = new Set<string>();
-      if (scheme !== "s3" && !username.trim()) invalid.add("username");
-      if (authKind === "privateKey" && !privateKeyPath.trim())
-        invalid.add("privateKey");
-      if (showPasswordField && !editingProfile && !password)
-        invalid.add("password");
-      const credError = credentialsError();
-      if (credError) {
-        setInvalidFields(invalid);
-        setError(credError);
-        return;
-      }
-      setInvalidFields(new Set());
-      setStep("test");
-      return;
-    }
-    if (step === "test") {
-      setStep("save");
-    }
+    return true;
   }
 
   async function runTest() {
-    if (!onTest || !editingProfile?.id) return;
+    if (!validate()) {
+      setActiveTab("general");
+      return;
+    }
+    if (currentProfile?.id && onTest) {
+      setTestState({ status: "testing" });
+      setActiveTab("test");
+      try {
+        const result = await onTest(currentProfile.id);
+        setTestState({
+          status: result.ok ? "success" : "error",
+          message: result.message,
+        });
+      } catch (testError) {
+        setTestState({
+          status: "error",
+          message:
+            testError instanceof Error
+              ? testError.message
+              : "Connection test failed.",
+        });
+      }
+      return;
+    }
+    if (!onTestDraft) return;
     setTestState({ status: "testing" });
+    setActiveTab("test");
     try {
-      const result = await onTest(editingProfile.id);
+      const result = await onTestDraft(buildPayload());
       setTestState({
         status: result.ok ? "success" : "error",
         message: result.message,
+        durationMs: result.durationMs,
+        resolvedUri: result.resolvedUri,
+        fingerprint: result.observedFingerprint,
+        trustState: result.trustState,
+        warnings: result.warnings,
       });
     } catch (testError) {
       setTestState({
@@ -296,315 +696,398 @@ export function ConnectServerDialog({
     }
   }
 
-  const canRunTest = Boolean(onTest) && editingProfile !== null;
-
-  function handlePreviousStep() {
-    setError(null);
-    const prev = STEP_ORDER[Math.max(0, stepIndex - 1)];
-    setStep(prev);
-  }
-
   async function handleSubmit() {
-    const trimmedLabel = label.trim();
-    const trimmedHost = host.trim();
-    const trimmedUsername = username.trim();
-    const parsedPort = Number(port);
-
-    if (!trimmedLabel || !trimmedHost) {
-      setError("Label and host are required.");
+    if (!validate()) {
+      setActiveTab("general");
       return;
     }
-    if (scheme !== "s3" && !trimmedUsername) {
-      setError("Username is required.");
-      return;
-    }
-    if (!Number.isFinite(parsedPort) || parsedPort <= 0) {
-      setError("Enter a valid port.");
-      return;
-    }
-    if (authKind === "privateKey" && !privateKeyPath.trim()) {
-      setError("Private key path is required.");
-      return;
-    }
-    if (showPasswordField && !editingProfile && !password) {
-      setError(`${passwordLabel} is required for a new server.`);
-      return;
-    }
-    if (
-      showPasswordField &&
-      editingProfile &&
-      !editingProfile.hasStoredSecret &&
-      !password
-    ) {
-      setError(
-        `${passwordLabel} is not saved in the keychain yet. Enter it now to store credentials.`,
-      );
-      return;
-    }
-
     setSaving(true);
-    setError(null);
     try {
-      await onSave({
-        id: editingProfile?.id,
-        scheme,
-        label: trimmedLabel,
-        host: trimmedHost,
-        port: parsedPort,
-        username: trimmedUsername,
-        authKind,
-        privateKeyPath:
-          authKind === "privateKey" ? privateKeyPath.trim() : null,
-        defaultPath: defaultPath.trim() || "/",
-        options: {
-          ssh: {
-            useAgent,
-            sshConfigHost: sshConfigHost.trim() || null,
-            proxyJump: proxyJump.trim() || null,
-            keepaliveSecs:
-              keepaliveSecs.trim() === "" ? null : Number(keepaliveSecs),
-          },
-        },
-        password,
-        passphrase,
-      });
-      onClose();
+      const profile = await onSave(buildPayload());
+      setLocalProfiles((current) => [
+        profile,
+        ...current.filter((item) => item.id !== profile.id),
+      ]);
+      loadProfile(profile);
     } catch (saveError) {
       setError(
         saveError instanceof Error
           ? saveError.message
-          : "Failed to save server",
+          : "Failed to save connection.",
       );
     } finally {
       setSaving(false);
     }
   }
 
-  const primaryLabel =
-    step === "save"
-      ? saving
-        ? "Saving…"
-        : editingProfile
-          ? "Save changes"
-          : "Save connection"
-      : "Next";
+  function handleConnect() {
+    if (currentProfile) {
+      onConnectProfile?.(currentProfile);
+    }
+  }
+
+  function tabLabel(tab: ConnectTab): string {
+    if (tab === "general") return "General";
+    if (tab === "ssh") return "SSH";
+    if (tab === "smb") return "SMB";
+    if (tab === "s3") return "S3";
+    return "Test & Trust";
+  }
+
+  const footer = (
+    <>
+      <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+        Cancel
+      </Button>
+      <Button
+        type="button"
+        variant="default"
+        size="sm"
+        disabled={testState.status === "testing" || Boolean(unavailableMessage)}
+        onClick={() => void runTest()}
+      >
+        {testState.status === "testing" ? "Testing..." : "Test"}
+      </Button>
+      <Button
+        type="button"
+        variant="default"
+        size="sm"
+        disabled={!savedProfileSelected}
+        onClick={handleConnect}
+      >
+        Connect
+      </Button>
+      <Button
+        type="button"
+        variant="primary"
+        size="sm"
+        disabled={saving || Boolean(unavailableMessage)}
+        onClick={() => void handleSubmit()}
+      >
+        {saving ? "Saving..." : "Save"}
+      </Button>
+    </>
+  );
 
   return (
-    <WizardShell
+    <DialogShell
       open={open}
       onClose={onClose}
-      title={editingProfile ? "Edit Server" : "Add Server"}
-      subtitle="Save a remote connection profile. Credentials stay in the OS keychain."
-      className="fo-connect-server-dialog"
-      steps={STEP_LABELS}
-      currentStep={stepIndex}
-      onStepSelect={(index) => {
-        setError(null);
-        setStep(STEP_ORDER[index]);
-      }}
-      onBack={handlePreviousStep}
-      onPrimary={() => {
-        if (step === "save") {
-          void handleSubmit();
-        } else {
-          handleNextStep();
-        }
-      }}
-      primaryLabel={primaryLabel}
-      primaryDisabled={saving}
-      error={error}
+      title="Connections"
+      subtitle="Manage remote connection profiles. Credentials stay in the OS keychain."
+      className="fo-connect-manager-dialog"
+      size="lg"
+      footer={footer}
     >
-      <div className="fo-connect-server-form">
-        {step === "target" ? (
-          <>
-            <label className="fo-dialog-field">
-              <span>Label</span>
-              <input
-                value={label}
-                aria-invalid={invalidFields.has("label") || undefined}
-                className={
-                  invalidFields.has("label") ? "fo-field-invalid" : undefined
-                }
-                onChange={(event) => {
-                  setLabel(event.target.value);
-                  clearFieldError("label");
-                }}
-                placeholder={
-                  scheme === "s3"
-                    ? "Production S3"
-                    : scheme === "smb"
-                      ? "File Server"
-                      : "Production SFTP"
-                }
-              />
-            </label>
-            <label className="fo-dialog-field">
-              <span>Protocol</span>
-              <select
-                value={scheme}
-                disabled={editingProfile !== null}
-                onChange={(event) =>
-                  handleSchemeChange(event.target.value as SchemeType)
-                }
-              >
-                <option value="sftp">SFTP files + SSH terminal</option>
-                <option value="ssh">SSH terminal only</option>
-                <option value="smb">SMB / CIFS share</option>
-                <option value="s3">S3 object storage</option>
-                <option value="webdav">WebDAV</option>
-              </select>
-            </label>
-            <label className="fo-dialog-field">
-              <span>{hostLabel}</span>
-              <input
-                value={host}
-                aria-invalid={invalidFields.has("host") || undefined}
-                className={
-                  invalidFields.has("host") ? "fo-field-invalid" : undefined
-                }
-                onChange={(event) => {
-                  setHost(event.target.value);
-                  clearFieldError("host");
-                }}
-                placeholder={hostPlaceholder}
-              />
-            </label>
-            <label className="fo-dialog-field">
-              <span>Port</span>
-              <input
-                value={port}
-                aria-invalid={invalidFields.has("port") || undefined}
-                className={
-                  invalidFields.has("port") ? "fo-field-invalid" : undefined
-                }
-                onChange={(event) => {
-                  setPort(event.target.value);
-                  clearFieldError("port");
-                }}
-                inputMode="numeric"
-              />
-            </label>
-            {showDefaultPath || showBucketField ? (
-              canBrowseRemoteDefaultPath ? (
-                <PathBrowseField
-                  className="fo-dialog-field"
-                  label={defaultPathLabel}
-                  value={defaultPath}
-                  placeholder={defaultPathPlaceholder}
-                  browseLabel="Browse default path"
-                  onChange={setDefaultPath}
-                  onBrowse={() => setRemotePathPickerOpen(true)}
-                />
-              ) : (
-                <label className="fo-dialog-field">
-                  <span>{defaultPathLabel}</span>
-                  <input
-                    aria-label={defaultPathLabel}
-                    value={defaultPath}
-                    onChange={(event) => setDefaultPath(event.target.value)}
-                    placeholder={defaultPathPlaceholder}
-                  />
-                  {showDefaultPath ? (
-                    <span className="fo-settings-hint">
-                      Save the connection before browsing remote folders.
-                    </span>
-                  ) : null}
-                </label>
-              )
-            ) : null}
-          </>
-        ) : null}
-
-        {step === "credentials" ? (
-          <>
-            <label className="fo-dialog-field">
-              <span>{usernameLabel}</span>
-              <input
-                value={username}
-                aria-invalid={invalidFields.has("username") || undefined}
-                className={
-                  invalidFields.has("username") ? "fo-field-invalid" : undefined
-                }
-                onChange={(event) => {
-                  setUsername(event.target.value);
-                  clearFieldError("username");
-                }}
-                placeholder={usernamePlaceholder}
-              />
-            </label>
-            {authKinds.length > 1 ? (
-              <label className="fo-dialog-field">
-                <span>Authentication</span>
-                <select
-                  value={authKind}
-                  onChange={(event) =>
-                    setAuthKind(event.target.value as AuthKindType)
-                  }
+      <div className="fo-connect-manager">
+        <aside className="fo-connect-manager-sidebar" aria-label="Connections">
+          <button
+            type="button"
+            aria-label="New Connection"
+            className={cx(
+              "fo-connect-profile-row",
+              selectedProfileId === null && "fo-connect-profile-row-active",
+            )}
+            onClick={() => loadNewConnection(initialDraft)}
+          >
+            <span className="fo-connect-profile-icon">{Icons.plus()}</span>
+            <span>
+              <strong>New Connection</strong>
+              <small>{protocolLabel(scheme)}</small>
+            </span>
+          </button>
+          <div className="fo-connect-profile-list">
+            {profileList.map((profile) => {
+              const provider = providerFor(
+                providers,
+                profile.scheme as SchemeType,
+              );
+              return (
+                <button
+                  key={profile.id}
+                  type="button"
+                  className={cx(
+                    "fo-connect-profile-row",
+                    selectedProfileId === profile.id &&
+                      "fo-connect-profile-row-active",
+                  )}
+                  onClick={() => loadProfile(profile)}
                 >
-                  <option value="password">Password</option>
-                  <option value="privateKey">Private key</option>
-                </select>
-              </label>
-            ) : null}
-            {showPasswordField ? (
-              <label className="fo-dialog-field">
-                <span>{passwordLabel}</span>
-                <input
-                  type="password"
-                  value={password}
-                  aria-invalid={invalidFields.has("password") || undefined}
-                  className={
-                    invalidFields.has("password")
-                      ? "fo-field-invalid"
-                      : undefined
-                  }
-                  onChange={(event) => {
-                    setPassword(event.target.value);
-                    clearFieldError("password");
-                  }}
-                  placeholder={
-                    editingProfile
-                      ? editingProfile.hasStoredSecret
-                        ? "Leave blank to keep existing"
-                        : `Enter ${passwordLabel.toLowerCase()} to save in keychain`
-                      : ""
-                  }
-                />
-                {editingProfile && !editingProfile.hasStoredSecret ? (
-                  <span className="fo-settings-hint">
-                    Credentials were not saved yet. Enter your{" "}
-                    {passwordLabel.toLowerCase()} to connect.
+                  <span className="fo-connect-profile-icon">
+                    {profile.scheme === "ssh"
+                      ? Icons.terminal()
+                      : Icons.server()}
                   </span>
-                ) : null}
-              </label>
+                  <span>
+                    <strong>{profile.label}</strong>
+                    <small>
+                      {protocolLabel(profile.scheme)} · {providerMode(provider)}
+                    </small>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <section className="fo-connect-manager-editor">
+          <header className="fo-connect-editor-header">
+            <span className="fo-connect-editor-icon" aria-hidden="true">
+              {scheme === "ssh" ? Icons.terminal() : Icons.server()}
+            </span>
+            <div>
+              <h3>{label.trim() || "New Connection"}</h3>
+              <p>
+                {protocolLabel(scheme)} · {providerMode(selectedProvider)}
+                {currentProfile ? " · saved profile" : " · unsaved draft"}
+              </p>
+            </div>
+          </header>
+
+          <div
+            className="fo-connect-tabs"
+            role="tablist"
+            aria-label="Connection settings"
+          >
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === tab}
+                className={cx(
+                  "fo-connect-tab",
+                  activeTab === tab && "fo-connect-tab-active",
+                )}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tabLabel(tab)}
+              </button>
+            ))}
+          </div>
+
+          <div className="fo-connect-tab-panel">
+            {error ? <div className="fo-dialog-error">{error}</div> : null}
+            {unavailableMessage ? (
+              <div className="fo-connect-provider-warning">
+                {unavailableMessage}
+              </div>
             ) : null}
-            {showPrivateKeyField ? (
-              <>
-                <PathBrowseField
-                  className="fo-dialog-field"
-                  label="Private key path"
-                  value={privateKeyPath}
-                  placeholder="/Users/you/.ssh/id_ed25519"
-                  browseLabel="Browse private key path"
-                  onChange={setPrivateKeyPath}
-                  onBrowse={() => void browsePrivateKeyPath()}
-                />
+            {activeTab === "general" ? (
+              <div className="fo-connect-grid">
                 <label className="fo-dialog-field">
-                  <span>Key passphrase</span>
+                  <span>Profile name</span>
                   <input
-                    type="password"
-                    value={passphrase}
-                    onChange={(event) => setPassphrase(event.target.value)}
-                    placeholder={
-                      editingProfile ? "Leave blank to keep existing" : ""
+                    value={label}
+                    aria-invalid={invalidFields.has("label") || undefined}
+                    className={
+                      invalidFields.has("label")
+                        ? "fo-field-invalid"
+                        : undefined
                     }
+                    onChange={(event) => setLabel(event.target.value)}
+                    placeholder="Production SFTP"
                   />
                 </label>
-              </>
+                <label className="fo-dialog-field">
+                  <span>Protocol</span>
+                  <select
+                    value={scheme}
+                    disabled={currentProfile !== null}
+                    onChange={(event) =>
+                      handleSchemeChange(event.target.value as SchemeType)
+                    }
+                  >
+                    {providers.map((provider) => (
+                      <option
+                        key={provider.scheme}
+                        value={provider.scheme}
+                        disabled={provider.status === "unavailable"}
+                      >
+                        {provider.label}
+                        {provider.status === "unavailable"
+                          ? " - unavailable"
+                          : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {unavailableProviders.length > 0 ? (
+                  <div className="fo-connect-provider-warning fo-connect-full">
+                    {unavailableProviders.map((provider) => (
+                      <span key={provider.scheme}>
+                        {provider.missingDependency ??
+                          `${provider.label} is unavailable.`}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                <label className="fo-dialog-field">
+                  <span>{hostLabel}</span>
+                  <input
+                    aria-label={hostLabel}
+                    value={host}
+                    aria-invalid={invalidFields.has("host") || undefined}
+                    className={
+                      invalidFields.has("host") ? "fo-field-invalid" : undefined
+                    }
+                    onChange={(event) => setHost(event.target.value)}
+                    placeholder={hostPlaceholder}
+                  />
+                </label>
+                <label className="fo-dialog-field">
+                  <span>Port</span>
+                  <input
+                    value={port}
+                    aria-invalid={invalidFields.has("port") || undefined}
+                    className={
+                      invalidFields.has("port") ? "fo-field-invalid" : undefined
+                    }
+                    onChange={(event) => setPort(event.target.value)}
+                    inputMode="numeric"
+                  />
+                </label>
+                <label className="fo-dialog-field">
+                  <span>{usernameLabel}</span>
+                  <input
+                    aria-label={usernameLabel}
+                    value={username}
+                    aria-invalid={invalidFields.has("username") || undefined}
+                    className={
+                      invalidFields.has("username")
+                        ? "fo-field-invalid"
+                        : undefined
+                    }
+                    onChange={(event) => setUsername(event.target.value)}
+                    placeholder={usernamePlaceholder}
+                  />
+                </label>
+                {showPasswordField ? (
+                  <label className="fo-dialog-field">
+                    <span>{passwordLabel}</span>
+                    <input
+                      type="password"
+                      value={password}
+                      aria-invalid={invalidFields.has("password") || undefined}
+                      className={
+                        invalidFields.has("password")
+                          ? "fo-field-invalid"
+                          : undefined
+                      }
+                      onChange={(event) => setPassword(event.target.value)}
+                      placeholder={
+                        currentProfile?.hasStoredSecret
+                          ? "Leave blank to keep existing"
+                          : ""
+                      }
+                    />
+                  </label>
+                ) : null}
+                {showDefaultPath || showBucketField ? (
+                  canBrowseRemoteDefaultPath ? (
+                    <PathBrowseField
+                      className="fo-dialog-field"
+                      label={defaultPathLabel}
+                      value={defaultPath}
+                      placeholder={defaultPathPlaceholder}
+                      browseLabel="Browse default path"
+                      onChange={setDefaultPath}
+                      onBrowse={() => setRemotePathPickerOpen(true)}
+                    />
+                  ) : (
+                    <label className="fo-dialog-field">
+                      <span>{defaultPathLabel}</span>
+                      <input
+                        aria-label={defaultPathLabel}
+                        value={defaultPath}
+                        onChange={(event) => setDefaultPath(event.target.value)}
+                        placeholder={defaultPathPlaceholder}
+                      />
+                    </label>
+                  )
+                ) : null}
+              </div>
             ) : null}
-            {showSshOptions ? (
-              <>
-                <label className="fo-dialog-checkbox">
+
+            {activeTab === "ssh" ? (
+              <div className="fo-connect-grid">
+                <div className="fo-dialog-field fo-connect-full">
+                  <span>Authentication</span>
+                  <div className="fo-connect-auth-options" role="group">
+                    {authKinds.map((kind) => (
+                      <button
+                        key={kind}
+                        type="button"
+                        className={
+                          authKind === kind
+                            ? "fo-connect-auth-option fo-connect-auth-option-active"
+                            : "fo-connect-auth-option"
+                        }
+                        onClick={() => setAuthKind(kind)}
+                      >
+                        {kind === "privateKey"
+                          ? "Private key"
+                          : kind === "accessKey"
+                            ? "Access key"
+                            : "Password"}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {showPrivateKeyField ? (
+                  <>
+                    <div className="fo-dialog-field fo-connect-full">
+                      <span>Detected keys</span>
+                      <div className="fo-connect-key-list">
+                        {detectingSshKeys ? (
+                          <span className="fo-settings-hint">
+                            Scanning Home/.ssh...
+                          </span>
+                        ) : detectedSshKeys.length > 0 ? (
+                          detectedSshKeys.map((keyPath) => (
+                            <button
+                              key={keyPath}
+                              type="button"
+                              className={
+                                privateKeyPath === keyPath
+                                  ? "fo-connect-key-option fo-connect-key-option-active"
+                                  : "fo-connect-key-option"
+                              }
+                              onClick={() => setPrivateKeyPath(keyPath)}
+                            >
+                              {keyPath}
+                            </button>
+                          ))
+                        ) : (
+                          <span className="fo-settings-hint">
+                            No common SSH keys found in Home/.ssh.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <PathBrowseField
+                      className="fo-dialog-field fo-connect-full"
+                      label="Private key path"
+                      value={privateKeyPath}
+                      placeholder="/Users/you/.ssh/id_ed25519"
+                      browseLabel="Browse private key path"
+                      onChange={setPrivateKeyPath}
+                      onBrowse={() => void browsePrivateKeyPath()}
+                    />
+                    <label className="fo-dialog-field">
+                      <span>Key passphrase</span>
+                      <input
+                        type="password"
+                        value={passphrase}
+                        onChange={(event) => setPassphrase(event.target.value)}
+                        placeholder={
+                          currentProfile ? "Leave blank to keep existing" : ""
+                        }
+                      />
+                    </label>
+                  </>
+                ) : null}
+                <label className="fo-dialog-checkbox fo-connect-full">
                   <input
                     type="checkbox"
                     aria-label="Use SSH agent"
@@ -630,6 +1113,14 @@ export function ConnectServerDialog({
                   />
                 </label>
                 <label className="fo-dialog-field">
+                  <span>ProxyCommand</span>
+                  <input
+                    value={proxyCommand}
+                    onChange={(event) => setProxyCommand(event.target.value)}
+                    placeholder="ssh -W %h:%p jumpbox"
+                  />
+                </label>
+                <label className="fo-dialog-field">
                   <span>Keepalive seconds</span>
                   <input
                     value={keepaliveSecs}
@@ -638,136 +1129,206 @@ export function ConnectServerDialog({
                     placeholder="30"
                   />
                 </label>
-              </>
-            ) : null}
-          </>
-        ) : null}
-
-        {step === "test" || step === "save" ? (
-          <dl className="fo-detail-grid fo-connect-summary">
-            <dt>Label</dt>
-            <dd>{label || "—"}</dd>
-            <dt>Protocol</dt>
-            <dd>{scheme.toUpperCase()}</dd>
-            <dt>{hostLabel}</dt>
-            <dd>
-              {host || "—"}:{port}
-            </dd>
-            <dt>{usernameLabel}</dt>
-            <dd>{username || "—"}</dd>
-            <dt>{defaultPathLabel}</dt>
-            <dd>{defaultPath || "/"}</dd>
-          </dl>
-        ) : null}
-
-        {step === "test" || step === "save" ? (
-          editingProfile?.hostKeyFingerprint ? (
-            <div className="fo-dialog-field fo-dialog-field-static">
-              <span>Pinned host key</span>
-              <code
-                className="fo-fingerprint-display"
-                title={editingProfile.hostKeyFingerprint}
-              >
-                {editingProfile.hostKeyFingerprint}
-              </code>
-              {onForgetFingerprint ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    if (editingProfile?.id) {
-                      void onForgetFingerprint(editingProfile.id);
+                <label className="fo-dialog-checkbox">
+                  <input
+                    type="checkbox"
+                    aria-label="Enable SSH compression"
+                    checked={compression}
+                    onChange={(event) => setCompression(event.target.checked)}
+                  />
+                  <span>Enable SSH compression</span>
+                </label>
+                <label className="fo-dialog-field">
+                  <span>Address family</span>
+                  <select
+                    value={addressFamily}
+                    onChange={(event) => setAddressFamily(event.target.value)}
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="ipv4">IPv4 only</option>
+                    <option value="ipv6">IPv6 only</option>
+                  </select>
+                </label>
+                <label className="fo-dialog-field fo-connect-full">
+                  <span>Terminal initial command</span>
+                  <input
+                    value={terminalInitialCommand}
+                    onChange={(event) =>
+                      setTerminalInitialCommand(event.target.value)
                     }
-                  }}
-                >
-                  Forget pinned fingerprint
-                </Button>
-              ) : null}
-              <span className="fo-settings-hint">
-                The next successful connect will pin the server&apos;s current
-                fingerprint.
-              </span>
-            </div>
-          ) : editingProfile ? (
-            <p className="fo-settings-hint">
-              No host key pinned yet. The fingerprint shown by the server on the
-              next connect will be remembered.
-            </p>
-          ) : null
-        ) : null}
+                    placeholder="cd /srv/app"
+                  />
+                </label>
+              </div>
+            ) : null}
 
-        {step === "test" ? (
-          <div className="fo-connect-test">
-            {canRunTest ? (
-              <>
-                <div className="fo-connect-test-row">
-                  <Button
-                    type="button"
-                    variant="default"
-                    size="sm"
-                    disabled={testState.status === "testing"}
-                    onClick={() => void runTest()}
+            {activeTab === "smb" ? (
+              <div className="fo-connect-grid">
+                <label className="fo-dialog-field">
+                  <span>Workgroup / domain</span>
+                  <input
+                    value={smbWorkgroup}
+                    onChange={(event) => setSmbWorkgroup(event.target.value)}
+                    placeholder="WORKGROUP"
+                  />
+                </label>
+                <label className="fo-dialog-field">
+                  <span>Minimum protocol</span>
+                  <input
+                    value={smbMinProtocol}
+                    onChange={(event) => setSmbMinProtocol(event.target.value)}
+                    placeholder="SMB3"
+                  />
+                </label>
+                <label className="fo-dialog-field">
+                  <span>Signing mode</span>
+                  <select
+                    value={smbSigningMode}
+                    onChange={(event) => setSmbSigningMode(event.target.value)}
                   >
-                    {testState.status === "testing"
-                      ? "Testing…"
-                      : "Run connection test"}
-                  </Button>
-                  {testState.status === "testing" ? (
-                    <span
-                      className="fo-connect-test-spinner"
-                      aria-hidden="true"
-                    />
-                  ) : null}
-                </div>
-                {testState.status === "success" ? (
-                  <p
-                    className="fo-connect-test-card fo-connect-test-card--ok"
-                    role="status"
-                  >
-                    {testState.message}
-                  </p>
-                ) : testState.status === "error" ? (
-                  <p
-                    className="fo-connect-test-card fo-connect-test-card--error"
-                    role="alert"
-                  >
-                    {testState.message}
-                  </p>
-                ) : (
+                    <option value="default">Default</option>
+                    <option value="required">Required</option>
+                    <option value="disabled">Disabled</option>
+                  </select>
+                </label>
+                <label className="fo-dialog-field">
+                  <span>Share path override</span>
+                  <input
+                    value={smbSharePath}
+                    onChange={(event) => setSmbSharePath(event.target.value)}
+                    placeholder="/share"
+                  />
+                </label>
+              </div>
+            ) : null}
+
+            {activeTab === "s3" ? (
+              <div className="fo-connect-grid">
+                <label className="fo-dialog-field">
+                  <span>Region</span>
+                  <input
+                    value={s3Region}
+                    onChange={(event) => setS3Region(event.target.value)}
+                    placeholder="us-east-1"
+                  />
+                </label>
+                <label className="fo-dialog-checkbox">
+                  <input
+                    type="checkbox"
+                    aria-label="Use TLS"
+                    checked={s3UseTls}
+                    onChange={(event) => setS3UseTls(event.target.checked)}
+                  />
+                  <span>Use TLS</span>
+                </label>
+                <label className="fo-dialog-checkbox">
+                  <input
+                    type="checkbox"
+                    aria-label="Use path-style URLs"
+                    checked={s3PathStyle}
+                    onChange={(event) => setS3PathStyle(event.target.checked)}
+                  />
+                  <span>Use path-style URLs</span>
+                </label>
+                <label className="fo-dialog-field">
+                  <span>Root prefix</span>
+                  <input
+                    value={s3RootPrefix}
+                    onChange={(event) => setS3RootPrefix(event.target.value)}
+                    placeholder="team/files"
+                  />
+                </label>
+              </div>
+            ) : null}
+
+            {activeTab === "test" ? (
+              <div className="fo-connect-test-panel">
+                <dl className="fo-detail-grid fo-connect-summary">
+                  <dt>Profile</dt>
+                  <dd>{label || "-"}</dd>
+                  <dt>Protocol</dt>
+                  <dd>{protocolLabel(scheme)}</dd>
+                  <dt>{hostLabel}</dt>
+                  <dd>
+                    {host || "-"}:{port}
+                  </dd>
+                  <dt>{usernameLabel}</dt>
+                  <dd>{username || "-"}</dd>
+                  <dt>{defaultPathLabel}</dt>
+                  <dd>{defaultPath || "/"}</dd>
+                </dl>
+                {currentProfile?.hostKeyFingerprint ? (
+                  <div className="fo-dialog-field fo-dialog-field-static">
+                    <span>Pinned host key</span>
+                    <code
+                      className="fo-fingerprint-display"
+                      title={currentProfile.hostKeyFingerprint}
+                    >
+                      {currentProfile.hostKeyFingerprint}
+                    </code>
+                    {onForgetFingerprint ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          void onForgetFingerprint(currentProfile.id);
+                        }}
+                      >
+                        Forget pinned fingerprint
+                      </Button>
+                    ) : null}
+                  </div>
+                ) : null}
+                {testState.status === "idle" ? (
                   <p className="fo-settings-hint">
-                    Verify the server is reachable with the saved credentials
-                    before saving.
+                    Run Test to validate the current profile details.
                   </p>
+                ) : testState.status === "testing" ? (
+                  <p className="fo-settings-hint">Testing connection...</p>
+                ) : (
+                  <div
+                    className={
+                      testState.status === "success"
+                        ? "fo-connect-test-card fo-connect-test-card--ok"
+                        : "fo-connect-test-card fo-connect-test-card--error"
+                    }
+                    role={testState.status === "success" ? "status" : "alert"}
+                  >
+                    <p>{testState.message}</p>
+                    {testState.durationMs != null ? (
+                      <p>Duration: {testState.durationMs} ms</p>
+                    ) : null}
+                    {testState.resolvedUri ? (
+                      <p>Resolved URI: {testState.resolvedUri}</p>
+                    ) : null}
+                    {testState.trustState ? (
+                      <p>Trust: {testState.trustState}</p>
+                    ) : null}
+                    {testState.fingerprint ? (
+                      <code className="fo-fingerprint-display">
+                        {testState.fingerprint}
+                      </code>
+                    ) : null}
+                    {testState.warnings?.length ? (
+                      <ul>
+                        {testState.warnings.map((warning) => (
+                          <li key={warning}>{warning}</li>
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
                 )}
-              </>
-            ) : (
-              <p className="fo-settings-hint">
-                Save the connection to run a live test with these credentials.
-              </p>
-            )}
+              </div>
+            ) : null}
           </div>
-        ) : testState.status === "success" ? (
-          <p
-            className="fo-connect-test-card fo-connect-test-card--ok"
-            role="status"
-          >
-            {testState.message}
-          </p>
-        ) : testState.status === "error" ? (
-          <p
-            className="fo-connect-test-card fo-connect-test-card--error"
-            role="status"
-          >
-            {testState.message}
-          </p>
-        ) : null}
+        </section>
       </div>
       <DialogShell
         open={remotePathPickerOpen && remoteDefaultPathRootUri !== null}
         onClose={() => setRemotePathPickerOpen(false)}
         title="Choose Default Path"
-        subtitle={editingProfile?.label}
+        subtitle={currentProfile?.label}
         size="md"
         className="fo-remote-path-picker-dialog"
       >
@@ -788,6 +1349,6 @@ export function ConnectServerDialog({
           ) : null}
         </div>
       </DialogShell>
-    </WizardShell>
+    </DialogShell>
   );
 }

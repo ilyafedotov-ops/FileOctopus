@@ -50,6 +50,13 @@ vi.mock("@fileoctopus/ui", () => {
 
 vi.mock("../src/navigation/driveTargets", () => ({
   isDriveTargetActive: vi.fn(() => false),
+  isBrowseableProfile: vi.fn(
+    (profile: { scheme: string }) =>
+      profile.scheme === "sftp" ||
+      profile.scheme === "smb" ||
+      profile.scheme === "s3" ||
+      profile.scheme === "webdav",
+  ),
   networkProfileBadge: vi.fn(() => null),
   networkProfileTitle: vi.fn(() => "title"),
 }));

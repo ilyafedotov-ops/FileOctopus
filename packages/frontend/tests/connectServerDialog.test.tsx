@@ -5,52 +5,150 @@ import {
   screen,
   within,
 } from "@testing-library/react";
+import type { ComponentProps } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ConnectServerDialog } from "../src/components/dialogs/ConnectServerDialog";
 import type {
-  NetworkConnectionDraftDto,
+  FsClient,
+  NetworkProviderCapabilityDto,
   NetworkProfileDto,
+  StandardLocationDto,
+  UserPreferencesDto,
 } from "@fileoctopus/ts-api";
 
+const homeLocation = {
+  id: "home",
+  name: "Home",
+  uri: "local:///Users/ilya",
+  section: "Favorites",
+} satisfies StandardLocationDto;
+
+const defaultPreferences = {
+  networkSshKeyPath: "",
+  networkUseSshAgent: false,
+} as UserPreferencesDto;
+
+const providerCapabilities: NetworkProviderCapabilityDto[] = [
+  {
+    scheme: "sftp",
+    label: "SFTP",
+    category: "server",
+    defaultPort: 22,
+    authKinds: ["password", "privateKey"],
+    fileCapable: true,
+    terminalCapable: true,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: ["useAgent", "proxyJump"],
+  },
+  {
+    scheme: "ssh",
+    label: "SSH",
+    category: "server",
+    defaultPort: 22,
+    authKinds: ["password", "privateKey"],
+    fileCapable: false,
+    terminalCapable: true,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: ["useAgent", "terminalInitialCommand"],
+  },
+  {
+    scheme: "smb",
+    label: "SMB / CIFS",
+    category: "server",
+    defaultPort: 445,
+    authKinds: ["password"],
+    fileCapable: true,
+    terminalCapable: false,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: ["workgroup", "signingMode"],
+  },
+  {
+    scheme: "s3",
+    label: "S3",
+    category: "server",
+    defaultPort: 443,
+    authKinds: ["accessKey"],
+    fileCapable: true,
+    terminalCapable: false,
+    status: "available",
+    missingDependency: null,
+    supportedOptions: ["region", "pathStyle"],
+  },
+  {
+    scheme: "webdav",
+    label: "WebDAV",
+    category: "server",
+    defaultPort: 443,
+    authKinds: ["password"],
+    fileCapable: false,
+    terminalCapable: false,
+    status: "unavailable",
+    missingDependency: "WebDAV provider is not registered yet.",
+    supportedOptions: [],
+  },
+];
+
+function existingProfile(
+  overrides: Partial<NetworkProfileDto> = {},
+): NetworkProfileDto {
+  return {
+    id: "550e8400-e29b-41d4-a716-446655440000",
+    label: "Preview SFTP",
+    scheme: "sftp",
+    host: "preview.example.com",
+    port: 22,
+    username: "deploy",
+    authKind: "password",
+    privateKeyPath: null,
+    defaultPath: "/var/www",
+    defaultUri: "sftp://550e8400-e29b-41d4-a716-446655440000/var/www",
+    hostKeyFingerprint: null,
+    sortOrder: 0,
+    lastConnectedAt: null,
+    lastError: null,
+    hasStoredSecret: true,
+    options: {},
+    createdAt: "2026-05-19T00:00:00Z",
+    updatedAt: "2026-05-19T00:00:00Z",
+    ...overrides,
+  };
+}
+
 function baseProps(
-  overrides: Partial<{
-    open: boolean;
-    editingProfile: NetworkProfileDto | null;
-    initialDraft: NetworkConnectionDraftDto | null;
-    onClose: () => void;
-    onSave: ReturnType<typeof vi.fn>;
-  }> = {},
+  overrides: Partial<ComponentProps<typeof ConnectServerDialog>> = {},
 ) {
   const onSave =
-    overrides.onSave ?? vi.fn().mockResolvedValue({ id: "new-profile" });
+    overrides.onSave ?? vi.fn().mockResolvedValue(existingProfile());
   return {
     open: overrides.open ?? true,
     editingProfile: overrides.editingProfile ?? null,
     initialDraft: overrides.initialDraft ?? null,
+    networkProfiles: overrides.networkProfiles ?? [existingProfile()],
+    providerCapabilities:
+      overrides.providerCapabilities ?? providerCapabilities,
     onClose: overrides.onClose ?? vi.fn(),
     onSave,
+    onConnectProfile: overrides.onConnectProfile ?? vi.fn(),
     onForgetFingerprint: undefined,
+    preferences: defaultPreferences,
+    locations: [homeLocation],
+    ...overrides,
   };
 }
 
 function dialog() {
-  return screen.getByRole("dialog");
-}
-
-function footer(): HTMLElement {
-  const node = dialog().querySelector(".fo-dialog-footer");
-  if (!(node instanceof HTMLElement)) {
-    throw new Error("dialog footer not found");
-  }
-  return node;
+  return screen.getByRole("dialog", { name: /connections/i });
 }
 
 function footerButton(name: string) {
-  return within(footer()).getByRole("button", { name });
+  return within(dialog()).getByRole("button", { name });
 }
 
-function nextButton() {
-  return footerButton("Next");
+function selectTab(name: string) {
+  fireEvent.click(within(dialog()).getByRole("tab", { name }));
 }
 
 describe("ConnectServerDialog", () => {
@@ -63,155 +161,125 @@ describe("ConnectServerDialog", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("exposes WebDAV as a selectable scheme", () => {
+  it("renders a two-pane connection manager with saved profiles", () => {
     render(<ConnectServerDialog {...baseProps()} />);
-    const select = within(dialog()).getByLabelText(
-      "Protocol",
-    ) as HTMLSelectElement;
-
-    const options = Array.from(select.options).map((option) => option.value);
-
-    expect(options).toContain("webdav");
-  });
-
-  it("switches to WebDAV defaults (port 443, password auth, default path /)", () => {
-    render(<ConnectServerDialog {...baseProps()} />);
-    const select = within(dialog()).getByLabelText(
-      "Protocol",
-    ) as HTMLSelectElement;
-
-    fireEvent.change(select, { target: { value: "webdav" } });
-
-    const portField = within(dialog()).getByLabelText(
-      "Port",
-    ) as HTMLInputElement;
-    const defaultPathField = within(dialog()).getByLabelText(
-      "Default path",
-    ) as HTMLInputElement;
-
-    expect(portField.value).toBe("443");
-    expect(defaultPathField.value).toBe("/");
-
-    // Advance to the Credentials step to inspect the auth fields.
-    fireEvent.change(within(dialog()).getByLabelText("Label"), {
-      target: { value: "Office" },
-    });
-    fireEvent.change(within(dialog()).getByLabelText("Host"), {
-      target: { value: "files.example.com" },
-    });
-    fireEvent.click(nextButton());
-
-    // The Authentication select is only rendered when there is more than one
-    // valid auth kind. WebDAV only supports password auth, so the select must
-    // not be in the DOM.
-    expect(within(dialog()).queryByLabelText("Authentication")).toBeNull();
-    // The password field should still be rendered (single auth kind is password).
-    expect(within(dialog()).getByLabelText("Password")).toBeTruthy();
-  });
-
-  it("requires label and host before advancing past the Target step", () => {
-    render(<ConnectServerDialog {...baseProps()} />);
-
-    // Try to advance without filling anything.
-    fireEvent.click(nextButton());
 
     expect(
-      within(dialog()).getByText("Label and host are required."),
+      within(dialog()).getByRole("button", { name: "New Connection" }),
     ).toBeTruthy();
-    // Still on Target step.
-    expect(footerButton("Next")).toBeTruthy();
+    expect(within(dialog()).getByText("Preview SFTP")).toBeTruthy();
+    expect(within(dialog()).getByRole("tab", { name: "General" })).toBeTruthy();
+    expect(within(dialog()).getByRole("tab", { name: "SSH" })).toBeTruthy();
+    expect(
+      within(dialog()).getByRole("tab", { name: "Test & Trust" }),
+    ).toBeTruthy();
   });
 
-  it("walks through the wizard from Target to Save and submits on the last step", async () => {
-    const onSave = vi.fn().mockResolvedValue({ id: "new-profile" });
-    render(<ConnectServerDialog {...baseProps({ onSave })} />);
-
-    // Target step fields.
-    fireEvent.change(within(dialog()).getByLabelText("Label"), {
-      target: { value: "Prod" },
-    });
-    fireEvent.change(within(dialog()).getByLabelText("Host"), {
-      target: { value: "prod.example.com" },
-    });
-
-    // Step 1 → 2 (Target → Credentials)
-    fireEvent.click(footerButton("Next"));
-
-    // Credentials step fields.
-    fireEvent.change(within(dialog()).getByLabelText("Username"), {
-      target: { value: "deploy" },
-    });
-    fireEvent.change(within(dialog()).getByLabelText("Password"), {
-      target: { value: "hunter2" },
-    });
-    fireEvent.click(within(dialog()).getByLabelText("Use SSH agent"));
-    fireEvent.change(within(dialog()).getByLabelText("SSH config host"), {
-      target: { value: "prod-alias" },
-    });
-    fireEvent.change(within(dialog()).getByLabelText("ProxyJump"), {
-      target: { value: "bastion.example.com" },
-    });
-    fireEvent.change(within(dialog()).getByLabelText("Keepalive seconds"), {
-      target: { value: "45" },
-    });
-
-    // Step 2 → 3 (Credentials → Test)
-    fireEvent.click(footerButton("Next"));
-
-    // The Test step explains a live test needs a saved connection.
-    expect(
-      within(dialog()).getByText(
-        "Save the connection to run a live test with these credentials.",
-      ),
-    ).toBeTruthy();
-
-    // Step 3 → 4 (Test → Save)
-    fireEvent.click(footerButton("Next"));
-
-    // Final step shows "Save connection" instead of "Next".
-    fireEvent.click(footerButton("Save connection"));
-
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(onSave).toHaveBeenCalledTimes(1);
-    expect(onSave.mock.calls[0][0]).toMatchObject({
-      scheme: "sftp",
-      label: "Prod",
-      host: "prod.example.com",
-      username: "deploy",
-      password: "hunter2",
-      defaultPath: "/",
+  it("switches saved profiles and hydrates the editor", () => {
+    const smb = existingProfile({
+      id: "smb-profile",
+      label: "Office SMB",
+      scheme: "smb",
+      host: "files.example.com",
+      port: 445,
+      username: "domain-user",
+      defaultPath: "/share",
+      defaultUri: "smb://smb-profile/share",
       options: {
-        ssh: {
-          useAgent: true,
-          sshConfigHost: "prod-alias",
-          proxyJump: "bastion.example.com",
-          keepaliveSecs: 45,
+        smb: {
+          workgroup: "WORKGROUP",
+          signingMode: "required",
         },
       },
     });
-  });
-
-  it("uses a file picker for private key authentication", async () => {
-    const pickLocalPath = vi
-      .fn()
-      .mockResolvedValue("/Users/ilya/.ssh/id_ed25519");
     render(
-      <ConnectServerDialog {...baseProps()} pickLocalPath={pickLocalPath} />,
+      <ConnectServerDialog
+        {...baseProps({ networkProfiles: [existingProfile(), smb] })}
+      />,
     );
 
-    fireEvent.change(within(dialog()).getByLabelText("Label"), {
-      target: { value: "Prod" },
-    });
-    fireEvent.change(within(dialog()).getByLabelText("Host"), {
-      target: { value: "prod.example.com" },
-    });
-    fireEvent.click(footerButton("Next"));
-    fireEvent.change(within(dialog()).getByLabelText("Authentication"), {
-      target: { value: "privateKey" },
-    });
     fireEvent.click(
-      screen.getByRole("button", { name: "Browse private key path" }),
+      within(dialog()).getByRole("button", { name: /Office SMB/ }),
+    );
+
+    expect(
+      (within(dialog()).getByLabelText("Profile name") as HTMLInputElement)
+        .value,
+    ).toBe("Office SMB");
+    expect(
+      (within(dialog()).getByLabelText("Host") as HTMLInputElement).value,
+    ).toBe("files.example.com");
+    expect(within(dialog()).queryByRole("tab", { name: "SSH" })).toBeNull();
+    expect(within(dialog()).getByRole("tab", { name: "SMB" })).toBeTruthy();
+  });
+
+  it("shows unavailable WebDAV from provider capabilities without allowing selection", () => {
+    render(<ConnectServerDialog {...baseProps()} />);
+
+    const option = Array.from(
+      (within(dialog()).getByLabelText("Protocol") as HTMLSelectElement)
+        .options,
+    ).find((item) => item.value === "webdav");
+
+    expect(option?.disabled).toBe(true);
+    expect(option?.textContent).toContain("unavailable");
+    expect(
+      within(dialog()).getByText("WebDAV provider is not registered yet."),
+    ).toBeTruthy();
+  });
+
+  it("detects common SSH keys and keeps the preferred key selected", async () => {
+    const fs = {
+      stat: vi.fn(async ({ uri }: { uri: string }) => {
+        if (uri.endsWith("/id_ed25519")) {
+          return { entry: { kind: "file" } };
+        }
+        throw new Error("not found");
+      }),
+    } as unknown as FsClient;
+
+    render(
+      <ConnectServerDialog
+        {...baseProps({
+          preferences: {
+            ...defaultPreferences,
+            networkSshKeyPath: "/Users/ilya/.ssh/id_rsa",
+          },
+          fs,
+        })}
+      />,
+    );
+
+    selectTab("SSH");
+    fireEvent.click(
+      within(dialog()).getByRole("button", { name: "Private key" }),
+    );
+
+    await vi.waitFor(() => {
+      expect(
+        within(dialog()).getByRole("button", {
+          name: "/Users/ilya/.ssh/id_ed25519",
+        }),
+      ).toBeTruthy();
+    });
+    expect(
+      (within(dialog()).getByLabelText("Private key path") as HTMLInputElement)
+        .value,
+    ).toBe("/Users/ilya/.ssh/id_rsa");
+  });
+
+  it("uses unrestricted browse fallback for private keys", async () => {
+    const pickLocalPath = vi
+      .fn()
+      .mockResolvedValue("/Users/ilya/.ssh/custom_key");
+    render(<ConnectServerDialog {...baseProps({ pickLocalPath })} />);
+
+    selectTab("SSH");
+    fireEvent.click(
+      within(dialog()).getByRole("button", { name: "Private key" }),
+    );
+    fireEvent.click(
+      within(dialog()).getByRole("button", { name: "Browse private key path" }),
     );
 
     await vi.waitFor(() => {
@@ -221,246 +289,165 @@ describe("ConnectServerDialog", () => {
             "Private key path",
           ) as HTMLInputElement
         ).value,
-      ).toBe("/Users/ilya/.ssh/id_ed25519");
+      ).toBe("/Users/ilya/.ssh/custom_key");
     });
     expect(pickLocalPath).toHaveBeenCalledWith({
       kind: "file",
       currentPath: "",
       title: "Choose private key",
-      filters: [{ name: "SSH keys", extensions: ["pem", "key"] }],
     });
   });
 
-  it("does not update private key path when the picker is cancelled", async () => {
+  it("runs a draft connection test before saving", async () => {
+    const onTestDraft = vi.fn().mockResolvedValue({
+      ok: true,
+      status: "success",
+      message: "Profile details are valid.",
+      durationMs: 12,
+      resolvedUri: "sftp://draft/",
+      observedFingerprint: "SHA256:test",
+      trustState: "untrusted",
+      warnings: ["Draft tests do not persist secrets."],
+    });
     render(
       <ConnectServerDialog
-        {...baseProps()}
-        pickLocalPath={vi.fn().mockResolvedValue(null)}
+        {...baseProps({
+          networkProfiles: [],
+          onTestDraft,
+        })}
       />,
     );
 
-    fireEvent.change(within(dialog()).getByLabelText("Label"), {
+    fireEvent.change(within(dialog()).getByLabelText("Profile name"), {
       target: { value: "Prod" },
     });
     fireEvent.change(within(dialog()).getByLabelText("Host"), {
       target: { value: "prod.example.com" },
     });
-    fireEvent.click(footerButton("Next"));
-    fireEvent.change(within(dialog()).getByLabelText("Authentication"), {
-      target: { value: "privateKey" },
-    });
-    fireEvent.click(
-      screen.getByRole("button", { name: "Browse private key path" }),
-    );
-    await new Promise((resolve) => setTimeout(resolve, 0));
-
-    expect(
-      (within(dialog()).getByLabelText("Private key path") as HTMLInputElement)
-        .value,
-    ).toBe("");
-  });
-
-  it("still requires a private key path when private-key auth is selected", () => {
-    render(<ConnectServerDialog {...baseProps()} />);
-
-    fireEvent.change(within(dialog()).getByLabelText("Label"), {
-      target: { value: "Prod" },
-    });
-    fireEvent.change(within(dialog()).getByLabelText("Host"), {
-      target: { value: "prod.example.com" },
-    });
-    fireEvent.click(footerButton("Next"));
     fireEvent.change(within(dialog()).getByLabelText("Username"), {
       target: { value: "deploy" },
     });
-    fireEvent.change(within(dialog()).getByLabelText("Authentication"), {
-      target: { value: "privateKey" },
+    fireEvent.change(within(dialog()).getByLabelText("Password"), {
+      target: { value: "hunter2" },
     });
-    fireEvent.click(footerButton("Next"));
+    fireEvent.click(footerButton("Test"));
 
+    await vi.waitFor(() => {
+      expect(onTestDraft).toHaveBeenCalledTimes(1);
+    });
+    expect(onTestDraft.mock.calls[0][0]).toMatchObject({
+      scheme: "sftp",
+      label: "Prod",
+      host: "prod.example.com",
+      username: "deploy",
+      password: "hunter2",
+    });
+    selectTab("Test & Trust");
     expect(
-      within(dialog()).getByText("Private key path is required."),
+      within(dialog()).getByText("Profile details are valid."),
+    ).toBeTruthy();
+    expect(within(dialog()).getByText("SHA256:test")).toBeTruthy();
+    expect(
+      within(dialog()).getByText("Draft tests do not persist secrets."),
     ).toBeTruthy();
   });
 
-  it("supports going back to a previous wizard step", () => {
-    render(<ConnectServerDialog {...baseProps()} />);
+  it("runs a saved connection test", async () => {
+    const onTest = vi.fn().mockResolvedValue({
+      ok: true,
+      message: "Connection test succeeded.",
+    });
+    render(<ConnectServerDialog {...baseProps({ onTest })} />);
 
-    fireEvent.change(within(dialog()).getByLabelText("Label"), {
-      target: { value: "L" },
+    fireEvent.click(
+      within(dialog()).getByRole("button", { name: /Preview SFTP/ }),
+    );
+    fireEvent.click(footerButton("Test"));
+
+    await vi.waitFor(() => {
+      expect(onTest).toHaveBeenCalledWith(
+        "550e8400-e29b-41d4-a716-446655440000",
+      );
+    });
+    selectTab("Test & Trust");
+    expect(
+      within(dialog()).getByText("Connection test succeeded."),
+    ).toBeTruthy();
+  });
+
+  it("saves the current profile without connecting", async () => {
+    const onSave = vi.fn().mockResolvedValue(existingProfile());
+    const onConnectProfile = vi.fn();
+    render(
+      <ConnectServerDialog
+        {...baseProps({
+          networkProfiles: [],
+          onSave,
+          onConnectProfile,
+        })}
+      />,
+    );
+
+    fireEvent.change(within(dialog()).getByLabelText("Profile name"), {
+      target: { value: "Prod" },
     });
     fireEvent.change(within(dialog()).getByLabelText("Host"), {
-      target: { value: "h.example.com" },
+      target: { value: "prod.example.com" },
     });
-    fireEvent.click(footerButton("Next"));
+    fireEvent.change(within(dialog()).getByLabelText("Username"), {
+      target: { value: "deploy" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("Password"), {
+      target: { value: "hunter2" },
+    });
+    selectTab("SSH");
+    fireEvent.click(within(dialog()).getByLabelText("Use SSH agent"));
+    fireEvent.change(within(dialog()).getByLabelText("ProxyJump"), {
+      target: { value: "bastion.example.com" },
+    });
+    fireEvent.click(footerButton("Save"));
 
-    // On Credentials step now → Back button is rendered.
-    fireEvent.click(footerButton("Back"));
-
-    // Should be back on Target step where Back is hidden but Next is shown.
-    expect(within(footer()).queryByRole("button", { name: "Back" })).toBeNull();
-    expect(footerButton("Next")).toBeTruthy();
-  });
-
-  it("prefills label, host, scheme, and default path from initialDraft", () => {
-    const initialDraft: NetworkConnectionDraftDto = {
-      scheme: "webdav",
-      host: "files.example.com",
-      label: "Office WebDAV",
-      defaultPath: "/remote.php/dav/files/me",
-    };
-    render(<ConnectServerDialog {...baseProps({ initialDraft })} />);
-
-    const labelField = within(dialog()).getByLabelText(
-      "Label",
-    ) as HTMLInputElement;
-    const hostField = within(dialog()).getByLabelText(
-      "Host",
-    ) as HTMLInputElement;
-    const protocolField = within(dialog()).getByLabelText(
-      "Protocol",
-    ) as HTMLSelectElement;
-    const defaultPathField = within(dialog()).getByLabelText(
-      "Default path",
-    ) as HTMLInputElement;
-
-    expect(labelField.value).toBe("Office WebDAV");
-    expect(hostField.value).toBe("files.example.com");
-    expect(protocolField.value).toBe("webdav");
-    expect(defaultPathField.value).toBe("/remote.php/dav/files/me");
-  });
-
-  it("ignores initialDraft when editingProfile is also present", () => {
-    const profile: NetworkProfileDto = {
-      id: "550e8400-e29b-41d4-a716-446655440000",
-      label: "Existing",
+    await vi.waitFor(() => {
+      expect(onSave).toHaveBeenCalledTimes(1);
+    });
+    expect(onSave.mock.calls[0][0]).toMatchObject({
       scheme: "sftp",
-      host: "existing.example.com",
-      port: 22,
+      label: "Prod",
+      host: "prod.example.com",
       username: "deploy",
-      authKind: "password",
-      privateKeyPath: null,
-      defaultPath: "/var/www",
-      defaultUri: "sftp://550e8400-e29b-41d4-a716-446655440000/var/www",
-      hostKeyFingerprint: null,
-      sortOrder: 0,
-      lastConnectedAt: null,
-      lastError: null,
-      hasStoredSecret: true,
-      createdAt: "2026-05-19T00:00:00Z",
-      updatedAt: "2026-05-19T00:00:00Z",
-    };
-    const initialDraft: NetworkConnectionDraftDto = {
-      scheme: "webdav",
-      host: "files.example.com",
-      label: "From draft",
-      defaultPath: "/draft",
-    };
+      password: "hunter2",
+      options: {
+        ssh: {
+          useAgent: true,
+          proxyJump: "bastion.example.com",
+        },
+      },
+    });
+    expect(onConnectProfile).not.toHaveBeenCalled();
+  });
 
+  it("enables Connect only for saved profiles", () => {
+    const onConnectProfile = vi.fn();
+    const profile = existingProfile();
     render(
       <ConnectServerDialog
-        {...baseProps({ editingProfile: profile, initialDraft })}
+        {...baseProps({
+          networkProfiles: [profile],
+          onConnectProfile,
+        })}
       />,
     );
-
-    const labelField = within(dialog()).getByLabelText(
-      "Label",
-    ) as HTMLInputElement;
-    const hostField = within(dialog()).getByLabelText(
-      "Host",
-    ) as HTMLInputElement;
-
-    expect(labelField.value).toBe("Existing");
-    expect(hostField.value).toBe("existing.example.com");
-  });
-
-  function existingProfile(
-    overrides: Partial<NetworkProfileDto> = {},
-  ): NetworkProfileDto {
-    return {
-      id: "550e8400-e29b-41d4-a716-446655440000",
-      label: "Existing",
-      scheme: "sftp",
-      host: "existing.example.com",
-      port: 22,
-      username: "deploy",
-      authKind: "password",
-      privateKeyPath: null,
-      defaultPath: "/var/www",
-      defaultUri: "sftp://550e8400-e29b-41d4-a716-446655440000/var/www",
-      hostKeyFingerprint: null,
-      sortOrder: 0,
-      lastConnectedAt: null,
-      lastError: null,
-      hasStoredSecret: true,
-      createdAt: "2026-05-19T00:00:00Z",
-      updatedAt: "2026-05-19T00:00:00Z",
-      ...overrides,
-    };
-  }
-
-  it("flags empty label and host inline on the Target step", () => {
-    render(<ConnectServerDialog {...baseProps()} />);
-
-    fireEvent.click(footerButton("Next"));
-
-    const labelField = within(dialog()).getByLabelText(
-      "Label",
-    ) as HTMLInputElement;
-    const hostField = within(dialog()).getByLabelText(
-      "Host",
-    ) as HTMLInputElement;
-    expect(labelField.getAttribute("aria-invalid")).toBe("true");
-    expect(hostField.getAttribute("aria-invalid")).toBe("true");
-
-    // Typing clears the field-level invalid marker.
-    fireEvent.change(labelField, { target: { value: "Prod" } });
-    expect(labelField.getAttribute("aria-invalid")).toBeNull();
-  });
-
-  it("runs a real connection test and shows success", async () => {
-    const onTest = vi
-      .fn()
-      .mockResolvedValue({ ok: true, message: "All good." });
-    render(
-      <ConnectServerDialog
-        {...baseProps({ editingProfile: existingProfile() })}
-        onTest={onTest}
-      />,
-    );
-
-    // Target → Credentials → Test
-    fireEvent.click(footerButton("Next"));
-    fireEvent.click(footerButton("Next"));
 
     fireEvent.click(
-      within(dialog()).getByRole("button", { name: "Run connection test" }),
+      within(dialog()).getByRole("button", { name: "New Connection" }),
     );
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect((footerButton("Connect") as HTMLButtonElement).disabled).toBe(true);
 
-    expect(onTest).toHaveBeenCalledWith("550e8400-e29b-41d4-a716-446655440000");
-    expect(within(dialog()).getByText("All good.")).toBeTruthy();
-  });
-
-  it("surfaces a failed connection test inline", async () => {
-    const onTest = vi
-      .fn()
-      .mockResolvedValue({ ok: false, message: "Host unreachable." });
-    render(
-      <ConnectServerDialog
-        {...baseProps({ editingProfile: existingProfile() })}
-        onTest={onTest}
-      />,
-    );
-
-    fireEvent.click(footerButton("Next"));
-    fireEvent.click(footerButton("Next"));
     fireEvent.click(
-      within(dialog()).getByRole("button", { name: "Run connection test" }),
+      within(dialog()).getByRole("button", { name: /Preview SFTP/ }),
     );
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    fireEvent.click(footerButton("Connect"));
 
-    const alert = within(dialog()).getByRole("alert");
-    expect(alert.textContent).toContain("Host unreachable.");
+    expect(onConnectProfile).toHaveBeenCalledWith(profile);
   });
 });

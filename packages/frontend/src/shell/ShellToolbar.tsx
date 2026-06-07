@@ -8,6 +8,7 @@ import { createCommanderActions } from "./commanderActions";
 import {
   buildDriveTargets,
   driveTargetToolbarLabel,
+  type PaneLocationTargetAction,
 } from "../navigation/driveTargets";
 import { buildHotlistTargets } from "./hotlistTargets";
 import { useShellLayout } from "./ShellLayoutContext";
@@ -63,6 +64,7 @@ export function ShellToolbar() {
         locations: ctx.locations,
         networkProfiles: ctx.networkProfiles,
         networkStatuses: ctx.networkStatuses,
+        networkQuickEntries: ctx.networkQuickEntries,
         favorites: ctx.favorites,
         starred: ctx.starred,
         recentToday: ctx.recentToday,
@@ -74,6 +76,7 @@ export function ShellToolbar() {
       ctx.locations,
       ctx.networkProfiles,
       ctx.networkStatuses,
+      ctx.networkQuickEntries,
       ctx.favorites,
       ctx.starred,
       ctx.recentToday,
@@ -87,13 +90,20 @@ export function ShellToolbar() {
         ctx.locations,
         ctx.networkProfiles,
         ctx.networkStatuses,
+        ctx.networkQuickEntries,
       ).map((target) => ({
         id: target.id,
         label: driveTargetToolbarLabel(target),
         uri: target.uri,
-        isNetwork: target.kind === "network",
+        isNetwork: target.kind === "network" || target.kind === "cloud",
+        action: target.action,
       })),
-    [ctx.locations, ctx.networkProfiles, ctx.networkStatuses],
+    [
+      ctx.locations,
+      ctx.networkProfiles,
+      ctx.networkStatuses,
+      ctx.networkQuickEntries,
+    ],
   );
 
   const jobsDisplay = useMemo(() => toolbarJobsDisplay(ctx.jobs), [ctx.jobs]);
@@ -102,6 +112,17 @@ export function ShellToolbar() {
     commandId: string,
     context?: import("../commands/invokeContext").CommandInvokeArg,
   ) => ctx.handleCommandSelect(commandId, pid, context);
+  const handleTargetAction = (action: PaneLocationTargetAction) => {
+    if (action.type === "navigate") {
+      handleCommand("nav.openUri", { targetUri: action.uri });
+      return;
+    }
+    if (action.type === "openTerminal") {
+      void ctx.openProfileTerminalTab(action.profile, pid);
+      return;
+    }
+    handleCommand("nav.addServer");
+  };
 
   const currentTheme = ctx.preferences?.theme ?? "system";
   const themeIcon =
@@ -162,9 +183,7 @@ export function ShellToolbar() {
           onView={() => commander.view()}
           onCommand={(commandId) => handleCommand(commandId)}
           onCustomizeToolbar={() => ctx.setToolbarCustomizeOpen(true)}
-          onOpenHotlistTarget={(uri) =>
-            handleCommand("nav.openUri", { targetUri: uri })
-          }
+          onOpenTargetAction={handleTargetAction}
           onCreateFolder={() => ctx.handleCreateFolder(pid)}
           onCreateFile={() => ctx.handleCreateFile(pid)}
           onRename={() => ctx.triggerInlineRename(pid)}

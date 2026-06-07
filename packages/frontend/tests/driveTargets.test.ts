@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type {
   FavoriteEntryDto,
+  FileEntryDto,
   NetworkConnectionStatusDto,
   NetworkProfileDto,
   RecentEntryDto,
@@ -30,8 +31,25 @@ const profile: NetworkProfileDto = {
   lastConnectedAt: null,
   lastError: null,
   hasStoredSecret: true,
+  options: {},
   createdAt: "2026-05-19T00:00:00Z",
   updatedAt: "2026-05-19T00:00:00Z",
+};
+
+const cloudEntry: FileEntryDto = {
+  uri: "network:///cloud/icloud",
+  name: "iCloud Drive",
+  kind: "directory",
+  isHidden: false,
+  isSymlink: false,
+  providerId: "network",
+  canRead: true,
+  canList: true,
+  canWrite: true,
+  canDelete: false,
+  canRename: false,
+  targetUri: "local:///Users/ilya/Library/Mobile Documents/com~apple~CloudDocs",
+  virtualKind: "cloudDrive",
 };
 
 function location(
@@ -44,7 +62,7 @@ function location(
 }
 
 describe("buildDriveTargets", () => {
-  it("lists local volumes before network profiles", () => {
+  it("lists local volumes, cloud entries, then network profiles", () => {
     const targets = buildDriveTargets(
       [
         location("root", "Macintosh HD", "local:///", "Devices/Volumes"),
@@ -52,15 +70,25 @@ describe("buildDriveTargets", () => {
       ],
       [profile],
       [],
+      [cloudEntry],
     );
 
-    expect(targets).toHaveLength(2);
+    expect(targets).toHaveLength(3);
     expect(targets[0]).toMatchObject({
       kind: "local",
       id: "root",
       label: "Macintosh HD",
     });
     expect(targets[1]).toMatchObject({
+      kind: "cloud",
+      label: "iCloud Drive",
+      uri: "local:///Users/ilya/Library/Mobile Documents/com~apple~CloudDocs",
+      action: {
+        type: "navigate",
+        uri: "local:///Users/ilya/Library/Mobile Documents/com~apple~CloudDocs",
+      },
+    });
+    expect(targets[2]).toMatchObject({
       kind: "network",
       id: profile.id,
       label: "Prod",
@@ -109,6 +137,7 @@ describe("buildPaneLocationTargets", () => {
         ),
       ],
       networkProfiles: [profile],
+      networkQuickEntries: [cloudEntry],
       networkStatuses: [],
       favorites,
       starred,
@@ -119,7 +148,9 @@ describe("buildPaneLocationTargets", () => {
       targets.map((target) => `${target.section}:${target.label}`),
     ).toEqual([
       "Devices/Volumes:Macintosh HD",
-      "Network:Prod",
+      "Cloud Storage:iCloud Drive",
+      "Connections:Prod",
+      "Connections:Add Server...",
       "Network:Network",
       "User folders:Home",
       "User folders:Downloads",
@@ -140,6 +171,7 @@ describe("selectActivePaneLocationTarget", () => {
         location("work", "Work", "local:///Volumes/Work", "Devices/Volumes"),
       ],
       networkProfiles: [],
+      networkQuickEntries: [],
       networkStatuses: [],
       favorites: [],
       starred: [],
@@ -158,6 +190,7 @@ describe("selectActivePaneLocationTarget", () => {
     const targets = buildPaneLocationTargets({
       locations: [],
       networkProfiles: [profile],
+      networkQuickEntries: [],
       networkStatuses: [],
       favorites: [],
       starred: [],
@@ -328,16 +361,41 @@ describe("networkDriveHotlistTitle", () => {
 });
 
 describe("buildDriveTargets filtering", () => {
-  it("filters out non-sftp/smb/s3 profiles", () => {
+  it("includes browseable profiles and SSH-only terminal profiles", () => {
     const webdavProfile = {
       ...profile,
       id: "webdav-1",
-      scheme: "webdav" as const,
+      scheme: "webdav",
       label: "WebDAV",
     };
-    const targets = buildDriveTargets([], [profile, webdavProfile], []);
-    expect(targets).toHaveLength(1);
-    expect(targets[0].kind).toBe("network");
+    const sshProfile = {
+      ...profile,
+      id: "ssh-1",
+      scheme: "ssh",
+      label: "SSH Shell",
+    };
+    const ftpProfile = {
+      ...profile,
+      id: "ftp-1",
+      scheme: "ftp",
+      label: "FTP",
+    };
+    const targets = buildDriveTargets(
+      [],
+      [profile, webdavProfile, sshProfile, ftpProfile],
+      [],
+    );
+
+    expect(targets.map((target) => target.label)).toEqual([
+      "Prod",
+      "WebDAV",
+      "SSH Shell",
+    ]);
+    expect(targets[2]).toMatchObject({
+      kind: "network",
+      uri: "ssh://ssh-1",
+      action: { type: "openTerminal" },
+    });
   });
 
   it("returns empty array with no locations or profiles", () => {

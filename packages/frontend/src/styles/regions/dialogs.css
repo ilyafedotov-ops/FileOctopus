@@ -997,6 +997,269 @@ dialog.fo-dialog[open] {
   border-color: var(--fo-accent);
 }
 
+.fo-dialog.fo-connect-manager-dialog {
+  width: min(1080px, calc(100vw - 2rem));
+  height: min(720px, calc(100dvh - var(--fo-titlebar-height, 50px) - 16px));
+  overflow: hidden;
+}
+
+.fo-connect-manager {
+  display: grid;
+  grid-template-columns: minmax(13rem, 17rem) minmax(0, 1fr);
+  min-height: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.fo-connect-manager-sidebar {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--fo-workbench-dialog-border);
+  background: var(--fo-workbench-dialog-panel-bg);
+}
+
+.fo-connect-profile-list {
+  display: grid;
+  align-content: start;
+  gap: 1px;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.35rem;
+}
+
+.fo-connect-profile-row {
+  display: grid;
+  grid-template-columns: 1.6rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 42px;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: var(--fo-radius-xs);
+  background: transparent;
+  color: var(--fo-text);
+  text-align: left;
+}
+
+.fo-connect-profile-row:hover:not(:disabled),
+.fo-connect-profile-row:focus-visible,
+.fo-connect-profile-row-active {
+  border-color: var(--fo-workbench-dialog-muted-border);
+  background: var(--fo-workbench-dialog-active-bg);
+}
+
+.fo-connect-profile-row-active {
+  box-shadow: inset 3px 0 0 var(--fo-accent);
+}
+
+.fo-connect-profile-row strong,
+.fo-connect-profile-row small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-connect-profile-row strong {
+  font-size: var(--fo-font-size-md);
+}
+
+.fo-connect-profile-row small {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-connect-profile-icon,
+.fo-connect-editor-icon {
+  display: inline-grid;
+  place-items: center;
+  color: var(--fo-accent);
+}
+
+.fo-connect-manager-editor {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.fo-dialog .fo-connect-editor-header {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  align-items: center;
+  justify-content: stretch;
+  gap: 0.65rem;
+  padding: 0.7rem 0.8rem;
+  border-bottom: 1px solid var(--fo-workbench-dialog-border);
+}
+
+.fo-connect-editor-header h3,
+.fo-connect-editor-header p {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-connect-editor-header h3 {
+  font-size: var(--fo-font-size-lg);
+}
+
+.fo-connect-editor-header p {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-connect-editor-icon {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-xs);
+  background: var(--fo-workbench-dialog-active-bg);
+}
+
+.fo-connect-tabs {
+  display: flex;
+  gap: 1px;
+  min-width: 0;
+  overflow-x: auto;
+  padding: 0.4rem 0.65rem 0;
+  border-bottom: 1px solid var(--fo-workbench-dialog-border);
+  background: var(--fo-workbench-dialog-panel-bg);
+}
+
+.fo-connect-tab {
+  min-width: max-content;
+  min-height: 30px;
+  padding: 0 0.7rem;
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--fo-radius-xs) var(--fo-radius-xs) 0 0;
+  background: transparent;
+  color: var(--fo-muted-text);
+}
+
+.fo-connect-tab:hover,
+.fo-connect-tab:focus-visible,
+.fo-connect-tab-active {
+  border-color: var(--fo-workbench-dialog-muted-border);
+  background: var(--fo-workbench-dialog-bg);
+  color: var(--fo-text);
+}
+
+.fo-connect-tab-panel {
+  min-height: 0;
+  overflow: auto;
+  padding: 0.7rem 0.8rem;
+}
+
+.fo-connect-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(12rem, 1fr));
+  gap: 0.65rem 0.8rem;
+}
+
+.fo-connect-full {
+  grid-column: 1 / -1;
+}
+
+.fo-connect-provider-warning {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid
+    var(--fo-warning-border, var(--fo-workbench-dialog-muted-border));
+  border-radius: var(--fo-radius-xs);
+  background: var(--fo-warning-bg, var(--fo-workbench-dialog-active-bg));
+  color: var(--fo-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-connect-test-panel {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.fo-connect-summary {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-xs);
+  background: var(--fo-workbench-dialog-panel-bg);
+}
+
+@media (max-width: 760px) {
+  .fo-dialog.fo-connect-manager-dialog {
+    height: min(720px, calc(100dvh - var(--fo-titlebar-height, 50px) - 8px));
+  }
+
+  .fo-connect-manager {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(8rem, 12rem) minmax(0, 1fr);
+  }
+
+  .fo-connect-manager-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--fo-workbench-dialog-border);
+  }
+
+  .fo-connect-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fo-connect-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-connect-preset,
+.fo-connect-auth-option,
+.fo-connect-key-option {
+  display: grid;
+  gap: 2px;
+  min-height: 34px;
+  padding: var(--fo-spacing-sm) var(--fo-spacing-md);
+  color: var(--fo-text);
+  text-align: left;
+  background: var(--fo-workbench-dialog-field-bg);
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+}
+
+.fo-connect-preset span {
+  color: var(--fo-text-muted);
+  font-size: var(--fo-font-size-xs);
+}
+
+.fo-connect-preset-active,
+.fo-connect-auth-option-active,
+.fo-connect-key-option-active {
+  border-color: var(--fo-accent);
+  box-shadow: inset 3px 0 0 var(--fo-accent);
+}
+
+.fo-connect-auth-options,
+.fo-connect-key-list {
+  display: grid;
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-connect-auth-options {
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+}
+
+.fo-connect-key-option {
+  font-family: var(--fo-font-mono);
+}
+
 /* Inline field validation — danger border + tint on flagged inputs. */
 .fo-dialog-field input.fo-field-invalid,
 .fo-dialog-field select.fo-field-invalid,

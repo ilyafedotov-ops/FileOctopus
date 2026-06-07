@@ -12,6 +12,7 @@ import type {
   AppInfoResponse,
   AutostartStatusDto,
   FavoriteEntryDto,
+  FileEntryDto,
   NetworkConnectionStatusDto,
   NetworkProfileDto,
   RecentEntryDto,
@@ -27,6 +28,7 @@ export interface NavigationDataContextValue {
   starred: StarredEntryDto[];
   networkProfiles: NetworkProfileDto[];
   networkStatuses: NetworkConnectionStatusDto[];
+  networkQuickEntries: FileEntryDto[];
   appInfo: AppInfoResponse | null;
   appHealth: AppDataHealthResponse | null;
   autostart: AutostartStatusDto | null;
@@ -37,6 +39,7 @@ export interface NavigationDataContextValue {
   setStarred: Dispatch<SetStateAction<StarredEntryDto[]>>;
   setNetworkProfiles: Dispatch<SetStateAction<NetworkProfileDto[]>>;
   setNetworkStatuses: Dispatch<SetStateAction<NetworkConnectionStatusDto[]>>;
+  setNetworkQuickEntries: Dispatch<SetStateAction<FileEntryDto[]>>;
   setAppInfo: Dispatch<SetStateAction<AppInfoResponse | null>>;
   setAppHealth: Dispatch<SetStateAction<AppDataHealthResponse | null>>;
   setAutostart: Dispatch<SetStateAction<AutostartStatusDto | null>>;
@@ -68,6 +71,9 @@ export function NavigationDataProvider({ children }: { children: ReactNode }) {
   const [networkStatuses, setNetworkStatuses] = useState<
     NetworkConnectionStatusDto[]
   >([]);
+  const [networkQuickEntries, setNetworkQuickEntries] = useState<
+    FileEntryDto[]
+  >([]);
   const [appInfo, setAppInfo] = useState<AppInfoResponse | null>(null);
   const [appHealth, setAppHealth] = useState<AppDataHealthResponse | null>(
     null,
@@ -83,6 +89,7 @@ export function NavigationDataProvider({ children }: { children: ReactNode }) {
       starred,
       networkProfiles,
       networkStatuses,
+      networkQuickEntries,
       appInfo,
       appHealth,
       autostart,
@@ -93,6 +100,7 @@ export function NavigationDataProvider({ children }: { children: ReactNode }) {
       setStarred,
       setNetworkProfiles,
       setNetworkStatuses,
+      setNetworkQuickEntries,
       setAppInfo,
       setAppHealth,
       setAutostart,
@@ -105,6 +113,7 @@ export function NavigationDataProvider({ children }: { children: ReactNode }) {
       starred,
       networkProfiles,
       networkStatuses,
+      networkQuickEntries,
       appInfo,
       appHealth,
       autostart,

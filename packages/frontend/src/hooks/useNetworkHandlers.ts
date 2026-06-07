@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { normalizeIpcError, type FileOctopusClient } from "@fileoctopus/ts-api";
 import type {
   NetworkProfileDto,
+  NetworkProfileTestResponse,
   NetworkProtocolOptionsDto,
 } from "@fileoctopus/ts-api";
 
@@ -70,18 +71,14 @@ export function useNetworkHandlers({
     [client, refreshNetworkProfiles, setOperationError, withBusy],
   );
 
-  // Non-destructive connectivity check for the connect wizard: establishes a
-  // real session via the existing connect() command, then tears it down. Errors
-  // are returned to the caller (the wizard surfaces them inline) rather than
-  // pushed to the global operation-error banner.
   const testConnection = useCallback(
     async (profileId: string): Promise<{ ok: boolean; message: string }> => {
       try {
         await client.network.connect({ id: profileId });
         try {
           await client.network.disconnect({ id: profileId });
-        } catch {
-          // ignore disconnect failure — the connect already proved reachability
+        } catch (disconnectError) {
+          void disconnectError;
         }
         await refreshNetworkProfiles();
         return { ok: true, message: "Connection succeeded." };
@@ -90,6 +87,38 @@ export function useNetworkHandlers({
       }
     },
     [client, refreshNetworkProfiles],
+  );
+
+  const testConnectionDraft = useCallback(
+    async (payload: {
+      scheme: "sftp" | "ssh" | "smb" | "s3" | "webdav";
+      label: string;
+      host: string;
+      port: number;
+      username: string;
+      authKind: "password" | "privateKey" | "accessKey";
+      privateKeyPath: string | null;
+      defaultPath: string;
+      options: NetworkProtocolOptionsDto;
+      password: string;
+      passphrase: string;
+    }): Promise<NetworkProfileTestResponse> =>
+      client.network.testProfile({
+        draft: {
+          label: payload.label,
+          scheme: payload.scheme,
+          host: payload.host,
+          port: payload.port,
+          username: payload.username,
+          authKind: payload.authKind,
+          privateKeyPath: payload.privateKeyPath,
+          defaultPath: payload.defaultPath,
+          options: payload.options,
+        },
+        password: payload.password,
+        passphrase: payload.passphrase,
+      }),
+    [client],
   );
 
   const deleteProfile = useCallback(
@@ -184,23 +213,7 @@ export function useNetworkHandlers({
           });
         }
 
-        const shouldConnect =
-          (payload.scheme === "sftp" ||
-            payload.scheme === "smb" ||
-            payload.scheme === "s3" ||
-            payload.scheme === "webdav") &&
-          (!payload.id ||
-            (payload.authKind === "password" && Boolean(payload.password)) ||
-            (payload.authKind === "privateKey" &&
-              Boolean(payload.passphrase)) ||
-            (payload.authKind === "accessKey" && Boolean(payload.password)));
-
         await refreshNetworkProfiles();
-
-        if (shouldConnect) {
-          await client.network.connect({ id: profile.id });
-          await refreshNetworkProfiles();
-        }
 
         return profile;
       } catch (error) {
@@ -219,6 +232,7 @@ export function useNetworkHandlers({
     saveProfile,
     forgetFingerprint,
     testConnection,
+    testConnectionDraft,
     busyProfileIds,
   };
 }

@@ -9,6 +9,7 @@ import type {
   AutostartStatusDto,
   FileEntryDto,
   NetworkConnectionDraftDto,
+  NetworkProfileTestResponse,
   NetworkProtocolOptionsDto,
   UserPreferencesDto,
 } from "@fileoctopus/ts-api";
@@ -133,6 +134,19 @@ export interface DialogOverlayGroupProps {
   testConnection: (
     profileId: string,
   ) => Promise<{ ok: boolean; message: string }>;
+  testConnectionDraft: (payload: {
+    scheme: "sftp" | "ssh" | "smb" | "s3" | "webdav";
+    label: string;
+    host: string;
+    port: number;
+    username: string;
+    authKind: "password" | "privateKey" | "accessKey";
+    privateKeyPath: string | null;
+    defaultPath: string;
+    options: NetworkProtocolOptionsDto;
+    password: string;
+    passphrase: string;
+  }) => Promise<NetworkProfileTestResponse>;
   saveProfile: (payload: {
     id?: string;
     scheme: "sftp" | "ssh" | "smb" | "s3" | "webdav";

@@ -3,6 +3,7 @@ import { DropdownMenu, Icons } from "@fileoctopus/ui";
 import { formatCommandShortcut } from "../commands/registry";
 import type { ToolbarCommandContext } from "../commands/toolbarCommandState";
 import type { HotlistTarget } from "../shell/hotlistTargets";
+import type { PaneLocationTargetAction } from "../navigation/driveTargets";
 import {
   runToolbarCommand,
   type ToolbarActionHandlers,
@@ -17,7 +18,7 @@ export interface CommanderToolbarOverflowProps {
   hotlistTargets: HotlistTarget[];
   hotlistOverflow: HotlistTarget[];
   onCustomizeToolbar: () => void;
-  onOpenHotlistTarget: (uri: string) => void;
+  onOpenTargetAction: (action: PaneLocationTargetAction) => void;
 }
 
 export function CommanderToolbarOverflow({
@@ -27,7 +28,7 @@ export function CommanderToolbarOverflow({
   hotlistTargets,
   hotlistOverflow,
   onCustomizeToolbar,
-  onOpenHotlistTarget,
+  onOpenTargetAction,
 }: CommanderToolbarOverflowProps) {
   const [open, setOpen] = useState(false);
   const { dropdowns } = handlers;
@@ -57,7 +58,7 @@ export function CommanderToolbarOverflow({
         handlers,
         hotlistTargets,
         hotlistOverflow,
-        onOpenHotlistTarget,
+        onOpenTargetAction,
       }),
     [
       overflowTier,
@@ -65,7 +66,7 @@ export function CommanderToolbarOverflow({
       handlers,
       hotlistTargets,
       hotlistOverflow,
-      onOpenHotlistTarget,
+      onOpenTargetAction,
     ],
   );
 

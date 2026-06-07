@@ -141,6 +141,7 @@ function createParams(
     refreshHistory: vi.fn(async () => undefined),
     refreshLocations: vi.fn(async () => undefined),
     refreshNetworkProfiles: vi.fn(async () => undefined),
+    refreshNetworkQuickEntries: vi.fn(async () => undefined),
     refreshNavigation: vi.fn(async () => undefined),
     refreshDiagnostics: vi.fn(),
     setLocations: vi.fn(),
@@ -174,6 +175,7 @@ describe("useStartupInitialization", () => {
 
     expect(params.setAppInfo).toHaveBeenCalledWith(appInfo);
     expect(params.refreshNetworkProfiles).toHaveBeenCalled();
+    expect(params.refreshNetworkQuickEntries).toHaveBeenCalled();
     expect(params.setLocations).toHaveBeenCalledWith([
       homeLocation,
       documentsLocation,

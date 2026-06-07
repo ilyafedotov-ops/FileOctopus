@@ -76,6 +76,7 @@ export interface UseAppInitParams {
   refreshHistory: () => Promise<void>;
   refreshLocations: () => Promise<void>;
   refreshNetworkProfiles: () => Promise<void>;
+  refreshNetworkQuickEntries: () => Promise<void>;
   refreshNavigation: () => Promise<void>;
   refreshDiagnostics: () => void;
   setLocations: Dispatch<SetStateAction<StandardLocationDto[]>>;
@@ -141,6 +142,7 @@ export function useAppInit({
   refreshHistory,
   refreshLocations,
   refreshNetworkProfiles,
+  refreshNetworkQuickEntries,
   refreshNavigation,
   refreshDiagnostics,
   setLocations,
@@ -265,6 +267,7 @@ export function useAppInit({
     refreshHistory,
     refreshLocations,
     refreshNetworkProfiles,
+    refreshNetworkQuickEntries,
     refreshNavigation,
     refreshDiagnostics,
     setLocations,

@@ -12,6 +12,10 @@ interface PaneHeaderProps {
   pathError: string | null;
   pathFocusToken: number;
   onNavigate: (uri: string) => void;
+  onOpenProfileTerminal?: (
+    profile: import("@fileoctopus/ts-api").NetworkProfileDto,
+  ) => void;
+  onAddServer?: () => void;
   onActivate?: () => void;
   onBreadcrumbContextMenu?: (path: string, event: MouseEvent) => void;
   gitBranch?: string | null;
@@ -24,6 +28,8 @@ export function PaneHeader({
   pathError,
   pathFocusToken,
   onNavigate,
+  onOpenProfileTerminal,
+  onAddServer,
   onActivate,
   onBreadcrumbContextMenu,
   gitBranch,
@@ -44,10 +50,25 @@ export function PaneHeader({
           index > 0 && target.section !== locationTargets[index - 1]?.section,
         onSelect: () => {
           onActivate?.();
-          onNavigate(target.uri);
+          if (target.action.type === "openTerminal") {
+            onOpenProfileTerminal?.(target.action.profile);
+            return;
+          }
+          if (target.action.type === "addServer") {
+            onAddServer?.();
+            return;
+          }
+          onNavigate(target.action.uri);
         },
       })),
-    [activeLocation?.uri, locationTargets, onActivate, onNavigate],
+    [
+      activeLocation?.uri,
+      locationTargets,
+      onActivate,
+      onAddServer,
+      onNavigate,
+      onOpenProfileTerminal,
+    ],
   );
 
   return (
@@ -99,8 +120,15 @@ export function PaneHeader({
 }
 
 function locationTargetIcon(target: PaneLocationTarget) {
-  if (target.kind === "network" || target.kind === "networkRoot") {
+  if (
+    target.kind === "network" ||
+    target.kind === "networkRoot" ||
+    target.kind === "addServer"
+  ) {
     return Icons.server();
+  }
+  if (target.kind === "cloud") {
+    return Icons.folder();
   }
   if (target.kind === "volume") {
     return Icons.volume();

@@ -323,6 +323,7 @@ export function DialogOverlaySectionOperations(props: DialogOverlayGroupProps) {
     networkProfiles,
     networkStatuses,
     favorites,
+    preferences,
     dialog,
     fs,
     setVolumePickerOpen,
@@ -337,6 +338,7 @@ export function DialogOverlaySectionOperations(props: DialogOverlayGroupProps) {
     saveProfile,
     forgetFingerprint,
     testConnection,
+    testConnectionDraft,
     onOpenProfileTerminal,
     onNavigateActivePane,
     setDialog,
@@ -414,14 +416,30 @@ export function DialogOverlaySectionOperations(props: DialogOverlayGroupProps) {
         open={connectServerOpen}
         editingProfile={connectServerProfile}
         initialDraft={connectServerInitial}
+        networkProfiles={networkProfiles}
         onClose={() => {
           setConnectServerOpen(false);
           setConnectServerProfile(null);
           setConnectServerInitial(null);
         }}
         onSave={saveProfile}
+        onConnectProfile={(profile) => {
+          if (profile.scheme === "ssh") {
+            onOpenProfileTerminal(profile);
+          } else if (profile.defaultUri) {
+            onNavigateActivePane(profile.defaultUri);
+          } else {
+            void connectProfile(profile.id);
+          }
+          setConnectServerOpen(false);
+          setConnectServerProfile(null);
+          setConnectServerInitial(null);
+        }}
         onForgetFingerprint={forgetFingerprint}
         onTest={testConnection}
+        onTestDraft={testConnectionDraft}
+        preferences={preferences ?? FALLBACK_PREFERENCES}
+        locations={locations}
         fs={fs}
       />
       <RemoveServerDialog

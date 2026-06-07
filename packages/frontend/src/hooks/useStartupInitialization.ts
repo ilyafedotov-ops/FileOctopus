@@ -35,6 +35,7 @@ export interface UseStartupInitializationParams {
   refreshHistory: () => Promise<void>;
   refreshLocations: () => Promise<void>;
   refreshNetworkProfiles: () => Promise<void>;
+  refreshNetworkQuickEntries: () => Promise<void>;
   refreshNavigation: () => Promise<void>;
   refreshDiagnostics: () => void;
   setLocations: Dispatch<SetStateAction<StandardLocationDto[]>>;
@@ -62,6 +63,7 @@ export function useStartupInitialization({
   refreshHistory,
   refreshLocations,
   refreshNetworkProfiles,
+  refreshNetworkQuickEntries,
   refreshNavigation,
   refreshDiagnostics,
   setLocations,
@@ -87,6 +89,7 @@ export function useStartupInitialization({
         setAppInfo(startupAppInfo.appInfo);
         if (startupAppInfo.refreshNetworkProfiles) {
           void refreshNetworkProfiles();
+          void refreshNetworkQuickEntries();
         }
       }
 

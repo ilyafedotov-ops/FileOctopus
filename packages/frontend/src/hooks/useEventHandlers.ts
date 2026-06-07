@@ -6,6 +6,7 @@ import type {
   ContentSearchCompletedEventDto,
   ContentSearchMatchEventDto,
   FavoriteEntryDto,
+  FileEntryDto,
   FolderSizeCompletedEventDto,
   NetworkConnectionStatusDto,
   NetworkConnectionDraftDto,
@@ -64,6 +65,7 @@ export interface UseEventHandlersParams {
   setLocations: Dispatch<SetStateAction<StandardLocationDto[]>>;
   setNetworkProfiles: Dispatch<SetStateAction<NetworkProfileDto[]>>;
   setNetworkStatuses: Dispatch<SetStateAction<NetworkConnectionStatusDto[]>>;
+  setNetworkQuickEntries: Dispatch<SetStateAction<FileEntryDto[]>>;
   setDialog: Dispatch<SetStateAction<OperationDialog | null>>;
   setHistory: Dispatch<SetStateAction<OperationHistoryRecordDto[]>>;
   setAppInfo: Dispatch<SetStateAction<AppInfoResponse | null>>;
@@ -96,6 +98,7 @@ export function useEventHandlers({
   setLocations,
   setNetworkProfiles,
   setNetworkStatuses,
+  setNetworkQuickEntries,
   setDialog,
   setHistory,
   setAppInfo,
@@ -223,6 +226,21 @@ export function useEventHandlers({
       setNetworkStatuses(statusResponse.statuses);
     } catch (error) {
       setOperationError(normalizeIpcError(error).message);
+    }
+  }
+
+  async function refreshNetworkQuickEntries() {
+    try {
+      const response = await client.network.discoverNeighborhood({
+        uri: "network:///cloud",
+      });
+      setNetworkQuickEntries(
+        response.entries.filter(
+          (entry) => entry.virtualKind === "cloudDrive" && entry.targetUri,
+        ),
+      );
+    } catch {
+      setNetworkQuickEntries([]);
     }
   }
 
@@ -435,6 +453,7 @@ export function useEventHandlers({
     refreshPanel,
     refreshLocations,
     refreshNetworkProfiles,
+    refreshNetworkQuickEntries,
     activateEntry,
     openPreviewInOppositePane,
     openEditorInOppositePane,

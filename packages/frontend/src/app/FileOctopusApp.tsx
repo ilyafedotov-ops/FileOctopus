@@ -63,6 +63,7 @@ function FileOctopusAppInner({
     starred,
     networkProfiles,
     networkStatuses,
+    networkQuickEntries,
     appInfo,
     appHealth,
     autostart,
@@ -73,6 +74,7 @@ function FileOctopusAppInner({
     setStarred,
     setNetworkProfiles,
     setNetworkStatuses,
+    setNetworkQuickEntries,
     setAppInfo,
     setAppHealth,
     setAutostart,
@@ -217,6 +219,7 @@ function FileOctopusAppInner({
     refreshPanel,
     refreshLocations,
     refreshNetworkProfiles,
+    refreshNetworkQuickEntries,
     activateEntry,
     openPreviewInOppositePane,
     openEditorInOppositePane,
@@ -252,6 +255,7 @@ function FileOctopusAppInner({
     setLocations,
     setNetworkProfiles,
     setNetworkStatuses,
+    setNetworkQuickEntries,
     setDialog,
     setHistory,
     setAppInfo,
@@ -349,6 +353,7 @@ function FileOctopusAppInner({
     refreshHistory,
     refreshLocations,
     refreshNetworkProfiles,
+    refreshNetworkQuickEntries,
     refreshNavigation,
     refreshDiagnostics,
     setLocations,
@@ -461,6 +466,7 @@ function FileOctopusAppInner({
     saveProfile,
     forgetFingerprint,
     testConnection,
+    testConnectionDraft,
     busyProfileIds,
   } = useNetworkHandlers({
     client,
@@ -806,6 +812,7 @@ function FileOctopusAppInner({
       locations,
       networkProfiles,
       networkStatuses,
+      networkQuickEntries,
       favorites,
       starred,
       recentEntries: [...recentToday, ...recentWeek],
@@ -819,6 +826,7 @@ function FileOctopusAppInner({
       preferences,
       dispatch,
       navigatePanel,
+      openProfileTerminalTab,
       handleCommandSelect,
       revealEntry,
       activateEntry,
@@ -852,6 +860,7 @@ function FileOctopusAppInner({
         starred={starred}
         networkProfiles={networkProfiles}
         networkStatuses={networkStatuses}
+        networkQuickEntries={networkQuickEntries}
         preferences={preferences}
         updatePreference={updatePreference}
         settingsPreferenceChange={handleSettingsPreferenceChange}
@@ -913,7 +922,9 @@ function FileOctopusAppInner({
         saveProfile={saveProfile}
         forgetFingerprint={forgetFingerprint}
         testConnection={testConnection}
+        testConnectionDraft={testConnectionDraft}
         refreshNetworkProfiles={refreshNetworkProfiles}
+        refreshNetworkQuickEntries={refreshNetworkQuickEntries}
         openProfileTerminalTab={openProfileTerminalTab}
         dialog={dialog}
         autostart={autostart}

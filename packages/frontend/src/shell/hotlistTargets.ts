@@ -1,5 +1,6 @@
 import type {
   FavoriteEntryDto,
+  FileEntryDto,
   NetworkConnectionStatusDto,
   NetworkProfileDto,
   RecentEntryDto,
@@ -11,6 +12,7 @@ import { localPathFromUri } from "../utils/paneUtils";
 import {
   buildDriveTargets,
   networkDriveHotlistTitle,
+  type PaneLocationTargetAction,
 } from "../navigation/driveTargets";
 
 export type HotlistTargetKind =
@@ -29,12 +31,14 @@ export interface HotlistTarget {
   uri: string;
   glyph: string;
   title: string;
+  action: PaneLocationTargetAction;
 }
 
 export interface HotlistTargetsInput {
   activeUri: string;
   parentUri: string | null;
   locations: StandardLocationDto[];
+  networkQuickEntries?: FileEntryDto[];
   networkProfiles?: NetworkProfileDto[];
   networkStatuses?: NetworkConnectionStatusDto[];
   favorites: FavoriteEntryDto[];
@@ -83,6 +87,7 @@ export function buildHotlistTargets({
   activeUri,
   parentUri: upUri,
   locations,
+  networkQuickEntries = [],
   networkProfiles = [],
   networkStatuses = [],
   favorites,
@@ -111,6 +116,7 @@ export function buildHotlistTargets({
       uri: upUri,
       glyph: "↑",
       title: localPathFromUri(upUri),
+      action: { type: "navigate", uri: upUri },
     });
   }
 
@@ -121,32 +127,51 @@ export function buildHotlistTargets({
     uri: resolvedHomeUri,
     glyph: "~",
     title: localPathFromUri(resolvedHomeUri),
+    action: { type: "navigate", uri: resolvedHomeUri },
   });
 
-  buildDriveTargets(locations, networkProfiles, networkStatuses).forEach(
-    (target) => {
-      if (target.kind === "local") {
-        addTarget(targets, seen, {
-          id: `volume-${target.id}`,
-          kind: "volume",
-          label: target.label,
-          uri: target.uri,
-          glyph: "▣",
-          title: localPathFromUri(target.uri),
-        });
-        return;
-      }
-
+  buildDriveTargets(
+    locations,
+    networkProfiles,
+    networkStatuses,
+    networkQuickEntries,
+  ).forEach((target) => {
+    if (target.kind === "local") {
       addTarget(targets, seen, {
-        id: `network-${target.id}`,
+        id: `volume-${target.id}`,
+        kind: "volume",
+        label: target.label,
+        uri: target.uri,
+        glyph: "▣",
+        title: localPathFromUri(target.uri),
+        action: target.action,
+      });
+      return;
+    }
+
+    if (target.kind === "cloud") {
+      addTarget(targets, seen, {
+        id: `cloud-${target.id}`,
         kind: "network",
         label: target.label,
         uri: target.uri,
-        glyph: "⇄",
-        title: networkDriveHotlistTitle(target.profile),
+        glyph: "☁",
+        title: localPathFromUri(target.uri),
+        action: target.action,
       });
-    },
-  );
+      return;
+    }
+
+    addTarget(targets, seen, {
+      id: `network-${target.id}`,
+      kind: "network",
+      label: target.label,
+      uri: target.uri,
+      glyph: "⇄",
+      title: networkDriveHotlistTitle(target.profile),
+      action: target.action,
+    });
+  });
 
   favorites.forEach((favorite) =>
     addTarget(targets, seen, {
@@ -156,6 +181,7 @@ export function buildHotlistTargets({
       uri: favorite.uri,
       glyph: "★",
       title: localPathFromUri(favorite.uri),
+      action: { type: "navigate", uri: favorite.uri },
     }),
   );
 
@@ -167,6 +193,7 @@ export function buildHotlistTargets({
       uri: entry.uri,
       glyph: "☆",
       title: localPathFromUri(entry.uri),
+      action: { type: "navigate", uri: entry.uri },
     }),
   );
 
@@ -178,6 +205,7 @@ export function buildHotlistTargets({
       uri: recent.uri,
       glyph: "◷",
       title: localPathFromUri(recent.uri),
+      action: { type: "navigate", uri: recent.uri },
     }),
   );
 

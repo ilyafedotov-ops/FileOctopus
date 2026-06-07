@@ -192,6 +192,7 @@ describe("PaneHeader location selector", () => {
             uri: "local:///",
             section: "Devices/Volumes",
             kind: "volume",
+            action: { type: "navigate", uri: "local:///" },
           },
           {
             id: "standard-home",
@@ -199,6 +200,7 @@ describe("PaneHeader location selector", () => {
             uri: "local:///Users/ilya",
             section: "User folders",
             kind: "standard",
+            action: { type: "navigate", uri: "local:///Users/ilya" },
           },
           {
             id: "favorite-projects",
@@ -206,6 +208,10 @@ describe("PaneHeader location selector", () => {
             uri: "local:///Users/ilya/Projects",
             section: "Favorites",
             kind: "favorite",
+            action: {
+              type: "navigate",
+              uri: "local:///Users/ilya/Projects",
+            },
           },
         ]}
       />,

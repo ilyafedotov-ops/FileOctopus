@@ -9,6 +9,7 @@ import {
 import type { ToolbarCommandContext } from "../commands/toolbarCommandState";
 import type { CommandId } from "../commands/types";
 import type { HotlistTarget } from "../shell/hotlistTargets";
+import type { PaneLocationTargetAction } from "../navigation/driveTargets";
 import { CommanderToolbarButtons } from "./CommanderToolbarButtons";
 import { CommanderToolbarTail } from "./CommanderToolbarTail";
 import { CommanderToolbarOverflow } from "./CommanderToolbarOverflow";
@@ -30,6 +31,7 @@ export interface OperationToolbarProps extends ToolbarDropdownsProps {
     label: string;
     uri: string;
     isNetwork?: boolean;
+    action: PaneLocationTargetAction;
   }>;
   jobsDisplay: ToolbarJobsDisplay;
   onBack: () => void;
@@ -43,7 +45,7 @@ export interface OperationToolbarProps extends ToolbarDropdownsProps {
   onView: () => void;
   onCommand: (commandId: CommandId) => void;
   onCustomizeToolbar: () => void;
-  onOpenHotlistTarget: (uri: string) => void;
+  onOpenTargetAction: (action: PaneLocationTargetAction) => void;
 }
 
 export function OperationToolbar({
@@ -68,7 +70,7 @@ export function OperationToolbar({
   onView,
   onCommand,
   onCustomizeToolbar,
-  onOpenHotlistTarget,
+  onOpenTargetAction,
   selectedCount,
   canRename,
   canPaste,
@@ -179,7 +181,7 @@ export function OperationToolbar({
               id: volume.id,
               label: volume.label,
               icon: volume.isNetwork ? Icons.server() : Icons.volume(),
-              onSelect: () => onOpenHotlistTarget(volume.uri),
+              onSelect: () => onOpenTargetAction(volume.action),
             })),
             {
               id: "network-neighborhood",
@@ -224,7 +226,7 @@ export function OperationToolbar({
         hotlistTargets={hotlistTargets}
         hotlistOverflow={hotlistOverflow}
         jobsDisplay={jobsDisplay}
-        onOpenHotlistTarget={onOpenHotlistTarget}
+        onOpenTargetAction={onOpenTargetAction}
       />
       <span className="fo-toolbar-spacer" aria-hidden="true" />
       <div
@@ -239,7 +241,7 @@ export function OperationToolbar({
           hotlistTargets={hotlistTargets}
           hotlistOverflow={hotlistOverflow}
           onCustomizeToolbar={onCustomizeToolbar}
-          onOpenHotlistTarget={onOpenHotlistTarget}
+          onOpenTargetAction={onOpenTargetAction}
         />
       </div>
     </div>

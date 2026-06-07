@@ -155,9 +155,7 @@ describe("useNetworkHandlers", () => {
       secretKind: "password",
       value: "secret123",
     });
-    expect(client.network.connect).toHaveBeenCalledWith({
-      id: "new-profile-1",
-    });
+    expect(client.network.connect).not.toHaveBeenCalled();
     expect(profile).toEqual({ id: "new-profile-1" });
     expect(refreshNetworkProfiles).toHaveBeenCalled();
   });
@@ -185,7 +183,6 @@ describe("useNetworkHandlers", () => {
 
     expect(client.network.updateProfile).toHaveBeenCalled();
     expect(client.network.addProfile).not.toHaveBeenCalled();
-    // No password provided → no setSecret call, no auto-connect for update
     expect(client.network.setSecret).not.toHaveBeenCalled();
   });
 

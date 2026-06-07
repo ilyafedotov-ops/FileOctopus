@@ -1,5 +1,6 @@
 import type {
   FavoriteEntryDto,
+  FileEntryDto,
   NetworkConnectionStatusDto,
   NetworkProfileDto,
   RecentEntryDto,
@@ -9,7 +10,21 @@ import type {
 import { profileIdFromRemoteUri, remotePathFromUri } from "@fileoctopus/ts-api";
 
 export type DriveTarget =
-  | { kind: "local"; id: string; label: string; uri: string }
+  | {
+      kind: "local";
+      id: string;
+      label: string;
+      uri: string;
+      action: PaneLocationTargetAction;
+    }
+  | {
+      kind: "cloud";
+      id: string;
+      label: string;
+      uri: string;
+      entry: FileEntryDto;
+      action: PaneLocationTargetAction;
+    }
   | {
       kind: "network";
       id: string;
@@ -17,16 +32,24 @@ export type DriveTarget =
       uri: string;
       profile: NetworkProfileDto;
       status?: NetworkConnectionStatusDto;
+      action: PaneLocationTargetAction;
     };
 
 export type PaneLocationTargetKind =
   | "volume"
+  | "cloud"
   | "network"
   | "networkRoot"
+  | "addServer"
   | "standard"
   | "favorite"
   | "starred"
   | "recent";
+
+export type PaneLocationTargetAction =
+  | { type: "navigate"; uri: string }
+  | { type: "openTerminal"; profile: NetworkProfileDto }
+  | { type: "addServer" };
 
 export interface PaneLocationTarget {
   id: string;
@@ -36,10 +59,13 @@ export interface PaneLocationTarget {
   kind: PaneLocationTargetKind;
   profile?: NetworkProfileDto;
   status?: NetworkConnectionStatusDto;
+  entry?: FileEntryDto;
+  action: PaneLocationTargetAction;
 }
 
 export interface PaneLocationTargetsInput {
   locations: StandardLocationDto[];
+  networkQuickEntries: FileEntryDto[];
   networkProfiles: NetworkProfileDto[];
   networkStatuses: NetworkConnectionStatusDto[];
   favorites: FavoriteEntryDto[];
@@ -51,6 +77,7 @@ export function buildDriveTargets(
   locations: StandardLocationDto[],
   networkProfiles: NetworkProfileDto[],
   networkStatuses: NetworkConnectionStatusDto[],
+  networkQuickEntries: FileEntryDto[] = [],
 ): DriveTarget[] {
   const local = locations
     .filter((location) => location.section === "Devices/Volumes")
@@ -60,31 +87,46 @@ export function buildDriveTargets(
         id: location.id,
         label: location.name,
         uri: location.uri,
+        action: { type: "navigate", uri: location.uri },
+      }),
+    );
+
+  const cloud = networkQuickEntries
+    .filter(
+      (entry) => entry.virtualKind === "cloudDrive" && Boolean(entry.targetUri),
+    )
+    .map(
+      (entry): DriveTarget => ({
+        kind: "cloud",
+        id: entry.uri,
+        label: entry.name,
+        uri: entry.targetUri ?? entry.uri,
+        entry,
+        action: { type: "navigate", uri: entry.targetUri ?? entry.uri },
       }),
     );
 
   const network = networkProfiles
-    .filter(
-      (profile) =>
-        profile.scheme === "sftp" ||
-        profile.scheme === "smb" ||
-        profile.scheme === "s3",
-    )
+    .filter(isQuickConnectionProfile)
     .map((profile): DriveTarget => {
       const status = networkStatuses.find(
         (item) => item.profileId === profile.id,
       );
+      const browseable = isBrowseableProfile(profile);
       return {
         kind: "network",
         id: profile.id,
         label: profile.label,
-        uri: profile.defaultUri,
+        uri: browseable ? profile.defaultUri : `ssh://${profile.id}`,
         profile,
         status,
+        action: browseable
+          ? { type: "navigate", uri: profile.defaultUri }
+          : { type: "openTerminal", profile },
       };
     });
 
-  return [...local, ...network];
+  return [...local, ...cloud, ...network];
 }
 
 export function isDriveTargetActive(
@@ -94,12 +136,19 @@ export function isDriveTargetActive(
   if (target.kind === "local") {
     return target.uri === activeUri;
   }
+  if (target.kind === "cloud") {
+    return target.uri === activeUri || activeUri.startsWith(`${target.uri}/`);
+  }
+  if (target.action.type === "openTerminal") {
+    return false;
+  }
   const activeProfileId = profileIdFromRemoteUri(activeUri);
   return activeProfileId === target.profile.id;
 }
 
 export function buildPaneLocationTargets({
   locations,
+  networkQuickEntries,
   networkProfiles,
   networkStatuses,
   favorites,
@@ -125,22 +174,47 @@ export function buildPaneLocationTargets({
         uri: location.uri,
         section: "Devices/Volumes",
         kind: "volume",
+        action: { type: "navigate", uri: location.uri },
       }),
     );
 
-  buildDriveTargets([], networkProfiles, networkStatuses).forEach((target) => {
-    if (target.kind !== "network") {
-      return;
-    }
+  buildDriveTargets([], [], [], networkQuickEntries).forEach((target) => {
     addTarget({
-      id: `network-${target.id}`,
+      id: `cloud-${target.id}`,
       label: target.label,
       uri: target.uri,
-      section: "Network",
-      kind: "network",
-      profile: target.profile,
-      status: target.status,
+      section: "Cloud Storage",
+      kind: "cloud",
+      entry: target.kind === "cloud" ? target.entry : undefined,
+      action: target.action,
     });
+  });
+
+  buildDriveTargets([], networkProfiles, networkStatuses, []).forEach(
+    (target) => {
+      if (target.kind !== "network") {
+        return;
+      }
+      addTarget({
+        id: `network-${target.id}`,
+        label: target.label,
+        uri: target.uri,
+        section: "Connections",
+        kind: "network",
+        profile: target.profile,
+        status: target.status,
+        action: target.action,
+      });
+    },
+  );
+
+  addTarget({
+    id: "network-add-server",
+    label: "Add Server...",
+    uri: "network:///add",
+    section: "Connections",
+    kind: "addServer",
+    action: { type: "addServer" },
   });
 
   addTarget({
@@ -149,6 +223,7 @@ export function buildPaneLocationTargets({
     uri: "network:///",
     section: "Network",
     kind: "networkRoot",
+    action: { type: "navigate", uri: "network:///" },
   });
 
   locations
@@ -160,6 +235,7 @@ export function buildPaneLocationTargets({
         uri: location.uri,
         section: "User folders",
         kind: "standard",
+        action: { type: "navigate", uri: location.uri },
       }),
     );
 
@@ -170,6 +246,7 @@ export function buildPaneLocationTargets({
       uri: favorite.uri,
       section: "Favorites",
       kind: "favorite",
+      action: { type: "navigate", uri: favorite.uri },
     }),
   );
 
@@ -180,6 +257,7 @@ export function buildPaneLocationTargets({
       uri: entry.uri,
       section: "Starred",
       kind: "starred",
+      action: { type: "navigate", uri: entry.uri },
     }),
   );
 
@@ -190,6 +268,7 @@ export function buildPaneLocationTargets({
       uri: entry.uri,
       section: "Recent",
       kind: "recent",
+      action: { type: "navigate", uri: entry.uri },
     }),
   );
 
@@ -221,6 +300,9 @@ function paneLocationTargetScore(
   }
 
   if (target.kind === "network" && target.profile) {
+    if (target.action.type === "openTerminal") {
+      return 0;
+    }
     const activeProfileId = profileIdFromRemoteUri(activeUri);
     return activeProfileId === target.profile.id ? 5_000 : 0;
   }
@@ -235,6 +317,19 @@ function paneLocationTargetScore(
   }
 
   return 0;
+}
+
+export function isBrowseableProfile(profile: NetworkProfileDto): boolean {
+  return (
+    profile.scheme === "sftp" ||
+    profile.scheme === "smb" ||
+    profile.scheme === "s3" ||
+    profile.scheme === "webdav"
+  );
+}
+
+export function isQuickConnectionProfile(profile: NetworkProfileDto): boolean {
+  return isBrowseableProfile(profile) || profile.scheme === "ssh";
 }
 
 function trimTrailingSlash(value: string): string {
@@ -275,7 +370,7 @@ export function networkProfileTitle(
 
 export function driveTargetToolbarLabel(target: DriveTarget): string {
   if (target.kind === "network") {
-    return `${target.label} (SFTP)`;
+    return `${target.label} (${target.profile.scheme.toUpperCase()})`;
   }
   return target.label;
 }
