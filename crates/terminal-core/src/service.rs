@@ -226,8 +226,14 @@ impl TerminalService {
         for arg in args {
             command.arg(arg);
         }
-        for (key, value) in request.env {
+        for (key, value) in &request.env {
             command.env(key, value);
+        }
+        if !request.env.iter().any(|(key, _)| key == "TERM") {
+            command.env("TERM", "xterm-256color");
+        }
+        if !request.env.iter().any(|(key, _)| key == "COLORTERM") {
+            command.env("COLORTERM", "truecolor");
         }
 
         let PtyPair { master, slave } = pair;
