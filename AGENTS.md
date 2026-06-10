@@ -30,8 +30,8 @@ The Rust↔TS boundary is the trust boundary. Read `docs/architecture/api-refere
 - `pnpm tauri:build`: create a Tauri production build.
 - `pnpm test:e2e`, `pnpm test:e2e:ui`, `pnpm test:e2e:headed`: run Playwright end-to-end tests.
 - `pnpm test:e2e:tauri`, `pnpm test:e2e:tauri:build`: run WebdriverIO/Tauri end-to-end tests.
-- `pnpm rust:check`, `pnpm rust:test`, `pnpm rust:fmt`, `pnpm rust:clippy`: run Rust workspace checks locally (not in CI).
-- GitHub Actions CI runs `pnpm typecheck` and `pnpm test` only (path-filtered); optional `E2E Tauri (manual)` workflow via Actions tab.
+- `pnpm rust:check`, `pnpm rust:test`, `pnpm rust:fmt`, `pnpm rust:clippy`: run Rust workspace checks locally; CI covers the same checks via `pnpm test:backend:rc`.
+- GitHub Actions CI (path-filtered) runs `pnpm lint`, `pnpm format:check`, `pnpm typecheck`, and `pnpm test` in the frontend job and `pnpm test:backend:rc` in the backend job; optional `E2E Tauri (manual)` workflow via Actions tab.
 
 ## Coding Style & Naming Conventions
 
