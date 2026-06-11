@@ -99,13 +99,18 @@
   overflow-wrap: anywhere;
 }
 
-.fo-first-run-dialog {
-  width: min(34rem, calc(100vw - 2rem));
+.fo-dialog.fo-first-run-dialog {
+  width: min(48rem, calc(100vw - 2rem));
 }
 
 .fo-first-run-body {
   display: grid;
   gap: 10px;
+}
+
+.fo-first-run-body h3,
+.fo-first-run-body p {
+  margin: 0;
 }
 
 .fo-first-run-grid {
@@ -114,13 +119,20 @@
   gap: 8px;
 }
 
-.fo-first-run-grid button {
+.fo-first-run-grid button,
+.fo-first-run-card {
   display: grid;
   align-content: start;
   gap: 4px;
   min-height: 82px;
   padding: 10px;
   text-align: left;
+}
+
+.fo-first-run-card {
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-xs);
+  background: var(--fo-workbench-dialog-panel-bg);
 }
 
 .fo-first-run-grid strong {
@@ -143,6 +155,21 @@
   border-color: var(--fo-danger-border);
   background: var(--fo-danger-bg);
   color: var(--fo-danger-text);
+}
+
+.fo-dialog-error {
+  margin: 0;
+  padding: var(--fo-spacing-sm) var(--fo-spacing-md);
+  border: 1px solid var(--fo-danger-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-danger-bg);
+  color: var(--fo-danger-text);
+  font-size: var(--fo-font-size-sm);
+  line-height: var(--fo-line-normal);
+}
+
+.fo-wizard-error {
+  margin: 0 0.85rem 0.85rem;
 }
 
 .fo-dialog-actions {
@@ -892,7 +919,7 @@ dialog.fo-dialog[open] {
 
 .fo-wizard-step {
   display: flex;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -903,7 +930,7 @@ dialog.fo-dialog[open] {
   width: 100%;
   min-width: 0;
   min-height: 36px;
-  padding: 0 var(--fo-spacing-lg);
+  padding: 0 var(--fo-spacing-md);
   border: 1px solid var(--fo-workbench-dialog-border);
   border-radius: var(--fo-radius-sm);
   background: var(--fo-workbench-dialog-panel-bg);
@@ -1240,7 +1267,6 @@ dialog.fo-dialog[open] {
 }
 
 .fo-connect-preset-active,
-.fo-connect-auth-option-active,
 .fo-connect-key-option-active {
   border-color: var(--fo-accent);
   box-shadow: inset 3px 0 0 var(--fo-accent);
@@ -1253,7 +1279,35 @@ dialog.fo-dialog[open] {
 }
 
 .fo-connect-auth-options {
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  display: flex;
+  gap: 0;
+  width: fit-content;
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+  overflow: hidden;
+}
+
+.fo-dialog button.fo-connect-auth-option {
+  min-width: 120px;
+  min-height: 30px;
+  padding: var(--fo-spacing-xs) var(--fo-spacing-lg);
+  justify-items: center;
+  text-align: center;
+  background: var(--fo-workbench-dialog-panel-bg);
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.fo-dialog button.fo-connect-auth-option + button.fo-connect-auth-option {
+  border-left: 1px solid var(--fo-workbench-dialog-muted-border);
+}
+
+.fo-dialog button.fo-connect-auth-option-active {
+  background: var(--fo-accent);
+  border-color: var(--fo-accent);
+  color: var(--fo-on-accent);
+  font-weight: 600;
 }
 
 .fo-connect-key-option {
