@@ -52,7 +52,7 @@ export function buildGoItems(
     },
     {
       id: "go-add-server",
-      label: "Add Server…",
+      label: "Add Connection…",
       onSelect: wrap(props.onAddServer),
     },
     sep("sep-stdloc"),

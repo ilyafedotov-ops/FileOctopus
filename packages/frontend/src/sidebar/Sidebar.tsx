@@ -322,21 +322,21 @@ export function Sidebar({
               variant="ghost"
               size="sm"
               onClick={onAddServer}
-              title="Add server"
-              aria-label="Add server"
+              title="Add connection"
+              aria-label="Add connection"
             >
               {Icons.folderPlus()}
             </Button>
           }
         >
           {networkProfiles.length === 0 ? (
-            <SidebarEmptyHint>No saved servers</SidebarEmptyHint>
+            <SidebarEmptyHint>No saved connections</SidebarEmptyHint>
           ) : (
             networkProfiles.map((profile) => renderNetworkProfileItem(profile))
           )}
           <SidebarItem
             icon={Icons.server()}
-            label="Add server…"
+            label="Add connection…"
             active={false}
             onClick={onAddServer}
           />

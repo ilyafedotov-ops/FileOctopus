@@ -57,13 +57,13 @@ export const COMMAND_REGISTRY = [
   },
   {
     id: "nav.addServer",
-    label: "Add Server…",
+    label: "Add Connection…",
     group: "navigation",
     surfaces: ["menu", "palette"],
   },
   {
     id: "nav.connectServer",
-    label: "Connect Server…",
+    label: "Edit Connection…",
     group: "navigation",
     surfaces: ["menu", "palette"],
   },

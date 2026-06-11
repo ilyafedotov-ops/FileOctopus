@@ -90,18 +90,22 @@ export function NetworkLocationsDialog({
       onClose={onClose}
       title="Network Locations"
       titleId="network-locations-title"
-      subtitle="Connect to saved remote servers and browse network locations."
+      subtitle="Connect to saved connections and browse network locations."
       className="fo-network-locations-dialog"
       footer={
         <Button type="button" onClick={onAddServer}>
-          Add server
+          Add connection
         </Button>
       }
     >
       <div className="fo-dialog-body">
-        {actionError ? <p className="fo-dialog-error">{actionError}</p> : null}
+        {actionError ? (
+          <p className="fo-dialog-error" role="alert">
+            {actionError}
+          </p>
+        ) : null}
         {profiles.length === 0 ? (
-          <p className="fo-network-empty">No saved servers yet.</p>
+          <p className="fo-network-empty">No saved connections yet.</p>
         ) : (
           <ul className="fo-network-profile-list">
             {profiles.map((profile) => {
