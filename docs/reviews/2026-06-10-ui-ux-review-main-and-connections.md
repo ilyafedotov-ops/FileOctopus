@@ -100,3 +100,8 @@ Same method: live browser preview at 1440×900, all 14 settings categories and a
 ### Systemic finding: dead UI contracts
 
 Four independent instances of "component emits a hook that nothing consumes" were found in two days: `.fo-dialog-error` (no CSS), `fo-dialog--{size}` (no CSS), `fo-settings-provider-*` (no CSS), `DropdownMenuItem.checked` (no renderer). New guard: `packages/frontend/tests/classContract.test.ts` fails on any fo-\* class referenced in TSX without a CSS rule; the ~95 pre-existing unstyled classes are pinned in `KNOWN_UNSTYLED` as the burn-down backlog (UPP-L6 in the plan).
+
+### UPP-L6 pass findings (2026-06-11, second pass)
+
+- **`NetworkLocationsDialog` was unreachable dead code** — commit `fb9dbd7` (2026-05-26) rerouted `nav.networkLocations` to navigate to the `network:///` neighborhood, and nothing ever set `networkLocationsOpen` to true again. All of its per-profile actions (connect/disconnect/edit/remove/terminal) exist in the sidebar context menu. Removed: component, ModalsProvider/ShellOverlays/dispatch wiring, test, and CSS.
+- **Command palette showed Windows shortcut notation on macOS** — `buildPaletteEntries` hardcoded `formatCommandShortcut(id, "windowsLinux")`. Now platform-aware, first variant only (matching the menus).
