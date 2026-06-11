@@ -751,11 +751,23 @@ dialog.fo-dialog[open] {
   inset: auto;
 }
 
-.fo-about-dialog {
+.fo-dialog.fo-dialog--sm {
   width: min(26rem, calc(100vw - 2rem));
 }
 
-.fo-settings-dialog {
+.fo-dialog.fo-dialog--md {
+  width: min(34rem, calc(100vw - 2rem));
+}
+
+.fo-dialog.fo-dialog--lg {
+  width: min(48rem, calc(100vw - 2rem));
+}
+
+.fo-dialog.fo-about-dialog {
+  width: min(26rem, calc(100vw - 2rem));
+}
+
+.fo-dialog.fo-settings-dialog {
   width: min(48rem, calc(100vw - 2rem));
   /* Stable height so switching categories never resizes/recenters the dialog;
      the content panel scrolls internally instead. */
@@ -763,9 +775,9 @@ dialog.fo-dialog[open] {
   overflow: hidden;
 }
 
-.fo-diagnostics-dialog,
-.fo-go-to-dialog,
-.fo-error-details-dialog {
+.fo-dialog.fo-diagnostics-dialog,
+.fo-dialog.fo-go-to-dialog,
+.fo-dialog.fo-error-details-dialog {
   width: min(32rem, calc(100vw - 2rem));
 }
 
@@ -2079,6 +2091,29 @@ dialog.fo-dialog[open] {
   margin: 4px 0 0;
   color: var(--fo-muted-text);
   font-size: var(--fo-font-size-md);
+}
+
+.fo-settings-provider-list {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-panel-bg);
+  padding: var(--fo-spacing-sm);
+}
+
+.fo-settings-provider-row {
+  display: grid;
+  grid-template-columns: 7rem 8.5rem minmax(0, 1fr);
+  gap: var(--fo-spacing-md);
+  align-items: baseline;
+  padding: var(--fo-spacing-xs) var(--fo-spacing-sm);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-settings-provider-row span {
+  color: var(--fo-muted-text);
+  overflow-wrap: anywhere;
 }
 
 .fo-settings-nav-wrapper {
