@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 import { Icons } from "@fileoctopus/ui";
 import type { SettingsCategory, SettingsTreeItem } from "./types";
@@ -78,14 +78,25 @@ export function SettingsTree({ activeCategory, onSelect }: SettingsTreeProps) {
   const [filter, setFilter] = useState("");
 
   const normalizedFilter = filter.toLowerCase().trim();
-  const filteredItems = normalizedFilter
-    ? SETTINGS_TREE.filter(
-        (item) =>
-          item.label.toLowerCase().indexOf(normalizedFilter) !== -1 ||
-          item.description.toLowerCase().indexOf(normalizedFilter) !== -1 ||
-          item.id.toLowerCase().indexOf(normalizedFilter) !== -1,
-      )
-    : SETTINGS_TREE;
+  const filteredItems = useMemo(
+    () =>
+      normalizedFilter
+        ? SETTINGS_TREE.filter(
+            (item) =>
+              item.label.toLowerCase().indexOf(normalizedFilter) !== -1 ||
+              item.description.toLowerCase().indexOf(normalizedFilter) !== -1 ||
+              item.id.toLowerCase().indexOf(normalizedFilter) !== -1,
+          )
+        : SETTINGS_TREE,
+    [normalizedFilter],
+  );
+
+  useEffect(() => {
+    if (!normalizedFilter || filteredItems.length === 0) return;
+    if (!filteredItems.some((item) => item.id === activeCategory)) {
+      onSelect(filteredItems[0].id);
+    }
+  }, [activeCategory, filteredItems, normalizedFilter, onSelect]);
 
   return (
     <div className="fo-settings-nav-wrapper">
