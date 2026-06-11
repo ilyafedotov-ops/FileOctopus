@@ -154,7 +154,7 @@ export function ActivityPanelResizer({
 
   return (
     <div
-      className="fo-resizer fo-resizer-activity"
+      className="fo-resizer"
       role="separator"
       aria-orientation="vertical"
       aria-label="Resize activity panel"

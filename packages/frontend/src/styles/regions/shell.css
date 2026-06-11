@@ -939,3 +939,16 @@
     --fo-classic-muted: #969696;
   }
 }
+
+.fo-menubar-host {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.fo-status-pane {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

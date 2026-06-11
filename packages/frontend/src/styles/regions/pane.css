@@ -2025,3 +2025,31 @@
   background: color-mix(in srgb, var(--fo-accent) 35%, transparent);
   color: inherit;
 }
+
+.fo-column-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-column-button-drag-over {
+  box-shadow: inset 2px 0 0 var(--fo-accent);
+}
+
+.fo-colvis-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+}
+
+.fo-colvis-item--active {
+  font-weight: 600;
+}
+
+.fo-preview-pdf {
+  width: 100%;
+  min-height: 320px;
+  flex: 1 1 auto;
+  border: 0;
+}

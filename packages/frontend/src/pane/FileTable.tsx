@@ -388,7 +388,7 @@ export function FileTable({
                 {onCreateFolder && (
                   <button
                     type="button"
-                    className="fo-empty-action fo-empty-action--folder"
+                    className="fo-empty-action"
                     onClick={onCreateFolder}
                   >
                     New Folder
@@ -397,7 +397,7 @@ export function FileTable({
                 {onCreateFile && (
                   <button
                     type="button"
-                    className="fo-empty-action fo-empty-action--file"
+                    className="fo-empty-action"
                     onClick={onCreateFile}
                   >
                     New File
@@ -456,15 +456,7 @@ export function FileTable({
         )}
       </div>
       {colVisMenu && onToggleColumn && (
-        <div
-          className="fo-colvis-backdrop"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: 50,
-          }}
-          onClick={() => setColVisMenu(null)}
-        >
+        <div className="fo-colvis-backdrop" onClick={() => setColVisMenu(null)}>
           <ul
             className="fo-colvis-menu"
             role="menu"

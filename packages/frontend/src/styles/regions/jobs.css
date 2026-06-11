@@ -357,3 +357,8 @@
   border-radius: var(--fo-radius-xs);
   box-shadow: var(--fo-elevation-popover);
 }
+
+.fo-history-kind {
+  font-weight: 600;
+  text-transform: capitalize;
+}
