@@ -4026,3 +4026,222 @@ dialog.fo-dialog[open] {
   color: var(--fo-muted-text);
   font-size: var(--fo-font-size-sm);
 }
+
+.fo-dialog.fo-network-locations-dialog {
+  width: min(44rem, calc(100vw - 2rem));
+}
+
+.fo-dialog.fo-session-manager-dialog {
+  width: min(38rem, calc(100vw - 2rem));
+}
+
+.fo-network-profile-list {
+  display: grid;
+  gap: var(--fo-spacing-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+}
+
+.fo-network-profile-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fo-spacing-md);
+  padding: var(--fo-spacing-md) var(--fo-spacing-lg);
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-panel-bg);
+}
+
+.fo-network-profile-main {
+  display: flex;
+  align-items: center;
+  gap: var(--fo-spacing-md);
+  min-width: 0;
+}
+
+.fo-network-profile-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-active-bg);
+  color: var(--fo-accent);
+}
+
+.fo-network-profile-title {
+  font-weight: 600;
+}
+
+.fo-network-profile-meta {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.fo-network-profile-status {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-xs);
+}
+
+.fo-network-profile-status-connected {
+  color: var(--fo-success);
+}
+
+.fo-network-profile-status-error {
+  color: var(--fo-danger-text);
+}
+
+.fo-network-profile-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-network-empty {
+  margin: 0;
+  padding: var(--fo-spacing-lg);
+  color: var(--fo-muted-text);
+  text-align: center;
+}
+
+.fo-dialog.fo-multi-rename-dialog {
+  width: min(52rem, calc(100vw - 2rem));
+}
+
+.fo-multi-rename-dialog .fo-dialog-body {
+  grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+  gap: var(--fo-spacing-lg);
+}
+
+.fo-multi-rename-form {
+  display: grid;
+  align-content: start;
+  gap: var(--fo-spacing-md);
+}
+
+.fo-multi-rename-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fo-spacing-xs);
+}
+
+.fo-multi-rename-counter {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-multi-rename-preview {
+  display: grid;
+  align-content: start;
+  gap: var(--fo-spacing-sm);
+  min-width: 0;
+}
+
+.fo-multi-rename-preview h3 {
+  margin: 0;
+  font-size: var(--fo-font-size-md);
+}
+
+.fo-multi-rename-conflict-warning {
+  padding: var(--fo-spacing-sm) var(--fo-spacing-md);
+  border: 1px solid var(--fo-danger-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-danger-bg);
+  color: var(--fo-danger-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-multi-rename-results {
+  max-height: 22rem;
+  overflow: auto;
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-xs);
+}
+
+.fo-multi-rename-results table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-multi-rename-results th,
+.fo-multi-rename-results td {
+  padding: var(--fo-spacing-xs) var(--fo-spacing-md);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.fo-multi-rename-results th {
+  position: sticky;
+  top: 0;
+  background: var(--fo-workbench-dialog-panel-bg);
+  color: var(--fo-muted-text);
+  font-weight: 600;
+}
+
+.fo-multi-rename-results td {
+  border-top: 1px solid var(--fo-divider);
+}
+
+.fo-multi-rename-conflict td {
+  color: var(--fo-danger-text);
+}
+
+.fo-multi-rename-changed td:last-child {
+  color: var(--fo-accent);
+}
+
+.fo-session-list {
+  display: grid;
+  gap: var(--fo-spacing-sm);
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.fo-session-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fo-spacing-md);
+  padding: var(--fo-spacing-md) var(--fo-spacing-lg);
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-panel-bg);
+}
+
+.fo-session-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fo-session-meta {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-session-date {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-xs);
+}
+
+.fo-session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fo-spacing-sm);
+}
+
+@media (max-width: 880px) {
+  .fo-multi-rename-dialog .fo-dialog-body {
+    grid-template-columns: 1fr;
+  }
+}
