@@ -99,6 +99,16 @@
   overflow-wrap: anywhere;
 }
 
+.fo-dialog.fo-wizard-dialog {
+  width: min(44rem, calc(100vw - 2rem));
+}
+
+.fo-wizard-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 0.85rem;
+}
+
 .fo-dialog.fo-first-run-dialog {
   width: min(48rem, calc(100vw - 2rem));
 }
@@ -4164,4 +4174,115 @@ dialog.fo-dialog[open] {
   .fo-multi-rename-dialog .fo-dialog-body {
     grid-template-columns: 1fr;
   }
+}
+
+.fo-dialog.fo-close-pane-terminal-dialog,
+.fo-dialog.fo-remove-server-dialog {
+  width: min(26rem, calc(100vw - 2rem));
+}
+
+.fo-dialog.fo-terminal-command-dialog,
+.fo-dialog.fo-remote-path-picker-dialog {
+  width: min(34rem, calc(100vw - 2rem));
+}
+
+.fo-dialog-subtitle {
+  margin: 0;
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-dialog-content {
+  display: grid;
+  align-content: start;
+  gap: var(--fo-spacing-md);
+  min-height: 0;
+  overflow: auto;
+}
+
+.fo-dialog-field-static {
+  display: grid;
+  gap: var(--fo-spacing-sm);
+  justify-items: start;
+}
+
+.fo-fingerprint-display {
+  padding: var(--fo-spacing-xs) var(--fo-spacing-sm);
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-xs);
+  background: var(--fo-workbench-dialog-panel-bg);
+  font-family: var(--fo-font-mono);
+  font-size: var(--fo-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.fo-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-conflict-source {
+  box-shadow: inset 3px 0 0 var(--fo-accent);
+}
+
+.fo-conflict-dest {
+  box-shadow: inset 3px 0 0 var(--fo-warning);
+}
+
+.fo-acl-owner,
+.fo-acl-group {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-properties-label {
+  color: var(--fo-muted-text);
+}
+
+.fo-properties-content {
+  display: grid;
+  align-content: start;
+  gap: var(--fo-spacing-md);
+  min-height: 0;
+  overflow: auto;
+}
+
+.fo-properties-error {
+  color: var(--fo-danger-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-properties-input {
+  font-family: var(--fo-font-mono);
+}
+
+.fo-editor-confirm-message {
+  margin: 0;
+}
+
+.fo-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-destination-chooser {
+  display: grid;
+  align-content: start;
+  gap: var(--fo-spacing-md);
+  min-height: 0;
+}
+
+.fo-path-field {
+  display: grid;
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-context-menu-group {
+  display: grid;
+}
+
+.fo-context-menu-item--submenu {
+  justify-content: space-between;
 }
