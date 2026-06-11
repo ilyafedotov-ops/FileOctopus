@@ -33,14 +33,14 @@ export function FirstRunOverlay({
       <h3>Dual pane workspace</h3>
       <p>Start with a commander-style workspace for local and remote files.</p>
       <div className="fo-first-run-grid">
-        <button type="button">
+        <div className="fo-first-run-card">
           <strong>Dual pane</strong>
           <span>Compare, copy, and move between two locations.</span>
-        </button>
-        <button type="button">
+        </div>
+        <div className="fo-first-run-card">
           <strong>Activity rail</strong>
           <span>Track long-running jobs without leaving the workspace.</span>
-        </button>
+        </div>
         <button type="button" aria-label="Start" onClick={() => run()}>
           <strong>Start</strong>
           <span>Skip setup and open the workspace.</span>
@@ -102,6 +102,7 @@ export function FirstRunOverlay({
     </div>,
     <div key="finish" className="fo-first-run-body">
       <h3>Ready</h3>
+      <p>You are set up. Open the workspace, or jump straight into:</p>
       <div className="fo-first-run-grid">
         <button
           type="button"
@@ -149,6 +150,7 @@ export function FirstRunOverlay({
       }}
       primaryLabel={step === body.length - 1 ? "Start" : "Next"}
       cancelLabel="Skip"
+      showCancel={step < body.length - 1}
       className="fo-first-run-dialog"
     >
       {body[step]}
