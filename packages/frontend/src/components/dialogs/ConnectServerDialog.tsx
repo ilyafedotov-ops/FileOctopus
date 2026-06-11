@@ -329,9 +329,6 @@ export function ConnectServerDialog({
       ? (selectedProvider.missingDependency ??
         `${selectedProvider.label} is unavailable.`)
       : null;
-  const unavailableProviders = providers.filter(
-    (provider) => provider.status === "unavailable",
-  );
   const tabs = useMemo<ConnectTab[]>(() => {
     const next: ConnectTab[] = ["general"];
     if (scheme === "sftp" || scheme === "ssh") next.push("ssh");
@@ -538,6 +535,11 @@ export function ConnectServerDialog({
     resetVolatileState();
   }
 
+  function updatePrivateKeyPath(nextPath: string) {
+    setPrivateKeyPath(nextPath);
+    clearInvalidField("privateKey");
+  }
+
   async function browsePrivateKeyPath() {
     const selected = await pickLocalPath({
       kind: "file",
@@ -545,7 +547,7 @@ export function ConnectServerDialog({
       title: "Choose private key",
     });
     if (selected) {
-      setPrivateKeyPath(selected);
+      updatePrivateKeyPath(selected);
     }
   }
 
@@ -609,6 +611,29 @@ export function ConnectServerDialog({
     };
   }
 
+  function invalidFieldsMessage(invalid: Set<string>): string | null {
+    if (invalid.size === 0) return null;
+    const missing: string[] = [];
+    if (invalid.has("label")) missing.push("Profile name");
+    if (invalid.has("host")) missing.push(hostLabel);
+    if (invalid.has("port")) missing.push("Port (1-65535)");
+    if (invalid.has("username")) missing.push(usernameLabel);
+    if (invalid.has("privateKey")) missing.push("Private key path");
+    if (invalid.has("password")) missing.push(passwordLabel);
+    return `Missing or invalid: ${missing.join(", ")}.`;
+  }
+
+  function clearInvalidField(...fields: string[]) {
+    const next = new Set(invalidFields);
+    let changed = false;
+    for (const field of fields) {
+      if (next.delete(field)) changed = true;
+    }
+    if (!changed) return;
+    setInvalidFields(next);
+    setError(invalidFieldsMessage(next));
+  }
+
   function validate(): boolean {
     const invalid = new Set<string>();
     const parsedPort = Number(port);
@@ -630,15 +655,7 @@ export function ConnectServerDialog({
     }
     if (invalid.size > 0) {
       setInvalidFields(invalid);
-      if (invalid.has("port") && invalid.size === 1) {
-        setError("Enter a valid port.");
-      } else if (invalid.has("privateKey")) {
-        setError("Private key path is required.");
-      } else if (invalid.has("password")) {
-        setError(`${passwordLabel} is required for a new connection.`);
-      } else {
-        setError("Profile name, host, username, and port are required.");
-      }
+      setError(invalidFieldsMessage(invalid));
       return false;
     }
     setInvalidFields(new Set());
@@ -753,6 +770,9 @@ export function ConnectServerDialog({
         variant="default"
         size="sm"
         disabled={!savedProfileSelected}
+        title={
+          savedProfileSelected ? undefined : "Save the connection profile first"
+        }
         onClick={handleConnect}
       >
         Connect
@@ -867,7 +887,11 @@ export function ConnectServerDialog({
           </div>
 
           <div className="fo-connect-tab-panel">
-            {error ? <div className="fo-dialog-error">{error}</div> : null}
+            {error ? (
+              <div className="fo-dialog-error" role="alert">
+                {error}
+              </div>
+            ) : null}
             {unavailableMessage ? (
               <div className="fo-connect-provider-warning">
                 {unavailableMessage}
@@ -885,7 +909,10 @@ export function ConnectServerDialog({
                         ? "fo-field-invalid"
                         : undefined
                     }
-                    onChange={(event) => setLabel(event.target.value)}
+                    onChange={(event) => {
+                      setLabel(event.target.value);
+                      clearInvalidField("label");
+                    }}
                     placeholder="Production SFTP"
                   />
                 </label>
@@ -912,16 +939,6 @@ export function ConnectServerDialog({
                     ))}
                   </select>
                 </label>
-                {unavailableProviders.length > 0 ? (
-                  <div className="fo-connect-provider-warning fo-connect-full">
-                    {unavailableProviders.map((provider) => (
-                      <span key={provider.scheme}>
-                        {provider.missingDependency ??
-                          `${provider.label} is unavailable.`}
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
                 <label className="fo-dialog-field">
                   <span>{hostLabel}</span>
                   <input
@@ -931,7 +948,10 @@ export function ConnectServerDialog({
                     className={
                       invalidFields.has("host") ? "fo-field-invalid" : undefined
                     }
-                    onChange={(event) => setHost(event.target.value)}
+                    onChange={(event) => {
+                      setHost(event.target.value);
+                      clearInvalidField("host");
+                    }}
                     placeholder={hostPlaceholder}
                   />
                 </label>
@@ -943,7 +963,10 @@ export function ConnectServerDialog({
                     className={
                       invalidFields.has("port") ? "fo-field-invalid" : undefined
                     }
-                    onChange={(event) => setPort(event.target.value)}
+                    onChange={(event) => {
+                      setPort(event.target.value);
+                      clearInvalidField("port");
+                    }}
                     inputMode="numeric"
                   />
                 </label>
@@ -958,10 +981,46 @@ export function ConnectServerDialog({
                         ? "fo-field-invalid"
                         : undefined
                     }
-                    onChange={(event) => setUsername(event.target.value)}
+                    onChange={(event) => {
+                      setUsername(event.target.value);
+                      clearInvalidField("username");
+                    }}
                     placeholder={usernamePlaceholder}
                   />
                 </label>
+                {authKinds.length > 1 ? (
+                  <div className="fo-dialog-field fo-connect-full">
+                    <span>Authentication</span>
+                    <div
+                      className="fo-connect-auth-options"
+                      role="group"
+                      aria-label="Authentication method"
+                    >
+                      {authKinds.map((kind) => (
+                        <button
+                          key={kind}
+                          type="button"
+                          aria-pressed={authKind === kind}
+                          className={
+                            authKind === kind
+                              ? "fo-connect-auth-option fo-connect-auth-option-active"
+                              : "fo-connect-auth-option"
+                          }
+                          onClick={() => {
+                            setAuthKind(kind);
+                            clearInvalidField("password", "privateKey");
+                          }}
+                        >
+                          {kind === "privateKey"
+                            ? "Private key"
+                            : kind === "accessKey"
+                              ? "Access key"
+                              : "Password"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 {showPasswordField ? (
                   <label className="fo-dialog-field">
                     <span>{passwordLabel}</span>
@@ -974,7 +1033,10 @@ export function ConnectServerDialog({
                           ? "fo-field-invalid"
                           : undefined
                       }
-                      onChange={(event) => setPassword(event.target.value)}
+                      onChange={(event) => {
+                        setPassword(event.target.value);
+                        clearInvalidField("password");
+                      }}
                       placeholder={
                         currentProfile?.hasStoredSecret
                           ? "Leave blank to keep existing"
@@ -982,6 +1044,59 @@ export function ConnectServerDialog({
                       }
                     />
                   </label>
+                ) : null}
+                {showPrivateKeyField ? (
+                  <>
+                    <div className="fo-dialog-field fo-connect-full">
+                      <span>Detected keys</span>
+                      <div className="fo-connect-key-list">
+                        {detectingSshKeys ? (
+                          <span className="fo-settings-hint">
+                            Scanning Home/.ssh...
+                          </span>
+                        ) : detectedSshKeys.length > 0 ? (
+                          detectedSshKeys.map((keyPath) => (
+                            <button
+                              key={keyPath}
+                              type="button"
+                              className={
+                                privateKeyPath === keyPath
+                                  ? "fo-connect-key-option fo-connect-key-option-active"
+                                  : "fo-connect-key-option"
+                              }
+                              onClick={() => updatePrivateKeyPath(keyPath)}
+                            >
+                              {keyPath}
+                            </button>
+                          ))
+                        ) : (
+                          <span className="fo-settings-hint">
+                            No common SSH keys found in Home/.ssh.
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <PathBrowseField
+                      className="fo-dialog-field fo-connect-full"
+                      label="Private key path"
+                      value={privateKeyPath}
+                      placeholder="/Users/you/.ssh/id_ed25519"
+                      browseLabel="Browse private key path"
+                      onChange={updatePrivateKeyPath}
+                      onBrowse={() => void browsePrivateKeyPath()}
+                    />
+                    <label className="fo-dialog-field">
+                      <span>Key passphrase</span>
+                      <input
+                        type="password"
+                        value={passphrase}
+                        onChange={(event) => setPassphrase(event.target.value)}
+                        placeholder={
+                          currentProfile ? "Leave blank to keep existing" : ""
+                        }
+                      />
+                    </label>
+                  </>
                 ) : null}
                 {showDefaultPath || showBucketField ? (
                   canBrowseRemoteDefaultPath ? (
@@ -1011,82 +1126,6 @@ export function ConnectServerDialog({
 
             {activeTab === "ssh" ? (
               <div className="fo-connect-grid">
-                <div className="fo-dialog-field fo-connect-full">
-                  <span>Authentication</span>
-                  <div className="fo-connect-auth-options" role="group">
-                    {authKinds.map((kind) => (
-                      <button
-                        key={kind}
-                        type="button"
-                        className={
-                          authKind === kind
-                            ? "fo-connect-auth-option fo-connect-auth-option-active"
-                            : "fo-connect-auth-option"
-                        }
-                        onClick={() => setAuthKind(kind)}
-                      >
-                        {kind === "privateKey"
-                          ? "Private key"
-                          : kind === "accessKey"
-                            ? "Access key"
-                            : "Password"}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                {showPrivateKeyField ? (
-                  <>
-                    <div className="fo-dialog-field fo-connect-full">
-                      <span>Detected keys</span>
-                      <div className="fo-connect-key-list">
-                        {detectingSshKeys ? (
-                          <span className="fo-settings-hint">
-                            Scanning Home/.ssh...
-                          </span>
-                        ) : detectedSshKeys.length > 0 ? (
-                          detectedSshKeys.map((keyPath) => (
-                            <button
-                              key={keyPath}
-                              type="button"
-                              className={
-                                privateKeyPath === keyPath
-                                  ? "fo-connect-key-option fo-connect-key-option-active"
-                                  : "fo-connect-key-option"
-                              }
-                              onClick={() => setPrivateKeyPath(keyPath)}
-                            >
-                              {keyPath}
-                            </button>
-                          ))
-                        ) : (
-                          <span className="fo-settings-hint">
-                            No common SSH keys found in Home/.ssh.
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <PathBrowseField
-                      className="fo-dialog-field fo-connect-full"
-                      label="Private key path"
-                      value={privateKeyPath}
-                      placeholder="/Users/you/.ssh/id_ed25519"
-                      browseLabel="Browse private key path"
-                      onChange={setPrivateKeyPath}
-                      onBrowse={() => void browsePrivateKeyPath()}
-                    />
-                    <label className="fo-dialog-field">
-                      <span>Key passphrase</span>
-                      <input
-                        type="password"
-                        value={passphrase}
-                        onChange={(event) => setPassphrase(event.target.value)}
-                        placeholder={
-                          currentProfile ? "Leave blank to keep existing" : ""
-                        }
-                      />
-                    </label>
-                  </>
-                ) : null}
                 <label className="fo-dialog-checkbox fo-connect-full">
                   <input
                     type="checkbox"
@@ -1249,9 +1288,7 @@ export function ConnectServerDialog({
                   <dt>Protocol</dt>
                   <dd>{protocolLabel(scheme)}</dd>
                   <dt>{hostLabel}</dt>
-                  <dd>
-                    {host || "-"}:{port}
-                  </dd>
+                  <dd>{host ? `${host}:${port}` : "—"}</dd>
                   <dt>{usernameLabel}</dt>
                   <dd>{username || "-"}</dd>
                   <dt>{defaultPathLabel}</dt>
