@@ -7,6 +7,10 @@ import type {
   GitDiscoverResponse,
   GitHistoryRequest,
   GitHistoryResponse,
+  GitRevisionDiffRequest,
+  GitRevisionDiffResponse,
+  GitRevisionFilesRequest,
+  GitRevisionFilesResponse,
   GitStatusForDirectoryRequest,
   GitStatusForDirectoryResponse,
   GitStatusForRepositoryRequest,
@@ -65,5 +69,22 @@ export class GitClient {
     return this.transport.invoke<GitWorktreesResponse>("git.worktrees", {
       request,
     });
+  }
+
+  async revisionDiff(
+    request: GitRevisionDiffRequest,
+  ): Promise<GitRevisionDiffResponse> {
+    return this.transport.invoke<GitRevisionDiffResponse>("git.revisionDiff", {
+      request,
+    });
+  }
+
+  async revisionFiles(
+    request: GitRevisionFilesRequest,
+  ): Promise<GitRevisionFilesResponse> {
+    return this.transport.invoke<GitRevisionFilesResponse>(
+      "git.revisionFiles",
+      { request },
+    );
   }
 }

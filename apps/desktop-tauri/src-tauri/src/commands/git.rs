@@ -4,8 +4,10 @@ use app_core::AppState;
 use app_ipc::{
     GitBranchesRequest, GitBranchesResponse, GitDiffFileRequest, GitDiffFileResponse,
     GitDiscoverRequest, GitDiscoverResponse, GitHistoryRequest, GitHistoryResponse,
-    GitStatusForDirectoryRequest, GitStatusForDirectoryResponse, GitStatusForRepositoryRequest,
-    GitStatusForRepositoryResponse, GitWorktreesRequest, GitWorktreesResponse, IpcError,
+    GitRevisionDiffRequest, GitRevisionDiffResponse, GitRevisionFilesRequest,
+    GitRevisionFilesResponse, GitStatusForDirectoryRequest, GitStatusForDirectoryResponse,
+    GitStatusForRepositoryRequest, GitStatusForRepositoryResponse, GitWorktreesRequest,
+    GitWorktreesResponse, IpcError,
 };
 use tauri::State;
 use vfs::ResourceUri;
@@ -103,4 +105,34 @@ pub async fn git_worktrees(
     let worktrees = state.git().worktrees(&uri).await.map_err(IpcError::from)?;
 
     Ok(worktrees.into())
+}
+
+#[tauri::command]
+pub async fn git_revision_diff(
+    state: State<'_, Arc<AppState>>,
+    request: GitRevisionDiffRequest,
+) -> Result<GitRevisionDiffResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let diff = state
+        .git()
+        .revision_diff(&uri, &request.base, &request.head, request.max_bytes)
+        .await
+        .map_err(IpcError::from)?;
+
+    Ok(diff.into())
+}
+
+#[tauri::command]
+pub async fn git_revision_files(
+    state: State<'_, Arc<AppState>>,
+    request: GitRevisionFilesRequest,
+) -> Result<GitRevisionFilesResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let files = state
+        .git()
+        .revision_files(&uri, request.revision.as_deref(), request.max_count)
+        .await
+        .map_err(IpcError::from)?;
+
+    Ok(files.into())
 }

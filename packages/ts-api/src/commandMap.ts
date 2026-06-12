@@ -25,6 +25,8 @@ export const commandMap: Record<string, string> = {
   "git.history": "git_history",
   "git.branches": "git_branches",
   "git.worktrees": "git_worktrees",
+  "git.revisionDiff": "git_revision_diff",
+  "git.revisionFiles": "git_revision_files",
   "fs.folder_size": "fs_folder_size",
   "fs.folder_size_start": "fs_folder_size_start",
   "fs.recursive_search": "fs_recursive_search",

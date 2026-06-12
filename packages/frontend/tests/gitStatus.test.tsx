@@ -16,6 +16,9 @@ import type {
   GitHistoryResponse,
   GitBranchesResponse,
   GitWorktreesResponse,
+  GitRevisionDiffResponse,
+  GitRevisionFilesResponse,
+  GitClient,
 } from "@fileoctopus/ts-api";
 import { FileRow } from "../src/pane/FileRow";
 import { GitReviewTab } from "../src/components/git/GitReviewTab";
@@ -335,6 +338,55 @@ describe("GitReviewTab", () => {
     };
   }
 
+  function revisionDiff(): GitRevisionDiffResponse {
+    return {
+      repo: {
+        rootUri: "local:///repo",
+        branch: "main",
+        headShort: "abcdef1",
+        isDirty: true,
+      },
+      base: "1234567",
+      head: "abcdef1234567890",
+      files: [
+        {
+          ...fileDiff(),
+          file: {
+            uri: "local:///repo/src/commit.ts",
+            repoRelativePath: "src/commit.ts",
+            status: "modified",
+            previousUri: null,
+            previousRepoRelativePath: null,
+          },
+          oldLabel: "1234567:src/commit.ts",
+          newLabel: "abcdef1:src/commit.ts",
+        },
+      ],
+    };
+  }
+
+  function revisionFiles(): GitRevisionFilesResponse {
+    return {
+      repo: {
+        rootUri: "local:///repo",
+        branch: "main",
+        headShort: "abcdef1",
+        isDirty: true,
+      },
+      revision: "HEAD",
+      files: [
+        {
+          uri: "local:///repo/src/app.ts",
+          repoRelativePath: "src/app.ts",
+        },
+        {
+          uri: "local:///repo/packages/frontend/src/App.tsx",
+          repoRelativePath: "packages/frontend/src/App.tsx",
+        },
+      ],
+    };
+  }
+
   function history(): GitHistoryResponse {
     return {
       repo: {
@@ -415,13 +467,18 @@ describe("GitReviewTab", () => {
   }
 
   function gitClient(
-    overrides: Partial<{
-      statusForRepository: () => Promise<GitStatusForRepositoryResponse>;
-      diffFile: () => Promise<GitDiffFileResponse>;
-      history: () => Promise<GitHistoryResponse>;
-      branches: () => Promise<GitBranchesResponse>;
-      worktrees: () => Promise<GitWorktreesResponse>;
-    }> = {},
+    overrides: Partial<
+      Pick<
+        GitClient,
+        | "statusForRepository"
+        | "diffFile"
+        | "history"
+        | "branches"
+        | "worktrees"
+        | "revisionDiff"
+        | "revisionFiles"
+      >
+    > = {},
   ) {
     return {
       statusForRepository: vi.fn(async () => repositoryStatus()),
@@ -429,6 +486,8 @@ describe("GitReviewTab", () => {
       history: vi.fn(async () => history()),
       branches: vi.fn(async () => branches()),
       worktrees: vi.fn(async () => worktrees()),
+      revisionDiff: vi.fn(async () => revisionDiff()),
+      revisionFiles: vi.fn(async () => revisionFiles()),
       ...overrides,
     };
   }
@@ -691,6 +750,41 @@ describe("GitReviewTab", () => {
     expect(writeText).toHaveBeenCalledWith("abcdef1234567890");
   });
 
+  it("shows changed files and a diff for a selected history commit", async () => {
+    const git = gitClient();
+    const fs = {
+      openPathWithDefaultApp: vi.fn(),
+      revealPathInFileManager: vi.fn(),
+    };
+
+    render(
+      <GitReviewTab
+        repoRootUri="local:///repo"
+        repoLabel="main"
+        sourceUri="local:///repo/src"
+        refreshToken={0}
+        git={git}
+        fs={fs}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
+
+    await screen.findByText("Add Git workspace");
+    fireEvent.click(
+      screen.getByRole("button", { name: "View commit Add Git workspace" }),
+    );
+
+    expect(await screen.findByText("commit.ts")).toBeTruthy();
+    expect(await screen.findByTestId("git-review-diff-unified")).toBeTruthy();
+    expect(git.revisionDiff).toHaveBeenCalledWith({
+      uri: "local:///repo",
+      base: "1234567",
+      head: "abcdef1234567890",
+      maxBytes: 524288,
+    });
+  });
+
   it("renders local and remote branches with the active marker", async () => {
     const git = gitClient();
     const fs = {
@@ -717,6 +811,64 @@ describe("GitReviewTab", () => {
     expect(screen.getByText("origin/main")).toBeTruthy();
     expect(screen.getByText("current")).toBeTruthy();
     expect(screen.getByText("upstream origin/main")).toBeTruthy();
+  });
+
+  it("shows branch changes and tracked files for a selected branch", async () => {
+    const git = gitClient({
+      revisionDiff: vi.fn(async () => ({
+        ...revisionDiff(),
+        files: [
+          {
+            ...fileDiff(),
+            file: {
+              uri: "local:///repo/src/branch.ts",
+              repoRelativePath: "src/branch.ts",
+              status: "modified",
+              previousUri: null,
+              previousRepoRelativePath: null,
+            },
+            oldLabel: "HEAD:src/branch.ts",
+            newLabel: "refs/heads/main:src/branch.ts",
+          },
+        ],
+      })),
+    });
+    const fs = {
+      openPathWithDefaultApp: vi.fn(),
+      revealPathInFileManager: vi.fn(),
+    };
+
+    render(
+      <GitReviewTab
+        repoRootUri="local:///repo"
+        repoLabel="main"
+        sourceUri="local:///repo/src"
+        refreshToken={0}
+        git={git}
+        fs={fs}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Branches" }));
+
+    await screen.findByText("Local");
+    fireEvent.click(screen.getByRole("button", { name: "View branch main" }));
+
+    expect(await screen.findByText("branch.ts")).toBeTruthy();
+    expect(
+      await screen.findByText("packages/frontend/src/App.tsx"),
+    ).toBeTruthy();
+    expect(git.revisionDiff).toHaveBeenCalledWith({
+      uri: "local:///repo",
+      base: "HEAD",
+      head: "refs/heads/main",
+      maxBytes: 524288,
+    });
+    expect(git.revisionFiles).toHaveBeenCalledWith({
+      uri: "local:///repo",
+      revision: "refs/heads/main",
+      maxCount: 1000,
+    });
   });
 
   it("renders worktrees and can navigate or reveal the selected path", async () => {
@@ -749,6 +901,111 @@ describe("GitReviewTab", () => {
     expect(onNavigate).toHaveBeenCalledWith("local:///repo");
     expect(fs.revealPathInFileManager).toHaveBeenCalledWith({
       uri: "local:///repo",
+    });
+  });
+
+  it("shows changed files and diffs for a selected worktree", async () => {
+    const linkedStatus: GitStatusForRepositoryResponse = {
+      repo: {
+        rootUri: "local:///linked",
+        branch: "feature",
+        headShort: "fedcba9",
+        isDirty: true,
+      },
+      files: [
+        {
+          uri: "local:///linked/src/worktree.ts",
+          repoRelativePath: "src/worktree.ts",
+          status: "modified",
+          previousUri: null,
+          previousRepoRelativePath: null,
+        },
+      ],
+    };
+    const git = gitClient({
+      worktrees: vi.fn(async () => ({
+        repo: worktrees().repo,
+        worktrees: [
+          {
+            pathUri: "local:///linked",
+            branch: "feature",
+            head: "fedcba9876543210",
+            detached: false,
+            bare: false,
+            prunable: false,
+            prunableReason: null,
+          },
+        ],
+      })),
+      statusForRepository: vi.fn(async ({ uri }) =>
+        uri === "local:///linked" ? linkedStatus : repositoryStatus(),
+      ),
+      diffFile: vi.fn(async () => ({
+        ...fileDiff(),
+        file: linkedStatus.files[0],
+      })),
+    });
+    const fs = {
+      openPathWithDefaultApp: vi.fn(),
+      revealPathInFileManager: vi.fn(),
+    };
+
+    render(
+      <GitReviewTab
+        repoRootUri="local:///repo"
+        repoLabel="main"
+        sourceUri="local:///repo/src"
+        refreshToken={0}
+        git={git}
+        fs={fs}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Worktrees" }));
+
+    expect(await screen.findByText("local:///linked")).toBeTruthy();
+    fireEvent.click(
+      screen.getByRole("button", { name: "View worktree local:///linked" }),
+    );
+
+    expect(await screen.findByText("worktree.ts")).toBeTruthy();
+    expect(await screen.findByTestId("git-review-diff-unified")).toBeTruthy();
+    expect(git.statusForRepository).toHaveBeenCalledWith({
+      uri: "local:///linked",
+    });
+    expect(git.diffFile).toHaveBeenCalledWith({
+      uri: "local:///linked/src/worktree.ts",
+    });
+  });
+
+  it("shows tracked files for the main project folder", async () => {
+    const git = gitClient();
+    const fs = {
+      openPathWithDefaultApp: vi.fn(),
+      revealPathInFileManager: vi.fn(),
+    };
+
+    render(
+      <GitReviewTab
+        repoRootUri="local:///repo"
+        repoLabel="main"
+        sourceUri="local:///repo/src"
+        refreshToken={0}
+        git={git}
+        fs={fs}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Files" }));
+
+    expect(
+      await screen.findByText("packages/frontend/src/App.tsx"),
+    ).toBeTruthy();
+    expect(screen.getAllByText("src/app.ts").length).toBeGreaterThan(0);
+    expect(git.revisionFiles).toHaveBeenCalledWith({
+      uri: "local:///repo",
+      revision: "HEAD",
+      maxCount: 1000,
     });
   });
 

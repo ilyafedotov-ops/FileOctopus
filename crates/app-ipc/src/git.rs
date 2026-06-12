@@ -213,3 +213,68 @@ pub struct GitWorktreesResponse {
     pub repo: Option<GitRepoInfoDto>,
     pub worktrees: Vec<GitWorktreeDto>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/GitRevisionDiffRequest.ts")
+)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRevisionDiffRequest {
+    pub uri: String,
+    pub base: String,
+    pub head: String,
+    #[cfg_attr(feature = "ts", ts(as = "Option<i32>"))]
+    pub max_bytes: Option<u64>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/GitRevisionDiffResponse.ts")
+)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRevisionDiffResponse {
+    pub repo: Option<GitRepoInfoDto>,
+    pub base: String,
+    pub head: String,
+    pub files: Vec<GitDiffFileResponse>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/GitRevisionFilesRequest.ts")
+)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRevisionFilesRequest {
+    pub uri: String,
+    pub revision: Option<String>,
+    #[cfg_attr(feature = "ts", ts(as = "Option<i32>"))]
+    pub max_count: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GitRevisionFileDto.ts"))]
+#[serde(rename_all = "camelCase")]
+pub struct GitRevisionFileDto {
+    pub uri: String,
+    pub repo_relative_path: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "ipc/GitRevisionFilesResponse.ts")
+)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRevisionFilesResponse {
+    pub repo: Option<GitRepoInfoDto>,
+    pub revision: String,
+    pub files: Vec<GitRevisionFileDto>,
+}

@@ -93,6 +93,38 @@ impl GitService {
             .await
             .map_err(|error| GitError::Internal(error.to_string()))?
     }
+
+    pub async fn revision_diff(
+        &self,
+        uri: &ResourceUri,
+        base: &str,
+        head: &str,
+        max_bytes: Option<u64>,
+    ) -> Result<GitRevisionDiff, GitError> {
+        let path = local_git_context_path(uri)?;
+        let base = base.to_string();
+        let head = head.to_string();
+
+        tokio::task::spawn_blocking(move || {
+            revision_diff_blocking(&path, &base, &head, max_bytes.unwrap_or(512 * 1024))
+        })
+        .await
+        .map_err(|error| GitError::Internal(error.to_string()))?
+    }
+
+    pub async fn revision_files(
+        &self,
+        uri: &ResourceUri,
+        revision: Option<&str>,
+        max_count: Option<u32>,
+    ) -> Result<GitRevisionFiles, GitError> {
+        let path = local_git_context_path(uri)?;
+        let revision = revision.unwrap_or("HEAD").to_string();
+
+        tokio::task::spawn_blocking(move || revision_files_blocking(&path, &revision, max_count))
+            .await
+            .map_err(|error| GitError::Internal(error.to_string()))?
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -201,6 +233,30 @@ pub struct GitWorktree {
     pub bare: bool,
     pub prunable: bool,
     pub prunable_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRevisionDiff {
+    pub repo: Option<GitRepoInfo>,
+    pub base: String,
+    pub head: String,
+    pub files: Vec<GitFileDiff>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRevisionFiles {
+    pub repo: Option<GitRepoInfo>,
+    pub revision: String,
+    pub files: Vec<GitRevisionFile>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitRevisionFile {
+    pub uri: ResourceUri,
+    pub repo_relative_path: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -481,6 +537,108 @@ fn worktrees_blocking(path: &Path) -> Result<GitWorktrees, GitError> {
     })
 }
 
+fn revision_diff_blocking(
+    path: &Path,
+    base: &str,
+    head: &str,
+    max_bytes: u64,
+) -> Result<GitRevisionDiff, GitError> {
+    let Some(repo) = discover_blocking(path)? else {
+        return Ok(GitRevisionDiff {
+            repo: None,
+            base: base.to_string(),
+            head: head.to_string(),
+            files: Vec::new(),
+        });
+    };
+    let root = repo
+        .root_uri
+        .to_local_path()
+        .map_err(|error| GitError::InvalidUri(error.to_string()))?;
+    let output = match git_output(&root, &["diff", "--name-status", "-M", "-z", base, head])? {
+        GitCommandOutput::Success(value) => value,
+        GitCommandOutput::NotRepository => String::new(),
+    };
+    let changed_files = parse_name_status_changed_files(&root, output.as_bytes())?;
+    let mut files = Vec::new();
+
+    for file in changed_files {
+        let old_path = file
+            .previous_repo_relative_path
+            .as_deref()
+            .unwrap_or(&file.repo_relative_path)
+            .to_string();
+        let old_bytes = match file.status {
+            GitFileStatus::Added | GitFileStatus::Untracked => Vec::new(),
+            _ => git_blob_bytes_at(&root, base, &old_path).unwrap_or_default(),
+        };
+        let new_bytes = match file.status {
+            GitFileStatus::Deleted => Vec::new(),
+            _ => git_blob_bytes_at(&root, head, &file.repo_relative_path).unwrap_or_default(),
+        };
+        let old_label = format!("{base}:{old_path}");
+        let new_label = format!("{head}:{}", file.repo_relative_path);
+        files.push(build_file_diff_with_labels(
+            repo.clone(),
+            file,
+            old_bytes,
+            new_bytes,
+            max_bytes,
+            old_label,
+            new_label,
+        )?);
+    }
+
+    Ok(GitRevisionDiff {
+        repo: Some(repo),
+        base: base.to_string(),
+        head: head.to_string(),
+        files,
+    })
+}
+
+fn revision_files_blocking(
+    path: &Path,
+    revision: &str,
+    max_count: Option<u32>,
+) -> Result<GitRevisionFiles, GitError> {
+    let Some(repo) = discover_blocking(path)? else {
+        return Ok(GitRevisionFiles {
+            repo: None,
+            revision: revision.to_string(),
+            files: Vec::new(),
+        });
+    };
+    let root = repo
+        .root_uri
+        .to_local_path()
+        .map_err(|error| GitError::InvalidUri(error.to_string()))?;
+    let output = match git_output(&root, &["ls-tree", "-r", "-z", "--name-only", revision])? {
+        GitCommandOutput::Success(value) => value,
+        GitCommandOutput::NotRepository => String::new(),
+    };
+    let limit = max_count.unwrap_or(1000).clamp(1, 5000) as usize;
+    let files = output
+        .split('\0')
+        .filter(|path| !path.is_empty())
+        .take(limit)
+        .map(|path| {
+            ResourceUri::from_local_path(&root.join(path))
+                .map(|uri| GitRevisionFile {
+                    uri,
+                    repo_relative_path: path.to_string(),
+                })
+                .map_err(|error| GitError::InvalidUri(error.to_string()))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(GitRevisionFiles {
+        repo: Some(repo),
+        revision: revision.to_string(),
+        files,
+    })
+}
+
 fn diff_file_blocking(
     context_path: &Path,
     file_path: &Path,
@@ -516,7 +674,7 @@ fn diff_file_blocking(
     let old_bytes = match file.status {
         GitFileStatus::Added | GitFileStatus::Untracked if !has_head => Vec::new(),
         GitFileStatus::Added | GitFileStatus::Untracked => Vec::new(),
-        _ if has_head => git_blob_bytes(&root, &old_path).unwrap_or_default(),
+        _ if has_head => git_blob_bytes_at(&root, "HEAD", &old_path).unwrap_or_default(),
         _ => Vec::new(),
     };
     let new_bytes = match file.status {
@@ -535,10 +693,25 @@ fn build_file_diff(
     new_bytes: Vec<u8>,
     max_bytes: u64,
 ) -> Result<GitFileDiff, GitError> {
-    let old_truncated = old_bytes.len() as u64 > max_bytes;
-    let new_truncated = new_bytes.len() as u64 > max_bytes;
     let old_label = format!("HEAD:{}", old_path);
     let new_label = format!("Worktree:{}", file.repo_relative_path);
+
+    build_file_diff_with_labels(
+        repo, file, old_bytes, new_bytes, max_bytes, old_label, new_label,
+    )
+}
+
+fn build_file_diff_with_labels(
+    repo: GitRepoInfo,
+    file: GitChangedFile,
+    old_bytes: Vec<u8>,
+    new_bytes: Vec<u8>,
+    max_bytes: u64,
+    old_label: String,
+    new_label: String,
+) -> Result<GitFileDiff, GitError> {
+    let old_truncated = old_bytes.len() as u64 > max_bytes;
+    let new_truncated = new_bytes.len() as u64 > max_bytes;
 
     if old_truncated || new_truncated {
         return Ok(GitFileDiff {
@@ -648,12 +821,16 @@ fn git_has_head(path: &Path) -> Result<bool, GitError> {
     Ok(false)
 }
 
-fn git_blob_bytes(path: &Path, relative_path: &str) -> Result<Vec<u8>, GitError> {
+fn git_blob_bytes_at(
+    path: &Path,
+    revision: &str,
+    relative_path: &str,
+) -> Result<Vec<u8>, GitError> {
     let output = Command::new("git")
         .arg("-C")
         .arg(path)
         .arg("show")
-        .arg(format!("HEAD:{}", relative_path))
+        .arg(format!("{revision}:{relative_path}"))
         .output()
         .map_err(|error| GitError::CommandFailed(error.to_string()))?;
     if output.status.success() {
@@ -771,6 +948,58 @@ fn parse_porcelain_changed_files(
         });
     }
 
+    Ok(files)
+}
+
+fn parse_name_status_changed_files(
+    root: &Path,
+    output: &[u8],
+) -> Result<Vec<GitChangedFile>, GitError> {
+    let tokens = output
+        .split(|byte| *byte == 0)
+        .filter(|token| !token.is_empty())
+        .map(|token| String::from_utf8_lossy(token).to_string())
+        .collect::<Vec<_>>();
+    let mut files = Vec::new();
+    let mut index = 0;
+
+    while index < tokens.len() {
+        let status_token = &tokens[index];
+        index += 1;
+        if index >= tokens.len() {
+            break;
+        }
+        let status = status_from_name_status(status_token);
+        let previous_repo_relative_path =
+            if status_token.starts_with('R') || status_token.starts_with('C') {
+                let previous = tokens[index].clone();
+                index += 1;
+                if index >= tokens.len() {
+                    break;
+                }
+                Some(previous)
+            } else {
+                None
+            };
+        let path = tokens[index].clone();
+        index += 1;
+        let uri = ResourceUri::from_local_path(&root.join(&path))
+            .map_err(|error| GitError::InvalidUri(error.to_string()))?;
+        let previous_uri = previous_repo_relative_path
+            .as_ref()
+            .map(|path| ResourceUri::from_local_path(&root.join(path)))
+            .transpose()
+            .map_err(|error| GitError::InvalidUri(error.to_string()))?;
+        files.push(GitChangedFile {
+            uri,
+            repo_relative_path: path,
+            status,
+            previous_uri,
+            previous_repo_relative_path,
+        });
+    }
+
+    files.sort_by(|left, right| left.repo_relative_path.cmp(&right.repo_relative_path));
     Ok(files)
 }
 
@@ -1034,6 +1263,16 @@ fn status_from_xy(xy: &str) -> GitFileStatus {
         (b'A', _) | (_, b'A') => GitFileStatus::Added,
         (b'M', _) | (_, b'M') => GitFileStatus::Modified,
         (b' ', b' ') => GitFileStatus::Clean,
+        _ => GitFileStatus::Unknown,
+    }
+}
+
+fn status_from_name_status(status: &str) -> GitFileStatus {
+    match status.as_bytes().first().copied() {
+        Some(b'M') => GitFileStatus::Modified,
+        Some(b'A') => GitFileStatus::Added,
+        Some(b'D') => GitFileStatus::Deleted,
+        Some(b'R') | Some(b'C') => GitFileStatus::Renamed,
         _ => GitFileStatus::Unknown,
     }
 }

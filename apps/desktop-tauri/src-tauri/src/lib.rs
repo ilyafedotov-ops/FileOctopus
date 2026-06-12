@@ -99,6 +99,8 @@ pub fn run() {
             commands::git::git_history,
             commands::git::git_branches,
             commands::git::git_worktrees,
+            commands::git::git_revision_diff,
+            commands::git::git_revision_files,
             commands::folder_size::fs_folder_size,
             commands::folder_size::fs_folder_size_start,
             commands::recursive_search::fs_recursive_search,

@@ -813,6 +813,58 @@ describe("FileOctopusClient", () => {
           } as TResponse;
         }
 
+        if (command === "git.revisionDiff") {
+          return {
+            repo: {
+              rootUri: "local:///repo",
+              branch: "main",
+              headShort: "abcdef1",
+              isDirty: true,
+            },
+            base: "HEAD",
+            head: "feature/example",
+            files: [
+              {
+                repo: null,
+                file: {
+                  uri: "local:///repo/changed.txt",
+                  repoRelativePath: "changed.txt",
+                  status: "modified",
+                  previousUri: null,
+                  previousRepoRelativePath: null,
+                },
+                oldLabel: "HEAD:changed.txt",
+                newLabel: "feature/example:changed.txt",
+                hunks: [],
+                oldLineCount: 1,
+                newLineCount: 1,
+                oldTruncated: false,
+                newTruncated: false,
+                binary: false,
+                unsupportedReason: null,
+              },
+            ],
+          } as TResponse;
+        }
+
+        if (command === "git.revisionFiles") {
+          return {
+            repo: {
+              rootUri: "local:///repo",
+              branch: "main",
+              headShort: "abcdef1",
+              isDirty: true,
+            },
+            revision: "feature/example",
+            files: [
+              {
+                uri: "local:///repo/changed.txt",
+                repoRelativePath: "changed.txt",
+              },
+            ],
+          } as TResponse;
+        }
+
         return {
           repo: null,
           entries: {
@@ -839,6 +891,17 @@ describe("FileOctopusClient", () => {
     });
     const branches = await client.git.branches({ uri: "local:///repo" });
     const worktrees = await client.git.worktrees({ uri: "local:///repo" });
+    const revisionDiff = await client.git.revisionDiff({
+      uri: "local:///repo",
+      base: "HEAD",
+      head: "feature/example",
+      maxBytes: 4096,
+    });
+    const revisionFiles = await client.git.revisionFiles({
+      uri: "local:///repo",
+      revision: "feature/example",
+      maxCount: 250,
+    });
 
     expect(discovery.repo?.branch).toBe("main");
     expect(status.entries["local:///repo/changed.txt"]).toBe("modified");
@@ -847,6 +910,8 @@ describe("FileOctopusClient", () => {
     expect(history.commits[0]?.parentCount).toBe(1);
     expect(branches.branches[0]?.isCurrent).toBe(true);
     expect(worktrees.worktrees[0]?.pathUri).toBe("local:///repo");
+    expect(revisionDiff.files[0]?.newLabel).toBe("feature/example:changed.txt");
+    expect(revisionFiles.files[0]?.repoRelativePath).toBe("changed.txt");
     expect(calls.map((call) => call.command)).toEqual([
       "git.discover",
       "git.statusForDirectory",
@@ -855,6 +920,8 @@ describe("FileOctopusClient", () => {
       "git.history",
       "git.branches",
       "git.worktrees",
+      "git.revisionDiff",
+      "git.revisionFiles",
     ]);
     expect(calls[1]?.args).toEqual({
       request: { uri: "local:///repo" },
@@ -864,6 +931,21 @@ describe("FileOctopusClient", () => {
     });
     expect(calls[4]?.args).toEqual({
       request: { uri: "local:///repo", maxCount: 25 },
+    });
+    expect(calls[7]?.args).toEqual({
+      request: {
+        uri: "local:///repo",
+        base: "HEAD",
+        head: "feature/example",
+        maxBytes: 4096,
+      },
+    });
+    expect(calls[8]?.args).toEqual({
+      request: {
+        uri: "local:///repo",
+        revision: "feature/example",
+        maxCount: 250,
+      },
     });
   });
 

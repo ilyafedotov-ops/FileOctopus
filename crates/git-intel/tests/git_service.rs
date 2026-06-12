@@ -255,6 +255,95 @@ async fn history_returns_empty_outside_repo() {
 }
 
 #[tokio::test]
+async fn revision_diff_returns_changed_files_and_hunks_between_commits() {
+    let repo = TestRepo::init();
+    repo.write("old.txt", "one\ntwo\n");
+    repo.write("deleted.txt", "gone\n");
+    repo.git(["add", "."]);
+    repo.git(["commit", "-m", "initial"]);
+    let base = repo.git_stdout(["rev-parse", "HEAD"]);
+    repo.git(["mv", "old.txt", "new.txt"]);
+    repo.write("new.txt", "one\nTWO\n");
+    std::fs::remove_file(repo.path().join("deleted.txt")).unwrap();
+    repo.write("added.txt", "fresh\n");
+    repo.git(["add", "."]);
+    repo.git(["commit", "-m", "second"]);
+    let head = repo.git_stdout(["rev-parse", "HEAD"]);
+
+    let diff = GitService::new()
+        .revision_diff(
+            &repo.uri("new.txt"),
+            base.trim(),
+            head.trim(),
+            Some(512 * 1024),
+        )
+        .await
+        .unwrap();
+
+    let paths = diff
+        .files
+        .iter()
+        .map(|file| (file.file.repo_relative_path.as_str(), file.file.status))
+        .collect::<Vec<_>>();
+
+    assert_eq!(diff.base, base.trim());
+    assert_eq!(diff.head, head.trim());
+    assert!(paths.contains(&("added.txt", GitFileStatus::Added)));
+    assert!(paths.contains(&("deleted.txt", GitFileStatus::Deleted)));
+    assert!(paths.contains(&("new.txt", GitFileStatus::Renamed)));
+
+    let renamed = diff
+        .files
+        .iter()
+        .find(|file| file.file.repo_relative_path == "new.txt")
+        .unwrap();
+    assert_eq!(
+        renamed.file.previous_repo_relative_path.as_deref(),
+        Some("old.txt")
+    );
+    assert!(renamed
+        .hunks
+        .iter()
+        .flat_map(|hunk| hunk.lines.iter())
+        .any(|line| line.kind == "insert" && line.content == "TWO\n"));
+}
+
+#[tokio::test]
+async fn revision_files_returns_tracked_files_for_branch_or_head() {
+    let repo = TestRepo::init();
+    repo.write("main.txt", "main\n");
+    repo.git(["add", "."]);
+    repo.git(["commit", "-m", "initial"]);
+    repo.git(["switch", "-c", "feature/files"]);
+    repo.write("feature/only.txt", "feature\n");
+    repo.git(["add", "."]);
+    repo.git(["commit", "-m", "feature file"]);
+    repo.git(["switch", "main"]);
+
+    let main_files = GitService::new()
+        .revision_files(&repo.uri("main.txt"), Some("HEAD"), None)
+        .await
+        .unwrap();
+    let branch_files = GitService::new()
+        .revision_files(&repo.uri("main.txt"), Some("feature/files"), None)
+        .await
+        .unwrap();
+
+    assert!(main_files
+        .files
+        .iter()
+        .any(|file| file.repo_relative_path == "main.txt"));
+    assert!(!main_files
+        .files
+        .iter()
+        .any(|file| file.repo_relative_path == "feature/only.txt"));
+    assert!(branch_files
+        .files
+        .iter()
+        .any(|file| file.repo_relative_path == "feature/only.txt"));
+}
+
+#[tokio::test]
 async fn branches_lists_local_and_remote_refs_with_active_marker() {
     let repo = TestRepo::init();
     repo.write("base.txt", "base\n");
@@ -392,6 +481,20 @@ async fn read_only_repository_views_reject_remote_uris() {
     ));
     assert!(matches!(
         service.worktrees(&uri).await.unwrap_err(),
+        GitError::UnsupportedProvider
+    ));
+    assert!(matches!(
+        service
+            .revision_diff(&uri, "HEAD~1", "HEAD", None)
+            .await
+            .unwrap_err(),
+        GitError::UnsupportedProvider
+    ));
+    assert!(matches!(
+        service
+            .revision_files(&uri, Some("HEAD"), None)
+            .await
+            .unwrap_err(),
         GitError::UnsupportedProvider
     ));
 }
@@ -608,5 +711,21 @@ impl TestRepo {
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );
+    }
+
+    fn git_stdout<const N: usize>(&self, args: [&str; N]) -> String {
+        let output = Command::new("git")
+            .args(args)
+            .current_dir(self.path())
+            .output()
+            .unwrap();
+
+        assert!(
+            output.status.success(),
+            "git command failed: {}\n{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
+        String::from_utf8_lossy(&output.stdout).to_string()
     }
 }

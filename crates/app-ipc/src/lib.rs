@@ -4,7 +4,8 @@ use chrono::{DateTime, Utc};
 use git_intel::{
     GitBranch, GitBranches, GitChangedFile, GitCommit, GitDiffHunk, GitDiffLine,
     GitDirectoryStatus, GitError, GitFileDiff, GitFileStatus, GitHistory, GitRepoInfo,
-    GitRepositoryStatus, GitWorktree, GitWorktrees,
+    GitRepositoryStatus, GitRevisionDiff, GitRevisionFile, GitRevisionFiles, GitWorktree,
+    GitWorktrees,
 };
 use jobs::{JobEvent, JobSnapshot};
 use serde::{Deserialize, Serialize};
@@ -529,6 +530,36 @@ impl From<GitWorktrees> for GitWorktreesResponse {
         Self {
             repo: worktrees.repo.map(Into::into),
             worktrees: worktrees.worktrees.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<GitRevisionDiff> for GitRevisionDiffResponse {
+    fn from(diff: GitRevisionDiff) -> Self {
+        Self {
+            repo: diff.repo.map(Into::into),
+            base: diff.base,
+            head: diff.head,
+            files: diff.files.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<GitRevisionFile> for GitRevisionFileDto {
+    fn from(file: GitRevisionFile) -> Self {
+        Self {
+            uri: file.uri.as_str().to_string(),
+            repo_relative_path: file.repo_relative_path,
+        }
+    }
+}
+
+impl From<GitRevisionFiles> for GitRevisionFilesResponse {
+    fn from(files: GitRevisionFiles) -> Self {
+        Self {
+            repo: files.repo.map(Into::into),
+            revision: files.revision,
+            files: files.files.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -1459,6 +1490,79 @@ mod tests {
             "local:///tmp/repo"
         );
         assert_eq!(worktrees_json["worktrees"][0]["detached"], false);
+    }
+
+    #[test]
+    fn serializes_git_revision_diff_and_files() {
+        let root_uri = ResourceUri::parse("local:///tmp/repo").unwrap();
+        let repo = GitRepoInfo {
+            root_uri: root_uri.clone(),
+            branch: Some("main".to_string()),
+            head_short: Some("abcdef1".to_string()),
+            is_dirty: true,
+        };
+        let diff = GitRevisionDiff {
+            repo: Some(repo.clone()),
+            base: "HEAD~1".to_string(),
+            head: "feature/example".to_string(),
+            files: vec![GitFileDiff {
+                repo: Some(repo.clone()),
+                file: GitChangedFile {
+                    uri: ResourceUri::parse("local:///tmp/repo/src/app.ts").unwrap(),
+                    repo_relative_path: "src/app.ts".to_string(),
+                    status: GitFileStatus::Modified,
+                    previous_uri: None,
+                    previous_repo_relative_path: None,
+                },
+                old_label: "HEAD~1:src/app.ts".to_string(),
+                new_label: "feature/example:src/app.ts".to_string(),
+                hunks: vec![GitDiffHunk {
+                    old_start: 1,
+                    old_count: 1,
+                    new_start: 1,
+                    new_count: 1,
+                    lines: vec![GitDiffLine {
+                        kind: "insert".to_string(),
+                        content: "next\n".to_string(),
+                        old_line: None,
+                        new_line: Some(1),
+                    }],
+                }],
+                old_line_count: 0,
+                new_line_count: 1,
+                old_truncated: false,
+                new_truncated: false,
+                binary: false,
+                unsupported_reason: None,
+            }],
+        };
+        let files = GitRevisionFiles {
+            repo: Some(repo),
+            revision: "feature/example".to_string(),
+            files: vec![GitRevisionFile {
+                uri: ResourceUri::parse("local:///tmp/repo/src/app.ts").unwrap(),
+                repo_relative_path: "src/app.ts".to_string(),
+            }],
+        };
+
+        let diff_json = serde_json::to_value(GitRevisionDiffResponse::from(diff)).unwrap();
+        let files_json = serde_json::to_value(GitRevisionFilesResponse::from(files)).unwrap();
+
+        assert_eq!(diff_json["base"], "HEAD~1");
+        assert_eq!(diff_json["head"], "feature/example");
+        assert_eq!(
+            diff_json["files"][0]["file"]["repoRelativePath"],
+            "src/app.ts"
+        );
+        assert_eq!(
+            diff_json["files"][0]["hunks"][0]["lines"][0]["kind"],
+            "insert"
+        );
+        assert_eq!(files_json["revision"], "feature/example");
+        assert_eq!(
+            files_json["files"][0]["uri"],
+            "local:///tmp/repo/src/app.ts"
+        );
     }
 
     #[test]

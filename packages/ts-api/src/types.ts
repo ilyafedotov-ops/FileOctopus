@@ -413,6 +413,37 @@ export interface GitWorktreesResponse {
   worktrees: GitWorktreeDto[];
 }
 
+export interface GitRevisionDiffRequest {
+  uri: string;
+  base: string;
+  head: string;
+  maxBytes?: number;
+}
+
+export interface GitRevisionDiffResponse {
+  repo?: GitRepoInfoDto | null;
+  base: string;
+  head: string;
+  files: GitDiffFileResponse[];
+}
+
+export interface GitRevisionFilesRequest {
+  uri: string;
+  revision?: string | null;
+  maxCount?: number;
+}
+
+export interface GitRevisionFileDto {
+  uri: string;
+  repoRelativePath: string;
+}
+
+export interface GitRevisionFilesResponse {
+  repo?: GitRepoInfoDto | null;
+  revision: string;
+  files: GitRevisionFileDto[];
+}
+
 export interface TerminalSpawnRequest {
   uri?: string | null;
   profileId?: string | null;

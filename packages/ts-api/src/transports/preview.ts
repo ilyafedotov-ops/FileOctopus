@@ -432,6 +432,91 @@ export function createPreviewTransport(): IpcTransport {
         } as TResponse;
       }
 
+      if (command === "git.revisionDiff") {
+        const request = args?.request as
+          | { uri?: string; base?: string; head?: string }
+          | undefined;
+        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        return {
+          repo: {
+            rootUri,
+            branch: "main",
+            headShort: "preview",
+            isDirty: true,
+          },
+          base: request?.base ?? "HEAD~1",
+          head: request?.head ?? "HEAD",
+          files: [
+            {
+              repo: null,
+              file: {
+                uri: `${rootUri}/README.md`,
+                repoRelativePath: "README.md",
+                status: "modified",
+                previousUri: null,
+                previousRepoRelativePath: null,
+              },
+              oldLabel: `${request?.base ?? "HEAD~1"}:README.md`,
+              newLabel: `${request?.head ?? "HEAD"}:README.md`,
+              hunks: [
+                {
+                  oldStart: 1,
+                  oldCount: 1,
+                  newStart: 1,
+                  newCount: 1,
+                  lines: [
+                    {
+                      kind: "delete",
+                      content: "Preview Git workspace\n",
+                      oldLine: 1,
+                      newLine: null,
+                    },
+                    {
+                      kind: "insert",
+                      content: "Preview advanced Git workspace\n",
+                      oldLine: null,
+                      newLine: 1,
+                    },
+                  ],
+                },
+              ],
+              oldLineCount: 1,
+              newLineCount: 1,
+              oldTruncated: false,
+              newTruncated: false,
+              binary: false,
+              unsupportedReason: null,
+            },
+          ],
+        } as TResponse;
+      }
+
+      if (command === "git.revisionFiles") {
+        const request = args?.request as
+          | { uri?: string; revision?: string | null }
+          | undefined;
+        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        return {
+          repo: {
+            rootUri,
+            branch: "main",
+            headShort: "preview",
+            isDirty: true,
+          },
+          revision: request?.revision ?? "HEAD",
+          files: [
+            {
+              uri: `${rootUri}/README.md`,
+              repoRelativePath: "README.md",
+            },
+            {
+              uri: `${rootUri}/src/app.ts`,
+              repoRelativePath: "src/app.ts",
+            },
+          ],
+        } as TResponse;
+      }
+
       if (command === "network.profilesList") {
         return {
           profiles: [
