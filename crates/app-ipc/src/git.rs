@@ -114,3 +114,102 @@ pub struct GitDiffFileResponse {
     pub binary: bool,
     pub unsupported_reason: Option<String>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GitHistoryRequest.ts"))]
+#[serde(rename_all = "camelCase")]
+pub struct GitHistoryRequest {
+    pub uri: String,
+    #[cfg_attr(feature = "ts", ts(as = "Option<i32>"))]
+    pub max_count: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GitCommitDto.ts"))]
+#[serde(rename_all = "camelCase")]
+pub struct GitCommitDto {
+    pub hash: String,
+    pub short_hash: String,
+    pub parents: Vec<String>,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
+    pub parent_count: u64,
+    pub author_name: String,
+    pub author_email: String,
+    pub authored_at: String,
+    pub subject: String,
+    pub body: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GitHistoryResponse.ts"))]
+#[serde(rename_all = "camelCase")]
+pub struct GitHistoryResponse {
+    pub repo: Option<GitRepoInfoDto>,
+    pub commits: Vec<GitCommitDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GitBranchesRequest.ts"))]
+#[serde(rename_all = "camelCase")]
+pub struct GitBranchesRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GitBranchDto.ts"))]
+#[serde(rename_all = "camelCase")]
+pub struct GitBranchDto {
+    pub full_name: String,
+    pub name: String,
+    pub kind: String,
+    pub is_current: bool,
+    pub head: String,
+    pub upstream: Option<String>,
+    pub last_commit_at: Option<String>,
+    pub subject: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GitBranchesResponse.ts"))]
+#[serde(rename_all = "camelCase")]
+pub struct GitBranchesResponse {
+    pub repo: Option<GitRepoInfoDto>,
+    pub branches: Vec<GitBranchDto>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GitWorktreesRequest.ts"))]
+#[serde(rename_all = "camelCase")]
+pub struct GitWorktreesRequest {
+    pub uri: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GitWorktreeDto.ts"))]
+#[serde(rename_all = "camelCase")]
+pub struct GitWorktreeDto {
+    pub path_uri: String,
+    pub branch: Option<String>,
+    pub head: Option<String>,
+    pub detached: bool,
+    pub bare: bool,
+    pub prunable: bool,
+    pub prunable_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/GitWorktreesResponse.ts"))]
+#[serde(rename_all = "camelCase")]
+pub struct GitWorktreesResponse {
+    pub repo: Option<GitRepoInfoDto>,
+    pub worktrees: Vec<GitWorktreeDto>,
+}

@@ -109,11 +109,14 @@ export function PaneHeader({
             className={
               gitDirty ? "fo-git-branch fo-git-branch-dirty" : "fo-git-branch"
             }
-            aria-label={`Git branch ${gitBranch}${gitDirty ? " with changes" : ""}`}
-            title={`Review Git changes for ${gitBranch}`}
+            aria-label={`Open Git Review for branch ${gitBranch}${gitDirty ? " with changes" : ""}`}
+            title={`Open Git Review for ${gitBranch}`}
           >
-            <span className="fo-git-branch-mark" aria-hidden="true">
-              git
+            <span className="fo-git-branch-icon" aria-hidden="true">
+              {Icons.gitBranch()}
+            </span>
+            <span className="fo-git-review-label" aria-hidden="true">
+              Git Review
             </span>
             <span className="fo-git-branch-name">{gitBranch}</span>
           </button>

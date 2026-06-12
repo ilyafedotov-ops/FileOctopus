@@ -6,12 +6,16 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
+import { StrictMode, type ReactNode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type {
   GitDiffFileResponse,
   FileEntryDto,
   GitStatusForRepositoryResponse,
   GitStatusForDirectoryResponse,
+  GitHistoryResponse,
+  GitBranchesResponse,
+  GitWorktreesResponse,
 } from "@fileoctopus/ts-api";
 import { FileRow } from "../src/pane/FileRow";
 import { GitReviewTab } from "../src/components/git/GitReviewTab";
@@ -67,7 +71,7 @@ describe("Git pane status", () => {
     expect(screen.getByLabelText("Git status: modified")).toBeTruthy();
   });
 
-  it("renders the active repository branch in the pane header", () => {
+  it("renders a visible Git Review action in the pane header", () => {
     const onOpenGitReview = vi.fn();
 
     render(
@@ -82,9 +86,13 @@ describe("Git pane status", () => {
       />,
     );
 
-    fireEvent.click(screen.getByLabelText("Git branch main with changes"));
+    const reviewButton = screen.getByRole("button", {
+      name: "Open Git Review for branch main with changes",
+    });
+    fireEvent.click(reviewButton);
 
     expect(onOpenGitReview).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Git Review")).toBeTruthy();
     expect(screen.getByText("main")).toBeTruthy();
   });
 
@@ -118,6 +126,61 @@ describe("Git pane status", () => {
 
     await waitFor(() => expect(result.current.repo).toBeNull());
     expect(statusForDirectory).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the Git client method bound when loading pane status", async () => {
+    const status: GitStatusForDirectoryResponse = {
+      repo: {
+        rootUri: "local:///repo-bound",
+        branch: "main",
+        headShort: "abcdef1",
+        isDirty: true,
+      },
+      entries: {},
+    };
+    const client = {
+      git: {
+        status,
+        async statusForDirectory(this: {
+          status: GitStatusForDirectoryResponse;
+        }) {
+          return this.status;
+        },
+      },
+    };
+
+    const { result } = renderHook(() =>
+      usePaneGitStatus(client, "local:///repo-bound"),
+    );
+
+    await waitFor(() => expect(result.current.repo?.branch).toBe("main"));
+  });
+
+  it("loads pane Git status under React StrictMode", async () => {
+    const status: GitStatusForDirectoryResponse = {
+      repo: {
+        rootUri: "local:///repo-strict",
+        branch: "main",
+        headShort: "abcdef1",
+        isDirty: true,
+      },
+      entries: {},
+    };
+    const client = {
+      git: {
+        statusForDirectory: vi.fn(async () => status),
+      },
+    };
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <StrictMode>{children}</StrictMode>
+    );
+
+    const { result } = renderHook(
+      () => usePaneGitStatus(client, "local:///repo-strict"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.repo?.branch).toBe("main"));
   });
 
   it("reuses cached git status for the same local directory", async () => {
@@ -272,11 +335,106 @@ describe("GitReviewTab", () => {
     };
   }
 
-  it("loads whole-repository changes grouped by folder and defaults to unified diff", async () => {
-    const git = {
+  function history(): GitHistoryResponse {
+    return {
+      repo: {
+        rootUri: "local:///repo",
+        branch: "main",
+        headShort: "abcdef1",
+        isDirty: true,
+      },
+      commits: [
+        {
+          hash: "abcdef1234567890",
+          shortHash: "abcdef1",
+          parents: ["1234567"],
+          parentCount: 1,
+          authorName: "FileOctopus Test",
+          authorEmail: "test@example.invalid",
+          authoredAt: "2026-06-12T12:00:00+00:00",
+          subject: "Add Git workspace",
+          body: "Add Git workspace",
+        },
+      ],
+    };
+  }
+
+  function branches(): GitBranchesResponse {
+    return {
+      repo: {
+        rootUri: "local:///repo",
+        branch: "main",
+        headShort: "abcdef1",
+        isDirty: true,
+      },
+      branches: [
+        {
+          fullName: "refs/heads/main",
+          name: "main",
+          kind: "local",
+          isCurrent: true,
+          head: "abcdef1",
+          upstream: "origin/main",
+          lastCommitAt: "2026-06-12T12:00:00+00:00",
+          subject: "Add Git workspace",
+        },
+        {
+          fullName: "refs/remotes/origin/main",
+          name: "origin/main",
+          kind: "remote",
+          isCurrent: false,
+          head: "abcdef1",
+          upstream: null,
+          lastCommitAt: "2026-06-12T12:00:00+00:00",
+          subject: "Add Git workspace",
+        },
+      ],
+    };
+  }
+
+  function worktrees(): GitWorktreesResponse {
+    return {
+      repo: {
+        rootUri: "local:///repo",
+        branch: "main",
+        headShort: "abcdef1",
+        isDirty: true,
+      },
+      worktrees: [
+        {
+          pathUri: "local:///repo",
+          branch: "main",
+          head: "abcdef1234567890",
+          detached: false,
+          bare: false,
+          prunable: false,
+          prunableReason: null,
+        },
+      ],
+    };
+  }
+
+  function gitClient(
+    overrides: Partial<{
+      statusForRepository: () => Promise<GitStatusForRepositoryResponse>;
+      diffFile: () => Promise<GitDiffFileResponse>;
+      history: () => Promise<GitHistoryResponse>;
+      branches: () => Promise<GitBranchesResponse>;
+      worktrees: () => Promise<GitWorktreesResponse>;
+    }> = {},
+  ) {
+    return {
       statusForRepository: vi.fn(async () => repositoryStatus()),
       diffFile: vi.fn(async () => fileDiff()),
+      history: vi.fn(async () => history()),
+      branches: vi.fn(async () => branches()),
+      worktrees: vi.fn(async () => worktrees()),
+      ...overrides,
     };
+  }
+
+  it("loads whole-repository changes grouped by folder and defaults to unified diff", async () => {
+    const git = gitClient();
     const fs = {
       openPathWithDefaultApp: vi.fn(),
       revealPathInFileManager: vi.fn(),
@@ -308,10 +466,7 @@ describe("GitReviewTab", () => {
   });
 
   it("switches to side-by-side diff and remembers the mode", async () => {
-    const git = {
-      statusForRepository: vi.fn(async () => repositoryStatus()),
-      diffFile: vi.fn(async () => fileDiff()),
-    };
+    const git = gitClient();
     const fs = {
       openPathWithDefaultApp: vi.fn(),
       revealPathInFileManager: vi.fn(),
@@ -338,10 +493,7 @@ describe("GitReviewTab", () => {
   });
 
   it("opens and reveals the selected changed file", async () => {
-    const git = {
-      statusForRepository: vi.fn(async () => repositoryStatus()),
-      diffFile: vi.fn(async () => fileDiff()),
-    };
+    const git = gitClient();
     const fs = {
       openPathWithDefaultApp: vi.fn(async () => ({ ok: true })),
       revealPathInFileManager: vi.fn(async () => ({ ok: true })),
@@ -373,13 +525,13 @@ describe("GitReviewTab", () => {
   });
 
   it("renders an empty review state without requesting a diff", async () => {
-    const git = {
+    const git = gitClient({
       statusForRepository: vi.fn(async () => ({
         repo: null,
         files: [],
       })),
       diffFile: vi.fn(async () => fileDiff()),
-    };
+    });
     const fs = {
       openPathWithDefaultApp: vi.fn(),
       revealPathInFileManager: vi.fn(),
@@ -401,10 +553,9 @@ describe("GitReviewTab", () => {
   });
 
   it("renders binary diff summaries", async () => {
-    const git = {
-      statusForRepository: vi.fn(async () => repositoryStatus()),
+    const git = gitClient({
       diffFile: vi.fn(async () => binaryDiff()),
-    };
+    });
     const fs = {
       openPathWithDefaultApp: vi.fn(),
       revealPathInFileManager: vi.fn(),
@@ -425,10 +576,7 @@ describe("GitReviewTab", () => {
   });
 
   it("refreshes repository status on demand", async () => {
-    const git = {
-      statusForRepository: vi.fn(async () => repositoryStatus()),
-      diffFile: vi.fn(async () => fileDiff()),
-    };
+    const git = gitClient();
     const fs = {
       openPathWithDefaultApp: vi.fn(),
       revealPathInFileManager: vi.fn(),
@@ -458,10 +606,7 @@ describe("GitReviewTab", () => {
   it("copies the selected repository path", async () => {
     const writeText = vi.fn();
     vi.stubGlobal("navigator", { clipboard: { writeText } });
-    const git = {
-      statusForRepository: vi.fn(async () => repositoryStatus()),
-      diffFile: vi.fn(async () => fileDiff()),
-    };
+    const git = gitClient();
     const fs = {
       openPathWithDefaultApp: vi.fn(),
       revealPathInFileManager: vi.fn(),
@@ -484,6 +629,129 @@ describe("GitReviewTab", () => {
     expect(writeText).toHaveBeenCalledWith("src/app.ts");
   });
 
+  it("defaults to the Changes sub-tab", async () => {
+    const git = gitClient();
+    const fs = {
+      openPathWithDefaultApp: vi.fn(),
+      revealPathInFileManager: vi.fn(),
+    };
+
+    render(
+      <GitReviewTab
+        repoRootUri="local:///repo"
+        repoLabel="main"
+        sourceUri="local:///repo/src"
+        refreshToken={0}
+        git={git}
+        fs={fs}
+      />,
+    );
+
+    expect(
+      screen
+        .getByRole("button", { name: "Changes" })
+        .getAttribute("aria-pressed"),
+    ).toBe("true");
+    await screen.findByTestId("git-review-diff-unified");
+    expect(git.history).not.toHaveBeenCalled();
+  });
+
+  it("renders history commits and copies the selected hash", async () => {
+    const writeText = vi.fn();
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    const git = gitClient();
+    const fs = {
+      openPathWithDefaultApp: vi.fn(),
+      revealPathInFileManager: vi.fn(),
+    };
+
+    render(
+      <GitReviewTab
+        repoRootUri="local:///repo"
+        repoLabel="main"
+        sourceUri="local:///repo/src"
+        refreshToken={0}
+        git={git}
+        fs={fs}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "History" }));
+
+    expect(await screen.findByText("Add Git workspace")).toBeTruthy();
+    expect(screen.getByText("abcdef1")).toBeTruthy();
+    expect(screen.getByText("FileOctopus Test")).toBeTruthy();
+    expect(screen.getByText("1 parent")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Copy commit hash" }));
+
+    expect(git.history).toHaveBeenCalledWith({
+      uri: "local:///repo",
+      maxCount: 100,
+    });
+    expect(writeText).toHaveBeenCalledWith("abcdef1234567890");
+  });
+
+  it("renders local and remote branches with the active marker", async () => {
+    const git = gitClient();
+    const fs = {
+      openPathWithDefaultApp: vi.fn(),
+      revealPathInFileManager: vi.fn(),
+    };
+
+    render(
+      <GitReviewTab
+        repoRootUri="local:///repo"
+        repoLabel="main"
+        sourceUri="local:///repo/src"
+        refreshToken={0}
+        git={git}
+        fs={fs}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Branches" }));
+
+    expect(await screen.findByText("Local")).toBeTruthy();
+    expect(screen.getByText("Remote")).toBeTruthy();
+    expect(screen.getByText("main")).toBeTruthy();
+    expect(screen.getByText("origin/main")).toBeTruthy();
+    expect(screen.getByText("current")).toBeTruthy();
+    expect(screen.getByText("upstream origin/main")).toBeTruthy();
+  });
+
+  it("renders worktrees and can navigate or reveal the selected path", async () => {
+    const git = gitClient();
+    const fs = {
+      openPathWithDefaultApp: vi.fn(),
+      revealPathInFileManager: vi.fn(async () => ({ ok: true })),
+    };
+    const onNavigate = vi.fn();
+
+    render(
+      <GitReviewTab
+        repoRootUri="local:///repo"
+        repoLabel="main"
+        sourceUri="local:///repo/src"
+        refreshToken={0}
+        git={git}
+        fs={fs}
+        onNavigate={onNavigate}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Worktrees" }));
+
+    expect(await screen.findByText("local:///repo")).toBeTruthy();
+    expect(screen.getByText("main")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Open worktree" }));
+    fireEvent.click(screen.getByRole("button", { name: "Reveal worktree" }));
+
+    expect(onNavigate).toHaveBeenCalledWith("local:///repo");
+    expect(fs.revealPathInFileManager).toHaveBeenCalledWith({
+      uri: "local:///repo",
+    });
+  });
+
   it("does not open deleted files", async () => {
     const deletedStatus: GitStatusForRepositoryResponse = {
       repo: null,
@@ -497,13 +765,13 @@ describe("GitReviewTab", () => {
         },
       ],
     };
-    const git = {
+    const git = gitClient({
       statusForRepository: vi.fn(async () => deletedStatus),
       diffFile: vi.fn(async () => ({
         ...fileDiff(),
         file: deletedStatus.files[0],
       })),
-    };
+    });
     const fs = {
       openPathWithDefaultApp: vi.fn(),
       revealPathInFileManager: vi.fn(),

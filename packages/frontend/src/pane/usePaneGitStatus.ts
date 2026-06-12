@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GitFileStatusDto, GitRepoInfoDto } from "@fileoctopus/ts-api";
 
 export interface PaneGitStatus {
@@ -39,7 +39,14 @@ export function usePaneGitStatus(
   uri: string,
 ): PaneGitStatus {
   const [status, setStatus] = useState<PaneGitStatus>(emptyGitStatus);
-  const statusForDirectory = client.git?.statusForDirectory;
+  const gitClient = client.git;
+  const statusForDirectory = useMemo(
+    () =>
+      gitClient?.statusForDirectory
+        ? gitClient.statusForDirectory.bind(gitClient)
+        : undefined,
+    [gitClient],
+  );
   const onWatchChanged = client.fs?.onWatchChanged
     ? client.fs.onWatchChanged.bind(client.fs)
     : undefined;
@@ -47,6 +54,7 @@ export function usePaneGitStatus(
   const mounted = useRef(true);
 
   useEffect(() => {
+    mounted.current = true;
     return () => {
       mounted.current = false;
       requestSequence.current += 1;

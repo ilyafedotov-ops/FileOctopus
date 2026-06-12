@@ -206,12 +206,12 @@
 .fo-git-branch {
   appearance: none;
   display: inline-flex;
-  flex: 0 1 140px;
+  flex: 0 0 auto;
   align-items: center;
   gap: 4px;
   height: calc(var(--fo-pathbar-height) - 6px);
-  min-width: 0;
-  max-width: 140px;
+  min-width: 8.5rem;
+  max-width: 13rem;
   padding: 0 6px;
   overflow: hidden;
   color: var(--fo-muted-text);
@@ -234,18 +234,21 @@
   border-color: var(--fo-accent);
 }
 
-.fo-git-branch-mark {
+.fo-git-branch-icon {
   flex: 0 0 auto;
-  font-size: var(--fo-font-size-xs);
-  font-weight: 800;
-  text-transform: uppercase;
   opacity: 0.75;
+}
+
+.fo-git-review-label {
+  flex: 0 0 auto;
+  color: var(--fo-text);
 }
 
 .fo-git-branch-name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--fo-muted-text);
 }
 
 .fo-panel[data-active="false"] .fo-panel-header {
@@ -1042,6 +1045,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 8px;
   min-height: 32px;
   padding: 4px 8px;
@@ -1073,11 +1077,17 @@
 }
 
 .fo-git-review-actions,
+.fo-git-review-tabs,
 .fo-git-review-toolbar {
   display: flex;
   align-items: center;
   gap: 4px;
   min-width: 0;
+}
+
+.fo-git-review-tabs {
+  flex: 1 1 auto;
+  justify-content: center;
 }
 
 .fo-git-review-button {
@@ -1195,6 +1205,71 @@
   min-width: 0;
   min-height: 0;
   flex-direction: column;
+}
+
+.fo-git-review-panel {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.fo-git-review-records {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.fo-git-review-record {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 38px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--fo-border);
+}
+
+.fo-git-review-record-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.fo-git-review-record-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--fo-text);
+  font-size: var(--fo-font-size-md);
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-git-review-record-title > span:first-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fo-git-review-record-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  min-width: 0;
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-xs);
+}
+
+.fo-git-review-pill {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  color: var(--fo-accent);
+  font-size: var(--fo-font-size-xs);
+  font-weight: 800;
+  border: 1px solid var(--fo-accent);
 }
 
 .fo-git-review-toolbar {

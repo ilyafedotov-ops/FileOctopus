@@ -336,6 +336,102 @@ export function createPreviewTransport(): IpcTransport {
         } as TResponse;
       }
 
+      if (command === "git.history") {
+        const request = args?.request as { uri?: string } | undefined;
+        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        return {
+          repo: {
+            rootUri,
+            branch: "main",
+            headShort: "preview",
+            isDirty: true,
+          },
+          commits: [
+            {
+              hash: "abcdef1234567890",
+              shortHash: "abcdef1",
+              parents: ["1234567"],
+              parentCount: 1,
+              authorName: "FileOctopus Preview",
+              authorEmail: "preview@example.invalid",
+              authoredAt: now,
+              subject: "Preview Git history",
+              body: "Preview Git history",
+            },
+            {
+              hash: "1234567890abcdef",
+              shortHash: "1234567",
+              parents: [],
+              parentCount: 0,
+              authorName: "FileOctopus Preview",
+              authorEmail: "preview@example.invalid",
+              authoredAt: now,
+              subject: "Initial preview commit",
+              body: "Initial preview commit",
+            },
+          ],
+        } as TResponse;
+      }
+
+      if (command === "git.branches") {
+        const request = args?.request as { uri?: string } | undefined;
+        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        return {
+          repo: {
+            rootUri,
+            branch: "main",
+            headShort: "preview",
+            isDirty: true,
+          },
+          branches: [
+            {
+              fullName: "refs/heads/main",
+              name: "main",
+              kind: "local",
+              isCurrent: true,
+              head: "abcdef1",
+              upstream: "origin/main",
+              lastCommitAt: now,
+              subject: "Preview Git history",
+            },
+            {
+              fullName: "refs/remotes/origin/main",
+              name: "origin/main",
+              kind: "remote",
+              isCurrent: false,
+              head: "abcdef1",
+              upstream: null,
+              lastCommitAt: now,
+              subject: "Preview Git history",
+            },
+          ],
+        } as TResponse;
+      }
+
+      if (command === "git.worktrees") {
+        const request = args?.request as { uri?: string } | undefined;
+        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        return {
+          repo: {
+            rootUri,
+            branch: "main",
+            headShort: "preview",
+            isDirty: true,
+          },
+          worktrees: [
+            {
+              pathUri: rootUri,
+              branch: "main",
+              head: "abcdef1234567890",
+              detached: false,
+              bare: false,
+              prunable: false,
+              prunableReason: null,
+            },
+          ],
+        } as TResponse;
+      }
+
       if (command === "network.profilesList") {
         return {
           profiles: [

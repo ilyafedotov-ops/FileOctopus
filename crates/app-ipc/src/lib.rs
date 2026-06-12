@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 use git_intel::{
-    GitChangedFile, GitDiffHunk, GitDiffLine, GitDirectoryStatus, GitError, GitFileDiff,
-    GitFileStatus, GitRepoInfo, GitRepositoryStatus,
+    GitBranch, GitBranches, GitChangedFile, GitCommit, GitDiffHunk, GitDiffLine,
+    GitDirectoryStatus, GitError, GitFileDiff, GitFileStatus, GitHistory, GitRepoInfo,
+    GitRepositoryStatus, GitWorktree, GitWorktrees,
 };
 use jobs::{JobEvent, JobSnapshot};
 use serde::{Deserialize, Serialize};
@@ -455,6 +456,79 @@ impl From<GitFileDiff> for GitDiffFileResponse {
             new_truncated: diff.new_truncated,
             binary: diff.binary,
             unsupported_reason: diff.unsupported_reason,
+        }
+    }
+}
+
+impl From<GitCommit> for GitCommitDto {
+    fn from(commit: GitCommit) -> Self {
+        let parent_count = commit.parents.len() as u64;
+        Self {
+            hash: commit.hash,
+            short_hash: commit.short_hash,
+            parents: commit.parents,
+            parent_count,
+            author_name: commit.author_name,
+            author_email: commit.author_email,
+            authored_at: commit.authored_at,
+            subject: commit.subject,
+            body: commit.body,
+        }
+    }
+}
+
+impl From<GitHistory> for GitHistoryResponse {
+    fn from(history: GitHistory) -> Self {
+        Self {
+            repo: history.repo.map(Into::into),
+            commits: history.commits.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<GitBranch> for GitBranchDto {
+    fn from(branch: GitBranch) -> Self {
+        Self {
+            full_name: branch.full_name,
+            name: branch.name,
+            kind: branch.kind,
+            is_current: branch.is_current,
+            head: branch.head,
+            upstream: branch.upstream,
+            last_commit_at: branch.last_commit_at,
+            subject: branch.subject,
+        }
+    }
+}
+
+impl From<GitBranches> for GitBranchesResponse {
+    fn from(branches: GitBranches) -> Self {
+        Self {
+            repo: branches.repo.map(Into::into),
+            branches: branches.branches.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<GitWorktree> for GitWorktreeDto {
+    fn from(worktree: GitWorktree) -> Self {
+        Self {
+            path_uri: worktree.path_uri.as_str().to_string(),
+            branch: worktree.branch,
+            head: worktree.head,
+            detached: worktree.detached,
+            bare: worktree.bare,
+            prunable: worktree.prunable,
+            prunable_reason: worktree.prunable_reason,
+        }
+    }
+}
+
+impl From<GitWorktrees> for GitWorktreesResponse {
+    fn from(worktrees: GitWorktrees) -> Self {
+        Self {
+            repo: worktrees.repo.map(Into::into),
+            worktrees: worktrees.worktrees.into_iter().map(Into::into).collect(),
         }
     }
 }
@@ -936,8 +1010,9 @@ impl From<plugin_core::InstalledPlugin> for InstalledPluginDto {
 mod tests {
     use super::*;
     use git_intel::{
-        GitChangedFile, GitDiffHunk, GitDiffLine, GitDirectoryStatus, GitFileDiff, GitFileStatus,
-        GitRepoInfo, GitRepositoryStatus,
+        GitBranch, GitBranches, GitChangedFile, GitCommit, GitDiffHunk, GitDiffLine,
+        GitDirectoryStatus, GitFileDiff, GitFileStatus, GitHistory, GitRepoInfo,
+        GitRepositoryStatus, GitWorktree, GitWorktrees,
     };
     use std::collections::{HashMap, HashSet};
     use vfs::{EntryCapabilities, ListSessionId, ProviderId, ResourceUri};
@@ -1321,6 +1396,69 @@ mod tests {
         assert_eq!(encoded["newLineCount"], 1);
         assert_eq!(encoded["binary"], false);
         assert_eq!(encoded["unsupportedReason"], serde_json::Value::Null);
+    }
+
+    #[test]
+    fn serializes_git_history_branches_and_worktrees() {
+        let root_uri = ResourceUri::parse("local:///tmp/repo").unwrap();
+        let repo = GitRepoInfo {
+            root_uri: root_uri.clone(),
+            branch: Some("main".to_string()),
+            head_short: Some("abcdef1".to_string()),
+            is_dirty: true,
+        };
+        let history = GitHistory {
+            repo: Some(repo.clone()),
+            commits: vec![GitCommit {
+                hash: "abcdef123456".to_string(),
+                short_hash: "abcdef1".to_string(),
+                parents: vec!["1234567".to_string(), "7654321".to_string()],
+                author_name: "FileOctopus Test".to_string(),
+                author_email: "test@example.invalid".to_string(),
+                authored_at: "2026-06-12T12:00:00+00:00".to_string(),
+                subject: "merge topic".to_string(),
+                body: "merge topic\n\nbody".to_string(),
+            }],
+        };
+        let branches = GitBranches {
+            repo: Some(repo.clone()),
+            branches: vec![GitBranch {
+                full_name: "refs/heads/main".to_string(),
+                name: "main".to_string(),
+                kind: "local".to_string(),
+                is_current: true,
+                head: "abcdef1".to_string(),
+                upstream: Some("origin/main".to_string()),
+                last_commit_at: Some("2026-06-12T12:00:00+00:00".to_string()),
+                subject: "merge topic".to_string(),
+            }],
+        };
+        let worktrees = GitWorktrees {
+            repo: Some(repo),
+            worktrees: vec![GitWorktree {
+                path_uri: root_uri,
+                branch: Some("main".to_string()),
+                head: Some("abcdef123456".to_string()),
+                detached: false,
+                bare: false,
+                prunable: false,
+                prunable_reason: None,
+            }],
+        };
+
+        let history_json = serde_json::to_value(GitHistoryResponse::from(history)).unwrap();
+        let branches_json = serde_json::to_value(GitBranchesResponse::from(branches)).unwrap();
+        let worktrees_json = serde_json::to_value(GitWorktreesResponse::from(worktrees)).unwrap();
+
+        assert_eq!(history_json["commits"][0]["shortHash"], "abcdef1");
+        assert_eq!(history_json["commits"][0]["parentCount"], 2);
+        assert_eq!(branches_json["branches"][0]["isCurrent"], true);
+        assert_eq!(branches_json["branches"][0]["upstream"], "origin/main");
+        assert_eq!(
+            worktrees_json["worktrees"][0]["pathUri"],
+            "local:///tmp/repo"
+        );
+        assert_eq!(worktrees_json["worktrees"][0]["detached"], false);
     }
 
     #[test]

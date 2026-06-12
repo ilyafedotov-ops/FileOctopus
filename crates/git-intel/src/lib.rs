@@ -65,6 +65,34 @@ impl GitService {
         .await
         .map_err(|error| GitError::Internal(error.to_string()))?
     }
+
+    pub async fn history(
+        &self,
+        uri: &ResourceUri,
+        max_count: Option<u32>,
+    ) -> Result<GitHistory, GitError> {
+        let path = local_git_context_path(uri)?;
+
+        tokio::task::spawn_blocking(move || history_blocking(&path, max_count))
+            .await
+            .map_err(|error| GitError::Internal(error.to_string()))?
+    }
+
+    pub async fn branches(&self, uri: &ResourceUri) -> Result<GitBranches, GitError> {
+        let path = local_git_context_path(uri)?;
+
+        tokio::task::spawn_blocking(move || branches_blocking(&path))
+            .await
+            .map_err(|error| GitError::Internal(error.to_string()))?
+    }
+
+    pub async fn worktrees(&self, uri: &ResourceUri) -> Result<GitWorktrees, GitError> {
+        let path = local_git_context_path(uri)?;
+
+        tokio::task::spawn_blocking(move || worktrees_blocking(&path))
+            .await
+            .map_err(|error| GitError::Internal(error.to_string()))?
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -114,6 +142,65 @@ pub struct GitFileDiff {
     pub new_truncated: bool,
     pub binary: bool,
     pub unsupported_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitHistory {
+    pub repo: Option<GitRepoInfo>,
+    pub commits: Vec<GitCommit>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitCommit {
+    pub hash: String,
+    pub short_hash: String,
+    pub parents: Vec<String>,
+    pub author_name: String,
+    pub author_email: String,
+    pub authored_at: String,
+    pub subject: String,
+    pub body: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitBranches {
+    pub repo: Option<GitRepoInfo>,
+    pub branches: Vec<GitBranch>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitBranch {
+    pub full_name: String,
+    pub name: String,
+    pub kind: String,
+    pub is_current: bool,
+    pub head: String,
+    pub upstream: Option<String>,
+    pub last_commit_at: Option<String>,
+    pub subject: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitWorktrees {
+    pub repo: Option<GitRepoInfo>,
+    pub worktrees: Vec<GitWorktree>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GitWorktree {
+    pub path_uri: ResourceUri,
+    pub branch: Option<String>,
+    pub head: Option<String>,
+    pub detached: bool,
+    pub bare: bool,
+    pub prunable: bool,
+    pub prunable_reason: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -300,6 +387,97 @@ fn status_for_directory_blocking(path: &Path) -> Result<GitDirectoryStatus, GitE
     Ok(GitDirectoryStatus {
         repo: Some(repo),
         entries,
+    })
+}
+
+fn history_blocking(path: &Path, max_count: Option<u32>) -> Result<GitHistory, GitError> {
+    let Some(repo) = discover_blocking(path)? else {
+        return Ok(GitHistory {
+            repo: None,
+            commits: Vec::new(),
+        });
+    };
+    let root = repo
+        .root_uri
+        .to_local_path()
+        .map_err(|error| GitError::InvalidUri(error.to_string()))?;
+
+    if !git_has_head(&root)? {
+        return Ok(GitHistory {
+            repo: Some(repo),
+            commits: Vec::new(),
+        });
+    }
+
+    let limit = max_count.unwrap_or(100).clamp(1, 100).to_string();
+    let output = match git_output(
+        &root,
+        &[
+            "log",
+            &format!("--max-count={limit}"),
+            "--date=iso-strict",
+            "--pretty=format:%H%x00%h%x00%P%x00%an%x00%ae%x00%aI%x00%s%x00%B%x1e",
+        ],
+    )? {
+        GitCommandOutput::Success(value) => value,
+        GitCommandOutput::NotRepository => String::new(),
+    };
+
+    Ok(GitHistory {
+        repo: Some(repo),
+        commits: parse_history(&output),
+    })
+}
+
+fn branches_blocking(path: &Path) -> Result<GitBranches, GitError> {
+    let Some(repo) = discover_blocking(path)? else {
+        return Ok(GitBranches {
+            repo: None,
+            branches: Vec::new(),
+        });
+    };
+    let root = repo
+        .root_uri
+        .to_local_path()
+        .map_err(|error| GitError::InvalidUri(error.to_string()))?;
+    let output = match git_output(
+        &root,
+        &[
+            "for-each-ref",
+            "--format=%(refname)%00%(refname:short)%00%(objectname:short)%00%(upstream:short)%00%(HEAD)%00%(committerdate:iso-strict)%00%(subject)%1e",
+            "refs/heads",
+            "refs/remotes",
+        ],
+    )? {
+        GitCommandOutput::Success(value) => value,
+        GitCommandOutput::NotRepository => String::new(),
+    };
+
+    Ok(GitBranches {
+        repo: Some(repo),
+        branches: parse_branches(&output),
+    })
+}
+
+fn worktrees_blocking(path: &Path) -> Result<GitWorktrees, GitError> {
+    let Some(repo) = discover_blocking(path)? else {
+        return Ok(GitWorktrees {
+            repo: None,
+            worktrees: Vec::new(),
+        });
+    };
+    let root = repo
+        .root_uri
+        .to_local_path()
+        .map_err(|error| GitError::InvalidUri(error.to_string()))?;
+    let output = match git_output(&root, &["worktree", "list", "--porcelain", "-z"])? {
+        GitCommandOutput::Success(value) => value,
+        GitCommandOutput::NotRepository => String::new(),
+    };
+
+    Ok(GitWorktrees {
+        repo: Some(repo),
+        worktrees: parse_worktrees(&output)?,
     })
 }
 
@@ -594,6 +772,152 @@ fn parse_porcelain_changed_files(
     }
 
     Ok(files)
+}
+
+fn parse_history(output: &str) -> Vec<GitCommit> {
+    output
+        .split('\x1e')
+        .filter_map(|record| {
+            let record = record.trim_start_matches('\n');
+            if record.trim().is_empty() {
+                return None;
+            }
+            let fields = record.splitn(8, '\0').collect::<Vec<_>>();
+            if fields.len() < 8 {
+                return None;
+            }
+            Some(GitCommit {
+                hash: fields[0].to_string(),
+                short_hash: fields[1].to_string(),
+                parents: fields[2]
+                    .split_whitespace()
+                    .map(ToString::to_string)
+                    .collect(),
+                author_name: fields[3].to_string(),
+                author_email: fields[4].to_string(),
+                authored_at: fields[5].to_string(),
+                subject: fields[6].to_string(),
+                body: fields[7].trim_end_matches('\n').to_string(),
+            })
+        })
+        .collect()
+}
+
+fn parse_branches(output: &str) -> Vec<GitBranch> {
+    let mut branches = output
+        .split('\x1e')
+        .filter_map(|record| {
+            let record = record.trim_start_matches('\n');
+            if record.trim().is_empty() {
+                return None;
+            }
+            let fields = record.splitn(7, '\0').collect::<Vec<_>>();
+            if fields.len() < 7 || fields[0].ends_with("/HEAD") {
+                return None;
+            }
+            let kind = if fields[0].starts_with("refs/heads/") {
+                "local"
+            } else {
+                "remote"
+            };
+            Some(GitBranch {
+                full_name: fields[0].to_string(),
+                name: fields[1].to_string(),
+                kind: kind.to_string(),
+                is_current: fields[4] == "*",
+                head: fields[2].to_string(),
+                upstream: non_empty(fields[3]),
+                last_commit_at: non_empty(fields[5]),
+                subject: fields[6].to_string(),
+            })
+        })
+        .collect::<Vec<_>>();
+
+    branches.sort_by(|left, right| {
+        left.kind
+            .cmp(&right.kind)
+            .then_with(|| left.name.cmp(&right.name))
+    });
+    branches
+}
+
+fn parse_worktrees(output: &str) -> Result<Vec<GitWorktree>, GitError> {
+    #[derive(Default)]
+    struct PendingWorktree {
+        path: Option<PathBuf>,
+        branch: Option<String>,
+        head: Option<String>,
+        detached: bool,
+        bare: bool,
+        prunable: bool,
+        prunable_reason: Option<String>,
+    }
+
+    fn flush(
+        pending: &mut PendingWorktree,
+        worktrees: &mut Vec<GitWorktree>,
+    ) -> Result<(), GitError> {
+        let Some(path) = pending.path.take() else {
+            return Ok(());
+        };
+        let path_uri = ResourceUri::from_local_path(&path)
+            .map_err(|error| GitError::InvalidUri(error.to_string()))?;
+        worktrees.push(GitWorktree {
+            path_uri,
+            branch: pending.branch.take(),
+            head: pending.head.take(),
+            detached: pending.detached,
+            bare: pending.bare,
+            prunable: pending.prunable,
+            prunable_reason: pending.prunable_reason.take(),
+        });
+        pending.detached = false;
+        pending.bare = false;
+        pending.prunable = false;
+        Ok(())
+    }
+
+    let mut worktrees = Vec::new();
+    let mut pending = PendingWorktree::default();
+    for token in output.split('\0') {
+        if token.is_empty() {
+            flush(&mut pending, &mut worktrees)?;
+            continue;
+        }
+        if let Some(path) = token.strip_prefix("worktree ") {
+            flush(&mut pending, &mut worktrees)?;
+            pending.path = Some(PathBuf::from(path));
+        } else if let Some(head) = token.strip_prefix("HEAD ") {
+            pending.head = Some(head.to_string());
+        } else if let Some(branch) = token.strip_prefix("branch ") {
+            pending.branch = Some(
+                branch
+                    .strip_prefix("refs/heads/")
+                    .unwrap_or(branch)
+                    .to_string(),
+            );
+        } else if token == "detached" {
+            pending.detached = true;
+        } else if token == "bare" {
+            pending.bare = true;
+        } else if token == "prunable" {
+            pending.prunable = true;
+        } else if let Some(reason) = token.strip_prefix("prunable ") {
+            pending.prunable = true;
+            pending.prunable_reason = Some(reason.to_string());
+        }
+    }
+    flush(&mut pending, &mut worktrees)?;
+
+    Ok(worktrees)
+}
+
+fn non_empty(value: &str) -> Option<String> {
+    if value.is_empty() {
+        None
+    } else {
+        Some(value.to_string())
+    }
 }
 
 fn compute_diff_hunks(old_text: &str, new_text: &str) -> Vec<GitDiffHunk> {

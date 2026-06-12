@@ -332,6 +332,7 @@ export function FilePanel({
             refreshToken={tab.gitReview.refreshToken}
             git={client.git}
             fs={client.fs}
+            onNavigate={onNavigate}
           />
         </div>
       </section>

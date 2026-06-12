@@ -1,12 +1,18 @@
 import type {
+  GitBranchesRequest,
+  GitBranchesResponse,
   GitDiffFileRequest,
   GitDiffFileResponse,
   GitDiscoverRequest,
   GitDiscoverResponse,
+  GitHistoryRequest,
+  GitHistoryResponse,
   GitStatusForDirectoryRequest,
   GitStatusForDirectoryResponse,
   GitStatusForRepositoryRequest,
   GitStatusForRepositoryResponse,
+  GitWorktreesRequest,
+  GitWorktreesResponse,
   IpcTransport,
 } from "../types";
 
@@ -39,6 +45,24 @@ export class GitClient {
 
   async diffFile(request: GitDiffFileRequest): Promise<GitDiffFileResponse> {
     return this.transport.invoke<GitDiffFileResponse>("git.diffFile", {
+      request,
+    });
+  }
+
+  async history(request: GitHistoryRequest): Promise<GitHistoryResponse> {
+    return this.transport.invoke<GitHistoryResponse>("git.history", {
+      request,
+    });
+  }
+
+  async branches(request: GitBranchesRequest): Promise<GitBranchesResponse> {
+    return this.transport.invoke<GitBranchesResponse>("git.branches", {
+      request,
+    });
+  }
+
+  async worktrees(request: GitWorktreesRequest): Promise<GitWorktreesResponse> {
+    return this.transport.invoke<GitWorktreesResponse>("git.worktrees", {
       request,
     });
   }

@@ -352,6 +352,67 @@ export interface GitDiffFileResponse {
   unsupportedReason?: string | null;
 }
 
+export interface GitHistoryRequest {
+  uri: string;
+  maxCount?: number;
+}
+
+export interface GitCommitDto {
+  hash: string;
+  shortHash: string;
+  parents: string[];
+  parentCount: number;
+  authorName: string;
+  authorEmail: string;
+  authoredAt: string;
+  subject: string;
+  body: string;
+}
+
+export interface GitHistoryResponse {
+  repo?: GitRepoInfoDto | null;
+  commits: GitCommitDto[];
+}
+
+export interface GitBranchesRequest {
+  uri: string;
+}
+
+export interface GitBranchDto {
+  fullName: string;
+  name: string;
+  kind: string;
+  isCurrent: boolean;
+  head: string;
+  upstream?: string | null;
+  lastCommitAt?: string | null;
+  subject: string;
+}
+
+export interface GitBranchesResponse {
+  repo?: GitRepoInfoDto | null;
+  branches: GitBranchDto[];
+}
+
+export interface GitWorktreesRequest {
+  uri: string;
+}
+
+export interface GitWorktreeDto {
+  pathUri: string;
+  branch?: string | null;
+  head?: string | null;
+  detached: boolean;
+  bare: boolean;
+  prunable: boolean;
+  prunableReason?: string | null;
+}
+
+export interface GitWorktreesResponse {
+  repo?: GitRepoInfoDto | null;
+  worktrees: GitWorktreeDto[];
+}
+
 export interface TerminalSpawnRequest {
   uri?: string | null;
   profileId?: string | null;

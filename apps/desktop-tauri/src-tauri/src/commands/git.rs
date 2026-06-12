@@ -2,9 +2,10 @@ use std::sync::Arc;
 
 use app_core::AppState;
 use app_ipc::{
-    GitDiffFileRequest, GitDiffFileResponse, GitDiscoverRequest, GitDiscoverResponse,
+    GitBranchesRequest, GitBranchesResponse, GitDiffFileRequest, GitDiffFileResponse,
+    GitDiscoverRequest, GitDiscoverResponse, GitHistoryRequest, GitHistoryResponse,
     GitStatusForDirectoryRequest, GitStatusForDirectoryResponse, GitStatusForRepositoryRequest,
-    GitStatusForRepositoryResponse, IpcError,
+    GitStatusForRepositoryResponse, GitWorktreesRequest, GitWorktreesResponse, IpcError,
 };
 use tauri::State;
 use vfs::ResourceUri;
@@ -65,4 +66,41 @@ pub async fn git_diff_file(
         .map_err(IpcError::from)?;
 
     Ok(diff.into())
+}
+
+#[tauri::command]
+pub async fn git_history(
+    state: State<'_, Arc<AppState>>,
+    request: GitHistoryRequest,
+) -> Result<GitHistoryResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let history = state
+        .git()
+        .history(&uri, request.max_count)
+        .await
+        .map_err(IpcError::from)?;
+
+    Ok(history.into())
+}
+
+#[tauri::command]
+pub async fn git_branches(
+    state: State<'_, Arc<AppState>>,
+    request: GitBranchesRequest,
+) -> Result<GitBranchesResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let branches = state.git().branches(&uri).await.map_err(IpcError::from)?;
+
+    Ok(branches.into())
+}
+
+#[tauri::command]
+pub async fn git_worktrees(
+    state: State<'_, Arc<AppState>>,
+    request: GitWorktreesRequest,
+) -> Result<GitWorktreesResponse, IpcError> {
+    let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
+    let worktrees = state.git().worktrees(&uri).await.map_err(IpcError::from)?;
+
+    Ok(worktrees.into())
 }

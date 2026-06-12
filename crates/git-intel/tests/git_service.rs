@@ -178,6 +178,225 @@ async fn status_for_repository_returns_empty_outside_repo() {
 }
 
 #[tokio::test]
+async fn history_returns_recent_commits_newest_first_with_merge_metadata() {
+    let repo = TestRepo::init();
+    repo.write("base.txt", "base\n");
+    repo.git(["add", "."]);
+    repo.git(["commit", "-m", "initial"]);
+    repo.git(["switch", "-c", "topic"]);
+    repo.write("topic.txt", "topic\n");
+    repo.git(["add", "."]);
+    repo.git(["commit", "-m", "topic commit"]);
+    repo.git(["switch", "main"]);
+    repo.write("main.txt", "main\n");
+    repo.git(["add", "."]);
+    repo.git(["commit", "-m", "main commit"]);
+    repo.git(["merge", "--no-ff", "topic", "-m", "merge topic"]);
+
+    let history = GitService::new()
+        .history(&repo.uri("base.txt"), Some(3))
+        .await
+        .unwrap();
+
+    assert_eq!(
+        history.repo.as_ref().unwrap().branch.as_deref(),
+        Some("main")
+    );
+    assert_eq!(history.commits.len(), 3);
+    assert_eq!(history.commits[0].subject, "merge topic");
+    assert_eq!(history.commits[0].parents.len(), 2);
+    assert_eq!(history.commits[1].subject, "main commit");
+    assert_eq!(history.commits[2].subject, "topic commit");
+    assert_eq!(history.commits[0].short_hash.len(), 7);
+    assert_eq!(history.commits[0].author_name, "FileOctopus Test");
+}
+
+#[tokio::test]
+async fn history_caps_max_count_and_handles_empty_repositories() {
+    let repo = TestRepo::init();
+
+    let unborn = GitService::new()
+        .history(
+            &ResourceUri::from_local_path(&repo.path()).unwrap(),
+            Some(200),
+        )
+        .await
+        .unwrap();
+
+    assert!(unborn.commits.is_empty());
+
+    for index in 0..120 {
+        repo.write(&format!("file-{index}.txt"), "content\n");
+        repo.git(["add", "."]);
+        repo.git(["commit", "-m", &format!("commit {index}")]);
+    }
+
+    let history = GitService::new()
+        .history(
+            &ResourceUri::from_local_path(&repo.path()).unwrap(),
+            Some(200),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(history.commits.len(), 100);
+    assert_eq!(history.commits[0].subject, "commit 119");
+}
+
+#[tokio::test]
+async fn history_returns_empty_outside_repo() {
+    let dir = tempfile::tempdir().unwrap();
+    let uri = ResourceUri::from_local_path(dir.path()).unwrap();
+
+    let history = GitService::new().history(&uri, None).await.unwrap();
+
+    assert_eq!(history.repo, None);
+    assert!(history.commits.is_empty());
+}
+
+#[tokio::test]
+async fn branches_lists_local_and_remote_refs_with_active_marker() {
+    let repo = TestRepo::init();
+    repo.write("base.txt", "base\n");
+    repo.git(["add", "."]);
+    repo.git(["commit", "-m", "initial"]);
+    repo.git([
+        "remote",
+        "add",
+        "origin",
+        "https://example.invalid/repo.git",
+    ]);
+    repo.git(["update-ref", "refs/remotes/origin/main", "HEAD"]);
+    repo.git(["branch", "--set-upstream-to=origin/main", "main"]);
+    repo.git(["branch", "feature/example"]);
+
+    let branches = GitService::new()
+        .branches(&ResourceUri::from_local_path(&repo.path()).unwrap())
+        .await
+        .unwrap();
+
+    let main = branches
+        .branches
+        .iter()
+        .find(|branch| branch.full_name == "refs/heads/main")
+        .unwrap();
+    let remote = branches
+        .branches
+        .iter()
+        .find(|branch| branch.full_name == "refs/remotes/origin/main")
+        .unwrap();
+
+    assert_eq!(main.name, "main");
+    assert_eq!(main.kind, "local");
+    assert!(main.is_current);
+    assert_eq!(main.upstream.as_deref(), Some("origin/main"));
+    assert_eq!(main.subject, "initial");
+    assert_eq!(remote.name, "origin/main");
+    assert_eq!(remote.kind, "remote");
+    assert!(!remote.is_current);
+}
+
+#[tokio::test]
+async fn branches_returns_empty_outside_repo() {
+    let dir = tempfile::tempdir().unwrap();
+    let uri = ResourceUri::from_local_path(dir.path()).unwrap();
+
+    let branches = GitService::new().branches(&uri).await.unwrap();
+
+    assert_eq!(branches.repo, None);
+    assert!(branches.branches.is_empty());
+}
+
+#[tokio::test]
+async fn worktrees_lists_main_linked_and_detached_worktrees() {
+    let repo = TestRepo::init();
+    repo.write("base.txt", "base\n");
+    repo.git(["add", "."]);
+    repo.git(["commit", "-m", "initial"]);
+    let linked_dir = tempfile::tempdir().unwrap();
+    let detached_dir = tempfile::tempdir().unwrap();
+    let linked_path = linked_dir.path().join("linked");
+    let detached_path = detached_dir.path().join("detached");
+    repo.git([
+        "worktree",
+        "add",
+        linked_path.to_str().unwrap(),
+        "-b",
+        "linked-branch",
+    ]);
+    repo.git([
+        "worktree",
+        "add",
+        "--detach",
+        detached_path.to_str().unwrap(),
+        "HEAD",
+    ]);
+
+    let worktrees = GitService::new()
+        .worktrees(&ResourceUri::from_local_path(&repo.path()).unwrap())
+        .await
+        .unwrap();
+
+    let main = worktrees
+        .worktrees
+        .iter()
+        .find(|worktree| worktree.path_uri == ResourceUri::from_local_path(&repo.path()).unwrap())
+        .unwrap();
+    let linked = worktrees
+        .worktrees
+        .iter()
+        .find(|worktree| worktree.branch.as_deref() == Some("linked-branch"))
+        .unwrap();
+    let detached = worktrees
+        .worktrees
+        .iter()
+        .find(|worktree| worktree.detached)
+        .unwrap();
+
+    assert_eq!(main.branch.as_deref(), Some("main"));
+    assert!(!main.detached);
+    assert_eq!(
+        linked.path_uri,
+        ResourceUri::from_local_path(&linked_path.canonicalize().unwrap()).unwrap()
+    );
+    assert_eq!(
+        detached.path_uri,
+        ResourceUri::from_local_path(&detached_path.canonicalize().unwrap()).unwrap()
+    );
+    assert!(detached.branch.is_none());
+}
+
+#[tokio::test]
+async fn worktrees_returns_empty_outside_repo() {
+    let dir = tempfile::tempdir().unwrap();
+    let uri = ResourceUri::from_local_path(dir.path()).unwrap();
+
+    let worktrees = GitService::new().worktrees(&uri).await.unwrap();
+
+    assert_eq!(worktrees.repo, None);
+    assert!(worktrees.worktrees.is_empty());
+}
+
+#[tokio::test]
+async fn read_only_repository_views_reject_remote_uris() {
+    let uri = ResourceUri::parse("sftp://550e8400-e29b-41d4-a716-446655440000/path/repo").unwrap();
+    let service = GitService::new();
+
+    assert!(matches!(
+        service.history(&uri, None).await.unwrap_err(),
+        GitError::UnsupportedProvider
+    ));
+    assert!(matches!(
+        service.branches(&uri).await.unwrap_err(),
+        GitError::UnsupportedProvider
+    ));
+    assert!(matches!(
+        service.worktrees(&uri).await.unwrap_err(),
+        GitError::UnsupportedProvider
+    ));
+}
+
+#[tokio::test]
 async fn diff_file_returns_worktree_hunks_for_modified_file() {
     let repo = TestRepo::init();
     repo.write("tracked.txt", "one\ntwo\nthree\n");

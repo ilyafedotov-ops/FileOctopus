@@ -744,6 +744,75 @@ describe("FileOctopusClient", () => {
           } as TResponse;
         }
 
+        if (command === "git.history") {
+          return {
+            repo: {
+              rootUri: "local:///repo",
+              branch: "main",
+              headShort: "abcdef1",
+              isDirty: true,
+            },
+            commits: [
+              {
+                hash: "abcdef123456",
+                shortHash: "abcdef1",
+                parents: ["1234567"],
+                parentCount: 1,
+                authorName: "FileOctopus Test",
+                authorEmail: "test@example.invalid",
+                authoredAt: "2026-06-12T12:00:00+00:00",
+                subject: "initial",
+                body: "initial",
+              },
+            ],
+          } as TResponse;
+        }
+
+        if (command === "git.branches") {
+          return {
+            repo: {
+              rootUri: "local:///repo",
+              branch: "main",
+              headShort: "abcdef1",
+              isDirty: true,
+            },
+            branches: [
+              {
+                fullName: "refs/heads/main",
+                name: "main",
+                kind: "local",
+                isCurrent: true,
+                head: "abcdef1",
+                upstream: "origin/main",
+                lastCommitAt: "2026-06-12T12:00:00+00:00",
+                subject: "initial",
+              },
+            ],
+          } as TResponse;
+        }
+
+        if (command === "git.worktrees") {
+          return {
+            repo: {
+              rootUri: "local:///repo",
+              branch: "main",
+              headShort: "abcdef1",
+              isDirty: true,
+            },
+            worktrees: [
+              {
+                pathUri: "local:///repo",
+                branch: "main",
+                head: "abcdef123456",
+                detached: false,
+                bare: false,
+                prunable: false,
+                prunableReason: null,
+              },
+            ],
+          } as TResponse;
+        }
+
         return {
           repo: null,
           entries: {
@@ -764,22 +833,37 @@ describe("FileOctopusClient", () => {
     const diff = await client.git.diffFile({
       uri: "local:///repo/changed.txt",
     });
+    const history = await client.git.history({
+      uri: "local:///repo",
+      maxCount: 25,
+    });
+    const branches = await client.git.branches({ uri: "local:///repo" });
+    const worktrees = await client.git.worktrees({ uri: "local:///repo" });
 
     expect(discovery.repo?.branch).toBe("main");
     expect(status.entries["local:///repo/changed.txt"]).toBe("modified");
     expect(repositoryStatus.files[0]?.repoRelativePath).toBe("changed.txt");
     expect(diff.oldLabel).toBe("HEAD:changed.txt");
+    expect(history.commits[0]?.parentCount).toBe(1);
+    expect(branches.branches[0]?.isCurrent).toBe(true);
+    expect(worktrees.worktrees[0]?.pathUri).toBe("local:///repo");
     expect(calls.map((call) => call.command)).toEqual([
       "git.discover",
       "git.statusForDirectory",
       "git.statusForRepository",
       "git.diffFile",
+      "git.history",
+      "git.branches",
+      "git.worktrees",
     ]);
     expect(calls[1]?.args).toEqual({
       request: { uri: "local:///repo" },
     });
     expect(calls[3]?.args).toEqual({
       request: { uri: "local:///repo/changed.txt" },
+    });
+    expect(calls[4]?.args).toEqual({
+      request: { uri: "local:///repo", maxCount: 25 },
     });
   });
 
