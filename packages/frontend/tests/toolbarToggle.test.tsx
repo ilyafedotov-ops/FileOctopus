@@ -205,7 +205,10 @@ function findMenuItem(
   menu: HTMLElement,
   text: string,
 ): HTMLButtonElement | null {
-  const items = within(menu).getAllByRole("menuitem");
+  const items = [
+    ...within(menu).queryAllByRole("menuitem"),
+    ...within(menu).queryAllByRole("menuitemcheckbox"),
+  ];
   const item = items.find(
     (el) => el.textContent && el.textContent.indexOf(text) !== -1,
   );

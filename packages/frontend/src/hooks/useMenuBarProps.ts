@@ -183,6 +183,11 @@ export function useMenuBarProps(params: UseMenuBarPropsParams): MenuBarProps {
     dualPane: preferences?.paneMode !== "single",
     paneDirection: preferences?.paneDirection ?? "horizontal",
     showHidden: tab.showHidden,
+    viewMode: tab.viewMode,
+    sortField: tab.sort.field,
+    sortDirection: tab.sort.direction,
+    theme: preferences?.theme ?? "system",
+    density: preferences?.density ?? "comfortable",
     onCustomizeToolbar,
   };
 }

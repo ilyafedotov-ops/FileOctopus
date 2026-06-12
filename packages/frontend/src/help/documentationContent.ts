@@ -127,7 +127,7 @@ export const documentationSections: DocSection[] = [
       {
         kind: "list",
         items: [
-          "Add a server (SFTP, SMB, S3, and cloud providers) from Go → Add Server.",
+          "Add a connection (SFTP, SMB, S3, and cloud providers) from Go → Add Connection.",
           "Connect, disconnect, and browse saved profiles from Go → Network.",
           "Credentials are stored in the OS keychain, never in plain configuration.",
         ],

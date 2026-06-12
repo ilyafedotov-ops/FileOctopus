@@ -48,6 +48,11 @@ export interface OperationToolbarProps extends ToolbarDropdownsProps {
   onOpenTargetAction: (action: PaneLocationTargetAction) => void;
 }
 
+function rootGlyph(): string {
+  const platform = typeof navigator !== "undefined" ? navigator.platform : "";
+  return platform.startsWith("Win") ? "\\" : "/";
+}
+
 export function OperationToolbar({
   toolbarEntries,
   canGoBack,
@@ -159,7 +164,7 @@ export function OperationToolbar({
           className="fo-toolbar-nav-btn"
         >
           <span className="fo-toolbar-glyph" aria-hidden="true">
-            \
+            {rootGlyph()}
           </span>
         </ToolbarButton>
         <ToolbarButton

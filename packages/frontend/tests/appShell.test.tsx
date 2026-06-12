@@ -690,7 +690,7 @@ describe("FileOctopusShell", () => {
     render(<FileOctopusShell />);
     await applyLeftEntries([folderEntry("New Folder")]);
 
-    fireEvent.click(screen.getAllByRole("button", { name: "Folder+" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "New Folder" })[0]);
 
     expect(
       (screen.getByLabelText("Folder name") as HTMLInputElement).value,

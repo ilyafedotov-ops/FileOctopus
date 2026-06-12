@@ -107,8 +107,9 @@
 
 .fo-ui-dropdown-menu--portal {
   position: fixed;
-  max-height: min(70vh, 28rem);
+  max-height: min(85vh, 44rem);
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 /* ── MenuSurface (UPP-D1) ───────────────────────────────────────── */
@@ -123,8 +124,9 @@
   box-shadow: var(--fo-elevation-popover);
   padding: 4px 0;
   border-radius: 0;
-  max-height: min(80vh, 28rem);
+  max-height: min(85vh, 44rem);
   overflow-y: auto;
+  scrollbar-width: thin;
 }
 
 .fo-ui-input,

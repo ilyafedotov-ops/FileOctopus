@@ -224,8 +224,8 @@ describe("ConnectServerDialog", () => {
     expect(option?.disabled).toBe(true);
     expect(option?.textContent).toContain("unavailable");
     expect(
-      within(dialog()).getByText("WebDAV provider is not registered yet."),
-    ).toBeTruthy();
+      within(dialog()).queryByText("WebDAV provider is not registered yet."),
+    ).toBeNull();
   });
 
   it("detects common SSH keys and keeps the preferred key selected", async () => {
@@ -250,7 +250,6 @@ describe("ConnectServerDialog", () => {
       />,
     );
 
-    selectTab("SSH");
     fireEvent.click(
       within(dialog()).getByRole("button", { name: "Private key" }),
     );
@@ -274,7 +273,6 @@ describe("ConnectServerDialog", () => {
       .mockResolvedValue("/Users/ilya/.ssh/custom_key");
     render(<ConnectServerDialog {...baseProps({ pickLocalPath })} />);
 
-    selectTab("SSH");
     fireEvent.click(
       within(dialog()).getByRole("button", { name: "Private key" }),
     );
@@ -424,6 +422,34 @@ describe("ConnectServerDialog", () => {
       },
     });
     expect(onConnectProfile).not.toHaveBeenCalled();
+  });
+
+  it("clears field errors as the user fixes them", () => {
+    render(<ConnectServerDialog {...baseProps({ networkProfiles: [] })} />);
+
+    fireEvent.click(footerButton("Save"));
+    expect(within(dialog()).getByRole("alert").textContent).toContain(
+      "Profile name",
+    );
+
+    fireEvent.change(within(dialog()).getByLabelText("Profile name"), {
+      target: { value: "Prod" },
+    });
+    expect(within(dialog()).getByRole("alert").textContent).not.toContain(
+      "Profile name",
+    );
+    expect(within(dialog()).getByRole("alert").textContent).toContain("Host");
+
+    fireEvent.change(within(dialog()).getByLabelText("Host"), {
+      target: { value: "prod.example.com" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("Username"), {
+      target: { value: "deploy" },
+    });
+    fireEvent.change(within(dialog()).getByLabelText("Password"), {
+      target: { value: "hunter2" },
+    });
+    expect(within(dialog()).queryByRole("alert")).toBeNull();
   });
 
   it("enables Connect only for saved profiles", () => {

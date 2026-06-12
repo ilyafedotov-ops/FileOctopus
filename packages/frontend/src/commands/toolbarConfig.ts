@@ -19,10 +19,10 @@ export interface ToolbarCommandMeta {
 const TOOLBAR_LABELS: Partial<Record<CommandId, string>> = {
   "op.view": "View",
   "op.edit": "Edit",
-  "op.openDefault": "Open with default",
+  "op.openDefault": "Open",
   "op.copyTo": "Copy",
   "op.moveTo": "Move",
-  "create.folder": "Folder+",
+  "create.folder": "New Folder",
   "op.delete": "Delete",
   "op.properties": "Props",
 };

@@ -210,7 +210,7 @@ export function buildPaneLocationTargets({
 
   addTarget({
     id: "network-add-server",
-    label: "Add Server...",
+    label: "Add Connection...",
     uri: "network:///add",
     section: "Connections",
     kind: "addServer",

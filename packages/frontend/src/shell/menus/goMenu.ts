@@ -1,4 +1,5 @@
 import { Icons, type DropdownMenuItem } from "@fileoctopus/ui";
+import { menuShortcut } from "./types";
 import type { MenuBarProps, MenuHelpers } from "./types";
 
 export function buildGoItems(
@@ -9,34 +10,33 @@ export function buildGoItems(
     {
       id: "back",
       label: "Back",
-      shortcut: "Alt+←",
+      shortcut: menuShortcut("nav.back"),
       disabled: !props.canGoBack,
       onSelect: wrap(props.onBack),
     },
     {
       id: "forward",
       label: "Forward",
-      shortcut: "Alt+→",
+      shortcut: menuShortcut("nav.forward"),
       disabled: !props.canGoForward,
       onSelect: wrap(props.onForward),
     },
     {
       id: "up",
       label: "Up to Parent",
-      shortcut: "Backspace",
+      shortcut: menuShortcut("nav.up"),
       onSelect: wrap(props.onUp),
     },
     {
       id: "home",
       label: "Home",
-      shortcut: "Alt+Home",
       onSelect: wrap(props.onHome),
     },
     sep("sep-location"),
     {
       id: "go-location",
       label: "Location…",
-      shortcut: "Ctrl+L",
+      shortcut: menuShortcut("nav.goToLocation"),
       onSelect: wrap(props.onGoToLocation),
     },
     {
@@ -52,7 +52,7 @@ export function buildGoItems(
     },
     {
       id: "go-add-server",
-      label: "Add Server…",
+      label: "Add Connection…",
       onSelect: wrap(props.onAddServer),
     },
     sep("sep-stdloc"),

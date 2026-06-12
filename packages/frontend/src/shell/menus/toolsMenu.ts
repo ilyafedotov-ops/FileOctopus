@@ -57,16 +57,5 @@ export function buildToolsItems(
       label: "Operation History…",
       onSelect: wrap(props.onOperationHistory),
     },
-    sep("sep-diag"),
-    {
-      id: "diagnostics",
-      label: "Diagnostics…",
-      onSelect: wrap(props.onDiagnostics),
-    },
-    {
-      id: "export-diagnostics",
-      label: "Export Diagnostics Bundle…",
-      onSelect: wrap(props.onExportDiagnostics),
-    },
   ];
 }

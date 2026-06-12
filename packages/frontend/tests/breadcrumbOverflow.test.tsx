@@ -218,7 +218,7 @@ describe("PaneHeader location selector", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Location: Home" }));
-    fireEvent.click(screen.getByRole("menuitem", { name: "Projects" }));
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: "Projects" }));
 
     expect(onNavigate).toHaveBeenCalledWith("local:///Users/ilya/Projects");
   });

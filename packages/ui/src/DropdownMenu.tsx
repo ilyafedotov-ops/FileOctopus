@@ -118,7 +118,14 @@ function SubmenuItem({
                 <button
                   key={child.id}
                   type="button"
-                  role="menuitem"
+                  role={
+                    child.checked === undefined
+                      ? "menuitem"
+                      : "menuitemcheckbox"
+                  }
+                  aria-checked={
+                    child.checked === undefined ? undefined : child.checked
+                  }
                   className={cx(
                     "fo-ui-dropdown-item",
                     child.checked && "fo-ui-dropdown-item--checked",
@@ -133,7 +140,7 @@ function SubmenuItem({
                   }}
                 >
                   <span className="fo-ui-dropdown-icon" aria-hidden="true">
-                    {child.icon}
+                    {child.icon ?? (child.checked ? "✓" : null)}
                   </span>
                   <span className="fo-ui-dropdown-label">{child.label}</span>
                   {child.shortcut ? (
@@ -231,7 +238,7 @@ export function DropdownMenu({
   const menuItemElements = () =>
     Array.from(
       menuRef.current?.querySelectorAll<HTMLElement>(
-        '[role="menuitem"]:not([disabled])',
+        '[role="menuitem"]:not([disabled]), [role="menuitemcheckbox"]:not([disabled])',
       ) ?? [],
     );
 
@@ -347,7 +354,14 @@ export function DropdownMenu({
                   <button
                     key={item.id}
                     type="button"
-                    role="menuitem"
+                    role={
+                      item.checked === undefined
+                        ? "menuitem"
+                        : "menuitemcheckbox"
+                    }
+                    aria-checked={
+                      item.checked === undefined ? undefined : item.checked
+                    }
                     className={cx(
                       "fo-ui-dropdown-item",
                       item.checked && "fo-ui-dropdown-item--checked",
@@ -361,7 +375,7 @@ export function DropdownMenu({
                     }}
                   >
                     <span className="fo-ui-dropdown-icon" aria-hidden="true">
-                      {item.icon}
+                      {item.icon ?? (item.checked ? "✓" : null)}
                     </span>
                     <span className="fo-ui-dropdown-label">{item.label}</span>
                     {item.shortcut ? (

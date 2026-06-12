@@ -155,3 +155,16 @@
   border-radius: 0;
   background: var(--fo-surface-elevated);
 }
+
+.fo-sidebar-warning .fo-sidebar-label {
+  color: var(--fo-warning);
+}
+
+.fo-sidebar-error .fo-sidebar-label {
+  color: var(--fo-danger-text);
+}
+
+.fo-sidebar-busy {
+  opacity: 0.6;
+  cursor: progress;
+}

@@ -48,7 +48,6 @@ export interface CommandDispatchDeps {
   clearRecentEntries: () => Promise<void>;
   setOperationHistoryOpen: (open: boolean) => void;
   setVolumePickerOpen: (open: boolean) => void;
-  setNetworkLocationsOpen: (open: boolean) => void;
   setConnectServerOpen: (open: boolean) => void;
   setConnectServerProfile: (
     profile: import("@fileoctopus/ts-api").NetworkProfileDto | null,

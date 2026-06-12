@@ -105,13 +105,11 @@ export function ShellOverlays() {
         operationError={ctx.operationError}
         operationHistoryOpen={ctx.operationHistoryOpen}
         volumePickerOpen={ctx.volumePickerOpen}
-        networkLocationsOpen={ctx.networkLocationsOpen}
         connectServerOpen={ctx.connectServerOpen}
         connectServerProfile={ctx.connectServerProfile}
         connectServerInitial={ctx.connectServerInitial}
         removeServerProfile={ctx.removeServerProfile}
         networkProfiles={ctx.networkProfiles}
-        networkStatuses={ctx.networkStatuses}
         history={ctx.history}
         dialog={ctx.dialog}
         autostart={ctx.autostart}
@@ -146,13 +144,11 @@ export function ShellOverlays() {
         setErrorDetailsOpen={ctx.setErrorDetailsOpen}
         setOperationHistoryOpen={ctx.setOperationHistoryOpen}
         setVolumePickerOpen={ctx.setVolumePickerOpen}
-        setNetworkLocationsOpen={ctx.setNetworkLocationsOpen}
         setConnectServerOpen={ctx.setConnectServerOpen}
         setConnectServerProfile={ctx.setConnectServerProfile}
         setConnectServerInitial={ctx.setConnectServerInitial}
         setRemoveServerProfile={ctx.setRemoveServerProfile}
         connectProfile={ctx.connectProfile}
-        disconnectProfile={ctx.disconnectProfile}
         deleteProfile={ctx.deleteProfile}
         saveProfile={ctx.saveProfile}
         forgetFingerprint={ctx.forgetFingerprint}

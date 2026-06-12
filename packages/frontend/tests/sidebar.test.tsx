@@ -542,7 +542,7 @@ describe("Sidebar", () => {
     });
     render(<Sidebar {...props} />);
     expect(screen.getByText("Network")).toBeTruthy();
-    expect(screen.getByText("No saved servers")).toBeTruthy();
+    expect(screen.getByText("No saved connections")).toBeTruthy();
   });
 
   it("renders network profiles", () => {
@@ -599,14 +599,14 @@ describe("Sidebar", () => {
     expect(onOpenProfileTerminal.mock.calls[0][0].id).toBe("s1");
   });
 
-  it("shows Add server button in Network section", () => {
+  it("shows Add connection button in Network section", () => {
     const onAddServer = vi.fn();
     const props = makeSidebarProps({
       networkEnabled: true,
       onAddServer,
     });
     render(<Sidebar {...props} />);
-    fireEvent.click(screen.getByText("Add server…"));
+    fireEvent.click(screen.getByText("Add connection…"));
     expect(onAddServer).toHaveBeenCalled();
   });
 

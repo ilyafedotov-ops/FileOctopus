@@ -89,6 +89,11 @@ function createMenuBarProps(
     dualPane: true,
     paneDirection: "horizontal",
     showHidden: false,
+    viewMode: "details",
+    sortField: "name",
+    sortDirection: "asc",
+    theme: "system",
+    density: "comfortable",
     onCustomizeToolbar: noop,
     ...overrides,
   };
@@ -151,7 +156,9 @@ describe("MenuBar", () => {
 
     openTopMenu("View");
 
-    expect(screen.getByRole("menuitem", { name: /Compact View/ })).toBeTruthy();
+    expect(
+      screen.getByRole("menuitemcheckbox", { name: /Compact View/ }),
+    ).toBeTruthy();
   });
 
   it("exposes the full sort submenu from the View menu", () => {
@@ -172,7 +179,9 @@ describe("MenuBar", () => {
       "Ascending",
       "Descending",
     ]) {
-      expect(screen.getByRole("menuitem", { name: label })).toBeTruthy();
+      expect(
+        screen.getByRole("menuitemcheckbox", { name: label }),
+      ).toBeTruthy();
     }
   });
 

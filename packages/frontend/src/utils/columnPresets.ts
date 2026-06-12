@@ -42,18 +42,6 @@ export const DEFAULT_COLUMN_PRESETS: ColumnPreset[] = [
       kind: 110,
     },
   },
-  {
-    id: "detailed",
-    name: "Detailed",
-    visibleColumns: ["name", "extension", "size", "modified", "kind"],
-    columnWidths: {
-      name: 200,
-      extension: 70,
-      size: 90,
-      modified: 150,
-      kind: 120,
-    },
-  },
 ];
 
 export function captureColumnPreset(

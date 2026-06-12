@@ -19,7 +19,6 @@ import { ClosePaneTerminalDialog } from "./dialogs/ClosePaneTerminalDialog";
 import { ErrorDetailsDialog } from "./dialogs/ErrorDetailsDialog";
 import { OperationHistoryDialog } from "./dialogs/OperationHistoryDialog";
 import { VolumePickerDialog } from "./dialogs/VolumePickerDialog";
-import { NetworkLocationsDialog } from "./dialogs/NetworkLocationsDialog";
 import { ConnectServerDialog } from "./dialogs/ConnectServerDialog";
 import { RemoveServerDialog } from "./dialogs/RemoveServerDialog";
 import { MultiRenameDialog } from "./MultiRenameDialog";
@@ -315,25 +314,21 @@ export function DialogOverlaySectionNavigation(props: DialogOverlayGroupProps) {
 export function DialogOverlaySectionOperations(props: DialogOverlayGroupProps) {
   const {
     volumePickerOpen,
-    networkLocationsOpen,
     connectServerOpen,
     connectServerProfile,
     connectServerInitial,
     removeServerProfile,
     networkProfiles,
-    networkStatuses,
     favorites,
     preferences,
     dialog,
     fs,
     setVolumePickerOpen,
-    setNetworkLocationsOpen,
     setConnectServerOpen,
     setConnectServerProfile,
     setConnectServerInitial,
     setRemoveServerProfile,
     connectProfile,
-    disconnectProfile,
     deleteProfile,
     saveProfile,
     forgetFingerprint,
@@ -383,34 +378,6 @@ export function DialogOverlaySectionOperations(props: DialogOverlayGroupProps) {
         favorites={favorites}
         recentDestinations={recentDestinations}
         networkProfiles={networkProfiles}
-      />
-      <NetworkLocationsDialog
-        open={networkLocationsOpen}
-        profiles={networkProfiles}
-        statuses={networkStatuses}
-        onClose={() => setNetworkLocationsOpen(false)}
-        onNavigate={onNavigateActivePane}
-        onConnect={connectProfile}
-        onDisconnect={disconnectProfile}
-        onAddServer={() => {
-          setNetworkLocationsOpen(false);
-          setConnectServerProfile(null);
-          setConnectServerInitial(null);
-          setConnectServerOpen(true);
-        }}
-        onEditServer={(profile) => {
-          setNetworkLocationsOpen(false);
-          setConnectServerProfile(profile);
-          setConnectServerInitial(null);
-          setConnectServerOpen(true);
-        }}
-        onDeleteServer={(profileId) => {
-          const profile = networkProfiles.find((item) => item.id === profileId);
-          if (profile) {
-            setRemoveServerProfile(profile);
-          }
-        }}
-        onOpenTerminal={onOpenProfileTerminal}
       />
       <ConnectServerDialog
         open={connectServerOpen}

@@ -95,7 +95,6 @@ export interface ShellLayoutContextValue {
   errorDetailsOpen: boolean;
   operationHistoryOpen: boolean;
   volumePickerOpen: boolean;
-  networkLocationsOpen: boolean;
   connectServerOpen: boolean;
   connectServerProfile: NetworkProfileDto | null;
   connectServerInitial: NetworkConnectionDraftDto | null;
@@ -110,7 +109,6 @@ export interface ShellLayoutContextValue {
   setErrorDetailsOpen: (v: boolean) => void;
   setOperationHistoryOpen: (v: boolean) => void;
   setVolumePickerOpen: (v: boolean) => void;
-  setNetworkLocationsOpen: (v: boolean) => void;
   setConnectServerOpen: (v: boolean) => void;
   setConnectServerProfile: (profile: NetworkProfileDto | null) => void;
   setConnectServerInitial: (profile: NetworkConnectionDraftDto | null) => void;

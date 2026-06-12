@@ -199,7 +199,10 @@ export function formatKeyComboForDisplay(
   else if (key === "Enter") key = platform === "mac" ? "Return" : "Enter";
   else if (key === "Escape") key = "Esc";
   else if (key === "Delete") key = platform === "mac" ? "Delete" : "Del";
-  else if (key.length === 1) key = key.toUpperCase();
+  else if (key.toLowerCase() === "backspace") {
+    key = platform === "mac" ? "⌫" : "Backspace";
+  } else if (key.length === 1) key = key.toUpperCase();
+  else key = key.charAt(0).toUpperCase() + key.slice(1);
 
   parts.push(key);
 

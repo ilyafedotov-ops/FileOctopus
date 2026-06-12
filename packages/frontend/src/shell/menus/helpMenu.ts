@@ -1,4 +1,5 @@
 import type { DropdownMenuItem } from "@fileoctopus/ui";
+import { menuShortcut } from "./types";
 import type { MenuBarProps, MenuHelpers } from "./types";
 
 export function buildHelpItems(
@@ -9,7 +10,7 @@ export function buildHelpItems(
     {
       id: "shortcuts",
       label: "Keyboard Shortcuts…",
-      shortcut: "Ctrl+/",
+      shortcut: menuShortcut("app.shortcuts"),
       onSelect: wrap(props.onShortcuts),
     },
     {

@@ -99,13 +99,28 @@
   overflow-wrap: anywhere;
 }
 
-.fo-first-run-dialog {
-  width: min(34rem, calc(100vw - 2rem));
+.fo-dialog.fo-wizard-dialog {
+  width: min(44rem, calc(100vw - 2rem));
+}
+
+.fo-wizard-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 0.85rem;
+}
+
+.fo-dialog.fo-first-run-dialog {
+  width: min(48rem, calc(100vw - 2rem));
 }
 
 .fo-first-run-body {
   display: grid;
   gap: 10px;
+}
+
+.fo-first-run-body h3,
+.fo-first-run-body p {
+  margin: 0;
 }
 
 .fo-first-run-grid {
@@ -114,13 +129,20 @@
   gap: 8px;
 }
 
-.fo-first-run-grid button {
+.fo-first-run-grid button,
+.fo-first-run-card {
   display: grid;
   align-content: start;
   gap: 4px;
   min-height: 82px;
   padding: 10px;
   text-align: left;
+}
+
+.fo-first-run-card {
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-xs);
+  background: var(--fo-workbench-dialog-panel-bg);
 }
 
 .fo-first-run-grid strong {
@@ -143,6 +165,21 @@
   border-color: var(--fo-danger-border);
   background: var(--fo-danger-bg);
   color: var(--fo-danger-text);
+}
+
+.fo-dialog-error {
+  margin: 0;
+  padding: var(--fo-spacing-sm) var(--fo-spacing-md);
+  border: 1px solid var(--fo-danger-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-danger-bg);
+  color: var(--fo-danger-text);
+  font-size: var(--fo-font-size-sm);
+  line-height: var(--fo-line-normal);
+}
+
+.fo-wizard-error {
+  margin: 0 0.85rem 0.85rem;
 }
 
 .fo-dialog-actions {
@@ -724,11 +761,23 @@ dialog.fo-dialog[open] {
   inset: auto;
 }
 
-.fo-about-dialog {
+.fo-dialog.fo-dialog--sm {
   width: min(26rem, calc(100vw - 2rem));
 }
 
-.fo-settings-dialog {
+.fo-dialog.fo-dialog--md {
+  width: min(34rem, calc(100vw - 2rem));
+}
+
+.fo-dialog.fo-dialog--lg {
+  width: min(48rem, calc(100vw - 2rem));
+}
+
+.fo-dialog.fo-about-dialog {
+  width: min(26rem, calc(100vw - 2rem));
+}
+
+.fo-dialog.fo-settings-dialog {
   width: min(48rem, calc(100vw - 2rem));
   /* Stable height so switching categories never resizes/recenters the dialog;
      the content panel scrolls internally instead. */
@@ -736,9 +785,9 @@ dialog.fo-dialog[open] {
   overflow: hidden;
 }
 
-.fo-diagnostics-dialog,
-.fo-go-to-dialog,
-.fo-error-details-dialog {
+.fo-dialog.fo-diagnostics-dialog,
+.fo-dialog.fo-go-to-dialog,
+.fo-dialog.fo-error-details-dialog {
   width: min(32rem, calc(100vw - 2rem));
 }
 
@@ -892,7 +941,7 @@ dialog.fo-dialog[open] {
 
 .fo-wizard-step {
   display: flex;
-  flex: 1 1 0;
+  flex: 1 1 auto;
   min-width: 0;
 }
 
@@ -903,7 +952,7 @@ dialog.fo-dialog[open] {
   width: 100%;
   min-width: 0;
   min-height: 36px;
-  padding: 0 var(--fo-spacing-lg);
+  padding: 0 var(--fo-spacing-md);
   border: 1px solid var(--fo-workbench-dialog-border);
   border-radius: var(--fo-radius-sm);
   background: var(--fo-workbench-dialog-panel-bg);
@@ -1240,7 +1289,6 @@ dialog.fo-dialog[open] {
 }
 
 .fo-connect-preset-active,
-.fo-connect-auth-option-active,
 .fo-connect-key-option-active {
   border-color: var(--fo-accent);
   box-shadow: inset 3px 0 0 var(--fo-accent);
@@ -1253,7 +1301,35 @@ dialog.fo-dialog[open] {
 }
 
 .fo-connect-auth-options {
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  display: flex;
+  gap: 0;
+  width: fit-content;
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+  overflow: hidden;
+}
+
+.fo-dialog button.fo-connect-auth-option {
+  min-width: 120px;
+  min-height: 30px;
+  padding: var(--fo-spacing-xs) var(--fo-spacing-lg);
+  justify-items: center;
+  text-align: center;
+  background: var(--fo-workbench-dialog-panel-bg);
+  border: 0;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.fo-dialog button.fo-connect-auth-option + button.fo-connect-auth-option {
+  border-left: 1px solid var(--fo-workbench-dialog-muted-border);
+}
+
+.fo-dialog button.fo-connect-auth-option-active {
+  background: var(--fo-accent);
+  border-color: var(--fo-accent);
+  color: var(--fo-on-accent);
+  font-weight: 600;
 }
 
 .fo-connect-key-option {
@@ -2025,6 +2101,29 @@ dialog.fo-dialog[open] {
   margin: 4px 0 0;
   color: var(--fo-muted-text);
   font-size: var(--fo-font-size-md);
+}
+
+.fo-settings-provider-list {
+  display: grid;
+  gap: 2px;
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-panel-bg);
+  padding: var(--fo-spacing-sm);
+}
+
+.fo-settings-provider-row {
+  display: grid;
+  grid-template-columns: 7rem 8.5rem minmax(0, 1fr);
+  gap: var(--fo-spacing-md);
+  align-items: baseline;
+  padding: var(--fo-spacing-xs) var(--fo-spacing-sm);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-settings-provider-row span {
+  color: var(--fo-muted-text);
+  overflow-wrap: anywhere;
 }
 
 .fo-settings-nav-wrapper {
@@ -3936,4 +4035,254 @@ dialog.fo-dialog[open] {
   margin: 0;
   color: var(--fo-muted-text);
   font-size: var(--fo-font-size-sm);
+}
+
+.fo-dialog.fo-session-manager-dialog {
+  width: min(38rem, calc(100vw - 2rem));
+}
+
+.fo-dialog.fo-multi-rename-dialog {
+  width: min(52rem, calc(100vw - 2rem));
+}
+
+.fo-multi-rename-dialog .fo-dialog-body {
+  grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+  gap: var(--fo-spacing-lg);
+}
+
+.fo-multi-rename-form {
+  display: grid;
+  align-content: start;
+  gap: var(--fo-spacing-md);
+}
+
+.fo-multi-rename-tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fo-spacing-xs);
+}
+
+.fo-multi-rename-counter {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-multi-rename-preview {
+  display: grid;
+  align-content: start;
+  gap: var(--fo-spacing-sm);
+  min-width: 0;
+}
+
+.fo-multi-rename-preview h3 {
+  margin: 0;
+  font-size: var(--fo-font-size-md);
+}
+
+.fo-multi-rename-conflict-warning {
+  padding: var(--fo-spacing-sm) var(--fo-spacing-md);
+  border: 1px solid var(--fo-danger-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-danger-bg);
+  color: var(--fo-danger-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-multi-rename-results {
+  max-height: 22rem;
+  overflow: auto;
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-xs);
+}
+
+.fo-multi-rename-results table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-multi-rename-results th,
+.fo-multi-rename-results td {
+  padding: var(--fo-spacing-xs) var(--fo-spacing-md);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.fo-multi-rename-results th {
+  position: sticky;
+  top: 0;
+  background: var(--fo-workbench-dialog-panel-bg);
+  color: var(--fo-muted-text);
+  font-weight: 600;
+}
+
+.fo-multi-rename-results td {
+  border-top: 1px solid var(--fo-divider);
+}
+
+.fo-multi-rename-conflict td {
+  color: var(--fo-danger-text);
+}
+
+.fo-multi-rename-changed td:last-child {
+  color: var(--fo-accent);
+}
+
+.fo-session-list {
+  display: grid;
+  gap: var(--fo-spacing-sm);
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.fo-session-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--fo-spacing-md);
+  padding: var(--fo-spacing-md) var(--fo-spacing-lg);
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-sm);
+  background: var(--fo-workbench-dialog-panel-bg);
+}
+
+.fo-session-info {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.fo-session-meta {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-session-date {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-xs);
+}
+
+.fo-session-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fo-spacing-sm);
+}
+
+@media (max-width: 880px) {
+  .fo-multi-rename-dialog .fo-dialog-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fo-dialog.fo-close-pane-terminal-dialog,
+.fo-dialog.fo-remove-server-dialog {
+  width: min(26rem, calc(100vw - 2rem));
+}
+
+.fo-dialog.fo-terminal-command-dialog,
+.fo-dialog.fo-remote-path-picker-dialog {
+  width: min(34rem, calc(100vw - 2rem));
+}
+
+.fo-dialog-subtitle {
+  margin: 0;
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-dialog-content {
+  display: grid;
+  align-content: start;
+  gap: var(--fo-spacing-md);
+  min-height: 0;
+  overflow: auto;
+}
+
+.fo-dialog-field-static {
+  display: grid;
+  gap: var(--fo-spacing-sm);
+  justify-items: start;
+}
+
+.fo-fingerprint-display {
+  padding: var(--fo-spacing-xs) var(--fo-spacing-sm);
+  border: 1px solid var(--fo-workbench-dialog-muted-border);
+  border-radius: var(--fo-radius-xs);
+  background: var(--fo-workbench-dialog-panel-bg);
+  font-family: var(--fo-font-mono);
+  font-size: var(--fo-font-size-sm);
+  overflow-wrap: anywhere;
+}
+
+.fo-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-conflict-source {
+  box-shadow: inset 3px 0 0 var(--fo-accent);
+}
+
+.fo-conflict-dest {
+  box-shadow: inset 3px 0 0 var(--fo-warning);
+}
+
+.fo-acl-owner,
+.fo-acl-group {
+  color: var(--fo-muted-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-properties-label {
+  color: var(--fo-muted-text);
+}
+
+.fo-properties-content {
+  display: grid;
+  align-content: start;
+  gap: var(--fo-spacing-md);
+  min-height: 0;
+  overflow: auto;
+}
+
+.fo-properties-error {
+  color: var(--fo-danger-text);
+  font-size: var(--fo-font-size-sm);
+}
+
+.fo-properties-input {
+  font-family: var(--fo-font-mono);
+}
+
+.fo-editor-confirm-message {
+  margin: 0;
+}
+
+.fo-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-destination-chooser {
+  display: grid;
+  align-content: start;
+  gap: var(--fo-spacing-md);
+  min-height: 0;
+}
+
+.fo-path-field {
+  display: grid;
+  gap: var(--fo-spacing-sm);
+}
+
+.fo-context-menu-group {
+  display: grid;
+}
+
+.fo-context-menu-item--submenu {
+  justify-content: space-between;
 }

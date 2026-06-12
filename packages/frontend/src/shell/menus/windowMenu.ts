@@ -1,4 +1,5 @@
 import type { DropdownMenuItem } from "@fileoctopus/ui";
+import { menuShortcut } from "./types";
 import type { MenuBarProps, MenuHelpers } from "./types";
 
 export function buildWindowItems(
@@ -9,7 +10,7 @@ export function buildWindowItems(
     {
       id: "switch-pane",
       label: "Switch Active Pane",
-      shortcut: "Tab",
+      shortcut: menuShortcut("layout.switchPane"),
       onSelect: wrap(props.onSwitchPane),
     },
     sep("sep-dual"),
@@ -22,7 +23,7 @@ export function buildWindowItems(
     {
       id: "swap-panes",
       label: "Swap Panes",
-      shortcut: "Ctrl+U",
+      shortcut: menuShortcut("layout.swapPanes"),
       onSelect: wrap(props.onSwapPanes),
     },
     {

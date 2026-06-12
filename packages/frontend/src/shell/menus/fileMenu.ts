@@ -1,6 +1,6 @@
 import { Icons, type DropdownMenuItem } from "@fileoctopus/ui";
 import type { MenuBarProps, MenuHelpers } from "./types";
-import { menuShortcut } from "./types";
+import { menuShortcut, platformShortcut } from "./types";
 
 export function buildFileItems(
   props: MenuBarProps,
@@ -111,14 +111,14 @@ export function buildFileItems(
       id: "settings",
       label: "Settings…",
       icon: Icons.settings(),
-      shortcut: "Ctrl+,",
+      shortcut: menuShortcut("app.settings"),
       onSelect: wrap(props.onSettings),
     },
     {
       id: "exit",
       label: "Exit",
       icon: Icons.logOut(),
-      shortcut: "Ctrl+Q",
+      shortcut: platformShortcut("⌘Q", "Ctrl+Q"),
       onSelect: wrap(props.onExit),
     },
   ];

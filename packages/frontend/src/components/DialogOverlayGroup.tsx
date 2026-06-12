@@ -18,7 +18,6 @@ import { type CommandEntry } from "./CommandPalette";
 import { type OperationDialog } from "../dialogs/OperationDialogView";
 import type {
   FavoriteEntryDto,
-  NetworkConnectionStatusDto,
   NetworkProfileDto,
   OperationHistoryRecordDto,
   StandardLocationDto,
@@ -60,13 +59,11 @@ export interface DialogOverlayGroupProps {
   onConfirmClosePaneWithTerminal: () => void;
   operationHistoryOpen: boolean;
   volumePickerOpen: boolean;
-  networkLocationsOpen: boolean;
   connectServerOpen: boolean;
   connectServerProfile: NetworkProfileDto | null;
   connectServerInitial: NetworkConnectionDraftDto | null;
   removeServerProfile: NetworkProfileDto | null;
   networkProfiles: NetworkProfileDto[];
-  networkStatuses: NetworkConnectionStatusDto[];
   goToLocationInitialUri: string;
   leftPanelUri: string;
   rightPanelUri: string;
@@ -107,7 +104,6 @@ export interface DialogOverlayGroupProps {
   setErrorDetailsOpen: (open: boolean) => void;
   setOperationHistoryOpen: (open: boolean) => void;
   setVolumePickerOpen: (open: boolean) => void;
-  setNetworkLocationsOpen: (open: boolean) => void;
   setConnectServerOpen: (open: boolean) => void;
   setConnectServerProfile: (profile: NetworkProfileDto | null) => void;
   setConnectServerInitial: (profile: NetworkConnectionDraftDto | null) => void;
@@ -129,7 +125,6 @@ export interface DialogOverlayGroupProps {
   multiRenameEntries: FileEntryDto[];
   connectProfile: (profileId: string) => Promise<void>;
   forgetFingerprint: (profileId: string) => Promise<void>;
-  disconnectProfile: (profileId: string) => Promise<void>;
   deleteProfile: (profileId: string) => Promise<void>;
   testConnection: (
     profileId: string,

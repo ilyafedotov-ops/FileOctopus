@@ -35,7 +35,6 @@ export interface ModalsContextValue {
   errorDetailsOpen: boolean;
   operationHistoryOpen: boolean;
   volumePickerOpen: boolean;
-  networkLocationsOpen: boolean;
   connectServerOpen: boolean;
   connectServerProfile: NetworkProfileDto | null;
   connectServerInitial: NetworkConnectionDraftDto | null;
@@ -71,7 +70,6 @@ export interface ModalsContextValue {
   setErrorDetailsOpen: Dispatch<SetStateAction<boolean>>;
   setOperationHistoryOpen: Dispatch<SetStateAction<boolean>>;
   setVolumePickerOpen: Dispatch<SetStateAction<boolean>>;
-  setNetworkLocationsOpen: Dispatch<SetStateAction<boolean>>;
   setConnectServerOpen: Dispatch<SetStateAction<boolean>>;
   setConnectServerProfile: Dispatch<SetStateAction<NetworkProfileDto | null>>;
   setConnectServerInitial: Dispatch<
@@ -124,7 +122,6 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
   const [errorDetailsOpen, setErrorDetailsOpen] = useState(false);
   const [operationHistoryOpen, setOperationHistoryOpen] = useState(false);
   const [volumePickerOpen, setVolumePickerOpen] = useState(false);
-  const [networkLocationsOpen, setNetworkLocationsOpen] = useState(false);
   const [connectServerOpen, setConnectServerOpen] = useState(false);
   const [connectServerProfile, setConnectServerProfile] =
     useState<NetworkProfileDto | null>(null);
@@ -166,7 +163,6 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       errorDetailsOpen,
       operationHistoryOpen,
       volumePickerOpen,
-      networkLocationsOpen,
       connectServerOpen,
       connectServerProfile,
       connectServerInitial,
@@ -202,7 +198,6 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       setErrorDetailsOpen,
       setOperationHistoryOpen,
       setVolumePickerOpen,
-      setNetworkLocationsOpen,
       setConnectServerOpen,
       setConnectServerProfile,
       setConnectServerInitial,
@@ -240,7 +235,6 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       errorDetailsOpen,
       operationHistoryOpen,
       volumePickerOpen,
-      networkLocationsOpen,
       connectServerOpen,
       connectServerProfile,
       connectServerInitial,

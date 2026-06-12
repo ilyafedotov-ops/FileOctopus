@@ -76,11 +76,11 @@ export function SettingsOperations({
             onChange("defaultConflictPolicy", event.target.value)
           }
         >
-          <option value="fail">Fail</option>
-          <option value="skip">Skip</option>
-          <option value="overwrite">Overwrite</option>
-          <option value="renameNew">Rename New</option>
-          <option value="renameExisting">Rename Existing</option>
+          <option value="fail">Stop and report</option>
+          <option value="skip">Skip conflicting items</option>
+          <option value="overwrite">Overwrite existing</option>
+          <option value="renameNew">Keep both (rename new)</option>
+          <option value="renameExisting">Keep both (rename existing)</option>
         </select>
       </label>
       <label className="fo-settings-checkbox">

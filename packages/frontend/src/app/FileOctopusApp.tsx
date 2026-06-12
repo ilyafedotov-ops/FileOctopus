@@ -163,14 +163,12 @@ function FileOctopusAppInner({
     setErrorDetailsOpen,
     setOperationHistoryOpen,
     volumePickerOpen,
-    networkLocationsOpen,
     connectServerOpen,
     connectServerProfile,
     connectServerInitial,
     removeServerProfile,
     setRemoveServerProfile,
     setVolumePickerOpen,
-    setNetworkLocationsOpen,
     setConnectServerOpen,
     setConnectServerProfile,
     setConnectServerInitial,
@@ -504,7 +502,6 @@ function FileOctopusAppInner({
     setClearRecentLocationsOpen,
     setOperationHistoryOpen,
     setVolumePickerOpen,
-    setNetworkLocationsOpen,
     setConnectServerOpen,
     setConnectServerProfile,
     setConnectServerInitial,
@@ -896,7 +893,6 @@ function FileOctopusAppInner({
         errorDetailsOpen={errorDetailsOpen}
         operationHistoryOpen={operationHistoryOpen}
         volumePickerOpen={volumePickerOpen}
-        networkLocationsOpen={networkLocationsOpen}
         connectServerOpen={connectServerOpen}
         connectServerProfile={connectServerProfile}
         connectServerInitial={connectServerInitial}
@@ -911,7 +907,6 @@ function FileOctopusAppInner({
         setErrorDetailsOpen={setErrorDetailsOpen}
         setOperationHistoryOpen={setOperationHistoryOpen}
         setVolumePickerOpen={setVolumePickerOpen}
-        setNetworkLocationsOpen={setNetworkLocationsOpen}
         setConnectServerOpen={setConnectServerOpen}
         setConnectServerProfile={setConnectServerProfile}
         setConnectServerInitial={setConnectServerInitial}

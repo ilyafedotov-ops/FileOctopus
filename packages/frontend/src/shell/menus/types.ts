@@ -7,7 +7,14 @@ export function menuShortcut(commandId: CommandId): string | undefined {
     typeof navigator !== "undefined" && navigator.platform.startsWith("Mac")
       ? "mac"
       : "windowsLinux";
-  return formatCommandShortcut(commandId, platform) ?? undefined;
+  return formatCommandShortcut(commandId, platform)?.split(" or ")[0];
+}
+
+export function platformShortcut(mac: string, windowsLinux: string): string {
+  return typeof navigator !== "undefined" &&
+    navigator.platform.startsWith("Mac")
+    ? mac
+    : windowsLinux;
 }
 
 export interface MenuBarProps {
@@ -95,6 +102,11 @@ export interface MenuBarProps {
   dualPane: boolean;
   paneDirection: string;
   showHidden: boolean;
+  viewMode: string;
+  sortField: string;
+  sortDirection: string;
+  theme: string;
+  density: string;
   onCustomizeToolbar: () => void;
 }
 

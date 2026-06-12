@@ -92,7 +92,6 @@ function createMinimalDeps(
     clearRecentEntries: vi.fn(),
     setOperationHistoryOpen: vi.fn(),
     setVolumePickerOpen: vi.fn(),
-    setNetworkLocationsOpen: vi.fn(),
     setConnectServerOpen: vi.fn(),
     setConnectServerProfile: vi.fn(),
     setFilterFocusToken: vi.fn(),

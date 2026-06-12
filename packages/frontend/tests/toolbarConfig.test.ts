@@ -18,11 +18,11 @@ describe("toolbarConfig", () => {
     expect(labels).toEqual([
       "View",
       "Edit",
-      "Open with default",
+      "Open",
       "Rename",
       "Copy",
       "Move",
-      "Folder+",
+      "New Folder",
       "Delete",
       "Props",
     ]);

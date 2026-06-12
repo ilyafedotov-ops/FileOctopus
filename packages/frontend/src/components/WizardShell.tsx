@@ -23,6 +23,7 @@ export interface WizardShellProps {
   primaryLabel: string;
   primaryDisabled?: boolean;
   cancelLabel?: string;
+  showCancel?: boolean;
   /** Validation/operation error shown below the body. */
   error?: ReactNode;
   className?: string;
@@ -48,6 +49,7 @@ export function WizardShell({
   primaryLabel,
   primaryDisabled,
   cancelLabel = "Cancel",
+  showCancel = true,
   error,
   className,
   children,
@@ -63,9 +65,11 @@ export function WizardShell({
       className={cx("fo-wizard-dialog", className)}
       footer={
         <>
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-            {cancelLabel}
-          </Button>
+          {showCancel ? (
+            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+              {cancelLabel}
+            </Button>
+          ) : null}
           {showBack ? (
             <Button type="button" variant="ghost" size="sm" onClick={onBack}>
               Back
@@ -110,6 +114,7 @@ export function WizardShell({
                 type="button"
                 className="fo-wizard-step-btn"
                 disabled={!reachable}
+                title={label}
                 onClick={() => onStepSelect?.(index)}
               >
                 <span className="fo-wizard-step-index" aria-hidden="true">

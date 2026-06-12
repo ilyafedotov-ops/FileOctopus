@@ -290,7 +290,7 @@ export function FilePanel({
           onOpenTerminal={onOpenTerminal}
           terminalDisabled={terminalDisabled}
         />
-        <div className="fo-pane-content-tab fo-pane-editor-tab">
+        <div className="fo-pane-content-tab">
           <EditorContent
             entry={tab.editorEntry}
             fs={client.fs}
@@ -531,7 +531,7 @@ function PreviewTabContent({
   }, [initialMode]);
 
   return (
-    <div className="fo-pane-content-tab fo-pane-preview-tab">
+    <div className="fo-pane-content-tab">
       <ViewerContent
         entry={entry}
         fs={client.fs}

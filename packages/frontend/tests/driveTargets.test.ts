@@ -150,7 +150,7 @@ describe("buildPaneLocationTargets", () => {
       "Devices/Volumes:Macintosh HD",
       "Cloud Storage:iCloud Drive",
       "Connections:Prod",
-      "Connections:Add Server...",
+      "Connections:Add Connection...",
       "Network:Network",
       "User folders:Home",
       "User folders:Downloads",

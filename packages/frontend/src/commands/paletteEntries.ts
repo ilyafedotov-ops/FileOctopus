@@ -31,30 +31,41 @@ const PALETTE_EXCLUDED = new Set<string>([
   "nav.renameFavorite",
 ]);
 
-const PALETTE_LEGACY: CommandEntry[] = [
-  {
-    id: "switch-pane",
-    label: "Switch Active Pane",
-    shortcutKey: "Ctrl+Tab",
-    category: "View",
-  },
-  {
-    id: "filter",
-    label: "Filter Current Folder",
-    shortcutKey: "Ctrl+F",
-    category: "View",
-  },
-];
+function palettePlatform(): "mac" | "windowsLinux" {
+  return typeof navigator !== "undefined" &&
+    navigator.platform.startsWith("Mac")
+    ? "mac"
+    : "windowsLinux";
+}
+
+function legacyEntries(): CommandEntry[] {
+  const mac = palettePlatform() === "mac";
+  return [
+    {
+      id: "switch-pane",
+      label: "Switch Active Pane",
+      shortcutKey: mac ? "⌃Tab" : "Ctrl+Tab",
+      category: "View",
+    },
+    {
+      id: "filter",
+      label: "Filter Current Folder",
+      shortcutKey: mac ? "⌘F" : "Ctrl+F",
+      category: "View",
+    },
+  ];
+}
 
 export function buildPaletteEntries(): CommandEntry[] {
+  const platform = palettePlatform();
   const fromRegistry = COMMAND_DEFINITIONS.filter(
     (command) => !PALETTE_EXCLUDED.has(command.id),
   ).map((command) => ({
     id: command.id,
     label: command.label,
-    shortcutKey: formatCommandShortcut(command.id, "windowsLinux"),
+    shortcutKey: formatCommandShortcut(command.id, platform)?.split(" or ")[0],
     category: GROUP_LABELS[command.group],
   }));
 
-  return [...fromRegistry, ...PALETTE_LEGACY];
+  return [...fromRegistry, ...legacyEntries()];
 }

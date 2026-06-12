@@ -311,7 +311,7 @@ export function OperationDialogView({
           />
         ) : (
           <form
-            className={`fo-dialog-form fo-copy-dialog-form${dialog.advancedOptions ? " fo-copy-dialog-form--advanced" : ""}`}
+            className="fo-dialog-form"
             onSubmit={(event) => {
               event.preventDefault();
               onSubmitCopyMove(dialog);
