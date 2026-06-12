@@ -12,6 +12,7 @@ import { isRemoteUri, profileIdFromRemoteUri } from "@fileoctopus/ts-api";
 import type { Dispatch } from "react";
 import {
   activeTab,
+  parentUri,
   type FileOctopusState,
   type PanelAction,
   type PanelId,
@@ -107,6 +108,12 @@ export function buildFilePanelProps(
   });
   const runPanel = (commandId: string, context?: CommandInvokeArg) =>
     handleCommandSelect(commandId, panelId, context);
+  const newDirectoryTabUri = (nextPanelId: PanelId) => {
+    const active = activeTab(state.panels[nextPanelId]);
+    return active.tabKind === "directory"
+      ? active.uri
+      : (parentUri(active.uri) ?? active.uri);
+  };
 
   return {
     panelId,
@@ -205,7 +212,7 @@ export function buildFilePanelProps(
       dispatch({
         type: "openTab",
         panelId: nextPanelId,
-        uri: activeTab(state.panels[nextPanelId]).uri,
+        uri: newDirectoryTabUri(nextPanelId),
       }),
     onOpenTerminal: () => {
       dispatch({ type: "setActivePanel", panelId });

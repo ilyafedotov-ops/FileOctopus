@@ -119,4 +119,25 @@ describe("buildFilePanelProps", () => {
       },
     );
   });
+
+  it("opens a new directory tab from a content tab at the containing folder", () => {
+    const args = baseArgs();
+    const file = entry();
+    args.state.panels.left.tabs.main = {
+      ...args.state.panels.left.tabs.main,
+      tabKind: "preview",
+      uri: file.uri,
+      previewEntry: file,
+      loadState: "loaded",
+    };
+
+    const props = buildFilePanelProps("left", args);
+    props.onOpenTab("left");
+
+    expect(args.dispatch).toHaveBeenCalledWith({
+      type: "openTab",
+      panelId: "left",
+      uri: "local:///source",
+    });
+  });
 });
