@@ -11,6 +11,7 @@ type TabAction = Extract<
   | { type: "openTab" }
   | { type: "openPreviewTab" }
   | { type: "openEditorTab" }
+  | { type: "openGitReviewTab" }
   | { type: "replaceContentTabEntry" }
   | { type: "closeTab" }
   | { type: "switchTab" }
@@ -21,6 +22,7 @@ export function isTabAction(action: PanelAction): action is TabAction {
     action.type === "openTab" ||
     action.type === "openPreviewTab" ||
     action.type === "openEditorTab" ||
+    action.type === "openGitReviewTab" ||
     action.type === "replaceContentTabEntry" ||
     action.type === "closeTab" ||
     action.type === "switchTab"
@@ -42,6 +44,7 @@ function createFreshTab(uri: string, source?: PanelTabState): PanelTabState {
     uri,
     previewEntry: null,
     editorEntry: null,
+    gitReview: null,
     entriesById: cloneListing && source ? source.entriesById : {},
     orderedEntryIds: cloneListing && source ? source.orderedEntryIds : [],
     selectedIds: [],
@@ -78,6 +81,47 @@ function createContentTab(
     uri: entry?.uri ?? "",
     previewEntry: kind === "preview" ? entry : null,
     editorEntry: kind === "editor" ? entry : null,
+    gitReview: null,
+    entriesById: {},
+    orderedEntryIds: [],
+    selectedIds: [],
+    selectedId: null,
+    focusedId: null,
+    anchorId: null,
+    sessionId: null,
+    activeRequestId: null,
+    loadState: "loaded",
+    error: null,
+    errorCode: null,
+    filter: "",
+    recursiveQuery: "",
+    sort: source?.sort ?? storedSort(),
+    viewMode: source?.viewMode ?? "details",
+    showHidden: source?.showHidden ?? storedShowHidden(),
+    backStack: [],
+    forwardStack: [],
+    hashMap: {} as Record<string, HashState>,
+    backgroundListing: null,
+  };
+}
+
+function createGitReviewTab(
+  repoRootUri: string,
+  sourceUri: string,
+  repoLabel: string,
+  source?: PanelTabState,
+): PanelTabState {
+  return {
+    tabKind: "gitReview",
+    uri: repoRootUri,
+    previewEntry: null,
+    editorEntry: null,
+    gitReview: {
+      repoRootUri,
+      sourceUri,
+      repoLabel,
+      refreshToken: 0,
+    },
     entriesById: {},
     orderedEntryIds: [],
     selectedIds: [],
@@ -138,6 +182,63 @@ export function reduceTab(
       const newTab = createContentTab(
         action.type === "openPreviewTab" ? "preview" : "editor",
         action.entry,
+        panel.tabs[panel.activeTabId],
+      );
+      return {
+        ...state,
+        panels: {
+          ...state.panels,
+          [action.panelId]: {
+            ...panel,
+            activeTabId: tabId,
+            tabs: {
+              ...panel.tabs,
+              [tabId]: newTab,
+            },
+          },
+        },
+      };
+    }
+    case "openGitReviewTab": {
+      const panel = state.panels[action.panelId];
+      const existing = Object.entries(panel.tabs).find(
+        ([, tab]) =>
+          tab.tabKind === "gitReview" &&
+          tab.gitReview?.repoRootUri === action.repoRootUri,
+      );
+
+      if (existing) {
+        const [tabId, tab] = existing;
+        return {
+          ...state,
+          panels: {
+            ...state.panels,
+            [action.panelId]: {
+              ...panel,
+              activeTabId: tabId,
+              tabs: {
+                ...panel.tabs,
+                [tabId]: {
+                  ...tab,
+                  uri: action.repoRootUri,
+                  gitReview: {
+                    repoRootUri: action.repoRootUri,
+                    sourceUri: action.sourceUri,
+                    repoLabel: action.repoLabel,
+                    refreshToken: (tab.gitReview?.refreshToken ?? 0) + 1,
+                  },
+                },
+              },
+            },
+          },
+        };
+      }
+
+      const tabId = generateTabId();
+      const newTab = createGitReviewTab(
+        action.repoRootUri,
+        action.sourceUri,
+        action.repoLabel,
         panel.tabs[panel.activeTabId],
       );
       return {

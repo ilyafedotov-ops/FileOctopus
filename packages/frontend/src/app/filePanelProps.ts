@@ -218,6 +218,10 @@ export function buildFilePanelProps(
       dispatch({ type: "setActivePanel", panelId });
       handleCommandSelect("op.openTerminal", panelId);
     },
+    onOpenGitReview: () => {
+      dispatch({ type: "setActivePanel", panelId });
+      handleCommandSelect("git.reviewChanges", panelId);
+    },
     terminalDisabled: false,
     fileTypeColorRules: preferences?.fileTypeColorRules,
   };

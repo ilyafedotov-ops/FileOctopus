@@ -66,9 +66,10 @@ export function useFileSystemWatchers({
 
   useEffect(() => {
     const activePanelId = state.activePanelId;
-    const activeUri = activeTab(state.panels[activePanelId]).uri;
+    const tab = activeTab(state.panels[activePanelId]);
+    const activeUri = tab.uri;
 
-    if (!activeUri.startsWith("local://")) {
+    if (tab.tabKind !== "directory" || !activeUri.startsWith("local://")) {
       return;
     }
 
@@ -77,13 +78,27 @@ export function useFileSystemWatchers({
     return () => {
       void client.fs.stopWatching().catch(() => undefined);
     };
-  }, [client, state.activePanelId, left.uri, right.uri]);
+  }, [
+    client,
+    state.activePanelId,
+    state.panels.left.activeTabId,
+    left.tabKind,
+    left.uri,
+    state.panels.right.activeTabId,
+    right.tabKind,
+    right.uri,
+  ]);
 
   useEffect(() => {
     let unlisten: (() => void) | null = null;
     let disposed = false;
     const activePanelId = state.activePanelId;
-    const activeUri = activeTab(state.panels[activePanelId]).uri;
+    const tab = activeTab(state.panels[activePanelId]);
+    const activeUri = tab.uri;
+
+    if (tab.tabKind !== "directory") {
+      return;
+    }
 
     client.fs
       .onWatchChanged((event) => {
@@ -108,5 +123,15 @@ export function useFileSystemWatchers({
       disposed = true;
       unlisten?.();
     };
-  }, [client, state.activePanelId, left.uri, right.uri, refreshPanel]);
+  }, [
+    client,
+    state.activePanelId,
+    state.panels.left.activeTabId,
+    left.tabKind,
+    left.uri,
+    state.panels.right.activeTabId,
+    right.tabKind,
+    right.uri,
+    refreshPanel,
+  ]);
 }

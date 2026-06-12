@@ -11,6 +11,7 @@ const GROUP_LABELS: Record<CommandGroup, string> = {
   selection: "Selection",
   app: "App",
   tools: "Tools",
+  git: "Git",
 };
 
 const PALETTE_EXCLUDED = new Set<string>([

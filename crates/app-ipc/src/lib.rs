@@ -1,7 +1,10 @@
 use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
-use git_intel::{GitDirectoryStatus, GitError, GitFileStatus, GitRepoInfo};
+use git_intel::{
+    GitChangedFile, GitDiffHunk, GitDiffLine, GitDirectoryStatus, GitError, GitFileDiff,
+    GitFileStatus, GitRepoInfo, GitRepositoryStatus,
+};
 use jobs::{JobEvent, JobSnapshot};
 use serde::{Deserialize, Serialize};
 use vfs::{
@@ -390,6 +393,68 @@ impl From<GitDirectoryStatus> for GitStatusForDirectoryResponse {
                 .into_iter()
                 .map(|(uri, status)| (uri.as_str().to_string(), status))
                 .collect(),
+        }
+    }
+}
+
+impl From<GitChangedFile> for GitChangedFileDto {
+    fn from(file: GitChangedFile) -> Self {
+        Self {
+            uri: file.uri.as_str().to_string(),
+            repo_relative_path: file.repo_relative_path,
+            status: file.status,
+            previous_uri: file.previous_uri.map(|uri| uri.as_str().to_string()),
+            previous_repo_relative_path: file.previous_repo_relative_path,
+        }
+    }
+}
+
+impl From<GitRepositoryStatus> for GitStatusForRepositoryResponse {
+    fn from(status: GitRepositoryStatus) -> Self {
+        Self {
+            repo: status.repo.map(Into::into),
+            files: status.files.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<GitDiffLine> for DiffLine {
+    fn from(line: GitDiffLine) -> Self {
+        Self {
+            kind: line.kind,
+            content: line.content,
+            old_line: line.old_line,
+            new_line: line.new_line,
+        }
+    }
+}
+
+impl From<GitDiffHunk> for DiffHunk {
+    fn from(hunk: GitDiffHunk) -> Self {
+        Self {
+            old_start: hunk.old_start,
+            old_count: hunk.old_count,
+            new_start: hunk.new_start,
+            new_count: hunk.new_count,
+            lines: hunk.lines.into_iter().map(Into::into).collect(),
+        }
+    }
+}
+
+impl From<GitFileDiff> for GitDiffFileResponse {
+    fn from(diff: GitFileDiff) -> Self {
+        Self {
+            repo: diff.repo.map(Into::into),
+            file: diff.file.into(),
+            old_label: diff.old_label,
+            new_label: diff.new_label,
+            hunks: diff.hunks.into_iter().map(Into::into).collect(),
+            old_line_count: diff.old_line_count,
+            new_line_count: diff.new_line_count,
+            old_truncated: diff.old_truncated,
+            new_truncated: diff.new_truncated,
+            binary: diff.binary,
+            unsupported_reason: diff.unsupported_reason,
         }
     }
 }
@@ -870,7 +935,10 @@ impl From<plugin_core::InstalledPlugin> for InstalledPluginDto {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use git_intel::{GitDirectoryStatus, GitFileStatus, GitRepoInfo};
+    use git_intel::{
+        GitChangedFile, GitDiffHunk, GitDiffLine, GitDirectoryStatus, GitFileDiff, GitFileStatus,
+        GitRepoInfo, GitRepositoryStatus,
+    };
     use std::collections::{HashMap, HashSet};
     use vfs::{EntryCapabilities, ListSessionId, ProviderId, ResourceUri};
 
@@ -1162,6 +1230,97 @@ mod tests {
             encoded["entries"]["local:///tmp/repo/changed.txt"],
             "modified"
         );
+    }
+
+    #[test]
+    fn serializes_git_repository_status_response_with_changed_files() {
+        let root_uri = ResourceUri::parse("local:///tmp/repo").unwrap();
+        let changed_uri = ResourceUri::parse("local:///tmp/repo/src/app.ts").unwrap();
+        let previous_uri = ResourceUri::parse("local:///tmp/repo/src/old.ts").unwrap();
+        let status = GitRepositoryStatus {
+            repo: Some(GitRepoInfo {
+                root_uri,
+                branch: Some("main".to_string()),
+                head_short: Some("abcdef1".to_string()),
+                is_dirty: true,
+            }),
+            files: vec![GitChangedFile {
+                uri: changed_uri,
+                repo_relative_path: "src/app.ts".to_string(),
+                status: GitFileStatus::Renamed,
+                previous_uri: Some(previous_uri),
+                previous_repo_relative_path: Some("src/old.ts".to_string()),
+            }],
+        };
+
+        let response = GitStatusForRepositoryResponse::from(status);
+        let encoded = serde_json::to_value(&response).unwrap();
+
+        assert_eq!(encoded["repo"]["rootUri"], "local:///tmp/repo");
+        assert_eq!(encoded["files"][0]["uri"], "local:///tmp/repo/src/app.ts");
+        assert_eq!(encoded["files"][0]["repoRelativePath"], "src/app.ts");
+        assert_eq!(encoded["files"][0]["status"], "renamed");
+        assert_eq!(
+            encoded["files"][0]["previousUri"],
+            "local:///tmp/repo/src/old.ts"
+        );
+        assert_eq!(
+            encoded["files"][0]["previousRepoRelativePath"],
+            "src/old.ts"
+        );
+    }
+
+    #[test]
+    fn serializes_git_diff_file_response_with_hunks_and_summary_flags() {
+        let root_uri = ResourceUri::parse("local:///tmp/repo").unwrap();
+        let changed_uri = ResourceUri::parse("local:///tmp/repo/src/app.ts").unwrap();
+        let diff = GitFileDiff {
+            repo: Some(GitRepoInfo {
+                root_uri,
+                branch: Some("main".to_string()),
+                head_short: Some("abcdef1".to_string()),
+                is_dirty: true,
+            }),
+            file: GitChangedFile {
+                uri: changed_uri,
+                repo_relative_path: "src/app.ts".to_string(),
+                status: GitFileStatus::Modified,
+                previous_uri: None,
+                previous_repo_relative_path: None,
+            },
+            old_label: "HEAD:src/app.ts".to_string(),
+            new_label: "Worktree:src/app.ts".to_string(),
+            hunks: vec![GitDiffHunk {
+                old_start: 1,
+                old_count: 1,
+                new_start: 1,
+                new_count: 1,
+                lines: vec![GitDiffLine {
+                    kind: "insert".to_string(),
+                    content: "next\n".to_string(),
+                    old_line: None,
+                    new_line: Some(1),
+                }],
+            }],
+            old_line_count: 0,
+            new_line_count: 1,
+            old_truncated: false,
+            new_truncated: false,
+            binary: false,
+            unsupported_reason: None,
+        };
+
+        let response = GitDiffFileResponse::from(diff);
+        let encoded = serde_json::to_value(&response).unwrap();
+
+        assert_eq!(encoded["file"]["status"], "modified");
+        assert_eq!(encoded["oldLabel"], "HEAD:src/app.ts");
+        assert_eq!(encoded["newLabel"], "Worktree:src/app.ts");
+        assert_eq!(encoded["hunks"][0]["lines"][0]["kind"], "insert");
+        assert_eq!(encoded["oldLineCount"], 0);
+        assert_eq!(encoded["newLineCount"], 1);
+        assert_eq!(encoded["binary"], false);
+        assert_eq!(encoded["unsupportedReason"], serde_json::Value::Null);
     }
 
     #[test]

@@ -1,6 +1,6 @@
 # `apps/desktop-tauri` — Tauri v2 desktop shell
 
-> **Doc freshness (2026-05-30):** Handler bodies live under `src-tauri/src/commands/`; `lib.rs` only boots and registers them. The live command list is in the [API reference catalog](../api-reference.md#full-registry-2026-05-30) (77 commands as of 2026-05-30; re-count with `grep` on `generate_handler!` in `lib.rs` if the doc lags).
+> **Doc freshness (2026-06-12):** Handler bodies live under `src-tauri/src/commands/`; `lib.rs` only boots and registers them. The live command list is in the [API reference catalog](../api-reference.md#full-registry-2026-06-12) (94 commands as of 2026-06-12; re-count with `grep` on `generate_handler!` in `lib.rs` if the doc lags).
 
 The desktop shell is the **only place Rust and TypeScript meet at runtime**. It is a Tauri v2 application that boots `AppCore`, registers the IPC command surface, emits asynchronous events, and hosts the React `FileOctopusShell` component as its only WebView content. The trust boundary documented across the rest of this directory is enforced here.
 
@@ -52,7 +52,7 @@ The privileged API is the union of every function listed in `generate_handler!` 
 | `commands/navigation.rs`       | `navigation_record_visit`, `navigation_list_favorites`, …                                                 |
 | `commands/file_operations.rs`  | `plan_file_operation`, `start_file_operation`, `cancel_job`, …                                            |
 | `commands/diagnostics.rs`      | `diagnostics_app_data_health`, `export_diagnostics_bundle`                                                |
-| `commands/git.rs`              | `git_discover`, `git_status_for_directory`                                                                |
+| `commands/git.rs`              | `git_discover`, `git_status_for_directory`, `git_status_for_repository`, `git_diff_file`                  |
 | `commands/terminal.rs`         | `terminal_spawn`, `terminal_write`, `terminal_resize`, `terminal_kill`                                    |
 | `commands/acl.rs`              | `fs_get_acl`, `fs_set_acl`                                                                                |
 | `commands/compare.rs`          | `fs_diff_text`                                                                                            |

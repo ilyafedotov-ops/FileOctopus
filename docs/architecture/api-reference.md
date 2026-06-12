@@ -2,7 +2,7 @@
 
 This document is the authoritative description of FileOctopus's runtime API surface: the Tauri IPC commands, the events streamed back from Rust, the `@fileoctopus/ts-api` client that wraps them, and the domain types that flow across the boundary. It is the contract every change to filesystem behaviour must respect (see ADR-0002 and ADR-0003).
 
-> **Doc freshness (2026-06-01):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (87 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (19 channels). `packages/ts-api/tests/catalogs.test.ts` now guards the command count, command map, error codes, warning codes, and event constants.
+> **Doc freshness (2026-06-12):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (94 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (19 channels). `packages/ts-api/tests/catalogs.test.ts` guards the command count, command map, error codes, warning codes, and event constants.
 
 - Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/remote-core/src/lib.rs`, `crates/provider-sftp/src/lib.rs`, `crates/config/src/network.rs`, `crates/platform/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
 - Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError,uri}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
@@ -44,9 +44,9 @@ Each IPC payload is a `serde(rename_all = "camelCase")` DTO defined in `crates/a
 
 The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/src/lib.rs` (`tauri::generate_handler!` with `commands::*` paths). Handler bodies live in `apps/desktop-tauri/src-tauri/src/commands/{app_info,fs,git,folder_size,recursive_search,content_search,watch,preferences,autostart,navigation,network,file_operations,diagnostics,acl,compare,plugin,sync,terminal}.rs`. Dotted names are what `packages/ts-api` passes to `commandMap`; see `packages/ts-api/src/commandMap.ts` and the per-domain methods in `packages/ts-api/src/clients/*.ts`.
 
-### Full registry (2026-05-30)
+### Full registry (2026-06-12)
 
-**92 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
+**94 commands** — verified by `packages/ts-api/tests/catalogs.test.ts`, which compares `generate_handler!`, `commandMap.ts`, and this advertised count.
 
 | Tauri command                        | TS dotted name (typical)           | Client area              |
 | ------------------------------------ | ---------------------------------- | ------------------------ |
@@ -85,6 +85,8 @@ The desktop shell registers these commands from `apps/desktop-tauri/src-tauri/sr
 | `fs_properties`                      | `fs.properties`                    | `FsClient`               |
 | `git_discover`                       | `git.discover`                     | `GitClient`              |
 | `git_status_for_directory`           | `git.statusForDirectory`           | `GitClient`              |
+| `git_status_for_repository`          | `git.statusForRepository`          | `GitClient`              |
+| `git_diff_file`                      | `git.diffFile`                     | `GitClient`              |
 | `fs_folder_size`                     | `fs.folder_size`                   | `FsClient`               |
 | `fs_folder_size_start`               | `fs.folder_size_start`             | `FsClient`               |
 | `fs_recursive_search`                | `fs.recursive_search`              | `FsClient`               |
@@ -240,12 +242,14 @@ The `FsClient` exposes several one-shot filesystem helpers. These still cross th
 
 ### Git commands
 
-Git commands are local-only metadata helpers backed by `crates/git-intel`. They accept `ResourceUri` strings and return empty repository state when the URI is outside a Git repository.
+Git commands are local-only metadata helpers backed by `crates/git-intel`. They accept `ResourceUri` strings and return empty repository state when the URI is outside a Git repository. Git Review is read-only in v1: these commands inspect repository state and produce worktree-vs-HEAD diffs, but they do not stage, commit, discard, branch, push, or pull.
 
-| Command                                               | Request   | Response            | Notes                                                               |
-| ----------------------------------------------------- | --------- | ------------------- | ------------------------------------------------------------------- |
-| `git_discover` / `git.discover`                       | `{ uri }` | `{ repo }`          | Returns repository root, branch, short HEAD, and dirty state.       |
-| `git_status_for_directory` / `git.statusForDirectory` | `{ uri }` | `{ repo, entries }` | Returns repository info plus visible-directory status keyed by URI. |
+| Command                                                 | Request              | Response                                                                                                                        | Notes                                                                                 |
+| ------------------------------------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `git_discover` / `git.discover`                         | `{ uri }`            | `{ repo }`                                                                                                                      | Returns repository root, branch, short HEAD, and dirty state.                         |
+| `git_status_for_directory` / `git.statusForDirectory`   | `{ uri }`            | `{ repo, entries }`                                                                                                             | Returns repository info plus visible-directory status keyed by URI.                   |
+| `git_status_for_repository` / `git.statusForRepository` | `{ uri }`            | `{ repo, files }`                                                                                                               | Returns changed files for whole-repository review, excluding ignored files.           |
+| `git_diff_file` / `git.diffFile`                        | `{ uri, maxBytes? }` | `{ repo, file, oldLabel, newLabel, hunks, oldLineCount, newLineCount, oldTruncated, newTruncated, binary, unsupportedReason? }` | Returns a worktree-vs-HEAD text diff, or summary state for binary or oversized files. |
 
 `GitFileStatusDto` values are `clean`, `modified`, `added`, `deleted`, `renamed`, `untracked`, `ignored`, `conflicted`, and `unknown`. Remote Git status remains deferred.
 

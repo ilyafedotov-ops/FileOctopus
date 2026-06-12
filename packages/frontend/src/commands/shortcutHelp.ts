@@ -10,6 +10,7 @@ const GROUP_LABELS: Record<CommandGroup, string> = {
   selection: "Selection",
   app: "App",
   tools: "Tools",
+  git: "Git",
 };
 
 const EXCLUDED_COMMAND_IDS = new Set<string>([

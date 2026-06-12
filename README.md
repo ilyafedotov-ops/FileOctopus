@@ -19,7 +19,7 @@ For a full doc ↔ code matrix, see **[docs/planning/PROJECT_STATUS_AND_DOC_ALIG
 - **Preferences**: theme, density, accent, font/icon scale, layout toggles, autostart (where supported)
 - **Polish**: command palette (Ctrl/Cmd+P), text preview (Space), filesystem watcher refresh, diagnostics export, shortcuts dialog
 - **Platform helpers**: open with default app, reveal in file manager, external terminal in folder (`fs_open_terminal`), folder size job, file hash (`fs_compute_hash`)
-- **Git decorations**: active local repository branch display and compact file status badges
+- **Git review**: active local repository branch display, compact file status badges, whole-repo changed-file review, and unified/side-by-side worktree diffs
 - **Remote workspace**: SFTP, SMB, S3 profiles; cloud providers (Google Drive, Dropbox, OneDrive with OAuth)
 - **Advanced features**: embedded terminal (local + SSH), plugin marketplace, ACL editor, file diff/merge, sync directories, archive browsing, saved searches, tag/label system, audio/video preview, checksum verification, dual pane vertical split, storage gauge
 

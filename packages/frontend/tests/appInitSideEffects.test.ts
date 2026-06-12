@@ -128,6 +128,41 @@ describe("app init side-effect hooks", () => {
     expect(client.fs.startWatching).not.toHaveBeenCalled();
   });
 
+  it("does not start filesystem watching for non-directory active tabs", () => {
+    const state = createState("local:///repo");
+    const left = activeTab(state.panels.left);
+    left.tabKind = "gitReview";
+    left.gitReview = {
+      repoRootUri: "local:///repo",
+      sourceUri: "local:///repo/src",
+      repoLabel: "main",
+      refreshToken: 0,
+    };
+    const right = activeTab(state.panels.right);
+    const client = {
+      fs: {
+        onDirectoryBatch: vi.fn(async () => vi.fn()),
+        onWatchChanged: vi.fn(async () => vi.fn()),
+        startWatching: vi.fn(async () => undefined),
+        stopWatching: vi.fn(async () => undefined),
+      },
+    };
+
+    renderHook(() =>
+      useFileSystemWatchers({
+        client: client as never,
+        state,
+        left,
+        right,
+        dispatch: vi.fn(),
+        refreshPanel: vi.fn(),
+      }),
+    );
+
+    expect(client.fs.startWatching).not.toHaveBeenCalled();
+    expect(client.fs.onWatchChanged).not.toHaveBeenCalled();
+  });
+
   it("forwards metadata and search events and cleans up listeners", async () => {
     const unlisteners = [vi.fn(), vi.fn(), vi.fn(), vi.fn(), vi.fn()];
     const handlers: Array<(event: unknown) => void> = [];

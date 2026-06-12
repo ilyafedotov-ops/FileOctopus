@@ -24,4 +24,12 @@ describe("buildPaletteEntries", () => {
     expect(entries.some((entry) => entry.id === "switch-pane")).toBe(true);
     expect(entries.some((entry) => entry.id === "filter")).toBe(true);
   });
+
+  it("includes Git Review in the palette", () => {
+    const entries = buildPaletteEntries();
+    const gitReview = entries.find((entry) => entry.id === "git.reviewChanges");
+
+    expect(gitReview?.label).toBe("Review Git Changes");
+    expect(gitReview?.category).toBe("Git");
+  });
 });
