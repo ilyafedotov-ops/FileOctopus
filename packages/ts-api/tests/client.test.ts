@@ -702,6 +702,48 @@ describe("FileOctopusClient", () => {
           } as TResponse;
         }
 
+        if (command === "git.statusForRepository") {
+          return {
+            repo: {
+              rootUri: "local:///repo",
+              branch: "main",
+              headShort: "abcdef1",
+              isDirty: true,
+            },
+            files: [
+              {
+                uri: "local:///repo/changed.txt",
+                repoRelativePath: "changed.txt",
+                status: "modified",
+                previousUri: null,
+                previousRepoRelativePath: null,
+              },
+            ],
+          } as TResponse;
+        }
+
+        if (command === "git.diffFile") {
+          return {
+            repo: null,
+            file: {
+              uri: "local:///repo/changed.txt",
+              repoRelativePath: "changed.txt",
+              status: "modified",
+              previousUri: null,
+              previousRepoRelativePath: null,
+            },
+            oldLabel: "HEAD:changed.txt",
+            newLabel: "Worktree:changed.txt",
+            hunks: [],
+            oldLineCount: 1,
+            newLineCount: 1,
+            oldTruncated: false,
+            newTruncated: false,
+            binary: false,
+            unsupportedReason: null,
+          } as TResponse;
+        }
+
         return {
           repo: null,
           entries: {
@@ -716,15 +758,28 @@ describe("FileOctopusClient", () => {
     const status = await client.git.statusForDirectory({
       uri: "local:///repo",
     });
+    const repositoryStatus = await client.git.statusForRepository({
+      uri: "local:///repo",
+    });
+    const diff = await client.git.diffFile({
+      uri: "local:///repo/changed.txt",
+    });
 
     expect(discovery.repo?.branch).toBe("main");
     expect(status.entries["local:///repo/changed.txt"]).toBe("modified");
+    expect(repositoryStatus.files[0]?.repoRelativePath).toBe("changed.txt");
+    expect(diff.oldLabel).toBe("HEAD:changed.txt");
     expect(calls.map((call) => call.command)).toEqual([
       "git.discover",
       "git.statusForDirectory",
+      "git.statusForRepository",
+      "git.diffFile",
     ]);
     expect(calls[1]?.args).toEqual({
       request: { uri: "local:///repo" },
+    });
+    expect(calls[3]?.args).toEqual({
+      request: { uri: "local:///repo/changed.txt" },
     });
   });
 

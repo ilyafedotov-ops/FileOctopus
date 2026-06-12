@@ -613,6 +613,12 @@ export const COMMAND_REGISTRY = [
     surfaces: ["menu", "palette"],
   },
   {
+    id: "git.reviewChanges",
+    label: "Review Git Changes",
+    group: "git",
+    surfaces: ["palette"],
+  },
+  {
     id: "tools.multiRename",
     label: "Multi-Rename…",
     group: "tools",

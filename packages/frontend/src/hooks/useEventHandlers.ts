@@ -21,6 +21,7 @@ import type {
 } from "@fileoctopus/ts-api";
 import { normalizeIpcError, type FileOctopusClient } from "@fileoctopus/ts-api";
 import {
+  activeTab,
   type FileOctopusState,
   type PanelAction,
   type PanelId,
@@ -140,6 +141,37 @@ export function useEventHandlers({
       panelId: oppositePanelId(sourcePanelId),
       entry,
     });
+  }
+
+  async function openGitReviewInOppositePane(sourcePanelId: PanelId) {
+    const tab = activeTab(state.panels[sourcePanelId]);
+    const sourceUri = tab.gitReview?.sourceUri ?? tab.uri;
+    if (!sourceUri.startsWith("local://")) {
+      setOperationError("Git Review is available only for local folders.");
+      return;
+    }
+
+    try {
+      const discovery = await client.git.discover({ uri: sourceUri });
+      if (!discovery.repo) {
+        setOperationError("No Git repository found for this location.");
+        return;
+      }
+      ensureDualPaneForContentTab();
+      dispatch({
+        type: "openGitReviewTab",
+        panelId: oppositePanelId(sourcePanelId),
+        repoRootUri: discovery.repo.rootUri,
+        sourceUri,
+        repoLabel:
+          discovery.repo.branch ??
+          discovery.repo.headShort ??
+          discovery.repo.rootUri.split("/").filter(Boolean).pop() ??
+          discovery.repo.rootUri,
+      });
+    } catch (error) {
+      setOperationError(normalizeIpcError(error).message);
+    }
   }
 
   const navigation = createNavigationController({
@@ -457,6 +489,7 @@ export function useEventHandlers({
     activateEntry,
     openPreviewInOppositePane,
     openEditorInOppositePane,
+    openGitReviewInOppositePane,
     refreshVisiblePanels,
     refreshHistory,
     refreshDiagnostics,

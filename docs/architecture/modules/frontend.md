@@ -1,6 +1,6 @@
 # `@fileoctopus/frontend` — React shell
 
-> **Doc freshness (2026-05-30):** Shell decomposed from the former monolith (`index.tsx` + `App.css`). Entry is `FileOctopusApp`; styles live in `packages/frontend/src/styles/` and are imported by `apps/desktop-tauri/src/App.css`. For delivery vs UI specs see [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
+> **Doc freshness (2026-06-12):** Shell decomposed from the former monolith (`index.tsx` + `App.css`). Entry is `FileOctopusApp`; styles live in `packages/frontend/src/styles/` and are imported by `apps/desktop-tauri/src/App.css`. Pane tabs now include directory, preview, editor, and Git Review content tabs. For delivery vs UI specs see [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
 
 `packages/frontend` is the **product UI**: dual-pane file manager, sidebar, menu bar, operation toolbar, jobs/activity rail, modals, and command palette. It is a pure React 19 package — no Tauri import. The desktop shell mounts it; Vitest runs against the preview transport in `@fileoctopus/ts-api`.
 
@@ -52,6 +52,7 @@ packages/frontend/src/
   sidebar/
   jobs/                     # ActivityPanel, JobCard, OperationHistoryList (was activity/)
   components/
+    git/                    # GitReviewTab unified/side-by-side diff surface
     dialogs/                # About, GoToLocation, ManageFavorites, Properties, Conflict, ErrorDetails, OperationHistory
     CommandPalette.tsx
     ContextMenu.tsx         # thin shell; menu bodies in menus/context/*
@@ -120,7 +121,7 @@ User actions are converging on a single **command id** vocabulary (`commands/typ
 | `useCommandDispatch(id, panelId?, context?)` | Closes palette, handles `filter`, normalizes `CommandInvokeArg`, then `dispatchCommand`             |
 | `useMenuBarProps({ runCommand })`            | Menu items call `runCommand` (sort, theme, density, chrome toggles, favorites, etc.)                |
 
-**Wired through dispatch today:** app modals; navigation (back/forward/up/home/refresh/go-to/manage favorites, `nav.openUri` for sidebar/go-to dialogs, `nav.revealUri`, `nav.addFavorite` with optional `targetUri`); view modes and toggles (sidebar, dual pane, hidden files, activity rail, status bar, toolbar); sort (`view.sort` + direction); theme/density preferences; layout (`layout.switchPane`, `layout.equalizePanes`); create/copy/cut/paste/trash/delete; properties, compress/extract/checksum/terminal/size/starred; open/reveal/open-default; clipboard and selection; **pane toolbar**, **context menu** (`runPanelCommand`), **menu bar**, and **global keyboard** shortcuts.
+**Wired through dispatch today:** app modals; navigation (back/forward/up/home/refresh/go-to/manage favorites, `nav.openUri` for sidebar/go-to dialogs, `nav.revealUri`, `nav.addFavorite` with optional `targetUri`); view modes and toggles (sidebar, dual pane, hidden files, activity rail, status bar, toolbar); sort (`view.sort` + direction); theme/density preferences; layout (`layout.switchPane`, `layout.equalizePanes`); create/copy/cut/paste/trash/delete; properties, compress/extract/checksum/terminal/size/starred; open/reveal/open-default; Git Review (`git.reviewChanges`); clipboard and selection; **pane toolbar**, **context menu** (`runPanelCommand`), **menu bar**, and **global keyboard** shortcuts.
 
 **Still direct handlers (not dispatch):** path/recursive-search focus and text preview (Space); context-menu open/reveal with explicit `FileEntryDto` when entry is known; drag-and-drop; diagnostics export; sidebar width / split ratio resizers; job cancel / history refresh in the activity rail.
 
@@ -130,14 +131,21 @@ When adding a user-visible action, prefer: register in `registry.ts` → impleme
 
 ### Panel state (`panelStore.ts` + `state/paneReducer.ts`)
 
-`FileOctopusState` holds `activePanelId` and `panels.left` / `panels.right`. Each panel has tabs; today only `"main"` is used. `reducePanelAction` delegates to slices:
+`FileOctopusState` holds `activePanelId` and `panels.left` / `panels.right`. Each panel owns a tab map plus `activeTabId`; tabs carry `tabKind` so directory listings, previews, editors, and Git Review content can coexist in the same pane shell. `reducePanelAction` delegates to slices:
 
 - **navigation** — `navigate`, history stacks
 - **listing** — `startSession`, `applyBatch`, loading/error
 - **selection** — single/range/toggle, select all, invert, clear
 - **sort/filter** — `setSort`, `setFilter`, `toggleHidden`, `setViewMode`
+- **content tabs** — preview/editor/Git Review tab creation and focus. Git Review opens in the opposite pane from the active folder, promotes single-pane mode to dual-pane first, and refreshes/focuses an existing review tab when the repo root already has one open.
 
 Selectors: `activeTab`, `selectVisibleEntries`, `parentUri`, `normalizeLocalInput`.
+
+### Git Review tab
+
+`components/git/GitReviewTab.tsx` is a read-only local-repository review surface. It calls `client.git.statusForRepository({ uri: repoRootUri })`, groups changed files by folder, and loads `client.git.diffFile({ uri })` for the selected file. Unified diff is the default; the side-by-side toggle is derived from the same hunk data and persists globally in `localStorage` under `fileoctopus.gitDiffMode`.
+
+The tab payload stores `repoRootUri`, `sourceUri`, `repoLabel`, and `refreshToken`. `openGitReviewTab` focuses an existing tab for the same repo root and increments `refreshToken` instead of creating duplicates. Deleted files keep Reveal/Copy Path available but disable Open. Binary or oversized files render summary state instead of hunks.
 
 ### Layout focus (`state/layoutStore.ts`)
 
@@ -176,6 +184,8 @@ Status bar and pane toolbar visibility persist as `statusBarVisible` / `toolbarV
 3. **Initial navigation** — both panes, history, diagnostics.
 
 `navigatePanel`: `normalizeLocalInput` → dispatch `navigate` → `client.fs.listStart` → dispatch `startSession`.
+
+Filesystem watching is directory-tab scoped. Preview, editor, and Git Review tabs do not start directory watches or refresh directory listings when the watched URI changes.
 
 ## Operations UX
 

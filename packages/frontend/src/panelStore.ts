@@ -33,7 +33,14 @@ export type SortField =
   | "owner";
 export type SortDirection = "asc" | "desc";
 export type ViewMode = "details" | "list" | "compact" | "icons" | "columns";
-export type TabKind = "directory" | "preview" | "editor";
+export type TabKind = "directory" | "preview" | "editor" | "gitReview";
+
+export interface GitReviewTabState {
+  repoRootUri: string;
+  sourceUri: string;
+  repoLabel: string;
+  refreshToken: number;
+}
 
 export interface SortState {
   field: SortField;
@@ -46,6 +53,7 @@ export interface PanelTabState {
   uri: string;
   previewEntry: FileEntryDto | null;
   editorEntry: FileEntryDto | null;
+  gitReview: GitReviewTabState | null;
   entriesById: Record<string, FileEntryDto>;
   orderedEntryIds: string[];
   selectedIds: string[];
@@ -153,6 +161,13 @@ export type PanelAction =
   | { type: "openTab"; panelId: PanelId; uri: string }
   | { type: "openPreviewTab"; panelId: PanelId; entry: FileEntryDto }
   | { type: "openEditorTab"; panelId: PanelId; entry: FileEntryDto }
+  | {
+      type: "openGitReviewTab";
+      panelId: PanelId;
+      repoRootUri: string;
+      sourceUri: string;
+      repoLabel: string;
+    }
   | {
       type: "replaceContentTabEntry";
       panelId: PanelId;
@@ -265,6 +280,7 @@ function createPanel(id: PanelId, uri: string): PanelState {
         uri,
         previewEntry: null,
         editorEntry: null,
+        gitReview: null,
         entriesById: {},
         orderedEntryIds: [],
         selectedIds: [],
@@ -325,6 +341,7 @@ export function applyNavigation(
     uri,
     previewEntry: null,
     editorEntry: null,
+    gitReview: null,
     entriesById: {},
     orderedEntryIds: [],
     selectedIds: [],

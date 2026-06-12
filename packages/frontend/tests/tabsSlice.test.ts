@@ -77,6 +77,17 @@ describe("isTabAction", () => {
       } as PanelAction),
     ).toBe(true);
   });
+  it("matches openGitReviewTab", () => {
+    expect(
+      isTabAction({
+        type: "openGitReviewTab",
+        panelId: "right",
+        repoRootUri: "local:///repo",
+        sourceUri: "local:///repo/src",
+        repoLabel: "repo",
+      } as PanelAction),
+    ).toBe(true);
+  });
   it("does not match navigate", () => {
     expect(
       isTabAction({
@@ -97,6 +108,57 @@ describe("isTabAction", () => {
   });
   it("does not match swapPanes", () => {
     expect(isTabAction({ type: "swapPanes" } as PanelAction)).toBe(false);
+  });
+});
+
+describe("reduceTab — openGitReviewTab", () => {
+  it("opens a git review content tab for a repository", () => {
+    const result = reduceTab(state, {
+      type: "openGitReviewTab",
+      panelId: "right",
+      repoRootUri: "local:///repo",
+      sourceUri: "local:///repo/src",
+      repoLabel: "repo",
+    });
+
+    const tab = activeTab(result.panels.right);
+
+    expect(tab.tabKind).toBe("gitReview");
+    expect(tab.uri).toBe("local:///repo");
+    expect(tab.gitReview).toEqual({
+      repoRootUri: "local:///repo",
+      sourceUri: "local:///repo/src",
+      repoLabel: "repo",
+      refreshToken: 0,
+    });
+    expect(tab.loadState).toBe("loaded");
+  });
+
+  it("focuses and refreshes an existing git review tab for the same repository", () => {
+    const withReview = reduceTab(state, {
+      type: "openGitReviewTab",
+      panelId: "right",
+      repoRootUri: "local:///repo",
+      sourceUri: "local:///repo/src",
+      repoLabel: "repo",
+    });
+    const firstTabId = withReview.panels.right.activeTabId;
+    const result = reduceTab(withReview, {
+      type: "openGitReviewTab",
+      panelId: "right",
+      repoRootUri: "local:///repo",
+      sourceUri: "local:///repo/other",
+      repoLabel: "repo",
+    });
+
+    expect(Object.keys(result.panels.right.tabs)).toHaveLength(
+      Object.keys(withReview.panels.right.tabs).length,
+    );
+    expect(result.panels.right.activeTabId).toBe(firstTabId);
+    expect(activeTab(result.panels.right).gitReview?.refreshToken).toBe(1);
+    expect(activeTab(result.panels.right).gitReview?.sourceUri).toBe(
+      "local:///repo/other",
+    );
   });
 });
 

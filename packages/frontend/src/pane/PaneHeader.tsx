@@ -20,6 +20,7 @@ interface PaneHeaderProps {
   onBreadcrumbContextMenu?: (path: string, event: MouseEvent) => void;
   gitBranch?: string | null;
   gitDirty?: boolean;
+  onOpenGitReview?: () => void;
   locationTargets?: PaneLocationTarget[];
 }
 
@@ -34,6 +35,7 @@ export function PaneHeader({
   onBreadcrumbContextMenu,
   gitBranch,
   gitDirty = false,
+  onOpenGitReview,
   locationTargets = [],
 }: PaneHeaderProps) {
   const [locationsOpen, setLocationsOpen] = useState(false);
@@ -101,18 +103,20 @@ export function PaneHeader({
           onBreadcrumbContextMenu={onBreadcrumbContextMenu}
         />
         {gitBranch ? (
-          <span
+          <button
+            type="button"
+            onClick={onOpenGitReview}
             className={
               gitDirty ? "fo-git-branch fo-git-branch-dirty" : "fo-git-branch"
             }
             aria-label={`Git branch ${gitBranch}${gitDirty ? " with changes" : ""}`}
-            title={`Git branch ${gitBranch}${gitDirty ? " with changes" : ""}`}
+            title={`Review Git changes for ${gitBranch}`}
           >
             <span className="fo-git-branch-mark" aria-hidden="true">
               git
             </span>
             <span className="fo-git-branch-name">{gitBranch}</span>
-          </span>
+          </button>
         ) : null}
       </div>
     </header>

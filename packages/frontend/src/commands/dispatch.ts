@@ -70,6 +70,7 @@ export interface CommandDispatchDeps {
     sourcePanelId: PanelId,
     entry: FileEntryDto,
   ) => void;
+  openGitReviewInOppositePane?: (sourcePanelId: PanelId) => Promise<void>;
   isTextEditable: (entry: FileEntryDto | null) => boolean;
   isPreviewable: (entry: FileEntryDto | null) => boolean;
   activityCollapsed: boolean;
@@ -580,6 +581,9 @@ export function dispatchCommand(
       return true;
     case "op.reveal":
       void deps.revealEntry(panelId, selectedEntry);
+      return true;
+    case "git.reviewChanges":
+      void deps.openGitReviewInOppositePane?.(panelId);
       return true;
     case "clipboard.copyPath":
       void deps.copyTextFromSelection(panelId, "path");

@@ -94,6 +94,8 @@ pub fn run() {
             commands::fs::fs_properties,
             commands::git::git_discover,
             commands::git::git_status_for_directory,
+            commands::git::git_status_for_repository,
+            commands::git::git_diff_file,
             commands::folder_size::fs_folder_size,
             commands::folder_size::fs_folder_size_start,
             commands::recursive_search::fs_recursive_search,

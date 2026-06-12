@@ -54,6 +54,7 @@ import {
   type ViewerMode,
 } from "../components/viewer/detectViewerMode";
 import { EditorContent } from "../components/editor/EditorDialog";
+import { GitReviewTab } from "../components/git/GitReviewTab";
 
 export type CopyMoveKind = "copy" | "move";
 
@@ -104,6 +105,7 @@ export interface FilePanelProps {
   onCloseTab: (panelId: PanelId, tabId: string) => void;
   onOpenTab: (panelId: PanelId) => void;
   onOpenTerminal?: () => void;
+  onOpenGitReview?: () => void;
   terminalDisabled?: boolean;
   fileTypeColorRules?: string;
 }
@@ -150,6 +152,7 @@ export function FilePanel({
   onCloseTab,
   onOpenTab,
   onOpenTerminal,
+  onOpenGitReview,
   terminalDisabled,
   fileTypeColorRules,
 }: FilePanelProps) {
@@ -304,6 +307,37 @@ export function FilePanel({
     );
   }
 
+  if (tab.tabKind === "gitReview" && tab.gitReview) {
+    return (
+      <section
+        className={active ? "fo-panel fo-panel-active" : "fo-panel"}
+        data-active={active ? "true" : "false"}
+        aria-current={active ? "true" : undefined}
+        onFocus={onActivate}
+      >
+        <TabBar
+          panelId={panelId}
+          panel={panel}
+          onSwitchTab={onSwitchTab}
+          onCloseTab={onCloseTab}
+          onOpenTab={onOpenTab}
+          onOpenTerminal={onOpenTerminal}
+          terminalDisabled={terminalDisabled}
+        />
+        <div className="fo-pane-content-tab">
+          <GitReviewTab
+            repoRootUri={tab.gitReview.repoRootUri}
+            sourceUri={tab.gitReview.sourceUri}
+            repoLabel={tab.gitReview.repoLabel}
+            refreshToken={tab.gitReview.refreshToken}
+            git={client.git}
+            fs={client.fs}
+          />
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section
       className={active ? "fo-panel fo-panel-active" : "fo-panel"}
@@ -332,6 +366,7 @@ export function FilePanel({
         onBreadcrumbContextMenu={onBreadcrumbContextMenu}
         gitBranch={gitStatus.repo?.branch ?? gitStatus.repo?.headShort ?? null}
         gitDirty={gitStatus.repo?.isDirty ?? false}
+        onOpenGitReview={onOpenGitReview}
       />
       <div className="fo-panel-filter-row">
         <FilterInput

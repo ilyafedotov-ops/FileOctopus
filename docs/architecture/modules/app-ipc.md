@@ -32,6 +32,8 @@ Pair every Tauri command with a typed request and response:
 | `clear_operation_history`     | —                                                                 | `ClearOperationHistoryResponse { deletedCount }`                              |
 | `diagnostics_app_data_health` | —                                                                 | `AppDataHealthResponse`                                                       |
 | `export_diagnostics_bundle`   | `ExportDiagnosticsBundleRequest { destination }`                  | `ExportDiagnosticsBundleResponse { path, files }`                             |
+| `git_status_for_repository`   | `GitStatusForRepositoryRequest { uri }`                           | `GitStatusForRepositoryResponse { repo, files }`                              |
+| `git_diff_file`               | `GitDiffFileRequest { uri, maxBytes? }`                           | `GitDiffFileResponse { repo, file, oldLabel, newLabel, hunks, ... }`          |
 
 `JobSnapshot` from `crates/jobs` is re-exported through the response types — it is already camelCase, so it does not need a Dto twin.
 
@@ -39,6 +41,7 @@ Pair every Tauri command with a typed request and response:
 
 - `FileEntryDto` — flattens `FileEntry` and its `EntryCapabilities` into five booleans (`canRead`, `canList`, `canWrite`, `canDelete`, `canRename`). Symlink targets and provider id are stringified.
 - `DirectoryBatchEventDto` — wire form of `DirectoryBatch` with an additional `error: Option<IpcError>` slot used when listing fails mid-stream.
+- `GitChangedFileDto` / `GitStatusForRepositoryResponse` / `GitDiffFileResponse` — wire forms for read-only Git Review. They carry `ResourceUri` strings, repo-relative paths, rename previous-path metadata, diff labels, hunk data, line counts, truncation flags, binary state, and optional unsupported reasons.
 - `FileOperationRequestDto` / `FileOperationPlanDto` / `FileOperationItemDto` / `FileOperationConflictDto` / `FileOperationWarningDto` — DTO mirrors of the planner value graph. URIs are strings; `ConflictPolicy` and `FileOperationKind` round-trip directly because the domain enums already use camelCase serde tags.
 - `OperationHistoryRecordDto` — wire form for the SQLite history rows. All path-shaped fields are display paths (not `local://` URIs) because they exist to be shown to humans.
 - `IpcError { code, message }` — the canonical error envelope.

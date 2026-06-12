@@ -316,6 +316,42 @@ export interface GitStatusForDirectoryResponse {
   entries: Record<string, GitFileStatusDto>;
 }
 
+export interface GitStatusForRepositoryRequest {
+  uri: string;
+}
+
+export interface GitChangedFileDto {
+  uri: string;
+  repoRelativePath: string;
+  status: GitFileStatusDto;
+  previousUri?: string | null;
+  previousRepoRelativePath?: string | null;
+}
+
+export interface GitStatusForRepositoryResponse {
+  repo?: GitRepoInfoDto | null;
+  files: GitChangedFileDto[];
+}
+
+export interface GitDiffFileRequest {
+  uri: string;
+  maxBytes?: number;
+}
+
+export interface GitDiffFileResponse {
+  repo?: GitRepoInfoDto | null;
+  file: GitChangedFileDto;
+  oldLabel: string;
+  newLabel: string;
+  hunks: DiffHunk[];
+  oldLineCount: number;
+  newLineCount: number;
+  oldTruncated: boolean;
+  newTruncated: boolean;
+  binary: boolean;
+  unsupportedReason?: string | null;
+}
+
 export interface TerminalSpawnRequest {
   uri?: string | null;
   profileId?: string | null;

@@ -2,7 +2,7 @@
 
 `packages/ts-api` is the **only** package that talks to Tauri. Everything else in the frontend imports from `@fileoctopus/ts-api`, never from `@tauri-apps/api` directly. This keeps the IPC surface small, typed, and swappable.
 
-> **Doc freshness (2026-05-30):** `commandMap` and per-domain clients are split out of the monolithic `client.ts`; the public import path is unchanged.
+> **Doc freshness (2026-06-12):** `commandMap` and per-domain clients are split out of the monolithic `client.ts`; Git Review uses `GitClient.statusForRepository` and `GitClient.diffFile` in addition to the existing branch/status helpers.
 
 - Source: `packages/ts-api/src/{client,types,index,commandMap,events,normalizeError}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`
 - Depends on: `@tauri-apps/api` (peer/dev only at the import path).
@@ -24,6 +24,7 @@ The shape is documented in [api-reference.md](../api-reference.md) §TypeScript 
 ```
 FileOctopusClient (client.ts)
  ├── fs ────────────────► clients/fs.ts
+ ├── git ───────────────► clients/git.ts
  ├── fileOperations ────► clients/fileOperations.ts
  ├── jobs ──────────────► clients/jobs.ts
  ├── operationHistory ──► clients/history.ts
@@ -60,13 +61,13 @@ export interface IpcTransport {
 Two ship in-box:
 
 - `createTauriTransport()` — wraps `@tauri-apps/api/core::invoke` and `@tauri-apps/api/event::listen`. Translates dotted command names through `commandMap`. The Tauri `listen` callback hands you `{ payload }`; the transport unwraps it so handlers receive the payload directly.
-- `createPreviewTransport()` — degraded transport for running the React build in a plain browser (e.g. Storybook, design previews). `app.get_info` returns a stub; `fs.list_start` synthesizes a session id and emits an empty `directory:batch` event; diagnostics returns safe stubs; mutating commands reject with `code: "tauri_unavailable"` unless explicitly stubbed for preview.
+- `createPreviewTransport()` — degraded transport for running the React build in a plain browser (e.g. Storybook, design previews). `app.get_info` returns a stub; `fs.list_start` synthesizes a session id and emits an empty `directory:batch` event; Git Review has deterministic preview status/diff data; diagnostics returns safe stubs; mutating commands reject with `code: "tauri_unavailable"` unless explicitly stubbed for preview.
 
 `createFileOctopusClient(transport?)` auto-selects: if `globalThis.__TAURI_INTERNALS__` is present, the Tauri transport; otherwise the preview transport. Tests inject a mock transport directly into `new FileOctopusClient(transport)`.
 
 ## `commandMap`
 
-Dotted method names → snake_case Tauri command names. **Source of truth:** `packages/ts-api/src/commandMap.ts` (imported by `transports/tauri.ts`). The [API reference](../api-reference.md#full-registry-2026-05-17) lists the full registry.
+Dotted method names → snake_case Tauri command names. **Source of truth:** `packages/ts-api/src/commandMap.ts` (imported by `transports/tauri.ts`). The [API reference](../api-reference.md#full-registry-2026-06-12) lists the full registry.
 
 The Tauri transport translates dotted names before `invoke` — e.g. `fileOperation.plan` → `plan_file_operation`. Mock transports in tests only see the dotted name.
 
@@ -96,12 +97,13 @@ Event subscriptions use `requireListen` (a helper that rejects with `unsupported
 
 ### Method ↔ event matrix
 
-| Client                   | Methods                                   | Events                                                                             |
-| ------------------------ | ----------------------------------------- | ---------------------------------------------------------------------------------- |
-| `FsClient`               | `stat`, `listStart`                       | `onDirectoryBatch`                                                                 |
-| `FileOperationsClient`   | `planFileOperation`, `startFileOperation` | `onJobStarted`, `onJobProgress`, `onJobCompleted`, `onJobFailed`, `onJobCancelled` |
-| `JobsClient`             | `cancelJob`, `getJobStatus`               | —                                                                                  |
-| `OperationHistoryClient` | `listRecentOperations`                    | —                                                                                  |
+| Client                   | Methods                                                             | Events                                                                             |
+| ------------------------ | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `FsClient`               | `stat`, `listStart`                                                 | `onDirectoryBatch`                                                                 |
+| `GitClient`              | `discover`, `statusForDirectory`, `statusForRepository`, `diffFile` | —                                                                                  |
+| `FileOperationsClient`   | `planFileOperation`, `startFileOperation`                           | `onJobStarted`, `onJobProgress`, `onJobCompleted`, `onJobFailed`, `onJobCancelled` |
+| `JobsClient`             | `cancelJob`, `getJobStatus`                                         | —                                                                                  |
+| `OperationHistoryClient` | `listRecentOperations`                                              | —                                                                                  |
 
 `onDirectoryBatch` and the `onJob*` family each return an `UnlistenFn`; the frontend cleans them up in `useEffect` teardown.
 

@@ -230,6 +230,112 @@ export function createPreviewTransport(): IpcTransport {
         return { entries: [] } as TResponse;
       }
 
+      if (command === "git.discover") {
+        const request = args?.request as { uri?: string } | undefined;
+        return {
+          repo: {
+            rootUri: request?.uri ?? "local:///Users/ilya/Documents",
+            branch: "main",
+            headShort: "preview",
+            isDirty: true,
+          },
+        } as TResponse;
+      }
+
+      if (command === "git.statusForDirectory") {
+        const request = args?.request as { uri?: string } | undefined;
+        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        return {
+          repo: {
+            rootUri,
+            branch: "main",
+            headShort: "preview",
+            isDirty: true,
+          },
+          entries: {
+            [`${rootUri}/README.md`]: "modified",
+          },
+        } as TResponse;
+      }
+
+      if (command === "git.statusForRepository") {
+        const request = args?.request as { uri?: string } | undefined;
+        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        return {
+          repo: {
+            rootUri,
+            branch: "main",
+            headShort: "preview",
+            isDirty: true,
+          },
+          files: [
+            {
+              uri: `${rootUri}/README.md`,
+              repoRelativePath: "README.md",
+              status: "modified",
+              previousUri: null,
+              previousRepoRelativePath: null,
+            },
+          ],
+        } as TResponse;
+      }
+
+      if (command === "git.diffFile") {
+        const request = args?.request as { uri?: string } | undefined;
+        const uri = request?.uri ?? "local:///Users/ilya/Documents/README.md";
+        return {
+          repo: {
+            rootUri: uri.replace(/\/[^/]*$/, ""),
+            branch: "main",
+            headShort: "preview",
+            isDirty: true,
+          },
+          file: {
+            uri,
+            repoRelativePath: uri.split("/").pop() ?? "README.md",
+            status: "modified",
+            previousUri: null,
+            previousRepoRelativePath: null,
+          },
+          oldLabel: "HEAD",
+          newLabel: "Worktree",
+          hunks: [
+            {
+              oldStart: 1,
+              oldCount: 2,
+              newStart: 1,
+              newCount: 2,
+              lines: [
+                {
+                  kind: "equal",
+                  content: "# FileOctopus\n",
+                  oldLine: 1,
+                  newLine: 1,
+                },
+                {
+                  kind: "delete",
+                  content: "Preview diff\n",
+                  oldLine: 2,
+                  newLine: null,
+                },
+                {
+                  kind: "insert",
+                  content: "Preview Git Review diff\n",
+                  oldLine: null,
+                  newLine: 2,
+                },
+              ],
+            },
+          ],
+          oldLineCount: 2,
+          newLineCount: 2,
+          oldTruncated: false,
+          newTruncated: false,
+          binary: false,
+          unsupportedReason: null,
+        } as TResponse;
+      }
+
       if (command === "network.profilesList") {
         return {
           profiles: [
