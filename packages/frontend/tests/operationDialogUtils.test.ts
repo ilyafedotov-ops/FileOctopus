@@ -70,6 +70,12 @@ describe("operationErrorMessage", () => {
       "my fallback",
     );
   });
+
+  it("returns a friendly message for cloud_unavailable", () => {
+    expect(operationErrorMessage("cloud_unavailable", "fallback")).toBe(
+      "Couldn't download this file from its cloud provider. Make sure the cloud storage app (OneDrive, iCloud, ...) is running and online, then try again.",
+    );
+  });
 });
 
 describe("operationWarningMessage", () => {

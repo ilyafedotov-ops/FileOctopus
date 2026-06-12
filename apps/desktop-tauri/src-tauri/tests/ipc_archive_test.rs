@@ -114,6 +114,7 @@ fn list_zip(path: &std::path::Path) -> Result<Vec<FileEntryDto>, IpcError> {
             accessed_at: None,
             is_hidden: false,
             is_symlink: false,
+            is_placeholder: false,
             symlink_target: None,
             provider_id: "local".to_string(),
             can_read: true,
@@ -182,6 +183,7 @@ fn list_tar_entries<R: std::io::Read>(
             accessed_at: None,
             is_hidden: false,
             is_symlink: entry.link_name().ok().flatten().is_some(),
+            is_placeholder: false,
             symlink_target: entry
                 .link_name()
                 .ok()

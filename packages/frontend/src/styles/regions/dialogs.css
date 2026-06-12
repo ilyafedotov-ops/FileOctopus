@@ -2290,6 +2290,16 @@ dialog.fo-dialog[open] {
   opacity: 1;
 }
 
+.fo-preview-cloud-gate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 16px;
+  color: var(--fo-muted-text);
+  text-align: center;
+}
+
 .fo-preview-image {
   display: block;
   max-width: 100%;

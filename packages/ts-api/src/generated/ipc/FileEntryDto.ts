@@ -12,6 +12,7 @@ export type FileEntryDto = {
   accessedAt: string | null;
   isHidden: boolean;
   isSymlink: boolean;
+  isPlaceholder: boolean;
   symlinkTarget: string | null;
   providerId: string;
   canRead: boolean;

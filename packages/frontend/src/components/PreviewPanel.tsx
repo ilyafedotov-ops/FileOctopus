@@ -104,6 +104,7 @@ const MEDIA_EXTENSIONS = new Set([
 
 const MAX_PREVIEW_BYTES = 512 * 1024; // 512 KB
 const MAX_DATA_URI_PREVIEW_BYTES = 20 * 1024 * 1024; // 20 MB
+export const CLOUD_AUTO_DOWNLOAD_LIMIT_BYTES = 10 * 1024 * 1024;
 
 function getExtension(name: string): string {
   const dot = name.lastIndexOf(".");
@@ -159,6 +160,11 @@ export function isPreviewable(entry: FileEntryDto | null): boolean {
   );
 }
 
+export function shouldDeferCloudDownload(entry: FileEntryDto | null): boolean {
+  if (!entry?.isPlaceholder) return false;
+  return (entry.size ?? 0) > CLOUD_AUTO_DOWNLOAD_LIMIT_BYTES;
+}
+
 type PreviewMode = "image" | "text" | "pdf" | "media" | "unknown";
 
 function getPreviewMode(entry: FileEntryDto): PreviewMode {
@@ -201,6 +207,7 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
   const [truncated, setTruncated] = useState(false);
   const [byteSize, setByteSize] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const [cloudDownloadApproved, setCloudDownloadApproved] = useState(false);
 
   const loadContent = useCallback(async () => {
     if (!entry) return;
@@ -249,10 +256,18 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
     setTruncated(false);
     setByteSize(0);
     setZoom(1);
-    if (entry && isPreviewable(entry)) {
+    setCloudDownloadApproved(false);
+  }, [entry]);
+
+  useEffect(() => {
+    if (
+      entry &&
+      isPreviewable(entry) &&
+      (!shouldDeferCloudDownload(entry) || cloudDownloadApproved)
+    ) {
       void loadContent();
     }
-  }, [entry, loadContent]);
+  }, [cloudDownloadApproved, entry, loadContent]);
 
   // Close on Escape
   useEffect(() => {
@@ -322,7 +337,13 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
       <div className="fo-preview-header">
         <span className="fo-preview-title">{entry.name}</span>
         <span className="fo-preview-meta">
-          {loading ? "Loading..." : error ? "Error" : formatBytes(byteSize)}
+          {loading
+            ? entry.isPlaceholder
+              ? "Downloading from cloud…"
+              : "Loading..."
+            : error
+              ? "Error"
+              : formatBytes(byteSize)}
           {!isImage && !isPdf && !isMedia && truncated && " (truncated)"}
         </span>
         <button
@@ -346,8 +367,26 @@ export function PreviewPanel({ entry, fs, onClose }: PreviewPanelProps) {
         onReveal={handleReveal}
       />
       <div className="fo-preview-content">
-        {loading && <div className="fo-preview-loading">Loading...</div>}
+        {loading && (
+          <div className="fo-preview-loading">
+            {entry.isPlaceholder ? "Downloading from cloud…" : "Loading..."}
+          </div>
+        )}
         {error && <div className="fo-preview-error">{error}</div>}
+        {!loading &&
+          !error &&
+          shouldDeferCloudDownload(entry) &&
+          !cloudDownloadApproved && (
+            <div className="fo-preview-cloud-gate">
+              <p>
+                Cloud-only file ({formatBytes(entry.size ?? 0)}) — not
+                downloaded to this device yet.
+              </p>
+              <button onClick={() => setCloudDownloadApproved(true)}>
+                Download and preview
+              </button>
+            </div>
+          )}
         {isImage && binaryDataUri && !loading && (
           <img
             className="fo-preview-image"

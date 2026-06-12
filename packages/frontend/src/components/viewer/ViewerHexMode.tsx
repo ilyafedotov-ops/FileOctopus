@@ -112,7 +112,11 @@ export function ViewerHexMode({ entry, fs }: ViewerHexModeProps) {
     >
       {error && <div className="fo-viewer-error">{error}</div>}
       <pre className="fo-viewer-hex-body">{rows}</pre>
-      {loading && <div className="fo-viewer-loading">Loading…</div>}
+      {loading && (
+        <div className="fo-viewer-loading">
+          {entry.isPlaceholder ? "Downloading from cloud…" : "Loading…"}
+        </div>
+      )}
       {byteSize !== null && (
         <div className="fo-viewer-footer">
           {offset.toLocaleString()} / {byteSize.toLocaleString()} bytes

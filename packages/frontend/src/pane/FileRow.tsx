@@ -225,6 +225,15 @@ export function FileRow({
             ↗
           </span>
         ) : null}
+        {entry.isPlaceholder ? (
+          <span
+            className="fo-row-cloud-badge"
+            aria-label="Cloud-only file"
+            title="Cloud-only — downloads when opened"
+          >
+            ☁
+          </span>
+        ) : null}
         {entry.status ? (
           <span
             className={`fo-row-network-badge fo-row-network-badge-${entry.status}`}

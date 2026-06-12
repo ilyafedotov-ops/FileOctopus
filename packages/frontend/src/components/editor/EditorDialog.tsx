@@ -421,7 +421,11 @@ export function EditorContent({
         </button>
       </div>
       <div className="fo-editor-body">
-        {loading && <div className="fo-editor-loading">Loading…</div>}
+        {loading && (
+          <div className="fo-editor-loading">
+            {entry?.isPlaceholder ? "Downloading from cloud…" : "Loading…"}
+          </div>
+        )}
         {error && <div className="fo-editor-error">{error}</div>}
         {!loading && initialDoc !== null && (
           <EditorView

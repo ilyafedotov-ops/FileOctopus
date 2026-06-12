@@ -16,6 +16,7 @@ pub mod external_open;
 pub mod file_ops;
 pub mod locations;
 pub mod metadata;
+pub mod placeholder;
 pub mod search;
 pub mod sync;
 pub mod vfs_io;
@@ -32,6 +33,17 @@ impl LocalFsProvider {
         match error.kind() {
             io::ErrorKind::NotFound => VfsError::not_found(uri),
             io::ErrorKind::PermissionDenied => VfsError::permission_denied(uri),
+            io::ErrorKind::TimedOut => {
+                let is_placeholder = uri
+                    .to_local_path()
+                    .map(|path| placeholder::is_placeholder_path(&path))
+                    .unwrap_or(false);
+                if is_placeholder {
+                    VfsError::cloud_unavailable(uri)
+                } else {
+                    VfsError::timeout(uri)
+                }
+            }
             _ => VfsError::internal(&error.to_string()),
         }
     }
@@ -82,7 +94,7 @@ impl LocalFsProvider {
             accessed_at: metadata.accessed().ok().map(DateTime::<Utc>::from),
             is_hidden: is_hidden(path),
             is_symlink,
-            is_placeholder: false,
+            is_placeholder: placeholder::is_placeholder_metadata(&metadata),
             symlink_target,
             provider_id: ProviderId::new("local"),
             capabilities,
