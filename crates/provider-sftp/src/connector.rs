@@ -384,6 +384,7 @@ fn build_entry(uri: &ResourceUri, remote_path: &str, metadata: &FileStat) -> Fil
         accessed_at: metadata.atime.and_then(unix_timestamp_to_utc),
         is_hidden,
         is_symlink: kind == FileKind::Symlink,
+        is_placeholder: false,
         symlink_target: None,
         provider_id: ProviderId::new("sftp"),
         capabilities,

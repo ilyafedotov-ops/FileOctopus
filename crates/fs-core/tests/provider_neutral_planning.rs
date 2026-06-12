@@ -184,6 +184,7 @@ fn entry(uri: ResourceUri, name: &str, kind: FileKind, size: Option<u64>) -> Fil
         accessed_at: None,
         is_hidden: name.starts_with('.'),
         is_symlink: false,
+        is_placeholder: false,
         symlink_target: None,
         provider_id: ProviderId::new("memory-gdrive"),
         capabilities: match kind {

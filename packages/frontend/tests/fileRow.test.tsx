@@ -355,6 +355,18 @@ describe("FileRow", () => {
     expect(screen.getByTitle("Symlink")).toBeTruthy();
   });
 
+  it("renders cloud-only badge for placeholder entries", () => {
+    const entry = makeEntry({ isPlaceholder: true });
+    render(<FileRow {...baseProps} entry={entry} />);
+    expect(screen.getByLabelText("Cloud-only file")).toBeTruthy();
+  });
+
+  it("does not render cloud-only badge for regular entries", () => {
+    const entry = makeEntry();
+    render(<FileRow {...baseProps} entry={entry} />);
+    expect(screen.queryByLabelText("Cloud-only file")).toBeNull();
+  });
+
   it("renders network status badge", () => {
     const entry = makeEntry({ status: "available" });
     render(<FileRow {...baseProps} entry={entry} />);

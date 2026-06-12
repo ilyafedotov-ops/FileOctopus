@@ -83,6 +83,7 @@ fn entry_for_path(
         accessed_at: metadata.accessed().ok().map(DateTime::<Utc>::from),
         is_hidden: is_hidden(path),
         is_symlink: metadata.file_type().is_symlink(),
+        is_placeholder: crate::placeholder::is_placeholder_metadata(&metadata),
         symlink_target: None,
         provider_id: ProviderId::new("local"),
         capabilities,
@@ -116,6 +117,7 @@ fn map_std_io_error(path: &Path, error: std::io::Error) -> FileOperationError {
         std::io::ErrorKind::AlreadyExists => FileOperationError::DestinationConflict { uri },
         std::io::ErrorKind::NotFound => FileOperationError::NotFound { uri },
         std::io::ErrorKind::PermissionDenied => FileOperationError::PermissionDenied { uri },
+        std::io::ErrorKind::TimedOut => crate::placeholder::classify_timed_out_path(path, &error),
         _ => FileOperationError::io(error.to_string()),
     }
 }

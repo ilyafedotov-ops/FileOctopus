@@ -55,6 +55,8 @@ pub struct FileEntryDto {
     pub accessed_at: Option<DateTime<Utc>>,
     pub is_hidden: bool,
     pub is_symlink: bool,
+    #[serde(default)]
+    pub is_placeholder: bool,
     pub symlink_target: Option<String>,
     pub provider_id: String,
     pub can_read: bool,

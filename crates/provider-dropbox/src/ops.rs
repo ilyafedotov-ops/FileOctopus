@@ -38,6 +38,7 @@ pub fn dropbox_metadata_to_entry(item: &serde_json::Value) -> Option<FileEntry> 
         accessed_at: None,
         is_hidden: false,
         is_symlink: false,
+        is_placeholder: false,
         symlink_target: None,
         provider_id: ProviderId::new("dropbox"),
         capabilities: if kind == FileKind::Directory {

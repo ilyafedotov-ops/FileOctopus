@@ -99,7 +99,11 @@ export function ViewerTextMode({
         onScroll={onScroll}
         className="fo-codemirror-pane fo-viewer-cm"
       />
-      {loading && <div className="fo-viewer-loading">Loading…</div>}
+      {loading && (
+        <div className="fo-viewer-loading">
+          {entry.isPlaceholder ? "Downloading from cloud…" : "Loading…"}
+        </div>
+      )}
       {byteSize !== null && (
         <div className="fo-viewer-footer">
           {offset.toLocaleString()} / {byteSize.toLocaleString()} bytes

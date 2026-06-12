@@ -60,8 +60,9 @@ pub async fn fs_read_text_file(
         .unwrap_or(max_bytes);
 
     let vfs = VfsFilesystem::with_sessions(state.sessions(), state.vfs());
-    let buf = vfs
-        .read_file_prefix(&uri, read_len)
+    let buf = tauri::async_runtime::spawn_blocking(move || vfs.read_file_prefix(&uri, read_len))
+        .await
+        .map_err(|_| IpcError::internal("read_text_file task join failed"))?
         .map_err(IpcError::from)?;
     let byte_size = file_size.unwrap_or(buf.len() as u64);
 
@@ -398,8 +399,9 @@ pub async fn fs_read_file_as_data_uri(
 
     let vfs = VfsFilesystem::with_sessions(state.sessions(), state.vfs());
     let read_len = entry.size.unwrap_or(max_bytes);
-    let buf = vfs
-        .read_file_prefix(&uri, read_len)
+    let buf = tauri::async_runtime::spawn_blocking(move || vfs.read_file_prefix(&uri, read_len))
+        .await
+        .map_err(|_| IpcError::internal("read_file_as_data_uri task join failed"))?
         .map_err(IpcError::from)?;
     let byte_size = entry.size.unwrap_or(buf.len() as u64);
 
@@ -441,8 +443,9 @@ pub async fn fs_read_image_as_data_uri(
 
     let vfs = VfsFilesystem::with_sessions(state.sessions(), state.vfs());
     let read_len = entry.size.unwrap_or(MAX_IMAGE_BYTES);
-    let buf = vfs
-        .read_file_prefix(&uri, read_len)
+    let buf = tauri::async_runtime::spawn_blocking(move || vfs.read_file_prefix(&uri, read_len))
+        .await
+        .map_err(|_| IpcError::internal("read_image_as_data_uri task join failed"))?
         .map_err(IpcError::from)?;
     let byte_size = entry.size.unwrap_or(buf.len() as u64);
 
@@ -872,6 +875,7 @@ fn list_zip_entries(path: &std::path::Path) -> Result<Vec<FileEntryDto>, IpcErro
             accessed_at: None,
             is_hidden: false,
             is_symlink: false,
+            is_placeholder: false,
             symlink_target: None,
             provider_id: "archive".to_string(),
             can_read: true,
@@ -937,6 +941,7 @@ fn list_tar_reader<R: Read>(
             accessed_at: None,
             is_hidden: false,
             is_symlink: entry.link_name().ok().flatten().is_some(),
+            is_placeholder: false,
             symlink_target: entry
                 .link_name()
                 .ok()

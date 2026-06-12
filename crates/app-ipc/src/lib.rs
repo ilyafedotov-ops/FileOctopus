@@ -105,6 +105,7 @@ pub mod error_codes {
     pub const NOT_FOUND: &str = "not_found";
     pub const PERMISSION_DENIED: &str = "permission_denied";
     pub const DEVICE_UNAVAILABLE: &str = "device_unavailable";
+    pub const CLOUD_UNAVAILABLE: &str = "cloud_unavailable";
     pub const TIMEOUT: &str = "timeout";
     pub const CANCELLED: &str = "cancelled";
     pub const PREFERENCES_ERROR: &str = "preferences_error";
@@ -147,6 +148,7 @@ pub mod error_codes {
         NOT_FOUND,
         PERMISSION_DENIED,
         DEVICE_UNAVAILABLE,
+        CLOUD_UNAVAILABLE,
         TIMEOUT,
         CANCELLED,
         PREFERENCES_ERROR,
@@ -349,6 +351,7 @@ impl From<FileEntry> for FileEntryDto {
             accessed_at: entry.accessed_at,
             is_hidden: entry.is_hidden,
             is_symlink: entry.is_symlink,
+            is_placeholder: entry.is_placeholder,
             symlink_target: entry.symlink_target.map(|uri| uri.as_str().to_string()),
             provider_id: entry.provider_id.as_str().to_string(),
             can_read: entry.capabilities.can_read,
@@ -885,6 +888,7 @@ mod tests {
                 accessed_at: None,
                 is_hidden: false,
                 is_symlink: false,
+                is_placeholder: false,
                 symlink_target: None,
                 provider_id: ProviderId::new("local"),
                 capabilities: EntryCapabilities::read_only_file(),
@@ -981,6 +985,7 @@ mod tests {
             accessed_at: None,
             is_hidden: false,
             is_symlink: false,
+            is_placeholder: false,
             symlink_target: None,
             provider_id: "network".to_string(),
             can_read: true,
@@ -1005,6 +1010,13 @@ mod tests {
         assert_eq!(encoded["entries"][0]["targetUri"], "local:///iCloud");
         let decoded: NetworkNeighborhoodResponse = serde_json::from_value(encoded).unwrap();
         assert_eq!(decoded.entries[0], entry);
+    }
+
+    #[test]
+    fn cloud_unavailable_ipc_error_preserves_code() {
+        let uri = ResourceUri::parse("local:///tmp/file.txt").unwrap();
+        let error = IpcError::from(vfs::VfsError::cloud_unavailable(&uri));
+        assert_eq!(error.code, error_codes::CLOUD_UNAVAILABLE);
     }
 
     #[test]
@@ -1040,6 +1052,7 @@ mod tests {
         assert_eq!(entry.protocol, None);
         assert_eq!(entry.status, None);
         assert_eq!(entry.description, None);
+        assert!(!entry.is_placeholder);
     }
 
     #[test]
@@ -1055,6 +1068,7 @@ mod tests {
             accessed_at: None,
             is_hidden: false,
             is_symlink: false,
+            is_placeholder: false,
             symlink_target: None,
             provider_id: "network".to_string(),
             can_read: false,

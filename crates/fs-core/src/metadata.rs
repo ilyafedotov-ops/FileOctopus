@@ -237,6 +237,7 @@ fn map_io_error(uri: &ResourceUri, error: std::io::Error) -> FileOperationError 
         std::io::ErrorKind::PermissionDenied => FileOperationError::PermissionDenied {
             uri: uri.as_str().to_string(),
         },
+        std::io::ErrorKind::TimedOut => crate::placeholder::classify_timed_out_uri(uri, &error),
         _ => FileOperationError::io(error.to_string()),
     }
 }

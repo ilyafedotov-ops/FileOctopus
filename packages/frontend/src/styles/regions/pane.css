@@ -1042,6 +1042,22 @@
   color: var(--fo-on-accent-soft);
 }
 
+.fo-row-cloud-badge {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-left: 2px;
+  color: var(--fo-muted-text);
+  font-size: 11px;
+}
+
+.fo-row-selected .fo-row-cloud-badge {
+  color: var(--fo-on-accent-soft);
+}
+
 .fo-row-network-badge {
   display: inline-flex;
   flex: 0 0 auto;

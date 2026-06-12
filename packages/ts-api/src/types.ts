@@ -12,6 +12,7 @@ export const IPC_ERROR_CODES = {
   DUPLICATE_PROVIDER: "duplicate_provider",
   NOT_FOUND: "not_found",
   PERMISSION_DENIED: "permission_denied",
+  CLOUD_UNAVAILABLE: "cloud_unavailable",
   TIMEOUT: "timeout",
   CANCELLED: "cancelled",
   PREFERENCES_ERROR: "preferences_error",
@@ -1050,6 +1051,7 @@ export interface FileEntryDto {
   accessedAt?: string | null;
   isHidden: boolean;
   isSymlink: boolean;
+  isPlaceholder?: boolean;
   symlinkTarget?: string | null;
   providerId: string;
   canRead: boolean;

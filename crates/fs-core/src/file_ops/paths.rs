@@ -44,6 +44,7 @@ pub(super) fn map_io_error(uri: &ResourceUri, error: std::io::Error) -> FileOper
         std::io::ErrorKind::PermissionDenied => FileOperationError::PermissionDenied {
             uri: uri.as_str().to_string(),
         },
+        std::io::ErrorKind::TimedOut => crate::placeholder::classify_timed_out_uri(uri, &error),
         _ => FileOperationError::io(error.to_string()),
     }
 }
@@ -56,6 +57,7 @@ pub(super) fn map_std_io_error(path: &Path, error: std::io::Error) -> FileOperat
     match error.kind() {
         std::io::ErrorKind::NotFound => FileOperationError::NotFound { uri },
         std::io::ErrorKind::PermissionDenied => FileOperationError::PermissionDenied { uri },
+        std::io::ErrorKind::TimedOut => crate::placeholder::classify_timed_out_path(path, &error),
         _ => FileOperationError::io(error.to_string()),
     }
 }

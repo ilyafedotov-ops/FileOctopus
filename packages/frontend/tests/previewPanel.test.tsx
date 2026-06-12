@@ -8,11 +8,13 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   PreviewPanel,
+  CLOUD_AUTO_DOWNLOAD_LIMIT_BYTES,
   isTextPreviewable,
   isImagePreviewable,
   isPdfPreviewable,
   isMediaPreviewable,
   isPreviewable,
+  shouldDeferCloudDownload,
 } from "../src/components/PreviewPanel";
 import { PreviewToolbar } from "../src/components/PreviewToolbar";
 import type {
@@ -287,6 +289,41 @@ describe("PreviewPanel", () => {
     await waitFor(() => {
       expect(screen.getByText(/truncated/)).toBeTruthy();
     });
+  });
+});
+
+describe("shouldDeferCloudDownload", () => {
+  it("defers placeholders larger than the limit", () => {
+    expect(
+      shouldDeferCloudDownload(
+        makeEntry({
+          isPlaceholder: true,
+          size: CLOUD_AUTO_DOWNLOAD_LIMIT_BYTES + 1,
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("auto-loads small placeholders", () => {
+    expect(
+      shouldDeferCloudDownload(makeEntry({ isPlaceholder: true, size: 1024 })),
+    ).toBe(false);
+  });
+
+  it("auto-loads placeholders with unknown size", () => {
+    expect(shouldDeferCloudDownload(makeEntry({ isPlaceholder: true }))).toBe(
+      false,
+    );
+  });
+
+  it("never defers regular files regardless of size", () => {
+    expect(
+      shouldDeferCloudDownload(makeEntry({ size: 50 * 1024 * 1024 })),
+    ).toBe(false);
+  });
+
+  it("returns false for null", () => {
+    expect(shouldDeferCloudDownload(null)).toBe(false);
   });
 });
 

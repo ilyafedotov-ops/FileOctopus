@@ -192,6 +192,7 @@ pub struct FileEntry {
     pub accessed_at: Option<DateTime<Utc>>,
     pub is_hidden: bool,
     pub is_symlink: bool,
+    pub is_placeholder: bool,
     pub symlink_target: Option<ResourceUri>,
     pub provider_id: ProviderId,
     pub capabilities: EntryCapabilities,
@@ -470,6 +471,7 @@ pub enum FileOperationError {
     UnsupportedTrash { message: String },
     Cancelled { job_id: Option<String> },
     Timeout { message: String },
+    CloudUnavailable { uri: String },
     Io { message: String },
     Internal { message: String },
 }
@@ -502,6 +504,7 @@ impl FileOperationError {
             Self::UnsupportedTrash { .. } => "unsupported_trash",
             Self::Cancelled { .. } => "cancelled",
             Self::Timeout { .. } => "timeout",
+            Self::CloudUnavailable { .. } => "cloud_unavailable",
             Self::Io { .. } => "io_error",
             Self::Internal { .. } => "internal",
         }
@@ -525,6 +528,7 @@ impl FileOperationError {
             Self::PermissionDenied { uri } => format!("permission denied `{uri}`"),
             Self::DestinationMissing { uri } => format!("destination parent missing `{uri}`"),
             Self::DestinationConflict { uri } => format!("destination already exists `{uri}`"),
+            Self::CloudUnavailable { uri } => format!("could not download cloud file `{uri}`"),
             Self::Cancelled { .. } => "operation cancelled".to_string(),
         }
     }
@@ -561,6 +565,7 @@ impl From<VfsError> for FileOperationError {
             },
             VfsError::Internal { message } => Self::Internal { message },
             VfsError::DeviceUnavailable { uri } => Self::PermissionDenied { uri },
+            VfsError::CloudUnavailable { uri } => Self::CloudUnavailable { uri },
             VfsError::ConnectionRequired { uri } => Self::InvalidPath {
                 uri,
                 message: "connection required".to_string(),
@@ -738,6 +743,9 @@ pub enum VfsError {
     DeviceUnavailable {
         uri: String,
     },
+    CloudUnavailable {
+        uri: String,
+    },
     ConnectionRequired {
         uri: String,
     },
@@ -766,6 +774,7 @@ impl VfsError {
             Self::Timeout { .. } => "timeout",
             Self::Cancelled { .. } => "cancelled",
             Self::DeviceUnavailable { .. } => "device_unavailable",
+            Self::CloudUnavailable { .. } => "cloud_unavailable",
             Self::ConnectionRequired { .. } => "connection_required",
             Self::AuthenticationFailed { .. } => "authentication_failed",
             Self::ConnectionLost { .. } => "connection_lost",
@@ -790,6 +799,12 @@ impl VfsError {
         Self::ConnectionLost {
             uri: uri.as_str().to_string(),
             message: message.into(),
+        }
+    }
+
+    pub fn cloud_unavailable(uri: &ResourceUri) -> Self {
+        Self::CloudUnavailable {
+            uri: uri.as_str().to_string(),
         }
     }
 
@@ -848,6 +863,9 @@ impl fmt::Display for VfsError {
             Self::Timeout { uri } => write!(formatter, "directory listing timed out `{uri}`"),
             Self::Cancelled { uri } => write!(formatter, "directory listing cancelled `{uri}`"),
             Self::DeviceUnavailable { uri } => write!(formatter, "device unavailable `{uri}`"),
+            Self::CloudUnavailable { uri } => {
+                write!(formatter, "could not download cloud file `{uri}`")
+            }
             Self::ConnectionRequired { uri } => write!(formatter, "connection required `{uri}`"),
             Self::AuthenticationFailed { uri, message } => {
                 write!(formatter, "authentication failed `{uri}`: {message}")
@@ -1123,6 +1141,7 @@ mod tests {
             accessed_at: None,
             is_hidden: false,
             is_symlink: false,
+            is_placeholder: false,
             symlink_target: None,
             provider_id: ProviderId::new("local"),
             capabilities: EntryCapabilities::read_only_file(),
@@ -1273,6 +1292,7 @@ mod tests {
                 accessed_at: None,
                 is_hidden: false,
                 is_symlink: false,
+                is_placeholder: false,
                 symlink_target: None,
                 provider_id: self.id(),
                 capabilities: EntryCapabilities::read_only_directory(),
@@ -1464,5 +1484,17 @@ mod tests {
 
         assert_eq!(entry.name, "Users");
         assert!(receiver.recv().await.unwrap().is_complete);
+    }
+
+    #[test]
+    fn cloud_unavailable_codes_are_stable() {
+        let uri = ResourceUri::parse("local:///tmp/file.txt").unwrap();
+        let vfs_error = VfsError::cloud_unavailable(&uri);
+        assert_eq!(vfs_error.code(), "cloud_unavailable");
+        assert!(vfs_error.to_string().contains("local:///tmp/file.txt"));
+
+        let op_error = FileOperationError::from(vfs_error);
+        assert_eq!(op_error.code(), "cloud_unavailable");
+        assert!(op_error.user_message().contains("local:///tmp/file.txt"));
     }
 }
