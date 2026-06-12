@@ -63,54 +63,36 @@ export function FirstRunOverlay({
         </button>
       </div>
     </div>,
-    <div key="appearance" className="fo-first-run-body">
-      <h3>Appearance</h3>
-      <p>Theme, density, accent, font, and icon scale live in Settings.</p>
-      <Button type="button" size="sm" onClick={() => run(onOpenSettings)}>
-        Open appearance settings
-      </Button>
-    </div>,
-    <div key="locations" className="fo-first-run-body">
-      <h3>Locations</h3>
+    <div key="customize" className="fo-first-run-body">
+      <h3>Customize</h3>
       <p>
-        Use the sidebar for standard folders, volumes, favorites, and cloud sync
-        roots.
+        Theme, density, locations, and terminal defaults all live in Settings —
+        adjust them now or any time later.
       </p>
-      <Button type="button" size="sm" onClick={() => run(onOpenSettings)}>
-        Review location settings
-      </Button>
-    </div>,
-    <div key="network" className="fo-first-run-body">
-      <h3>Remote connections</h3>
-      <p>
-        Add SFTP, SSH, SMB, or S3 profiles with credentials stored in the OS
-        keychain.
-      </p>
-      <Button type="button" size="sm" onClick={() => run(onOpenNetwork)}>
-        Add connection
-      </Button>
-    </div>,
-    <div key="terminal" className="fo-first-run-body">
-      <h3>Terminal</h3>
-      <p>
-        Configure shell defaults and SSH terminal behavior before opening
-        sessions.
-      </p>
-      <Button type="button" size="sm" onClick={() => run(onOpenSettings)}>
-        Open terminal settings
-      </Button>
-    </div>,
-    <div key="finish" className="fo-first-run-body">
-      <h3>Ready</h3>
-      <p>You are set up. Open the workspace, or jump straight into:</p>
       <div className="fo-first-run-grid">
         <button
           type="button"
-          aria-label="Settings"
+          aria-label="Appearance"
           onClick={() => run(onOpenSettings)}
         >
-          <strong>Settings</strong>
-          <span>Theme, layout, network, terminal, and plugins.</span>
+          <strong>Appearance</strong>
+          <span>Theme, density, accent, font, and icon scale.</span>
+        </button>
+        <button
+          type="button"
+          aria-label="Locations"
+          onClick={() => run(onOpenSettings)}
+        >
+          <strong>Locations</strong>
+          <span>Standard folders, volumes, favorites, and sync roots.</span>
+        </button>
+        <button
+          type="button"
+          aria-label="Terminal"
+          onClick={() => run(onOpenSettings)}
+        >
+          <strong>Terminal</strong>
+          <span>Shell defaults and SSH terminal behavior.</span>
         </button>
         <button
           type="button"
@@ -122,6 +104,16 @@ export function FirstRunOverlay({
         </button>
       </div>
     </div>,
+    <div key="connections" className="fo-first-run-body">
+      <h3>Remote connections</h3>
+      <p>
+        Add SFTP, SSH, SMB, or S3 profiles with credentials stored in the OS
+        keychain — then you are set. Start opens the workspace.
+      </p>
+      <Button type="button" size="sm" onClick={() => run(onOpenNetwork)}>
+        Add connection
+      </Button>
+    </div>,
   ];
 
   return (
@@ -130,14 +122,7 @@ export function FirstRunOverlay({
       onClose={onDismiss}
       title="Welcome to FileOctopus"
       subtitle="Set up the workspace, network connections, and terminal defaults."
-      steps={[
-        "Workspace",
-        "Appearance",
-        "Locations",
-        "Network",
-        "Terminal",
-        "Finish",
-      ]}
+      steps={["Workspace", "Customize", "Connections"]}
       currentStep={step}
       onStepSelect={setStep}
       onBack={() => setStep((current) => Math.max(0, current - 1))}

@@ -46,10 +46,9 @@ describe("first-run overlay", () => {
       screen.getByRole("dialog", { name: "Welcome to FileOctopus" }),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Workspace" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Network" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Connections" })).toBeTruthy();
     expect(screen.getByText("Dual pane workspace")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
@@ -75,11 +74,9 @@ describe("first-run overlay", () => {
       />,
     );
 
-    for (let index = 0; index < 5; index += 1) {
-      fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    }
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
 
-    fireEvent.click(screen.getByRole("button", { name: "Settings" }));
+    fireEvent.click(screen.getByRole("button", { name: "Appearance" }));
     expect(onDismiss).toHaveBeenCalledTimes(1);
     expect(onOpenSettings).toHaveBeenCalledTimes(1);
 
@@ -87,6 +84,7 @@ describe("first-run overlay", () => {
     expect(onDismiss).toHaveBeenCalledTimes(2);
     expect(onOpenShortcuts).toHaveBeenCalledTimes(1);
 
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
     fireEvent.click(screen.getByRole("button", { name: "Start" }));
     expect(onDismiss).toHaveBeenCalledTimes(3);
   });

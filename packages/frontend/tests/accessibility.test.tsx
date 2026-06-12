@@ -139,8 +139,8 @@ describe("accessibility basics", () => {
       screen.getByRole("dialog", { name: "Welcome to FileOctopus" }),
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: "Settings" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Shortcuts" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Network" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Customize" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Connections" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Start" })).toBeTruthy();
   });
 
