@@ -53,13 +53,13 @@
     "@playwright/test": "^1.60.0",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.2",
     "@types/node": "^25.8.0",
-    "@vitest/coverage-v8": "^4.1.7",
-    "@wdio/cli": "^9.4.0",
-    "@wdio/globals": "^9.4.0",
-    "@wdio/local-runner": "^9.4.0",
-    "@wdio/mocha-framework": "^9.4.0",
-    "@wdio/spec-reporter": "^9.4.0",
-    "@wdio/types": "^9.4.0",
+    "@vitest/coverage-v8": "^4.1.9",
+    "@wdio/cli": "^9.29.0",
+    "@wdio/globals": "^9.29.0",
+    "@wdio/local-runner": "^9.29.0",
+    "@wdio/mocha-framework": "^9.29.0",
+    "@wdio/spec-reporter": "^9.29.0",
+    "@wdio/types": "^9.29.0",
     "eslint": "^9.39.1",
     "lint-staged": "^16.1.2",
     "prettier": "^3.7.4",
@@ -68,12 +68,15 @@
     "tsx": "^4.20.6",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.46.4",
-    "vitest": "^4.0.14",
-    "webdriverio": "^9.4.0"
+    "vitest": "^4.1.9",
+    "webdriverio": "^9.29.0"
   },
   "pnpm": {
     "overrides": {
-      "serialize-javascript@<7.0.3": ">=7.0.3"
+      "form-data@>=4.0.0 <4.0.6": "4.0.6",
+      "serialize-javascript@<7.0.3": ">=7.0.3",
+      "undici@>=7.0.0 <7.28.0": "7.28.0",
+      "ws@>=8.0.0 <8.21.0": "8.21.0"
     }
   }
 }
