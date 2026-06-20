@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::io::ErrorKind;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::time::Duration;
@@ -204,6 +206,87 @@ impl OperationRuntime {
                     total_bytes: plan.total_bytes,
                     updated_at: Utc::now(),
                 }));
+
+                Ok(())
+            },
+        )
+    }
+
+    pub fn set_permissions(
+        &self,
+        uri: ResourceUri,
+        mode: u32,
+        recursive: bool,
+        sink: Arc<FileOperationEventSink>,
+    ) -> Result<JobSnapshot, FileOperationError> {
+        if mode > 0o777 {
+            return Err(FileOperationError::InvalidRequest {
+                message: "octal mode must be between 000 and 777".to_string(),
+            });
+        }
+
+        self.vfs.validate_uri(&uri)?;
+        let root = uri.to_local_path().map_err(FileOperationError::from)?;
+        let targets = collect_permission_targets(&root, recursive)?;
+        let items = targets
+            .into_iter()
+            .map(|target| FileOperationItem {
+                source: Some(target.uri),
+                destination: None,
+                kind: target.kind,
+                size: None,
+                recursive: false,
+            })
+            .collect::<Vec<_>>();
+        let total_items = items.len() as u64;
+        let plan = FileOperationPlan {
+            operation_id: uuid::Uuid::new_v4().to_string(),
+            kind: FileOperationKind::SetPermissions,
+            sources: vec![uri.clone()],
+            destination: None,
+            new_name: None,
+            conflict_policy: ConflictPolicy::Fail,
+            items,
+            conflicts: Vec::new(),
+            warnings: Vec::new(),
+            total_items,
+            total_bytes: None,
+        };
+
+        self.start_with_executor(
+            plan,
+            sink,
+            move |_vfs, plan, job_id, cancel, pause, progress_sink| {
+                let total_items = plan.total_items;
+                for (index, item) in plan.items.iter().enumerate() {
+                    pause.wait_while_paused(cancel);
+                    if cancel.is_cancelled() {
+                        return Err(FileOperationError::Cancelled {
+                            job_id: Some(job_id.as_str().to_string()),
+                        });
+                    }
+
+                    let source =
+                        item.source
+                            .as_ref()
+                            .ok_or_else(|| FileOperationError::InvalidRequest {
+                                message: "set permissions item has no source".to_string(),
+                            })?;
+                    let path = source.to_local_path().map_err(FileOperationError::from)?;
+
+                    set_local_permissions(&path, mode)?;
+                    let completed_items = index as u64 + 1;
+                    progress_sink(JobEvent::Progress(JobProgressEvent {
+                        job_id: job_id.clone(),
+                        operation_kind: plan.kind,
+                        current_item: Some(source.display_path()),
+                        completed_items,
+                        total_items,
+                        completed_bytes: 0,
+                        total_bytes: None,
+                        updated_at: Utc::now(),
+                    }));
+                }
 
                 Ok(())
             },
@@ -510,6 +593,99 @@ impl OperationRuntime {
 
     pub fn schema_version(&self) -> rusqlite::Result<u32> {
         self.history.schema_version()
+    }
+}
+
+struct PermissionTarget {
+    uri: ResourceUri,
+    kind: FileKind,
+}
+
+fn collect_permission_targets(
+    root: &Path,
+    recursive: bool,
+) -> Result<Vec<PermissionTarget>, FileOperationError> {
+    let root_kind = local_file_kind(root)?;
+    let mut targets = vec![PermissionTarget {
+        uri: ResourceUri::from_local_path(root).map_err(FileOperationError::from)?,
+        kind: root_kind,
+    }];
+
+    if recursive && root_kind == FileKind::Directory {
+        let mut directories = vec![root.to_path_buf()];
+
+        while let Some(directory) = directories.pop() {
+            let mut children = std::fs::read_dir(&directory)
+                .map_err(|error| local_io_error(&directory, error))?
+                .map(|entry| {
+                    entry
+                        .map(|entry| entry.path())
+                        .map_err(|error| local_io_error(&directory, error))
+                })
+                .collect::<Result<Vec<PathBuf>, FileOperationError>>()?;
+            children.sort();
+
+            for child in children {
+                let kind = local_file_kind(&child)?;
+
+                targets.push(PermissionTarget {
+                    uri: ResourceUri::from_local_path(&child).map_err(FileOperationError::from)?,
+                    kind,
+                });
+
+                if kind == FileKind::Directory {
+                    directories.push(child);
+                }
+            }
+        }
+    }
+
+    Ok(targets)
+}
+
+fn local_file_kind(path: &Path) -> Result<FileKind, FileOperationError> {
+    let metadata = std::fs::symlink_metadata(path).map_err(|error| local_io_error(path, error))?;
+    let file_type = metadata.file_type();
+
+    if file_type.is_symlink() {
+        Ok(FileKind::Symlink)
+    } else if file_type.is_dir() {
+        Ok(FileKind::Directory)
+    } else if file_type.is_file() {
+        Ok(FileKind::File)
+    } else {
+        Ok(FileKind::Unknown)
+    }
+}
+
+fn set_local_permissions(path: &Path, mode: u32) -> Result<(), FileOperationError> {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(mode))
+            .map_err(|error| local_io_error(path, error))
+    }
+
+    #[cfg(not(unix))]
+    {
+        let mut permissions = std::fs::metadata(path)
+            .map_err(|error| local_io_error(path, error))?
+            .permissions();
+        permissions.set_readonly((mode & 0o200) == 0);
+        std::fs::set_permissions(path, permissions).map_err(|error| local_io_error(path, error))
+    }
+}
+
+fn local_io_error(path: &Path, error: std::io::Error) -> FileOperationError {
+    let uri = ResourceUri::from_local_path(path)
+        .map(|uri| uri.as_str().to_string())
+        .unwrap_or_else(|_| path.display().to_string());
+
+    match error.kind() {
+        ErrorKind::NotFound => FileOperationError::NotFound { uri },
+        ErrorKind::PermissionDenied => FileOperationError::PermissionDenied { uri },
+        _ => FileOperationError::io(format!("{}: {error}", path.display())),
     }
 }
 

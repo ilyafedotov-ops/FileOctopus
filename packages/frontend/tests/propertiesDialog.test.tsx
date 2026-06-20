@@ -11,12 +11,35 @@ import type {
   FileEntryDto,
   FsClient,
   PathPropertiesDto,
+  SetAclResponse,
 } from "@fileoctopus/ts-api";
 
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
 });
+
+function setAclResponse(): SetAclResponse {
+  const now = new Date().toISOString();
+
+  return {
+    success: true,
+    job: {
+      jobId: "set-permissions-job",
+      operationKind: "setPermissions",
+      status: "completed",
+      currentItem: "local:///tmp/file.txt",
+      completedItems: 1,
+      totalItems: 1,
+      completedBytes: 0,
+      totalBytes: null,
+      errorCode: null,
+      message: null,
+      startedAt: now,
+      updatedAt: now,
+    },
+  };
+}
 
 function makeFs(overrides?: Partial<FsClient>): Partial<FsClient> {
   return {
@@ -31,7 +54,7 @@ function makeFs(overrides?: Partial<FsClient>): Partial<FsClient> {
       ],
       octal: "644",
     }),
-    setAcl: vi.fn().mockResolvedValue({ success: true }),
+    setAcl: vi.fn().mockResolvedValue(setAclResponse()),
     ...overrides,
   };
 }

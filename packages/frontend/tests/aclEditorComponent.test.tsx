@@ -1,9 +1,35 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { render, screen, cleanup, fireEvent } from "@testing-library/react";
 import { AclEditor } from "../src/components/dialogs/AclEditor";
-import type { FsClient, GetAclResponse } from "@fileoctopus/ts-api";
+import type {
+  FsClient,
+  GetAclResponse,
+  SetAclResponse,
+} from "@fileoctopus/ts-api";
 
 afterEach(cleanup);
+
+function setAclResponse(): SetAclResponse {
+  const now = new Date().toISOString();
+
+  return {
+    success: true,
+    job: {
+      jobId: "set-permissions-job",
+      operationKind: "setPermissions",
+      status: "completed",
+      currentItem: "local:///tmp/test.txt",
+      completedItems: 1,
+      totalItems: 1,
+      completedBytes: 0,
+      totalBytes: null,
+      errorCode: null,
+      message: null,
+      startedAt: now,
+      updatedAt: now,
+    },
+  };
+}
 
 function createMockFs(aclResponse?: Partial<GetAclResponse>) {
   const mock: Partial<FsClient> = {
@@ -19,8 +45,8 @@ function createMockFs(aclResponse?: Partial<GetAclResponse>) {
       ...aclResponse,
     }),
     setAcl: vi
-      .fn<() => Promise<{ success: boolean }>>()
-      .mockResolvedValue({ success: true }),
+      .fn<() => Promise<SetAclResponse>>()
+      .mockResolvedValue(setAclResponse()),
   };
   return mock as FsClient;
 }
@@ -145,8 +171,8 @@ describe("AclEditor", () => {
         .fn<() => Promise<GetAclResponse>>()
         .mockRejectedValue(new Error("Permission denied")),
       setAcl: vi
-        .fn<() => Promise<{ success: boolean }>>()
-        .mockResolvedValue({ success: true }),
+        .fn<() => Promise<SetAclResponse>>()
+        .mockResolvedValue(setAclResponse()),
     } as unknown as FsClient;
 
     render(
@@ -164,8 +190,8 @@ describe("AclEditor", () => {
         message: "cannot stat: Permission denied",
       }),
       setAcl: vi
-        .fn<() => Promise<{ success: boolean }>>()
-        .mockResolvedValue({ success: true }),
+        .fn<() => Promise<SetAclResponse>>()
+        .mockResolvedValue(setAclResponse()),
     } as unknown as FsClient;
 
     render(

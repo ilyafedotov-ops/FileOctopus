@@ -280,6 +280,10 @@ Folder size, recursive search, and content search support synchronous commands f
 
 `FolderSizeSummaryDto` is `{ totalSize, itemCount, fileCount, directoryCount, warnings, incomplete }`. Recursive search defaults `limit` to 500, trims the query, returns an empty result for an empty query, and clamps traversal to at least one result slot. `SearchMatchDto` is `{ uri, parentUri, name, kind, size?, modifiedAt? }`.
 
+### Permissions jobs
+
+`fs_set_acl` / `fs.set_acl` accepts `{ uri, octal, recursive }`, starts a permission mutation job, and returns `{ success, job }`. The returned `JobSnapshot.operationKind` is `setPermissions`; lifecycle updates are emitted on the shared `fileOperation:job:*` events and persisted in operation history. `fs_get_acl` / `fs.get_acl` remains synchronous and returns `{ owner, group, entries, octal }`.
+
 ### `get_preferences` / `set_preference`
 
 Preferences persist in SQLite (`preferences.sqlite` under the app data directory). Keys include `theme` (`system` \| `light` \| `dark`), `density` (`compact` \| `comfortable` \| `spacious`), `defaultViewMode`, `showHiddenFiles` (boolean string), `sidebarWidth`, `splitRatio`, `activityPanelVisible`, `activityPanelWidth`, `confirmDelete`, `confirmPermanentDelete`, `useTrashByDefault`, `defaultConflictPolicy`, `accentColor`, `fontScale`, `iconScale`, `confirmOverwrite`, `sidebarVisible`, `statusBarVisible`, `toolbarVisible`, `toolbarEntries`, `paneMode`, `splitDirection`, `jobDrawerBehavior`, `showAdvancedCopyOptions`, pane terminal settings, `terminalShell`, `terminalArgs`, `rememberLastUsedPanes`, and `diagnosticsExportPath`. Planned keys for Network tab: `networkTimeout`, `networkAutoReconnect`, `networkDefaultProtocol`, `networkSshKeyPath`. Planned keys for Editor tab: `editorFontFamily`, `editorFontSize`, `editorTabSize`, `editorWordWrap`, `editorAutoSave`, `editorSyntaxTheme`, `editorLineNumbers`. Planned keys for Viewer tab: `viewerDefaultMode`, `viewerImageZoom`, `viewerMediaAutoplay`, `viewerMaxPreviewSize`. Planned keys for Advanced tab: `logLevel`, `enableExperimentalFeatures`, `cacheSizeLimit`, `operationThreadCount`.
@@ -720,28 +724,30 @@ type FileOperationKind =
   | "deleteToTrash"
   | "createDirectory"
   | "createFile"
+  | "writeTextFile"
   | "deletePermanently"
   | "createArchive"
   | "extractArchive"
   | "folderSize"
   | "recursiveSearch"
-  | "contentSearch";
+  | "contentSearch"
+  | "setPermissions";
 ```
 
 Shape rules enforced by the planner (`crates/fs-core/src/file_ops/mod.rs` — `validate_request_shape`):
 
-| Kind                                             | Sources   | Destination           | `newName` |
-| ------------------------------------------------ | --------- | --------------------- | --------- |
-| `copy`, `move`                                   | ≥1        | required directory    | ignored   |
-| `rename`                                         | exactly 1 | optional              | required  |
-| `createDirectory`                                | 0         | required final path   | ignored   |
-| `createFile`                                     | 0         | required final path   | ignored   |
-| `deleteToTrash`, `deletePermanently`             | ≥1        | none                  | none      |
-| `createArchive`                                  | ≥1        | required archive path | ignored   |
-| `extractArchive`                                 | exactly 1 | required directory    | ignored   |
-| `folderSize`, `recursiveSearch`, `contentSearch` | n/a       | n/a                   | n/a       |
+| Kind                                                                                | Sources   | Destination           | `newName` |
+| ----------------------------------------------------------------------------------- | --------- | --------------------- | --------- |
+| `copy`, `move`                                                                      | ≥1        | required directory    | ignored   |
+| `rename`                                                                            | exactly 1 | optional              | required  |
+| `createDirectory`                                                                   | 0         | required final path   | ignored   |
+| `createFile`                                                                        | 0         | required final path   | ignored   |
+| `deleteToTrash`, `deletePermanently`                                                | ≥1        | none                  | none      |
+| `createArchive`                                                                     | ≥1        | required archive path | ignored   |
+| `extractArchive`                                                                    | exactly 1 | required directory    | ignored   |
+| `writeTextFile`, `folderSize`, `recursiveSearch`, `contentSearch`, `setPermissions` | n/a       | n/a                   | n/a       |
 
-`folderSize`, `recursiveSearch`, and `contentSearch` are `FileOperationKind` values because metadata jobs reuse `JobSnapshot` and job events. They are not valid `plan_file_operation` requests; start them through `fs_folder_size_start`, `fs_recursive_search_start`, and `fs_content_search_start`.
+`writeTextFile`, `folderSize`, `recursiveSearch`, `contentSearch`, and `setPermissions` are `FileOperationKind` values because dedicated commands reuse `JobSnapshot` and job events. They are not valid `plan_file_operation` requests; start them through `fs_write_text_file`, `fs_folder_size_start`, `fs_recursive_search_start`, `fs_content_search_start`, and `fs_set_acl`.
 
 ### Conflict policies
 
@@ -827,7 +833,7 @@ Cancellation is cooperative — the worker checks `CancellationToken::is_cancell
 
 ## Operation history
 
-A SQLite database stores one row per started file-operation job; rows are updated to a terminal status when the job ends. Metadata jobs (`folderSize`, `recursiveSearch`, `contentSearch`) are intentionally in-memory only and do not appear in operation history.
+A SQLite database stores one row per started file-operation job; rows are updated to a terminal status when the job ends. Metadata jobs (`folderSize`, `recursiveSearch`, `contentSearch`) are intentionally in-memory only and do not appear in operation history. Dedicated mutation jobs such as `writeTextFile` and `setPermissions` do appear in operation history.
 
 - Default path: `$HOME/.fileoctopus/operation-history.sqlite` (or `%USERPROFILE%\.fileoctopus\operation-history.sqlite`).
 - Schema version: `1`, stored in `schema_meta` and SQLite `user_version`.

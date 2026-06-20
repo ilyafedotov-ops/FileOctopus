@@ -150,6 +150,10 @@ describe("operationVerb", () => {
     expect(operationVerb("folderSize")).toBe("Calculating size");
   });
 
+  it("returns Applying permissions for setPermissions", () => {
+    expect(operationVerb("setPermissions")).toBe("Applying permissions");
+  });
+
   it("returns Processing for unknown kind", () => {
     expect(operationVerb("unknown" as unknown as Record<string, unknown>)).toBe(
       "Processing",
@@ -240,6 +244,14 @@ describe("jobTitle", () => {
         makeJob({ operationKind: "contentSearch", status: "completed" }),
       ),
     ).toBe("Searched contents");
+  });
+
+  it("uses permissions wording for completed jobs", () => {
+    expect(
+      jobTitle(
+        makeJob({ operationKind: "setPermissions", status: "completed" }),
+      ),
+    ).toBe("Applied permissions");
   });
 
   it("prefers totalItems > 1 over currentItem", () => {

@@ -361,6 +361,7 @@ pub enum FileOperationKind {
     FolderSize,
     RecursiveSearch,
     ContentSearch,
+    SetPermissions,
 }
 
 /// Conflict behavior selected before an operation mutates the filesystem.
@@ -1216,6 +1217,7 @@ mod tests {
             FileOperationKind::FolderSize,
             FileOperationKind::RecursiveSearch,
             FileOperationKind::ContentSearch,
+            FileOperationKind::SetPermissions,
         ];
 
         for kind in kinds {
@@ -1257,6 +1259,13 @@ mod tests {
         let kind: FileOperationKind = serde_json::from_str("\"contentSearch\"").unwrap();
 
         assert_eq!(kind, FileOperationKind::ContentSearch);
+    }
+
+    #[test]
+    fn set_permissions_is_a_distinct_file_operation_kind() {
+        let kind: FileOperationKind = serde_json::from_str("\"setPermissions\"").unwrap();
+
+        assert_eq!(kind, FileOperationKind::SetPermissions);
     }
 
     #[test]

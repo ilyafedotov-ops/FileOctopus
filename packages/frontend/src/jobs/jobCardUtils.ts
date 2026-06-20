@@ -48,6 +48,8 @@ export function operationVerb(kind: FileOperationKind): string {
       return "Searching";
     case "contentSearch":
       return "Searching contents";
+    case "setPermissions":
+      return "Applying permissions";
     default:
       return "Processing";
   }
@@ -71,6 +73,8 @@ function operationPastTense(kind: FileOperationKind): string {
       return "Searched";
     case "contentSearch":
       return "Searched contents";
+    case "setPermissions":
+      return "Applied permissions";
     default:
       return "Completed";
   }

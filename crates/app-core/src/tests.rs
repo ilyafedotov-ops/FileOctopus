@@ -711,6 +711,88 @@ fn write_text_file_is_persisted_as_completed_operation() {
     );
 }
 
+#[cfg(unix)]
+#[test]
+fn set_permissions_runs_as_completed_operation_job() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = tempfile::tempdir().unwrap();
+    let runtime = OperationRuntime::new(
+        local_vfs(),
+        OperationHistoryRepository::new(dir.path().join("history.sqlite")).unwrap(),
+    );
+    let root = dir.path().join("root");
+    let nested = root.join("nested");
+    let nested_file = nested.join("note.txt");
+    let root_uri = ResourceUri::from_local_path(&root).unwrap();
+    let (sender, receiver) = mpsc::channel();
+
+    std::fs::create_dir_all(&nested).unwrap();
+    std::fs::write(&nested_file, b"content").unwrap();
+
+    runtime
+        .set_permissions(
+            root_uri.clone(),
+            0o700,
+            true,
+            Arc::new(move |event| {
+                let _ = sender.send(event);
+            }),
+        )
+        .unwrap();
+
+    let mut saw_progress = false;
+    loop {
+        let event = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+
+        match event {
+            JobEvent::Progress(progress) => {
+                saw_progress = true;
+                assert_eq!(
+                    progress.operation_kind,
+                    vfs::FileOperationKind::SetPermissions
+                );
+                assert!(progress.completed_items > 0);
+                assert_eq!(progress.total_items, 3);
+            }
+            JobEvent::Completed(completed) => {
+                assert_eq!(
+                    completed.operation_kind,
+                    vfs::FileOperationKind::SetPermissions
+                );
+                assert_eq!(completed.completed_items, 3);
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    assert!(saw_progress);
+    assert_eq!(
+        std::fs::metadata(&root).unwrap().permissions().mode() & 0o777,
+        0o700
+    );
+    assert_eq!(
+        std::fs::metadata(&nested).unwrap().permissions().mode() & 0o777,
+        0o700
+    );
+    assert_eq!(
+        std::fs::metadata(&nested_file)
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777,
+        0o700
+    );
+    let history = runtime.recent_history(10);
+    assert_eq!(history[0].operation_kind, "SetPermissions");
+    assert_eq!(history[0].status, "completed");
+    assert_eq!(
+        history[0].representative_source_path.as_deref(),
+        Some(root_uri.display_path().as_str())
+    );
+}
+
 #[test]
 fn planned_operation_is_removed_after_start() {
     let dir = tempfile::tempdir().unwrap();

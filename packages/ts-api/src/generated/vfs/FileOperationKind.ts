@@ -16,4 +16,5 @@ export type FileOperationKind =
   | "extractArchive"
   | "folderSize"
   | "recursiveSearch"
-  | "contentSearch";
+  | "contentSearch"
+  | "setPermissions";
