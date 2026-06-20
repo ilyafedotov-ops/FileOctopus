@@ -1134,7 +1134,26 @@ export function createPreviewTransport(): IpcTransport {
       }
 
       if (command === "fs.set_acl") {
-        return { success: true } as TResponse;
+        const now = new Date().toISOString();
+        return {
+          success: true,
+          job: {
+            jobId: "preview-set-permissions",
+            operationKind: "setPermissions",
+            status: "completed",
+            currentItem:
+              (args?.request as Record<string, unknown>)?.uri?.toString() ??
+              null,
+            completedItems: 1,
+            totalItems: 1,
+            completedBytes: 0,
+            totalBytes: null,
+            errorCode: null,
+            message: null,
+            startedAt: now,
+            updatedAt: now,
+          },
+        } as TResponse;
       }
 
       throw {

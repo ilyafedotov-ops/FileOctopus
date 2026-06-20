@@ -18,6 +18,7 @@ import {
   type JobStartedEvent,
   type RecursiveSearchCompletedEventDto,
   type RecursiveSearchMatchEventDto,
+  type SetAclResponse,
   type UserPreferencesDto,
 } from "@fileoctopus/ts-api";
 
@@ -119,6 +120,27 @@ const stopWatching = vi.fn(async () => ({ ok: true }));
 const onWatchChanged = vi.fn(async () => () => undefined);
 const openPathWithDefaultApp = vi.fn(async () => ({ ok: true }));
 const revealPathInFileManager = vi.fn(async () => ({ ok: true }));
+function setAclResponse(): SetAclResponse {
+  const now = new Date().toISOString();
+
+  return {
+    success: true,
+    job: {
+      jobId: "set-permissions-job",
+      operationKind: "setPermissions",
+      status: "completed",
+      currentItem: "local:///tmp/file.txt",
+      completedItems: 1,
+      totalItems: 1,
+      completedBytes: 0,
+      totalBytes: null,
+      errorCode: null,
+      message: null,
+      startedAt: now,
+      updatedAt: now,
+    },
+  };
+}
 const readFileRange = vi.fn(async () => ({
   bytesBase64: btoa("hello"),
   bytesRead: 5,
@@ -439,7 +461,7 @@ vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
           ],
           octal: "644",
         })),
-        setAcl: vi.fn(async () => ({ success: true })),
+        setAcl: vi.fn(async () => setAclResponse()),
         compareFiles: vi.fn(async () => ({
           identical: false,
           hunks: [],

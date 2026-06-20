@@ -46,4 +46,5 @@ pub struct SetAclRequest {
 #[serde(rename_all = "camelCase")]
 pub struct SetAclResponse {
     pub success: bool,
+    pub job: JobSnapshot,
 }

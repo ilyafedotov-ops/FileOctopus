@@ -1,9 +1,11 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 
 use app_core::AppState;
 use app_ipc::{AclEntry, GetAclRequest, GetAclResponse, IpcError, SetAclRequest, SetAclResponse};
-use tauri::State;
+use tauri::{AppHandle, State};
 use vfs::ResourceUri;
+
+use crate::emit::emit_job;
 
 fn parse_rwx(triplet: u32) -> (bool, bool, bool) {
     let r = (triplet & 0o4) != 0;
@@ -107,13 +109,11 @@ pub async fn fs_get_acl(
 #[tauri::command]
 pub async fn fs_set_acl(
     request: SetAclRequest,
-    _state: State<'_, Arc<AppState>>,
+    app: AppHandle,
+    state: State<'_, Arc<AppState>>,
 ) -> Result<SetAclResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri)
         .map_err(|e| IpcError::invalid_request(format!("invalid URI: {e}")))?;
-    let path = uri
-        .to_local_path()
-        .map_err(|e| IpcError::invalid_request(format!("not a local path: {e}")))?;
 
     let mode = u32::from_str_radix(&request.octal, 8)
         .map_err(|e| IpcError::invalid_request(format!("invalid octal mode: {e}")))?;
@@ -124,41 +124,16 @@ pub async fn fs_set_acl(
         ));
     }
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
+    let sink_app = app.clone();
+    let sink = Arc::new(move |event| {
+        emit_job(&sink_app, event);
+    });
+    let job = state
+        .operations()
+        .set_permissions(uri, mode, request.recursive, sink)
+        .map_err(IpcError::from)?;
 
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode))
-            .map_err(|e| IpcError::io(format!("cannot set permissions: {e}")))?;
-
-        if request.recursive && path.is_dir() {
-            apply_recursive(&path, mode)?;
-        }
-    }
-
-    Ok(SetAclResponse { success: true })
-}
-
-#[cfg(unix)]
-fn apply_recursive(path: &PathBuf, mode: u32) -> Result<(), IpcError> {
-    use std::os::unix::fs::PermissionsExt;
-
-    let entries =
-        std::fs::read_dir(path).map_err(|e| IpcError::io(format!("cannot read directory: {e}")))?;
-
-    for entry in entries {
-        let entry = entry.map_err(|e| IpcError::io(format!("cannot read entry: {e}")))?;
-        let entry_path = entry.path();
-
-        std::fs::set_permissions(&entry_path, std::fs::Permissions::from_mode(mode))
-            .map_err(|e| IpcError::io(format!("cannot set permissions: {e}")))?;
-
-        if entry_path.is_dir() {
-            apply_recursive(&entry_path, mode)?;
-        }
-    }
-
-    Ok(())
+    Ok(SetAclResponse { success: true, job })
 }
 
 #[cfg(test)]

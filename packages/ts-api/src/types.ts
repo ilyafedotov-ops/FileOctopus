@@ -250,6 +250,7 @@ export interface SetAclRequest {
 
 export interface SetAclResponse {
   success: boolean;
+  job: JobSnapshot;
 }
 
 export interface DiffTextRequest {
@@ -1241,7 +1242,8 @@ export type FileOperationKind =
   | "extractArchive"
   | "folderSize"
   | "recursiveSearch"
-  | "contentSearch";
+  | "contentSearch"
+  | "setPermissions";
 
 export type ConflictPolicy =
   | "fail"

@@ -151,11 +151,13 @@ fn planner_reports_missing_destination_parent() {
 }
 
 #[test]
-fn planner_rejects_metadata_job_kinds() {
+fn planner_rejects_dedicated_command_job_kinds() {
     for kind in [
+        FileOperationKind::WriteTextFile,
         FileOperationKind::FolderSize,
         FileOperationKind::RecursiveSearch,
         FileOperationKind::ContentSearch,
+        FileOperationKind::SetPermissions,
     ] {
         let error = plan_file_operation(&vfs(), request(kind, Vec::new(), None)).unwrap_err();
 
