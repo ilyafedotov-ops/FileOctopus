@@ -8,6 +8,8 @@ coverage/
 .env
 .env.*
 !.env.example
+.env.local
+.env.*.local
 apps/desktop-tauri/src-tauri/gen/
 crates/app-ipc/bindings/
 
@@ -20,3 +22,19 @@ e2e-dist/
 tmp/
 graphify-out/
 .opencode/
+.claude/
+.codex/
+.cursor/
+.continue/
+.idea/
+.vscode/settings.json
+.aider*
+
+*.pem
+*.p12
+*.pfx
+*.mobileprovision
+*.keystore
+*.jks
+*.asc
+*.sig

@@ -1,42 +1,54 @@
 # FileOctopus
 
-FileOctopus is a Tauri v2 desktop file manager with a Rust-owned filesystem boundary and a React TypeScript frontend. It is designed for high-performance local file operations, virtualized large-directory browsing, and safe job-based execution.
+FileOctopus is a Tauri v2 desktop file manager with a Rust-owned filesystem
+boundary and a React TypeScript frontend. It is designed for high-performance
+local file operations, virtualized large-directory browsing, and safe job-based
+execution.
 
-## Current status
+## Status
 
-**Release Candidate (v0.1.0).** Milestones M0–M4 of the [RC engineering spec](docs/architecture/rc-engineering-spec.md) are largely complete on `main`. M5 (RC hardening) is in progress: cloud providers, plugins, ACL, diff/merge, SMB/S3, tag/label, saved searches, archive browsing, and audio/video preview are all implemented. See planning docs for remaining gaps.
+FileOctopus is pre-1.0 and preparing its first public source release,
+`v0.1.0`. Core local browsing, file operations, navigation, job progress,
+preferences, diagnostics, Git status, embedded terminal, remote providers, cloud
+provider connectors, plugins, archive browsing, previews, diff/merge, ACLs, and
+sync features are present on `main`.
 
-For a full doc ↔ code matrix, see **[docs/planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md](docs/planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md)**.
+## What Works Today
 
-### What works today
+- Dual-pane browsing with virtualized large-directory rendering.
+- `local://` resource URIs at the Rust-to-TypeScript trust boundary.
+- Planned file operations: copy, move, rename, create folder/file, trash,
+  permanent delete, archive create/extract, conflict handling, progress, cancel,
+  pause/resume, and persisted operation history.
+- Navigation: sidebar, favorites, devices, pinned locations, recent locations,
+  starred items, breadcrumbs, editable path bar, back/forward/up.
+- Views: details, list, icons, columns, sort/filter, recursive search, content
+  search, folder size, file hash, and checksum verification.
+- Preferences: theme, density, accent, font/icon scale, layout, operation,
+  terminal, network, editor, viewer, diagnostics, shortcuts, and autostart.
+- Git review: branch display, compact status badges, changed-file review, and
+  unified/side-by-side worktree diffs.
+- Remote workspace: SFTP, SMB, S3 profiles and Google Drive, Dropbox, OneDrive
+  OAuth connector crates.
+- Advanced tools: embedded local/SSH terminal, plugin marketplace, ACL editor,
+  diff/merge, directory sync, archive browsing, saved searches, tags/labels,
+  media/PDF/text previews, vertical split, and storage gauge.
 
-- **Dual-pane browsing** with virtualization (100k+ entry protocol)
-- **`local://` URIs** at every Rust↔TS boundary (ADR-0003)
-- **File operations**: copy, move, rename, create folder/file, trash, permanent delete — plan → start with conflict policies
-- **Navigation**: sidebar (favorites, devices, pinned, recent, starred), breadcrumbs, editable path bar, back/forward/up
-- **Views**: details (9 columns), list, icons, columns; sort/filter; recursive search job
-- **Jobs & history**: progress, cancel, SQLite operation history, activity panel
-- **Preferences**: theme, density, accent, font/icon scale, layout toggles, autostart (where supported)
-- **Polish**: command palette (Ctrl/Cmd+P), text preview (Space), filesystem watcher refresh, diagnostics export, shortcuts dialog
-- **Platform helpers**: open with default app, reveal in file manager, external terminal in folder (`fs_open_terminal`), folder size job, file hash (`fs_compute_hash`)
-- **Git review**: active local repository branch display, compact file status badges, whole-repo changed-file review, and unified/side-by-side worktree diffs
-- **Remote workspace**: SFTP, SMB, S3 profiles; cloud providers (Google Drive, Dropbox, OneDrive with OAuth)
-- **Advanced features**: embedded terminal (local + SSH), plugin marketplace, ACL editor, file diff/merge, sync directories, archive browsing, saved searches, tag/label system, audio/video preview, checksum verification, dual pane vertical split, storage gauge
+## Current Limitations
 
-### Not in RC yet
-
-- Rubber-band (lasso) select, EXIF metadata display
-- Bulk rename, trash browser/restore
-- AI semantic search, P2P sync (intentionally deferred)
+- Rubber-band select.
+- EXIF metadata display.
+- Trash browser/restore.
+- AI semantic search and peer-to-peer sync are intentionally deferred.
 
 ## Prerequisites
 
 - Rust via `rustup`
 - Node.js
-- pnpm 10.26.2+ (`packageManager` in `package.json`; `corepack enable` recommended)
+- pnpm 10.26.2+ (`corepack enable` recommended)
 - Platform prerequisites for Tauri v2
 
-## Quick start
+## Quick Start
 
 ```bash
 pnpm install
@@ -44,18 +56,18 @@ pnpm bootstrap
 pnpm dev
 ```
 
-## Development commands
+## Development Commands
 
 ```bash
-# TypeScript / Frontend
-pnpm dev              # Build deps and start Tauri dev
-pnpm build            # Build all pnpm packages
+# TypeScript / frontend
+pnpm dev
+pnpm build
 pnpm typecheck
 pnpm lint
 pnpm format:check
-pnpm test             # Vitest (packages with tests)
+pnpm test
 
-# Rust / Backend
+# Rust / backend
 pnpm rust:check
 pnpm rust:test
 pnpm rust:fmt
@@ -66,31 +78,50 @@ pnpm rc:validate
 pnpm tauri:build
 ```
 
-## Project layout
+## Project Layout
 
-- `apps/desktop-tauri` — Tauri v2 shell (React + `src-tauri/src/commands/*` handlers, thin `lib.rs` entrypoint)
-- `apps/cli` — Placeholder CLI
-- `crates/` — `vfs`, `fs-core`, `jobs`, `app-core`, `app-ipc`, `telemetry`, `config`, `platform`, `test-support`, `git-intel`, `terminal-core`, `remote-core`, `plugin-core`, `provider-gdrive`, `provider-dropbox`, `provider-onedrive`, `provider-s3`, `provider-sftp`, `provider-smb`
-- `packages/` — `@fileoctopus/frontend`, `@fileoctopus/ui`, `@fileoctopus/ts-api`
-- `docs/` — Architecture, ADRs, QA, planning — start at [docs/architecture/README.md](docs/architecture/README.md)
+- `apps/desktop-tauri` - Tauri v2 shell and React wrapper.
+- `apps/cli` - placeholder CLI app.
+- `crates/` - Rust domain, IPC, jobs, filesystem, platform, terminal, remote,
+  provider, plugin, telemetry, config, and test-support crates.
+- `packages/` - `@fileoctopus/frontend`, `@fileoctopus/ui`, and
+  `@fileoctopus/ts-api`.
+- `docs/` - architecture, ADRs, API reference, security, release, testing, and
+  usage docs.
+
+## Architecture
+
+- [API reference](docs/architecture/api-reference.md) - IPC commands, events,
+  DTOs, and error catalog.
+- [Architecture index](docs/architecture/README.md) - module docs and routing.
+- [ADRs](docs/adr/README.md) - design decisions.
+- [Security notes](docs/security/README.md) - security model and audit guidance.
+
+Boundary invariants: `local://` URIs only for filesystem resources, no
+unrestricted frontend filesystem access, mutating work through planned jobs, and
+mirrored Rust/TypeScript IPC DTOs.
 
 ## Testing
 
 ```bash
 cargo run -p test-support --bin fileoctopus-test-tree -- --root ./tmp/100k --files 100000 --dirs 0
 pnpm --filter @fileoctopus/frontend test
+pnpm rc:validate
 ```
 
-See [docs/testing/README.md](docs/testing/README.md) and [docs/testing/large-directory-performance.md](docs/testing/large-directory-performance.md).
-
-## Architecture
-
-- [API reference](docs/architecture/api-reference.md) — IPC commands and events (update with every boundary change)
-- [Module docs](docs/architecture/README.md)
-- ADRs: [docs/adr/README.md](docs/adr/README.md)
-
-Boundary invariants: `local://` URIs only; no unrestricted frontend FS plugins; mutating work through planned jobs; mirrored IPC DTOs.
+See [Testing](docs/testing/README.md) and [Performance](docs/performance.md).
 
 ## Contributing
 
-Conventional Commits (`feat:`, `fix:`, …). PRs use `.github/pull_request_template.md`. CODEOWNERS: `@ilyafedotov`.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Pull requests should include a summary,
+tests, and security impact. Filesystem, IPC, permission, terminal,
+remote-provider, or plugin boundary changes need explicit review notes.
+
+## Security
+
+Please report vulnerabilities through GitHub private vulnerability reporting.
+See [SECURITY.md](SECURITY.md).
+
+## License
+
+FileOctopus is licensed under the [MIT License](LICENSE).

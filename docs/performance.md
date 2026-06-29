@@ -1,41 +1,14 @@
-# FileOctopus Performance Baselines
+# FileOctopus Performance
 
-> Last captured: 2026-05-27 14:00 UTC
-> Machine: Linux 6.8.0-117-generic, dev build (unoptimized)
+FileOctopus is designed around streamed directory reads, virtualized rendering,
+and job-backed filesystem work. Performance-sensitive changes should preserve
+these properties:
 
-## Perf Smoke Test Results
-
-Run:
-
-```bash
-pnpm test:perf-smoke
-```
-
-### Frontend: 100k Entry Batch Rendering
-
-| Metric                               | Value                |
-| ------------------------------------ | -------------------- |
-| 100k entry batch render time (jsdom) | ~6.0–6.5s            |
-| Virtual row count                    | < 80 `.fo-row` nodes |
-| Icons view virtualization            | 2/2 tests pass       |
-
-Baseline: Frontend virtualization renders fewer than 80 `.fo-row` nodes for a 100k-entry injected fixture. The render time is dominated by jsdom overhead; real WebKitGTK rendering is faster.
-
-### Frontend: Icons View Virtualization
-
-| Metric    | Value                              |
-| --------- | ---------------------------------- |
-| Test file | `iconsVirtualization.test.tsx`     |
-| Tests     | 2 pass                             |
-| Behavior  | Only visible icons rendered in DOM |
-
-### Backend: Streaming Directory Listing
-
-| Metric   | Value                                               |
-| -------- | --------------------------------------------------- |
-| Test     | `list_streams_without_collecting_all_entries_first` |
-| Duration | ~0.19s                                              |
-| Behavior | Streams entries without collecting all first        |
+- directory listings stream in batches instead of collecting the full directory
+  before the first UI update
+- list and icon views render only visible rows/items for large directories
+- copy, move, archive, and metadata jobs emit progress and remain cancellable
+- long-running filesystem work stays off the UI thread
 
 ## Large Directory Listing
 
@@ -49,11 +22,11 @@ pnpm dev
 
 Navigate to `local://<repo>/tmp/10k` and `local://<repo>/tmp/50k`.
 
-Baseline for this Sprint 3 implementation:
+Expected behavior:
 
 - Backend streams directory entries in batches and does not wait for a full directory collection.
 - Frontend virtualization renders fewer than 80 `.fo-row` nodes for a 100k-entry injected fixture.
-- Known limit: real 50k-directory manual timing depends on disk and should be recorded per machine.
+- Real 50k-directory manual timing depends on disk and should be recorded per machine when benchmarking a release build.
 
 ## Large File Operations
 
@@ -64,8 +37,17 @@ cargo run -p test-support --bin fileoctopus-test-tree -- --root ./tmp/large-copy
 pnpm rust:test
 ```
 
-Baseline for this Sprint 3 implementation:
+Expected behavior:
 
 - Copy uses a 64 KiB streaming buffer.
 - Progress emits on item completion and roughly every 1 MiB for large files.
 - Backend tests verify multiple progress updates for a large fixture and deterministic cancellation.
+
+## Automated Coverage
+
+Relevant tests live in the frontend virtualization suites and Rust filesystem
+provider tests. Run the full validation bundle before release:
+
+```bash
+pnpm rc:validate
+```
