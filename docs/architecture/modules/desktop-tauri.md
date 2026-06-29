@@ -178,4 +178,4 @@ The Tauri shell is exercised by integration with the rest of the workspace; ther
 - `packages/ts-api/tests/client.test.ts` — client-side command map and event handlers.
 - `packages/frontend/tests/` — Vitest renders of the shell against a mock transport.
 
-Manual smoke-test scripts live in `scripts/sprint-2-manual-qa.sh` and the protocols under `docs/testing/`.
+Manual smoke-test guidance lives in `docs/testing/`.

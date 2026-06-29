@@ -1,10 +1,9 @@
 # Architecture
 
-Architecture notes for FileOctopus v0.1.0 RC. Agents should start with the navigation guide, then use the API reference for runtime contracts and the per-module docs for implementation detail.
+Architecture notes for FileOctopus v0.1.0. Contributors should start with the
+API reference for runtime contracts, then use the per-module docs for
+implementation detail.
 
-- [Agent navigation guide](agent-navigation.md) — short routing map for autonomous coding agents.
-- [RC engineering spec](rc-engineering-spec.md) — RC scope, acceptance criteria, as-built layout (formerly MVP engineering spec).
-- [Project status & doc alignment](../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md) — what is implemented vs RC/UI/Menu specs (updated 2026-05-17).
 - [API reference](api-reference.md) — Tauri commands, event channels, the `@fileoctopus/ts-api` client, domain types, and the error catalog.
 
 ## Per-module architecture

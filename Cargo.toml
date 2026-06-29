@@ -27,3 +27,7 @@ members = [
 [workspace.package]
 edition = "2021"
 version = "0.1.0"
+license = "MIT"
+repository = "https://github.com/ilyafedotov-ops/FileOctopus"
+homepage = "https://github.com/ilyafedotov-ops/FileOctopus"
+authors = ["Ilya Fedotov"]

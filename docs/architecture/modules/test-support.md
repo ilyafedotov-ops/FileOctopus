@@ -1,10 +1,10 @@
 # `test-support` — Performance fixture generator
 
-`crates/test-support` exists for one purpose: materializing large directory trees on disk so the Sprint 1 performance protocol can measure list/stat/operation throughput against realistic data. It is a leaf crate — no other workspace crate depends on it. Its functionality is consumed via the `fileoctopus-test-tree` binary.
+`crates/test-support` exists for one purpose: materializing large directory trees on disk so performance checks can measure list/stat/operation throughput against realistic data. It is a leaf crate — no other workspace crate depends on it. Its functionality is consumed via the `fileoctopus-test-tree` binary.
 
 - Source: `crates/test-support/src/lib.rs`, `crates/test-support/src/bin/fileoctopus-test-tree.rs`
 - Depends on: standard library only (no `tokio`, no `serde`).
-- Used by: the perf protocol in `docs/testing/large-directory-performance.md`, the Sprint 1 demo (`docs/archive/sprint-1-demo.md`), and integration tests in `crates/test-support/tests/test_tree.rs`.
+- Used by: the performance guidance in `docs/performance.md` and integration tests in `crates/test-support/tests/test_tree.rs`.
 
 ## API
 
@@ -57,7 +57,7 @@ fileoctopus-test-tree --root <path>
 - `--cleanup` recursively deletes `--root` and ignores the other counters.
 - Exit codes: `0` on success, `1` on I/O failure, `2` on argument errors. Errors are printed to stderr with the usage string.
 
-Standard invocations from the perf protocol (`docs/testing/large-directory-performance.md`):
+Standard invocations from the performance guidance (`docs/performance.md`):
 
 ```bash
 # 10k flat directory

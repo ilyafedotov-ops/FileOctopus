@@ -8,16 +8,14 @@ Proposed
 
 The IPC contract is mirrored by hand across four locations: 92 `#[tauri::command]`
 handlers, 177 DTO structs in `crates/app-ipc`, the 1,397-line hand-written
-`packages/ts-api/src/types.ts`, and the 93-entry `commandMap.ts`. The CLAUDE.md
-invariant ("update the DTO, `types.ts`, the client, and the commandMap together")
-is enforced only by reviewer discipline. Because `FileEntryDto` has 114 TypeScript
+`packages/ts-api/src/types.ts`, and the 93-entry `commandMap.ts`. Repository
+guidance in `AGENTS.md` records the update checklist, but the underlying
+requirement is still enforced by reviewer discipline. Because `FileEntryDto` has
+114 TypeScript
 consumers across ~30 frontend modules, a missed field rename drifts silently — TS
 still compiles, serde still deserializes, and a capability flag reads `undefined`.
 
-This is tracked as FIX-1 in
-[`docs/architecture/review-2026-06-06.md`](../architecture/review-2026-06-06.md),
-the highest-leverage item in that review. This ADR records the spike comparing the
-two candidate generators (FIX-1.1) and selects one.
+This ADR records the spike comparing the two candidate generators and selects one.
 
 Relevant facts about the DTO surface, established during the spike:
 

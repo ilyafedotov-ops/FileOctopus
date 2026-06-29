@@ -1,7 +1,5 @@
 # `@fileoctopus/frontend` — React shell
 
-> **Doc freshness (2026-06-12):** Shell decomposed from the former monolith (`index.tsx` + `App.css`). Entry is `FileOctopusApp`; styles live in `packages/frontend/src/styles/` and are imported by `apps/desktop-tauri/src/App.css`. Pane tabs now include directory, preview, editor, and Git Review content tabs. For delivery vs UI specs see [PROJECT_STATUS_AND_DOC_ALIGNMENT.md](../../planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md).
-
 `packages/frontend` is the **product UI**: dual-pane file manager, sidebar, menu bar, operation toolbar, jobs/activity rail, modals, and command palette. It is a pure React 19 package — no Tauri import. The desktop shell mounts it; Vitest runs against the preview transport in `@fileoctopus/ts-api`.
 
 - **Source:** `packages/frontend/src/`
@@ -199,7 +197,7 @@ Inline rename: F2 / toolbar when one item selected; invalid names fall back to t
 
 ## Virtualization
 
-`FileTable` uses a fixed row height virtualizer (no `react-virtual`). See `docs/testing/large-directory-performance.md`.
+`FileTable` uses a fixed row height virtualizer (no `react-virtual`). See [Performance](../../performance.md).
 
 ## Conventions
 
@@ -212,6 +210,4 @@ Inline rename: F2 / toolbar when one item selected; invalid names fall back to t
 ## Related docs
 
 - [API reference](../api-reference.md) — IPC contract (update when boundary changes)
-- [UI Design Spec](../../FileOctopus_UI_Design_and_Layout_Specification-1.md) — target layout/UX
-- [Menu & Modal Spec](../../plans/FileOctopus_Menu_and_Modal_Specification.md) — menu catalog; many items now routed via dispatch
 - [Pane lifecycle](../pane-lifecycle.md) — list sessions and batch streaming
