@@ -13,6 +13,9 @@ preferences, diagnostics, Git status, embedded terminal, remote providers, cloud
 provider connectors, plugins, archive browsing, previews, diff/merge, ACLs, and
 sync features are present on `main`.
 
+See the [v0.1.0 release notes](docs/release-notes/v0.1.0.md) for supported
+features, platform status, and known limitations.
+
 ## Interface Preview
 
 ![FileOctopus dual-pane workspace](docs/assets/screenshots/fileoctopus-workspace.png)
