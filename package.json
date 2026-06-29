@@ -1,7 +1,17 @@
 {
   "name": "fileoctopus",
   "private": true,
+  "description": "Tauri v2 desktop file manager with a Rust-owned filesystem boundary and React TypeScript UI.",
   "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ilyafedotov-ops/FileOctopus.git"
+  },
+  "homepage": "https://github.com/ilyafedotov-ops/FileOctopus#readme",
+  "bugs": {
+    "url": "https://github.com/ilyafedotov-ops/FileOctopus/issues"
+  },
   "type": "module",
   "packageManager": "pnpm@10.26.2",
   "scripts": {
@@ -10,8 +20,8 @@
     "build": "pnpm -r --sort --if-present build",
     "typecheck": "pnpm -r --sort --if-present typecheck",
     "lint": "eslint \"{apps,packages}/**/*.{ts,tsx}\"",
-    "format:check": "prettier --check package.json pnpm-workspace.yaml README.md \".github/**/*.{md,yml,yaml}\" \"docs/**/*.md\" \"apps/**/*.{ts,tsx,css,json,md}\" \"packages/**/*.{ts,tsx,json,md}\"",
-    "format": "prettier --write package.json pnpm-workspace.yaml README.md \".github/**/*.{md,yml,yaml}\" \"docs/**/*.md\" \"apps/**/*.{ts,tsx,css,json,md}\" \"packages/**/*.{ts,tsx,json,md}\"",
+    "format:check": "prettier --check package.json pnpm-workspace.yaml README.md CONTRIBUTING.md SECURITY.md \".github/**/*.{md,yml,yaml}\" \"docs/**/*.md\" \"apps/**/*.{ts,tsx,css,json,md}\" \"packages/**/*.{ts,tsx,json,md}\"",
+    "format": "prettier --write package.json pnpm-workspace.yaml README.md CONTRIBUTING.md SECURITY.md \".github/**/*.{md,yml,yaml}\" \"docs/**/*.md\" \"apps/**/*.{ts,tsx,css,json,md}\" \"packages/**/*.{ts,tsx,json,md}\"",
     "generate:ipc-types": "bash scripts/generate-ipc-types.sh",
     "check:ipc-types": "bash scripts/check-ipc-types.sh",
     "test": "pnpm -r --sort --if-present test",

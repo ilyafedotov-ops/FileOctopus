@@ -47,6 +47,6 @@ The Diagnostics dialog shows version, build profile, target OS, commit SHA when 
 
 ## Further reading
 
-- [Project status & doc alignment](planning/PROJECT_STATUS_AND_DOC_ALIGNMENT.md)
-- [UI Design Spec](FileOctopus_UI_Design_and_Layout_Specification-1.md) — target UX
+- [Architecture index](architecture/README.md)
 - [API reference](architecture/api-reference.md) — IPC contract
+- [Testing](testing/README.md)

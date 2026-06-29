@@ -15,10 +15,10 @@ Use `local://` URIs at the Rust domain and IPC boundary for MVP local resources.
 Examples:
 
 ```text
-local://C:/Users/Ilya/Documents
+local://C:/Users/Alice/Documents
 local://D:/Projects/FileOctopus
-local:///home/ilya/Documents
-local:///Users/ilya/Documents
+local:///home/alice/Documents
+local:///Users/alice/Documents
 ```
 
 ## Consequences
