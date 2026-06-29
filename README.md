@@ -25,6 +25,14 @@ sync features are present on `main`.
 | -------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | ![FileOctopus settings dialog](docs/assets/screenshots/fileoctopus-settings.png) | ![FileOctopus jobs and activity rail](docs/assets/screenshots/fileoctopus-activity.png) |
 
+| Git review                                                                         | Network locations                                                                           |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| ![FileOctopus Git review diff](docs/assets/screenshots/fileoctopus-git-review.png) | ![FileOctopus network locations](docs/assets/screenshots/fileoctopus-network-locations.png) |
+
+| Add connection                                                                               |
+| -------------------------------------------------------------------------------------------- |
+| ![FileOctopus add connection dialog](docs/assets/screenshots/fileoctopus-add-connection.png) |
+
 Demo videos:
 [workspace walkthrough](docs/assets/videos/fileoctopus-demo.webm) ·
 [settings tour](docs/assets/videos/fileoctopus-settings-tour.webm)
