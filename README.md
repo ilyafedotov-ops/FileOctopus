@@ -32,6 +32,14 @@ features, platform status, and known limitations.
 | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | ![FileOctopus Git review diff](docs/assets/screenshots/fileoctopus-git-review.png) | ![FileOctopus network locations](docs/assets/screenshots/fileoctopus-network-locations.png) |
 
+| Syntax editor                                                                                   | Git history                                                                          |
+| ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| ![FileOctopus syntax-highlighted editor](docs/assets/screenshots/fileoctopus-syntax-editor.png) | ![FileOctopus Git history view](docs/assets/screenshots/fileoctopus-git-history.png) |
+
+| Integrated terminal                                                                                  |
+| ---------------------------------------------------------------------------------------------------- |
+| ![FileOctopus integrated terminal pane](docs/assets/screenshots/fileoctopus-integrated-terminal.png) |
+
 | Add connection                                                                               |
 | -------------------------------------------------------------------------------------------- |
 | ![FileOctopus add connection dialog](docs/assets/screenshots/fileoctopus-add-connection.png) |

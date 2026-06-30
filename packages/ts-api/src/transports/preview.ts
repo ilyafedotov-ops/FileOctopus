@@ -874,6 +874,39 @@ export function createPreviewTransport(): IpcTransport {
         return { sessionId, requestId } as TResponse;
       }
 
+      if (command === "fs.read_text_file") {
+        const request = args?.request as
+          | { uri?: string; maxBytes?: number }
+          | undefined;
+        const content = previewTextForUri(request?.uri ?? "");
+        const encoded = new TextEncoder().encode(content);
+        const maxBytes = request?.maxBytes ?? encoded.length;
+        const sliced = encoded.slice(0, maxBytes);
+        const truncated = sliced.length < encoded.length;
+        return {
+          content: new TextDecoder().decode(sliced),
+          truncated,
+          byteSize: encoded.length,
+        } as TResponse;
+      }
+
+      if (command === "fs.read_file_range") {
+        const request = args?.request as
+          | { uri?: string; offset?: number; length?: number }
+          | undefined;
+        const content = previewTextForUri(request?.uri ?? "");
+        const encoded = new TextEncoder().encode(content);
+        const offset = Math.max(0, request?.offset ?? 0);
+        const length = Math.max(0, request?.length ?? 0);
+        const bytes = encoded.slice(offset, offset + length);
+        return {
+          bytesBase64: bytesToBase64(bytes),
+          bytesRead: bytes.length,
+          byteSize: encoded.length,
+          eof: offset + bytes.length >= encoded.length,
+        } as TResponse;
+      }
+
       if (command === "terminal.spawn") {
         const sessionId = `preview-terminal-${++sessionIndex}`;
         const request = args?.request as
@@ -1199,6 +1232,96 @@ export function createPreviewTransport(): IpcTransport {
   };
 }
 
+function previewTextForUri(uri: string): string {
+  const name = uri.split("/").pop() ?? "README.md";
+
+  if (name === "App.tsx") {
+    return `import { useMemo, useState } from "react";
+import { GitBranch, Search, TerminalSquare } from "lucide-react";
+
+type PaneMode = "details" | "columns" | "preview";
+
+export function App() {
+  const [mode, setMode] = useState<PaneMode>("details");
+  const visibleTools = useMemo(
+    () => ["Git review", "Network", "Terminal"].filter(Boolean),
+    [],
+  );
+
+  return (
+    <main className="workspace" data-mode={mode}>
+      <header className="toolbar">
+        <Search aria-hidden />
+        <GitBranch aria-hidden />
+        <TerminalSquare aria-hidden />
+      </header>
+      <section className="pane">
+        {visibleTools.map((tool) => (
+          <button key={tool} onClick={() => setMode("preview")}>
+            {tool}
+          </button>
+        ))}
+      </section>
+    </main>
+  );
+}
+`;
+  }
+
+  if (name === "main.rs") {
+    return `use fileoctopus_app_core::runtime::Runtime;
+
+fn main() -> anyhow::Result<()> {
+    let runtime = Runtime::new()?;
+    runtime.run()
+}
+`;
+  }
+
+  if (name === "package.json") {
+    return `{
+  "name": "fileoctopus-preview",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "tauri dev",
+    "build": "tauri build"
+  }
+}
+`;
+  }
+
+  if (name === "Notes.txt") {
+    return "Preview note\n\nUse FileOctopus to review local files, Git state, remote connections, and terminal sessions from one workspace.\n";
+  }
+
+  return `# FileOctopus
+
+FileOctopus is a Tauri v2 desktop file manager with a Rust-owned filesystem
+boundary and a React TypeScript frontend.
+
+## Interface areas
+
+- Dual-pane local and remote browsing
+- Syntax-highlighted text viewer and editor
+- Git review with worktree diffs, history, branches, and worktrees
+- Integrated terminal sessions scoped to the active pane
+
+\`\`\`ts
+const resourceUri = "local:///Users/ilya/FileOctopus/src/App.tsx";
+await fs.readTextFile({ uri: resourceUri, maxBytes: 10 * 1024 * 1024 });
+\`\`\`
+`;
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
 function previewEntriesForUri(uri: string): FileEntryDto[] {
   const now = "2026-05-15T12:00:00.000Z";
   const base = uri.replace(/\/$/, "");
@@ -1246,6 +1369,27 @@ function previewEntriesForUri(uri: string): FileEntryDto[] {
       entry("Wallpapers", "directory", null),
       entry("IMG_2024_0001.jpg", "file", 3200000, "jpg"),
       entry("photo_edit.psd", "file", 45600000, "psd"),
+    ];
+  }
+
+  if (uri.includes("/FileOctopus/src")) {
+    return [
+      entry("App.tsx", "file", 740, "tsx"),
+      entry("main.tsx", "file", 260, "tsx"),
+      entry("components", "directory", null),
+      entry("styles.css", "file", 1800, "css"),
+    ];
+  }
+
+  if (uri.includes("/FileOctopus")) {
+    return [
+      entry("src", "directory", null),
+      entry("src-tauri", "directory", null),
+      entry("crates", "directory", null),
+      entry("packages", "directory", null),
+      entry("README.md", "file", 1900, "md"),
+      entry("package.json", "file", 160, "json"),
+      entry("main.rs", "file", 120, "rs"),
     ];
   }
 
