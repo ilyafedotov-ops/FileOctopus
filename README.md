@@ -45,8 +45,8 @@ features, platform status, and known limitations.
 | ![FileOctopus add connection dialog](docs/assets/screenshots/fileoctopus-add-connection.png) |
 
 Demo videos:
-[workspace walkthrough](docs/assets/videos/fileoctopus-demo.mp4) ·
-[settings tour](docs/assets/videos/fileoctopus-settings-tour.mp4)
+[feature walkthrough](docs/assets/videos/fileoctopus-demo.mp4) ·
+[network and settings tour](docs/assets/videos/fileoctopus-settings-tour.mp4)
 
 ## What Works Today
 
