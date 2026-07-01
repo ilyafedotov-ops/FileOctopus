@@ -1080,7 +1080,7 @@ export function ConnectServerDialog({
                       className="fo-dialog-field fo-connect-full"
                       label="Private key path"
                       value={privateKeyPath}
-                      placeholder="/Users/you/.ssh/id_ed25519"
+                      placeholder="~/.ssh/id_ed25519"
                       browseLabel="Browse private key path"
                       onChange={updatePrivateKeyPath}
                       onBrowse={() => void browsePrivateKeyPath()}

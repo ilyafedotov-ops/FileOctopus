@@ -57,10 +57,29 @@ export function buildCollapsedToolbarItems({
   if (!isToolbarSectionVisible("sync", tier)) {
     items.push(
       {
+        id: "collapsed-compare-size",
+        label: "Compare by size",
+        icon: Icons.copy(),
+        separatorBefore: items.length > 0,
+        onSelect: () => handlers.onSyncDirectories("size"),
+      },
+      {
+        id: "collapsed-compare-name",
+        label: "Compare by name",
+        icon: Icons.copy(),
+        onSelect: () => handlers.onSyncDirectories("name"),
+      },
+      {
+        id: "collapsed-compare-date",
+        label: "Compare by modified time",
+        icon: Icons.copy(),
+        onSelect: () => handlers.onSyncDirectories("date"),
+      },
+      {
         id: "collapsed-equalize",
         label: "Equalize panes",
         icon: Icons.move(),
-        separatorBefore: items.length > 0,
+        separatorBefore: true,
         onSelect: () => handlers.onCommand("layout.equalizePanes"),
       },
       {

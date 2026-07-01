@@ -11,10 +11,11 @@ interface SyncDirectoriesDialogProps {
   leftUri: string;
   rightUri: string;
   fs: FsClient;
+  initialComparison?: SyncComparisonMode;
   onClose: () => void;
 }
 
-type ComparisonMode = "name" | "size" | "date";
+export type SyncComparisonMode = "name" | "size" | "date";
 
 function statusLabel(status: string): string {
   switch (status) {
@@ -59,13 +60,20 @@ export function SyncDirectoriesDialog({
   leftUri,
   rightUri,
   fs,
+  initialComparison = "size",
   onClose,
 }: SyncDirectoriesDialogProps) {
-  const [comparison, setComparison] = useState<ComparisonMode>("size");
+  const [comparison, setComparison] =
+    useState<SyncComparisonMode>(initialComparison);
   const [recursive, setRecursive] = useState(false);
   const [result, setResult] = useState<SyncDirectoriesResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    setComparison(initialComparison);
+  }, [open, initialComparison]);
 
   useEffect(() => {
     if (!open) return;
@@ -145,7 +153,9 @@ export function SyncDirectoriesDialog({
             Compare by:{" "}
             <select
               value={comparison}
-              onChange={(e) => setComparison(e.target.value as ComparisonMode)}
+              onChange={(e) =>
+                setComparison(e.target.value as SyncComparisonMode)
+              }
             >
               <option value="name">Name</option>
               <option value="size">Size</option>

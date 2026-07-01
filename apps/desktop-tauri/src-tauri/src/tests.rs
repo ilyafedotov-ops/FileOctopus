@@ -78,6 +78,18 @@ fn diagnostics_destination_accepts_path_in_allowed_root() {
 }
 
 #[test]
+fn diagnostics_destination_blank_uses_platform_default() {
+    let paths = app_paths_under(&temp_dir("diag-blank"));
+
+    let resolved = resolve_diagnostics_destination("   ", &paths).unwrap();
+
+    assert_eq!(
+        resolved,
+        std::env::temp_dir().join("fileoctopus-diagnostics.zip")
+    );
+}
+
+#[test]
 fn diagnostics_destination_rejects_relative_path() {
     let paths = app_paths_under(&temp_dir("diag-relative"));
 
@@ -108,6 +120,7 @@ fn diagnostics_destination_rejects_outside_allowed_roots() {
 }
 
 #[test]
+#[cfg(unix)]
 fn diagnostics_destination_accepts_shipped_default_path() {
     let paths = app_paths_under(&temp_dir("diag-default"));
 

@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { DropdownMenu, Icons } from "@fileoctopus/ui";
-import { formatCommandShortcut } from "../commands/registry";
+import {
+  currentShortcutPlatform,
+  formatCommandShortcut,
+} from "../commands/registry";
 import type { ViewMode } from "../panelStore";
 
 export interface ToolbarDropdownsProps {
@@ -69,6 +72,7 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
   const [overflowOpen, setOverflowOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
+  const shortcutPlatform = currentShortcutPlatform();
 
   return (
     <>
@@ -183,7 +187,10 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
               id: "hidden",
               label: showHidden ? "Hide Hidden" : "Show Hidden",
               icon: Icons.file(),
-              shortcut: formatCommandShortcut("view.toggleHidden", "mac"),
+              shortcut: formatCommandShortcut(
+                "view.toggleHidden",
+                shortcutPlatform,
+              ),
               checked: showHidden,
               separatorBefore: true,
               onSelect: onToggleHidden,
@@ -206,21 +213,21 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
             id: "new-folder",
             label: "New Folder",
             icon: Icons.folderPlus(),
-            shortcut: formatCommandShortcut("create.folder", "mac"),
+            shortcut: formatCommandShortcut("create.folder", shortcutPlatform),
             onSelect: onCreateFolder,
           },
           {
             id: "new-file",
             label: "New File",
             icon: Icons.filePlus(),
-            shortcut: formatCommandShortcut("create.folder", "mac"),
+            shortcut: formatCommandShortcut("create.folder", shortcutPlatform),
             onSelect: onCreateFile,
           },
           {
             id: "copy",
             label: "Copy",
             icon: Icons.copy(),
-            shortcut: formatCommandShortcut("op.copy", "mac"),
+            shortcut: formatCommandShortcut("op.copy", shortcutPlatform),
             disabled: selectedCount === 0,
             onSelect: onCopy,
           },
@@ -228,7 +235,7 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
             id: "rename",
             label: "Rename",
             icon: Icons.pencil(),
-            shortcut: formatCommandShortcut("op.rename", "mac"),
+            shortcut: formatCommandShortcut("op.rename", shortcutPlatform),
             disabled: !canRename,
             onSelect: onRename,
           },
@@ -236,7 +243,7 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
             id: "cut",
             label: "Cut",
             icon: Icons.move(),
-            shortcut: formatCommandShortcut("op.cut", "mac"),
+            shortcut: formatCommandShortcut("op.cut", shortcutPlatform),
             disabled: selectedCount === 0,
             onSelect: onCut,
           },
@@ -244,7 +251,7 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
             id: "paste",
             label: "Paste",
             icon: Icons.copy(),
-            shortcut: formatCommandShortcut("op.paste", "mac"),
+            shortcut: formatCommandShortcut("op.paste", shortcutPlatform),
             disabled: !canPaste,
             onSelect: onPaste,
           },
@@ -299,7 +306,7 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
             id: "properties",
             label: "Properties",
             icon: Icons.file(),
-            shortcut: formatCommandShortcut("op.properties", "mac"),
+            shortcut: formatCommandShortcut("op.properties", shortcutPlatform),
             onSelect: onProperties,
           },
           {
@@ -355,7 +362,10 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
             id: "select-all",
             label: "Select All",
             icon: Icons.file(),
-            shortcut: formatCommandShortcut("selection.selectAll", "mac"),
+            shortcut: formatCommandShortcut(
+              "selection.selectAll",
+              shortcutPlatform,
+            ),
             separatorBefore: true,
             onSelect: onSelectAll,
           },
@@ -363,7 +373,10 @@ export function ToolbarDropdowns(props: ToolbarDropdownsProps) {
             id: "hidden",
             label: showHidden ? "Hide Hidden" : "Show Hidden",
             icon: Icons.file(),
-            shortcut: "Cmd+.",
+            shortcut: formatCommandShortcut(
+              "view.toggleHidden",
+              shortcutPlatform,
+            ),
             checked: showHidden,
             onSelect: onToggleHidden,
           },

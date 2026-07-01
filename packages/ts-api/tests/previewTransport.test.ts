@@ -1,10 +1,32 @@
 import { describe, expect, it } from "vitest";
 import { createPreviewTransport } from "../src/transports/preview";
 import type {
+  AppDataHealthResponse,
   NetworkNeighborhoodResponse,
   NetworkProfileTestResponse,
   NetworkProvidersListResponse,
+  StandardLocationsResponse,
 } from "../src/types";
+
+describe("preview transport — platform-safe fixtures", () => {
+  const transport = createPreviewTransport();
+
+  it("does not expose developer-specific local paths in diagnostics or standard locations", async () => {
+    const health = await transport.invoke<AppDataHealthResponse>(
+      "diagnostics.appDataHealth",
+    );
+    const locations = await transport.invoke<StandardLocationsResponse>(
+      "fs.standard_locations",
+    );
+
+    const serialized = JSON.stringify({ health, locations });
+    expect(serialized).not.toContain("/Users/ilya");
+    expect(serialized).not.toContain("/Users/you");
+    expect(serialized).not.toContain("/tmp/fileoctopus-diagnostics.zip");
+    expect(health.databasePath).toContain("fileoctopus");
+    expect(locations.locations[0].uri).toMatch(/^local:\/\//);
+  });
+});
 
 describe("preview transport — network.discoverNeighborhood", () => {
   const transport = createPreviewTransport();

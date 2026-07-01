@@ -82,6 +82,7 @@ export function DialogOverlaySectionWorkspace(props: DialogOverlayGroupProps) {
     multiRenameOpen,
     setMultiRenameOpen,
     syncDirectoriesOpen,
+    syncDirectoriesComparison,
     setSyncDirectoriesOpen,
     hotlistOpen,
     setHotlistOpen,
@@ -167,6 +168,7 @@ export function DialogOverlaySectionWorkspace(props: DialogOverlayGroupProps) {
         leftUri={leftPanelUri}
         rightUri={rightPanelUri}
         fs={fs}
+        initialComparison={syncDirectoriesComparison}
         onClose={() => setSyncDirectoriesOpen(false)}
       />
       <HotlistDialog

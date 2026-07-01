@@ -81,6 +81,7 @@ export function ShellOverlays() {
         multiRenameOpen={ctx.multiRenameOpen}
         setMultiRenameOpen={ctx.setMultiRenameOpen}
         syncDirectoriesOpen={ctx.syncDirectoriesOpen}
+        syncDirectoriesComparison={ctx.syncDirectoriesComparison}
         setSyncDirectoriesOpen={ctx.setSyncDirectoriesOpen}
         hotlistOpen={ctx.hotlistOpen}
         setHotlistOpen={ctx.setHotlistOpen}

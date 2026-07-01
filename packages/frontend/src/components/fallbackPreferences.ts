@@ -33,7 +33,7 @@ export const FALLBACK_PREFERENCES: UserPreferencesDto = {
   terminalShell: "",
   terminalArgs: "",
   rememberLastUsedPanes: true,
-  diagnosticsExportPath: "/tmp/fileoctopus-diagnostics.zip",
+  diagnosticsExportPath: "",
   customShortcuts: "",
   fileTypeColorRules: "",
   layoutProfiles: "",

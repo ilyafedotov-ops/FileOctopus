@@ -203,7 +203,9 @@ function FileOctopusAppInner({
     multiRenameOpen,
     setMultiRenameOpen,
     syncDirectoriesOpen,
+    syncDirectoriesComparison,
     setSyncDirectoriesOpen,
+    setSyncDirectoriesComparison,
     hotlistOpen,
     setHotlistOpen,
     manageHotlistOpen,
@@ -927,7 +929,9 @@ function FileOctopusAppInner({
         setDiffRightName={setDiffRightName}
         setMultiRenameOpen={setMultiRenameOpen}
         syncDirectoriesOpen={syncDirectoriesOpen}
+        syncDirectoriesComparison={syncDirectoriesComparison}
         setSyncDirectoriesOpen={setSyncDirectoriesOpen}
+        setSyncDirectoriesComparison={setSyncDirectoriesComparison}
         hotlistOpen={hotlistOpen}
         setHotlistOpen={setHotlistOpen}
         manageHotlistOpen={manageHotlistOpen}

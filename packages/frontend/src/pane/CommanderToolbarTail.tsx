@@ -101,31 +101,27 @@ export function CommanderToolbarTail({
   const syncItems: DropdownMenuItem[] = [
     {
       id: "sync-directories",
-      label: "Synchronize directories…",
+      label: "Compare directories…",
       icon: Icons.move(),
-      disabled: true,
-      onSelect: () => undefined,
+      onSelect: () => handlers.onSyncDirectories("size"),
     },
     {
       id: "compare-name",
       label: "Compare by name",
       icon: Icons.copy(),
-      disabled: true,
-      onSelect: () => undefined,
+      onSelect: () => handlers.onSyncDirectories("name"),
     },
     {
       id: "compare-size",
       label: "Compare by size",
       icon: Icons.copy(),
-      disabled: true,
-      onSelect: () => undefined,
+      onSelect: () => handlers.onSyncDirectories("size"),
     },
     {
       id: "compare-modified",
       label: "Compare by modified time",
       icon: Icons.copy(),
-      disabled: true,
-      onSelect: () => undefined,
+      onSelect: () => handlers.onSyncDirectories("date"),
     },
     {
       id: "equalize",
@@ -182,9 +178,9 @@ export function CommanderToolbarTail({
             />
             {showCompare ? (
               <ToolbarButton
-                disabled
-                title="Compare directories (coming soon)"
+                title="Compare directories"
                 aria-label="Compare"
+                onClick={() => handlers.onSyncDirectories("size")}
               >
                 {Icons.copy()}
                 <span className="fo-toolbar-label">Compare</span>

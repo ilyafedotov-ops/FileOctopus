@@ -24,6 +24,13 @@ pub use terminal::{
 
 pub const SCHEMA_VERSION: u32 = 15;
 
+pub fn default_diagnostics_export_path() -> String {
+    std::env::temp_dir()
+        .join("fileoctopus-diagnostics.zip")
+        .to_string_lossy()
+        .to_string()
+}
+
 #[derive(Debug, Error)]
 pub enum PreferencesError {
     #[error("database error: {0}")]
@@ -140,7 +147,7 @@ impl Default for UserPreferences {
             terminal_shell: String::new(),
             terminal_args: String::new(),
             remember_last_used_panes: true,
-            diagnostics_export_path: "/tmp/fileoctopus-diagnostics.zip".to_string(),
+            diagnostics_export_path: default_diagnostics_export_path(),
             custom_shortcuts: String::new(),
             file_type_color_rules: String::new(),
             layout_profiles: String::new(),
@@ -1013,7 +1020,7 @@ fn apply_value(
 fn parse_diagnostics_export_path(value: &str) -> Result<String, PreferencesError> {
     let trimmed = value.trim();
     if trimmed.is_empty() {
-        return Ok("/tmp/fileoctopus-diagnostics.zip".to_string());
+        return Ok(default_diagnostics_export_path());
     }
     if trimmed.len() > 2048 {
         return Err(invalid_value(
@@ -1600,7 +1607,9 @@ mod tests {
         let updated = repository.set("diagnosticsExportPath", "   ").unwrap();
         assert_eq!(
             updated.diagnostics_export_path,
-            "/tmp/fileoctopus-diagnostics.zip"
+            std::env::temp_dir()
+                .join("fileoctopus-diagnostics.zip")
+                .to_string_lossy()
         );
 
         let too_long = "a".repeat(2049);

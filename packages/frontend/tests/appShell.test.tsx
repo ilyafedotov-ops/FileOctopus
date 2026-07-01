@@ -84,6 +84,7 @@ const appPreferences: UserPreferencesDto = {
   paneTerminalDefaultOpen: false,
   terminalCdOnNavigate: false,
   confirmClosePaneWithTerminal: true,
+  diagnosticsExportPath: "",
   terminalShell: "",
   terminalArgs: "",
   tabSessions: "",
@@ -888,6 +889,12 @@ describe("FileOctopusShell", () => {
   });
 
   it("shows app diagnostics and exports a bundle", async () => {
+    preferencesGet.mockResolvedValueOnce({
+      preferences: {
+        ...appPreferences,
+        diagnosticsExportPath: "/tmp/fileoctopus-diagnostics.zip",
+      },
+    });
     render(<FileOctopusShell />);
 
     const helpTrigger = screen

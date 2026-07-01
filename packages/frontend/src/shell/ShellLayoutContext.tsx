@@ -33,6 +33,7 @@ import type { MenuBarProps } from "./MenuBar";
 import type { FileClipboardState } from "../hooks/useFileOpHandlers";
 import type { DialogOverlayGroup } from "../components/DialogOverlayGroup";
 import type { WindowControlHandlers } from "./TitleBar";
+import type { SyncComparisonMode } from "../components/dialogs/SyncDirectoriesDialog";
 import type { LocalPathPicker } from "../utils/pathPicker";
 
 export interface ShellLayoutContextValue {
@@ -167,6 +168,7 @@ export interface ShellLayoutContextValue {
   isProductionBuild: boolean;
   multiRenameOpen: boolean;
   syncDirectoriesOpen: boolean;
+  syncDirectoriesComparison: SyncComparisonMode;
   hotlistOpen: boolean;
   manageHotlistOpen: boolean;
   setSettingsOpen: (v: boolean) => void;
@@ -189,6 +191,7 @@ export interface ShellLayoutContextValue {
   setDiffRightName: (v: string) => void;
   setMultiRenameOpen: (v: boolean) => void;
   setSyncDirectoriesOpen: (v: boolean) => void;
+  setSyncDirectoriesComparison: (v: SyncComparisonMode) => void;
   setHotlistOpen: (v: boolean) => void;
   setManageHotlistOpen: (v: boolean) => void;
   isTextEditable: (entry: FileEntryDto | null) => boolean;

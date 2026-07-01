@@ -8,6 +8,7 @@ import {
 } from "../commands/toolbarConfig";
 import type { ToolbarCommandContext } from "../commands/toolbarCommandState";
 import type { CommandId } from "../commands/types";
+import type { SyncComparisonMode } from "../components/dialogs/SyncDirectoriesDialog";
 import type { HotlistTarget } from "../shell/hotlistTargets";
 import type { PaneLocationTargetAction } from "../navigation/driveTargets";
 import { CommanderToolbarButtons } from "./CommanderToolbarButtons";
@@ -44,6 +45,7 @@ export interface OperationToolbarProps extends ToolbarDropdownsProps {
   onCommandSearch: () => void;
   onView: () => void;
   onCommand: (commandId: CommandId) => void;
+  onSyncDirectories: (comparison: SyncComparisonMode) => void;
   onCustomizeToolbar: () => void;
   onOpenTargetAction: (action: PaneLocationTargetAction) => void;
 }
@@ -74,6 +76,7 @@ export function OperationToolbar({
   onCommandSearch,
   onView,
   onCommand,
+  onSyncDirectories,
   onCustomizeToolbar,
   onOpenTargetAction,
   selectedCount,
@@ -104,6 +107,7 @@ export function OperationToolbar({
     onCommandSearch,
     onView,
     onCommand,
+    onSyncDirectories,
     onCustomizeToolbar,
     dropdowns: {
       selectedCount,

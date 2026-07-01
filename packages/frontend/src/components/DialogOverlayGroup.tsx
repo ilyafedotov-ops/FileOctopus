@@ -29,6 +29,7 @@ import {
   DialogOverlaySectionNavigation,
   DialogOverlaySectionOperations,
 } from "./dialogOverlaySections";
+import type { SyncComparisonMode } from "./dialogs/SyncDirectoriesDialog";
 
 export interface DialogOverlayGroupProps {
   preferences: UserPreferencesDto | null;
@@ -119,6 +120,7 @@ export interface DialogOverlayGroupProps {
   multiRenameOpen: boolean;
   setMultiRenameOpen: (open: boolean) => void;
   syncDirectoriesOpen: boolean;
+  syncDirectoriesComparison: SyncComparisonMode;
   setSyncDirectoriesOpen: (open: boolean) => void;
   hotlistOpen: boolean;
   setHotlistOpen: (open: boolean) => void;
