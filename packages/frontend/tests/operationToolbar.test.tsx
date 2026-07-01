@@ -44,6 +44,7 @@ function createProps(
     onCommandSearch: noop,
     onView: noop,
     onOpenHotlistTarget: noop,
+    onSyncDirectories: noop,
     onCreateFolder: noop,
     onCreateFile: noop,
     onRename: noop,
@@ -151,5 +152,19 @@ describe("OperationToolbar", () => {
     fireEvent.click(await screen.findByRole("menuitem", { name: "Network" }));
 
     expect(onCommand).toHaveBeenCalledWith("nav.networkLocations");
+  });
+
+  it("opens directory comparison from the sync menu", async () => {
+    const onSyncDirectories = vi.fn();
+    renderToolbar(createProps({ onSyncDirectories }));
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "More toolbar commands" }),
+    );
+    fireEvent.click(
+      await screen.findByRole("menuitem", { name: "Compare by size" }),
+    );
+
+    expect(onSyncDirectories).toHaveBeenCalledWith("size");
   });
 });

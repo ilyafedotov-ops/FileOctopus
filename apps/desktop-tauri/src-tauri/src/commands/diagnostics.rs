@@ -113,7 +113,13 @@ pub(crate) fn resolve_diagnostics_destination(
     raw: &str,
     paths: &AppPaths,
 ) -> Result<PathBuf, IpcError> {
-    let uri = ResourceUri::from_local_path(Path::new(raw)).map_err(|_| {
+    let trimmed = raw.trim();
+    let destination_raw = if trimmed.is_empty() {
+        config::default_diagnostics_export_path()
+    } else {
+        trimmed.to_string()
+    };
+    let uri = ResourceUri::from_local_path(Path::new(&destination_raw)).map_err(|_| {
         IpcError::new(
             error_codes::INVALID_PATH,
             "Diagnostics destination must be an absolute local path.",
@@ -168,8 +174,7 @@ fn allowed_export_roots(paths: &AppPaths) -> Vec<PathBuf> {
         paths.data_dir.clone(),
         paths.config_dir.clone(),
     ];
-    // The shipped default export path is the literal `/tmp/...`, but platform
-    // temp directories may resolve elsewhere, so keep it as a compatibility root.
+    #[cfg(unix)]
     roots.push(PathBuf::from("/tmp"));
     if let Some(home) = home_dir() {
         roots.push(home);

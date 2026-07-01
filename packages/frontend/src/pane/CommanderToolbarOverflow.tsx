@@ -1,6 +1,9 @@
 import { useMemo, useState } from "react";
 import { DropdownMenu, Icons } from "@fileoctopus/ui";
-import { formatCommandShortcut } from "../commands/registry";
+import {
+  currentShortcutPlatform,
+  formatCommandShortcut,
+} from "../commands/registry";
 import type { ToolbarCommandContext } from "../commands/toolbarCommandState";
 import type { HotlistTarget } from "../shell/hotlistTargets";
 import type { PaneLocationTargetAction } from "../navigation/driveTargets";
@@ -31,6 +34,7 @@ export function CommanderToolbarOverflow({
   onOpenTargetAction,
 }: CommanderToolbarOverflowProps) {
   const [open, setOpen] = useState(false);
+  const shortcutPlatform = currentShortcutPlatform();
   const { dropdowns } = handlers;
   const {
     selectedCount,
@@ -83,7 +87,10 @@ export function CommanderToolbarOverflow({
           id: "command-palette",
           label: "Command Palette",
           icon: Icons.search(),
-          shortcut: formatCommandShortcut("app.commandPalette", "mac"),
+          shortcut: formatCommandShortcut(
+            "app.commandPalette",
+            shortcutPlatform,
+          ),
           separatorBefore: collapsedItems.length > 0,
           onSelect: handlers.onCommandSearch,
         },
@@ -97,7 +104,7 @@ export function CommanderToolbarOverflow({
           id: "paste",
           label: "Paste",
           icon: Icons.copy(),
-          shortcut: formatCommandShortcut("op.paste", "mac"),
+          shortcut: formatCommandShortcut("op.paste", shortcutPlatform),
           disabled: !canPaste,
           separatorBefore: true,
           onSelect: onPaste,
@@ -106,7 +113,7 @@ export function CommanderToolbarOverflow({
           id: "copy-clipboard",
           label: "Copy",
           icon: Icons.copy(),
-          shortcut: formatCommandShortcut("op.copy", "mac"),
+          shortcut: formatCommandShortcut("op.copy", shortcutPlatform),
           disabled: selectedCount === 0,
           onSelect: onCopy,
         },
@@ -114,7 +121,7 @@ export function CommanderToolbarOverflow({
           id: "cut",
           label: "Cut",
           icon: Icons.move(),
-          shortcut: formatCommandShortcut("op.cut", "mac"),
+          shortcut: formatCommandShortcut("op.cut", shortcutPlatform),
           disabled: selectedCount === 0,
           onSelect: onCut,
         },
@@ -157,7 +164,10 @@ export function CommanderToolbarOverflow({
           id: "select-all",
           label: "Select All",
           icon: Icons.file(),
-          shortcut: formatCommandShortcut("selection.selectAll", "mac"),
+          shortcut: formatCommandShortcut(
+            "selection.selectAll",
+            shortcutPlatform,
+          ),
           separatorBefore: true,
           onSelect: onSelectAll,
         },

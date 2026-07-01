@@ -44,6 +44,7 @@ vi.mock("@fileoctopus/ui", () => ({
 }));
 
 vi.mock("../src/commands/registry", () => ({
+  currentShortcutPlatform: () => "mac",
   formatCommandShortcut: () => "Cmd+S",
 }));
 

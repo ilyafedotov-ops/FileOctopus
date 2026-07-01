@@ -64,7 +64,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     null,
   );
   const [diagnosticsDestination, setDiagnosticsDestination] = useState(
-    preferences?.diagnosticsExportPath ?? "/tmp/fileoctopus-diagnostics.zip",
+    preferences?.diagnosticsExportPath ?? "",
   );
   const [diagnosticsMessage, setDiagnosticsMessage] = useState<string | null>(
     null,

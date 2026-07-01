@@ -182,6 +182,10 @@ export function ShellToolbar() {
           onDrives={() => handleCommand("nav.volumePicker")}
           onView={() => commander.view()}
           onCommand={(commandId) => handleCommand(commandId)}
+          onSyncDirectories={(comparison) => {
+            ctx.setSyncDirectoriesComparison(comparison);
+            ctx.setSyncDirectoriesOpen(true);
+          }}
           onCustomizeToolbar={() => ctx.setToolbarCustomizeOpen(true)}
           onOpenTargetAction={handleTargetAction}
           onCreateFolder={() => ctx.handleCreateFolder(pid)}

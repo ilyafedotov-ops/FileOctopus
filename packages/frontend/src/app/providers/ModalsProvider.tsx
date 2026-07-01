@@ -8,6 +8,7 @@ import {
   type SetStateAction,
 } from "react";
 import type { OperationDialog } from "../../dialogs/OperationDialogView";
+import type { SyncComparisonMode } from "../../components/dialogs/SyncDirectoriesDialog";
 import type {
   FileEntryDto,
   NetworkConnectionDraftDto,
@@ -48,6 +49,7 @@ export interface ModalsContextValue {
   dialog: OperationDialog | null;
   multiRenameOpen: boolean;
   syncDirectoriesOpen: boolean;
+  syncDirectoriesComparison: SyncComparisonMode;
   hotlistOpen: boolean;
   manageHotlistOpen: boolean;
   setSettingsOpen: Dispatch<SetStateAction<boolean>>;
@@ -85,6 +87,7 @@ export interface ModalsContextValue {
   setDialog: Dispatch<SetStateAction<OperationDialog | null>>;
   setMultiRenameOpen: Dispatch<SetStateAction<boolean>>;
   setSyncDirectoriesOpen: Dispatch<SetStateAction<boolean>>;
+  setSyncDirectoriesComparison: Dispatch<SetStateAction<SyncComparisonMode>>;
   setHotlistOpen: Dispatch<SetStateAction<boolean>>;
   setManageHotlistOpen: Dispatch<SetStateAction<boolean>>;
 }
@@ -138,6 +141,8 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
   const [dialog, setDialog] = useState<OperationDialog | null>(null);
   const [multiRenameOpen, setMultiRenameOpen] = useState(false);
   const [syncDirectoriesOpen, setSyncDirectoriesOpen] = useState(false);
+  const [syncDirectoriesComparison, setSyncDirectoriesComparison] =
+    useState<SyncComparisonMode>("size");
   const [hotlistOpen, setHotlistOpen] = useState(false);
   const [manageHotlistOpen, setManageHotlistOpen] = useState(false);
 
@@ -176,6 +181,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       dialog,
       multiRenameOpen,
       syncDirectoriesOpen,
+      syncDirectoriesComparison,
       hotlistOpen,
       manageHotlistOpen,
       setSettingsOpen,
@@ -211,6 +217,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       setDialog,
       setMultiRenameOpen,
       setSyncDirectoriesOpen,
+      setSyncDirectoriesComparison,
       setHotlistOpen,
       setManageHotlistOpen,
     }),
@@ -248,6 +255,7 @@ export function ModalsProvider({ children }: { children: ReactNode }) {
       dialog,
       multiRenameOpen,
       syncDirectoriesOpen,
+      syncDirectoriesComparison,
       hotlistOpen,
       manageHotlistOpen,
     ],

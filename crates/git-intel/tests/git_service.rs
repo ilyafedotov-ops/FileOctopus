@@ -3,6 +3,17 @@ use std::process::Command;
 use git_intel::{GitError, GitFileStatus, GitService};
 use vfs::ResourceUri;
 
+const GIT_REPOSITORY_ENV_VARS: &[&str] = &[
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_COMMON_DIR",
+    "GIT_NAMESPACE",
+    "GIT_PREFIX",
+];
+
 #[tokio::test]
 async fn discover_returns_branch_and_dirty_state_inside_repo() {
     let repo = TestRepo::init();
@@ -699,7 +710,7 @@ impl TestRepo {
     }
 
     fn git<const N: usize>(&self, args: [&str; N]) {
-        let output = Command::new("git")
+        let output = git_command()
             .args(args)
             .current_dir(self.path())
             .output()
@@ -714,7 +725,7 @@ impl TestRepo {
     }
 
     fn git_stdout<const N: usize>(&self, args: [&str; N]) -> String {
-        let output = Command::new("git")
+        let output = git_command()
             .args(args)
             .current_dir(self.path())
             .output()
@@ -728,4 +739,12 @@ impl TestRepo {
         );
         String::from_utf8_lossy(&output.stdout).to_string()
     }
+}
+
+fn git_command() -> Command {
+    let mut command = Command::new("git");
+    for name in GIT_REPOSITORY_ENV_VARS {
+        command.env_remove(name);
+    }
+    command
 }

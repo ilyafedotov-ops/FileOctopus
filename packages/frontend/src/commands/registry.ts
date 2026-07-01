@@ -77,3 +77,10 @@ export function formatCommandShortcut(
   }
   return platform === "mac" ? command.shortcutMac : command.shortcutWin;
 }
+
+export function currentShortcutPlatform(): "mac" | "windowsLinux" {
+  return typeof navigator !== "undefined" &&
+    navigator.platform.startsWith("Mac")
+    ? "mac"
+    : "windowsLinux";
+}

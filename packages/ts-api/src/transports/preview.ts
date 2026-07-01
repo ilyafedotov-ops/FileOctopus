@@ -11,6 +11,8 @@ import type {
   RecursiveSearchCompletedEventDto,
   RecursiveSearchRequest,
   SetPreferenceRequest,
+  SyncDirectoriesRequest,
+  SyncDirectoriesResponse,
   TerminalProfileDto,
   TerminalSessionDto,
   TerminalSessionEventDto,
@@ -25,6 +27,73 @@ import {
   TERMINAL_SESSION_EVENT,
   TERMINAL_OUTPUT_EVENT,
 } from "../events";
+
+type PreviewPlatform = "mac" | "windows" | "linux";
+
+function previewPlatform(): PreviewPlatform {
+  const platform = globalThis.navigator?.platform ?? "";
+  if (platform.startsWith("Mac")) return "mac";
+  if (platform.startsWith("Win")) return "windows";
+  return "linux";
+}
+
+function previewHomeUri(): string {
+  switch (previewPlatform()) {
+    case "mac":
+      return "local:///Users/preview";
+    case "windows":
+      return "local://C:/Users/Preview";
+    case "linux":
+      return "local:///home/preview";
+  }
+}
+
+function previewHomePath(): string {
+  switch (previewPlatform()) {
+    case "mac":
+      return "/Users/preview";
+    case "windows":
+      return "C:\\Users\\Preview";
+    case "linux":
+      return "/home/preview";
+  }
+}
+
+function previewPathUri(...parts: string[]): string {
+  return [previewHomeUri(), ...parts.map(encodeURIComponent)].join("/");
+}
+
+function previewFsPath(...parts: string[]): string {
+  const separator = previewPlatform() === "windows" ? "\\" : "/";
+  return [previewHomePath(), ...parts].join(separator);
+}
+
+function previewDiagnosticsPath(): string {
+  if (previewPlatform() === "windows") {
+    return previewFsPath(
+      "AppData",
+      "Local",
+      "Temp",
+      "fileoctopus-diagnostics.zip",
+    );
+  }
+  return previewFsPath(".cache", "fileoctopus-diagnostics.zip");
+}
+
+function previewDefaultShell(): string {
+  return previewPlatform() === "windows" ? "powershell.exe" : "/bin/bash";
+}
+
+function previewDefaultShellArgs(): string[] {
+  return previewPlatform() === "windows" ? ["-NoLogo"] : ["-l"];
+}
+
+function previewDiscoveredShells(): string[] {
+  return previewPlatform() === "windows"
+    ? ["powershell.exe", "pwsh.exe", "cmd.exe"]
+    : ["/bin/bash", "/bin/zsh"];
+}
+
 export function createPreviewTransport(): IpcTransport {
   let sessionIndex = 0;
   let previewPreferences: UserPreferencesDto = {
@@ -61,7 +130,7 @@ export function createPreviewTransport(): IpcTransport {
     terminalShell: "",
     terminalArgs: "",
     rememberLastUsedPanes: true,
-    diagnosticsExportPath: "/tmp/fileoctopus-diagnostics.zip",
+    diagnosticsExportPath: previewDiagnosticsPath(),
     customShortcuts: "",
     fileTypeColorRules: "",
     layoutProfiles: "",
@@ -170,17 +239,20 @@ export function createPreviewTransport(): IpcTransport {
           buildProfile: "preview",
           commitSha: null,
           targetOs: "browser",
-          dataDir: "~/.fileoctopus",
+          dataDir: previewFsPath(".fileoctopus"),
           networkEnabled: true,
         } as TResponse;
       }
 
       if (command === "diagnostics.appDataHealth") {
         return {
-          configDir: "~/.fileoctopus/config",
-          dataDir: "~/.fileoctopus",
-          logDir: "~/.fileoctopus/logs",
-          databasePath: "~/.fileoctopus/operation-history.sqlite",
+          configDir: previewFsPath(".fileoctopus", "config"),
+          dataDir: previewFsPath(".fileoctopus"),
+          logDir: previewFsPath(".fileoctopus", "logs"),
+          databasePath: previewFsPath(
+            ".fileoctopus",
+            "operation-history.sqlite",
+          ),
           databaseExists: false,
           schemaVersion: 0,
           missingDirectories: [],
@@ -234,7 +306,7 @@ export function createPreviewTransport(): IpcTransport {
         const request = args?.request as { uri?: string } | undefined;
         return {
           repo: {
-            rootUri: request?.uri ?? "local:///Users/ilya/Documents",
+            rootUri: request?.uri ?? previewPathUri("Documents"),
             branch: "main",
             headShort: "preview",
             isDirty: true,
@@ -244,7 +316,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "git.statusForDirectory") {
         const request = args?.request as { uri?: string } | undefined;
-        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        const rootUri = request?.uri ?? previewPathUri("Documents");
         return {
           repo: {
             rootUri,
@@ -260,7 +332,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "git.statusForRepository") {
         const request = args?.request as { uri?: string } | undefined;
-        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        const rootUri = request?.uri ?? previewPathUri("Documents");
         return {
           repo: {
             rootUri,
@@ -282,7 +354,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "git.diffFile") {
         const request = args?.request as { uri?: string } | undefined;
-        const uri = request?.uri ?? "local:///Users/ilya/Documents/README.md";
+        const uri = request?.uri ?? previewPathUri("Documents", "README.md");
         return {
           repo: {
             rootUri: uri.replace(/\/[^/]*$/, ""),
@@ -338,7 +410,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "git.history") {
         const request = args?.request as { uri?: string } | undefined;
-        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        const rootUri = request?.uri ?? previewPathUri("Documents");
         return {
           repo: {
             rootUri,
@@ -375,7 +447,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "git.branches") {
         const request = args?.request as { uri?: string } | undefined;
-        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        const rootUri = request?.uri ?? previewPathUri("Documents");
         return {
           repo: {
             rootUri,
@@ -410,7 +482,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "git.worktrees") {
         const request = args?.request as { uri?: string } | undefined;
-        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        const rootUri = request?.uri ?? previewPathUri("Documents");
         return {
           repo: {
             rootUri,
@@ -436,7 +508,7 @@ export function createPreviewTransport(): IpcTransport {
         const request = args?.request as
           | { uri?: string; base?: string; head?: string }
           | undefined;
-        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        const rootUri = request?.uri ?? previewPathUri("Documents");
         return {
           repo: {
             rootUri,
@@ -495,7 +567,7 @@ export function createPreviewTransport(): IpcTransport {
         const request = args?.request as
           | { uri?: string; revision?: string | null }
           | undefined;
-        const rootUri = request?.uri ?? "local:///Users/ilya/Documents";
+        const rootUri = request?.uri ?? previewPathUri("Documents");
         return {
           repo: {
             rootUri,
@@ -656,36 +728,36 @@ export function createPreviewTransport(): IpcTransport {
             {
               id: "home",
               name: "Home",
-              uri: "local:///Users/ilya",
+              uri: previewHomeUri(),
               section: "Favorites",
             },
             {
               id: "documents",
               name: "Documents",
-              uri: "local:///Users/ilya/Documents",
+              uri: previewPathUri("Documents"),
               section: "User folders",
             },
             {
               id: "desktop",
               name: "Desktop",
-              uri: "local:///Users/ilya/Desktop",
+              uri: previewPathUri("Desktop"),
               section: "User folders",
             },
             {
               id: "downloads",
               name: "Downloads",
-              uri: "local:///Users/ilya/Downloads",
+              uri: previewPathUri("Downloads"),
               section: "User folders",
             },
             {
               id: "pictures",
               name: "Pictures",
-              uri: "local:///Users/ilya/Pictures",
+              uri: previewPathUri("Pictures"),
               section: "User folders",
             },
             {
               id: "macintosh-hd",
-              name: "Macintosh HD",
+              name: previewPlatform() === "windows" ? "Windows (C:)" : "Root",
               uri: "local:///",
               section: "Devices/Volumes",
             },
@@ -704,7 +776,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "fs.read_file_as_data_uri") {
         const request = args?.request as { uri?: string } | undefined;
-        const uri = request?.uri ?? "local:///Users/ilya/Documents/manual.pdf";
+        const uri = request?.uri ?? previewPathUri("Documents", "manual.pdf");
         const lower = uri.toLowerCase();
         const mimeType = lower.endsWith(".png")
           ? "image/png"
@@ -726,7 +798,7 @@ export function createPreviewTransport(): IpcTransport {
         const request = args?.request as
           | Partial<PathPropertiesRequest>
           | undefined;
-        const uri = request?.uri ?? "local:///Users/ilya";
+        const uri = request?.uri ?? previewHomeUri();
         return {
           properties: {
             uri,
@@ -762,6 +834,13 @@ export function createPreviewTransport(): IpcTransport {
         } as TResponse;
       }
 
+      if (command === "fs.sync_directories") {
+        const request = args?.request as
+          | Partial<SyncDirectoriesRequest>
+          | undefined;
+        return previewSyncDirectories(request) as TResponse;
+      }
+
       if (command === "fs.folder_size_start") {
         const request = args?.request as Partial<FolderSizeRequest> | undefined;
         const now = new Date().toISOString();
@@ -779,7 +858,7 @@ export function createPreviewTransport(): IpcTransport {
           for (const handler of folderSizeHandlers) {
             handler({
               jobId,
-              uri: request?.uri ?? "local:///Users/ilya",
+              uri: request?.uri ?? previewHomeUri(),
               summary,
             });
           }
@@ -826,7 +905,7 @@ export function createPreviewTransport(): IpcTransport {
           for (const handler of recursiveSearchCompletedHandlers) {
             handler({
               jobId,
-              uri: request?.uri ?? "local:///Users/ilya",
+              uri: request?.uri ?? previewHomeUri(),
               query: request?.query ?? "",
               result,
             });
@@ -1018,9 +1097,9 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "terminal.capabilities") {
         return {
-          defaultShell: "/bin/bash",
-          defaultArgs: ["-l"],
-          discoveredShells: ["/bin/bash", "/bin/zsh"],
+          defaultShell: previewDefaultShell(),
+          defaultArgs: previewDefaultShellArgs(),
+          discoveredShells: previewDiscoveredShells(),
           supportsSsh: true,
           cursorStyles: ["block", "bar", "underline"],
           themeIds: ["system", "dark", "light"],
@@ -1308,7 +1387,7 @@ boundary and a React TypeScript frontend.
 - Integrated terminal sessions scoped to the active pane
 
 \`\`\`ts
-const resourceUri = "local:///Users/ilya/FileOctopus/src/App.tsx";
+const resourceUri = "${previewPathUri("Projects", "FileOctopus", "src", "App.tsx")}";
 await fs.readTextFile({ uri: resourceUri, maxBytes: 10 * 1024 * 1024 });
 \`\`\`
 `;
@@ -1401,6 +1480,62 @@ function previewEntriesForUri(uri: string): FileEntryDto[] {
     entry("FileOctopus", "directory", null),
     entry("README.md", "file", 8200, "md"),
   ];
+}
+
+function previewSyncDirectories(
+  request: Partial<SyncDirectoriesRequest> | undefined,
+): SyncDirectoriesResponse {
+  const leftUri = request?.leftUri ?? previewPathUri("Documents");
+  const rightUri = request?.rightUri ?? previewPathUri("Pictures");
+  const comparison = request?.comparison ?? "size";
+  const leftEntries = previewEntriesForUri(leftUri);
+  const rightEntries = previewEntriesForUri(rightUri);
+  const leftByName = new Map(leftEntries.map((entry) => [entry.name, entry]));
+  const rightByName = new Map(rightEntries.map((entry) => [entry.name, entry]));
+  const names = Array.from(
+    new Set([...leftByName.keys(), ...rightByName.keys()]),
+  ).sort((left, right) => left.localeCompare(right));
+
+  return {
+    leftUri,
+    rightUri,
+    recursive: request?.recursive ?? false,
+    entries: names.map((name) => {
+      const left = leftByName.get(name) ?? null;
+      const right = rightByName.get(name) ?? null;
+      return {
+        name,
+        leftUri: left?.uri ?? null,
+        rightUri: right?.uri ?? null,
+        leftSize: left?.size ?? null,
+        rightSize: right?.size ?? null,
+        leftModified: left?.modifiedAt ?? null,
+        rightModified: right?.modifiedAt ?? null,
+        leftIsDir: left?.kind === "directory",
+        rightIsDir: right?.kind === "directory",
+        status: previewSyncStatus(left, right, comparison),
+      };
+    }),
+  };
+}
+
+function previewSyncStatus(
+  left: FileEntryDto | null,
+  right: FileEntryDto | null,
+  comparison: SyncDirectoriesRequest["comparison"],
+): string {
+  if (!left) return "onlyRight";
+  if (!right) return "onlyLeft";
+  if (comparison === "name") return "same";
+  if (comparison === "date") {
+    if (left.modifiedAt === right.modifiedAt) return "same";
+    if (!right.modifiedAt) return "newerLeft";
+    if (!left.modifiedAt) return "newerRight";
+    return left.modifiedAt > right.modifiedAt ? "newerLeft" : "newerRight";
+  }
+  return left.size === right.size && left.kind === right.kind
+    ? "same"
+    : "different";
 }
 
 function defaultNetworkOptions() {
@@ -1541,21 +1676,21 @@ function previewNetworkEntries(uri: string): FileEntryDto[] {
         "network:///cloud/google-drive",
         "Google Drive",
         "cloudDrive",
-        "local:///Users/you/Library/CloudStorage/GoogleDrive-user@example.com",
+        previewPathUri("Cloud", "Google Drive"),
         "cloud",
       ),
       entry(
         "network:///cloud/onedrive",
         "OneDrive",
         "cloudDrive",
-        "local:///Users/you/Library/CloudStorage/OneDrive-Personal",
+        previewPathUri("Cloud", "OneDrive"),
         "cloud",
       ),
       entry(
         "network:///cloud/icloud",
         "iCloud Drive",
         "cloudDrive",
-        "local:///Users/you/Library/Mobile Documents/com~apple~CloudDocs",
+        previewPathUri("Cloud", "iCloud Drive"),
         "cloud",
       ),
     ];

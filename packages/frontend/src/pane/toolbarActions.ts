@@ -1,4 +1,5 @@
 import type { CommandId } from "../commands/types";
+import type { SyncComparisonMode } from "../components/dialogs/SyncDirectoriesDialog";
 import type { ToolbarDropdownsProps } from "./ToolbarDropdowns";
 
 export interface ToolbarActionHandlers {
@@ -12,6 +13,7 @@ export interface ToolbarActionHandlers {
   onCommandSearch: () => void;
   onView: () => void;
   onCommand: (commandId: CommandId) => void;
+  onSyncDirectories: (comparison: SyncComparisonMode) => void;
   onCustomizeToolbar: () => void;
   dropdowns: ToolbarDropdownsProps;
 }

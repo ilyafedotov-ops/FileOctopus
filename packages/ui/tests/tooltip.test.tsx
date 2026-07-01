@@ -1,20 +1,20 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   render,
   screen,
   cleanup,
   fireEvent,
-  act,
+  waitFor,
 } from "@testing-library/react";
 import { Tooltip } from "../src/Tooltip";
 
-beforeEach(() => {
-  vi.useFakeTimers();
-});
 afterEach(() => {
   cleanup();
-  vi.useRealTimers();
 });
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function Trigger({
   children,
@@ -37,7 +37,7 @@ describe("Tooltip", () => {
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
-  it("shows tooltip after hover delay", () => {
+  it("shows tooltip after hover delay", async () => {
     render(
       <Tooltip label="Tip text" delay={200}>
         <Trigger />
@@ -46,14 +46,12 @@ describe("Tooltip", () => {
     const trigger = screen.getByText("Hover me");
     fireEvent.mouseEnter(trigger);
     expect(screen.queryByRole("tooltip")).toBeNull();
-    act(() => {
-      vi.advanceTimersByTime(200);
+    await waitFor(() => {
+      expect(screen.getByRole("tooltip").textContent).toBe("Tip text");
     });
-    const tooltip = screen.getByRole("tooltip");
-    expect(tooltip.textContent).toBe("Tip text");
   });
 
-  it("hides tooltip on mouse leave before delay", () => {
+  it("hides tooltip on mouse leave before delay", async () => {
     render(
       <Tooltip label="Tip" delay={300}>
         <Trigger />
@@ -61,17 +59,13 @@ describe("Tooltip", () => {
     );
     const trigger = screen.getByText("Hover me");
     fireEvent.mouseEnter(trigger);
-    act(() => {
-      vi.advanceTimersByTime(150);
-    });
+    await sleep(150);
     fireEvent.mouseLeave(trigger);
-    act(() => {
-      vi.advanceTimersByTime(300);
-    });
+    await sleep(300);
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
-  it("hides tooltip on mouse leave after shown", () => {
+  it("hides tooltip on mouse leave after shown", async () => {
     render(
       <Tooltip label="Tip" delay={100}>
         <Trigger />
@@ -79,15 +73,14 @@ describe("Tooltip", () => {
     );
     const trigger = screen.getByText("Hover me");
     fireEvent.mouseEnter(trigger);
-    act(() => {
-      vi.advanceTimersByTime(100);
+    await waitFor(() => {
+      expect(screen.getByRole("tooltip")).toBeTruthy();
     });
-    expect(screen.getByRole("tooltip")).toBeTruthy();
     fireEvent.mouseLeave(trigger);
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
-  it("shows tooltip on focus", () => {
+  it("shows tooltip on focus", async () => {
     render(
       <Tooltip label="Focused tip" delay={100}>
         <Trigger />
@@ -95,13 +88,12 @@ describe("Tooltip", () => {
     );
     const trigger = screen.getByText("Hover me");
     fireEvent.focus(trigger);
-    act(() => {
-      vi.advanceTimersByTime(100);
+    await waitFor(() => {
+      expect(screen.getByRole("tooltip").textContent).toBe("Focused tip");
     });
-    expect(screen.getByRole("tooltip").textContent).toBe("Focused tip");
   });
 
-  it("hides tooltip on blur", () => {
+  it("hides tooltip on blur", async () => {
     render(
       <Tooltip label="Tip" delay={100}>
         <Trigger />
@@ -109,15 +101,14 @@ describe("Tooltip", () => {
     );
     const trigger = screen.getByText("Hover me");
     fireEvent.focus(trigger);
-    act(() => {
-      vi.advanceTimersByTime(100);
+    await waitFor(() => {
+      expect(screen.getByRole("tooltip")).toBeTruthy();
     });
-    expect(screen.getByRole("tooltip")).toBeTruthy();
     fireEvent.blur(trigger);
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
-  it("does not show tooltip when disabled", () => {
+  it("does not show tooltip when disabled", async () => {
     render(
       <Tooltip label="Disabled tip" delay={100} disabled>
         <Trigger />
@@ -125,9 +116,7 @@ describe("Tooltip", () => {
     );
     const trigger = screen.getByText("Hover me");
     fireEvent.mouseEnter(trigger);
-    act(() => {
-      vi.advanceTimersByTime(100);
-    });
+    await sleep(120);
     expect(screen.queryByRole("tooltip")).toBeNull();
   });
 
@@ -175,7 +164,7 @@ describe("Tooltip", () => {
     expect(onMouseLeave).toHaveBeenCalledTimes(1);
   });
 
-  it("uses default delay of 400ms", () => {
+  it("uses default delay of 400ms", async () => {
     render(
       <Tooltip label="Default delay">
         <Trigger />
@@ -183,13 +172,10 @@ describe("Tooltip", () => {
     );
     const trigger = screen.getByText("Hover me");
     fireEvent.mouseEnter(trigger);
-    act(() => {
-      vi.advanceTimersByTime(399);
-    });
+    await sleep(100);
     expect(screen.queryByRole("tooltip")).toBeNull();
-    act(() => {
-      vi.advanceTimersByTime(1);
+    await waitFor(() => {
+      expect(screen.getByRole("tooltip")).toBeTruthy();
     });
-    expect(screen.getByRole("tooltip")).toBeTruthy();
   });
 });

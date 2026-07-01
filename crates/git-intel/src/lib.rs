@@ -8,6 +8,17 @@ use similar::TextDiff;
 use thiserror::Error;
 use vfs::ResourceUri;
 
+const GIT_REPOSITORY_ENV_VARS: &[&str] = &[
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_COMMON_DIR",
+    "GIT_NAMESPACE",
+    "GIT_PREFIX",
+];
+
 #[derive(Clone, Default)]
 pub struct GitService;
 
@@ -805,7 +816,7 @@ fn relative_git_path(root: &Path, file_path: &Path) -> Result<String, GitError> 
 }
 
 fn git_has_head(path: &Path) -> Result<bool, GitError> {
-    let output = Command::new("git")
+    let output = git_command()
         .arg("-C")
         .arg(path)
         .args(["rev-parse", "--verify", "HEAD"])
@@ -826,7 +837,7 @@ fn git_blob_bytes_at(
     revision: &str,
     relative_path: &str,
 ) -> Result<Vec<u8>, GitError> {
-    let output = Command::new("git")
+    let output = git_command()
         .arg("-C")
         .arg(path)
         .arg("show")
@@ -868,7 +879,7 @@ enum GitCommandOutput {
 }
 
 fn git_output(path: &Path, args: &[&str]) -> Result<GitCommandOutput, GitError> {
-    let output = Command::new("git")
+    let output = git_command()
         .arg("-C")
         .arg(path)
         .args(args)
@@ -887,6 +898,14 @@ fn git_output(path: &Path, args: &[&str]) -> Result<GitCommandOutput, GitError> 
     }
 
     Err(GitError::CommandFailed(stderr.trim().to_string()))
+}
+
+fn git_command() -> Command {
+    let mut command = Command::new("git");
+    for name in GIT_REPOSITORY_ENV_VARS {
+        command.env_remove(name);
+    }
+    command
 }
 
 fn parse_porcelain_status(
@@ -1274,5 +1293,24 @@ fn status_from_name_status(status: &str) -> GitFileStatus {
         Some(b'D') => GitFileStatus::Deleted,
         Some(b'R') | Some(b'C') => GitFileStatus::Renamed,
         _ => GitFileStatus::Unknown,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{git_command, GIT_REPOSITORY_ENV_VARS};
+
+    #[test]
+    fn git_command_removes_repository_environment_overrides() {
+        let command = git_command();
+
+        for expected_name in GIT_REPOSITORY_ENV_VARS {
+            let removed = command
+                .get_envs()
+                .find(|(name, _)| name == expected_name)
+                .map(|(_, value)| value.is_none())
+                .unwrap_or(false);
+            assert!(removed, "{expected_name} was not removed");
+        }
     }
 }
