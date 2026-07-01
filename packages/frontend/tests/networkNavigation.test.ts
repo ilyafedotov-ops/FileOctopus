@@ -267,17 +267,36 @@ describe("navigation controller remote navigation", () => {
     expect(syncTerminalCwd).not.toHaveBeenCalled();
   });
 
-  it("opens terminals from network virtual locations in the home folder", () => {
+  it("opens terminals from network virtual locations in the resolved home folder", () => {
+    localStorage.removeItem("fileoctopus.homeUri");
+
+    expect(terminalLaunchUri("network:///", "local:///Users/tester")).toBe(
+      "local:///Users/tester",
+    );
+    expect(
+      terminalLaunchUri(
+        "network:///lan/smb/fileserver",
+        "local:///Users/tester",
+      ),
+    ).toBe("local:///Users/tester");
+    expect(terminalLaunchUri("local:///tmp", "local:///Users/tester")).toBe(
+      "local:///tmp",
+    );
+    expect(
+      terminalLaunchUri(
+        "sftp://550e8400-e29b-41d4-a716-446655440000/",
+        "local:///Users/tester",
+      ),
+    ).toBe("sftp://550e8400-e29b-41d4-a716-446655440000/");
+  });
+
+  it("falls back to stored home for network virtual terminal locations", () => {
     localStorage.setItem("fileoctopus.homeUri", "local:///Users/ilya");
 
     expect(terminalLaunchUri("network:///")).toBe("local:///Users/ilya");
     expect(terminalLaunchUri("network:///lan/smb/fileserver")).toBe(
       "local:///Users/ilya",
     );
-    expect(terminalLaunchUri("local:///tmp")).toBe("local:///tmp");
-    expect(
-      terminalLaunchUri("sftp://550e8400-e29b-41d4-a716-446655440000/"),
-    ).toBe("sftp://550e8400-e29b-41d4-a716-446655440000/");
 
     localStorage.removeItem("fileoctopus.homeUri");
   });

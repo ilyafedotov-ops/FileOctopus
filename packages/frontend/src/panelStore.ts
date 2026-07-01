@@ -270,8 +270,11 @@ export function parentUri(uri: string): string | null {
   return resolveParentUri(uri);
 }
 
-export function terminalLaunchUri(uri: string): string {
-  return uri.startsWith("network:///") ? homeUri() : uri;
+export function terminalLaunchUri(
+  uri: string,
+  fallbackHomeUri?: string,
+): string {
+  return uri.startsWith("network:///") ? (fallbackHomeUri ?? homeUri()) : uri;
 }
 
 function createPanel(id: PanelId, uri: string): PanelState {

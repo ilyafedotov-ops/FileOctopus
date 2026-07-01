@@ -429,6 +429,10 @@ function FileOctopusAppInner({
 
   const statusBarVisible = preferences?.statusBarVisible !== false;
   const toolbarVisible = preferences?.toolbarVisible !== false;
+  const terminalHomeUri = useMemo(
+    () => locations.find((location) => location.id === "home")?.uri,
+    [locations],
+  );
 
   const {
     connectProfile,
@@ -516,7 +520,10 @@ function FileOctopusAppInner({
     handleExtract,
     handleChecksum,
     openEmbeddedTerminal: (panelId) => {
-      const uri = terminalLaunchUri(activeTab(state.panels[panelId]).uri);
+      const uri = terminalLaunchUri(
+        activeTab(state.panels[panelId]).uri,
+        terminalHomeUri,
+      );
       void openEmbeddedTerminal(uri, panelId).catch((error: unknown) => {
         pushToast({
           tone: "error",
@@ -526,7 +533,10 @@ function FileOctopusAppInner({
       });
     },
     togglePaneTerminal: (panelId) => {
-      const uri = terminalLaunchUri(activeTab(state.panels[panelId]).uri);
+      const uri = terminalLaunchUri(
+        activeTab(state.panels[panelId]).uri,
+        terminalHomeUri,
+      );
       void togglePaneTerminal(uri, panelId).catch((error: unknown) => {
         pushToast({
           tone: "error",
@@ -536,7 +546,10 @@ function FileOctopusAppInner({
       });
     },
     openTerminalExternal: (panelId) => {
-      const uri = terminalLaunchUri(activeTab(state.panels[panelId]).uri);
+      const uri = terminalLaunchUri(
+        activeTab(state.panels[panelId]).uri,
+        terminalHomeUri,
+      );
       void openExternalTerminal(uri).catch(() => {
         pushToast({
           tone: "error",
@@ -567,7 +580,10 @@ function FileOctopusAppInner({
       });
     },
     spawnAndRunTerminalCommand: (panelId, command) => {
-      const uri = terminalLaunchUri(activeTab(state.panels[panelId]).uri);
+      const uri = terminalLaunchUri(
+        activeTab(state.panels[panelId]).uri,
+        terminalHomeUri,
+      );
       void spawnAndRunTerminalCommand(uri, command, panelId).catch(
         (error: unknown) => {
           pushToast({
