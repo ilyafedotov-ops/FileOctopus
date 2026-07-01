@@ -419,7 +419,9 @@ impl OperationRuntime {
                 uri: job_id.to_string(),
             })?;
 
-        state.user_cancelled.store(true, Ordering::SeqCst);
+        if !state.timed_out.load(Ordering::SeqCst) {
+            state.user_cancelled.store(true, Ordering::SeqCst);
+        }
         state.cancel.cancel();
         telemetry::info(&format!(
             "operation job cancellation requested job_id={job_id}"

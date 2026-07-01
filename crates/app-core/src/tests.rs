@@ -192,6 +192,68 @@ fn user_cancelled_idle_job_stays_cancelled_after_timeout_window() {
 }
 
 #[test]
+fn late_user_cancel_after_watchdog_timeout_stays_timeout() {
+    let dir = tempfile::tempdir().unwrap();
+    let runtime = OperationRuntime::with_settings(
+        local_vfs(),
+        OperationHistoryRepository::new(dir.path().join("history.sqlite")).unwrap(),
+        RuntimeSettings {
+            worker_count: 1,
+            idle_timeout: Some(Duration::from_millis(100)),
+        },
+    );
+    let (event_sender, event_receiver) = mpsc::channel();
+    let (watchdog_sender, watchdog_receiver) = mpsc::channel();
+    let (release_sender, release_receiver) = mpsc::channel();
+
+    let job = runtime
+        .start_with_executor(
+            noop_plan(),
+            Arc::new(move |event| {
+                let _ = event_sender.send(event);
+            }),
+            move |_vfs, _plan, job, cancel, _pause, _progress| loop {
+                if cancel.is_cancelled() {
+                    let _ = watchdog_sender.send(());
+                    release_receiver
+                        .recv_timeout(Duration::from_secs(5))
+                        .unwrap();
+                    return Err(vfs::FileOperationError::Cancelled {
+                        job_id: Some(job.as_str().to_string()),
+                    });
+                }
+                std::thread::sleep(Duration::from_millis(20));
+            },
+        )
+        .unwrap();
+
+    watchdog_receiver
+        .recv_timeout(Duration::from_secs(5))
+        .unwrap();
+    runtime.cancel(job.job_id.as_str()).unwrap();
+    release_sender.send(()).unwrap();
+
+    let terminal = loop {
+        let event = event_receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+        if matches!(
+            event,
+            JobEvent::Failed(_) | JobEvent::Completed(_) | JobEvent::Cancelled(_)
+        ) {
+            break event;
+        }
+    };
+
+    match terminal {
+        JobEvent::Failed(failed) => assert_eq!(failed.error_code, "timeout"),
+        other => panic!("expected Failed(timeout), got {other:?}"),
+    }
+
+    let history = runtime.recent_history(10);
+    assert_eq!(history[0].status, "failed");
+    assert_eq!(history[0].error_code.as_deref(), Some("timeout"));
+}
+
+#[test]
 fn set_idle_timeout_enables_watchdog_live() {
     let dir = tempfile::tempdir().unwrap();
     let runtime = OperationRuntime::with_settings(
