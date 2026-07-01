@@ -112,7 +112,7 @@ const listRecentOperations = vi.fn(async () => ({ operations: [] }));
 const clearOperationHistory = vi.fn(async () => ({ ok: true }));
 const getAppInfo = vi.fn(async () => ({
   name: "FileOctopus",
-  version: "0.1.0",
+  version: "0.1.1",
 }));
 const appDataHealth = vi.fn(async () => ({ healthy: true, issues: [] }));
 const exportBundle = vi.fn(async () => ({ exportedFiles: 1 }));

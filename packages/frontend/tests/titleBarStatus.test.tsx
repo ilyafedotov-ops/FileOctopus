@@ -1,7 +1,12 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { TitleBar } from "../src/shell/TitleBar";
+import type { MenuBarProps } from "../src/shell/MenuBar";
 import { buildTitleBarStatus } from "../src/shell/titleBarStatus";
+
+vi.mock("../src/shell/MenuBar", () => ({
+  MenuBar: () => <div role="menubar" />,
+}));
 
 describe("title bar status", () => {
   it("builds a dirty git status item for local repositories", () => {
@@ -74,5 +79,17 @@ describe("title bar status", () => {
 
     expect(screen.getByTitle("Git branch main with changes")).toBeTruthy();
     expect(screen.getByTitle("Last operation reported a problem")).toBeTruthy();
+  });
+
+  it("hides the in-window menu bar when the native menu is active", () => {
+    render(
+      <TitleBar
+        onSettings={() => undefined}
+        menuBarProps={{} as MenuBarProps}
+        nativeMenuActive
+      />,
+    );
+
+    expect(screen.queryByRole("menubar")).toBeNull();
   });
 });

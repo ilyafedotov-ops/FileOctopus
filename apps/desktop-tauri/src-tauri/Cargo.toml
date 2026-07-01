@@ -1,6 +1,6 @@
 [package]
 name = "fileoctopus-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "FileOctopus desktop shell"
 authors = ["Ilya Fedotov"]
 edition = "2021"

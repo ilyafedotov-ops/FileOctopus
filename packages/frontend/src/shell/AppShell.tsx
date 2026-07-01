@@ -23,6 +23,8 @@ const showDebug =
   typeof globalThis.localStorage === "object" &&
   globalThis.localStorage.getItem("fo-debug") === "1";
 
+const NATIVE_MENU_TARGET_OS = new Set(["linux", "macos", "windows"]);
+
 function DebugOverlay() {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -85,6 +87,7 @@ export function AppShell({
 }) {
   const {
     handleShellKeyDown,
+    appInfo,
     client,
     menuBarProps,
     networkStatuses,
@@ -95,6 +98,7 @@ export function AppShell({
   } = useShellLayout();
   const activeUri = activeTab(state.panels[state.activePanelId]).uri;
   const titlePath = localPathFromUri(activeTab(state.panels.left).uri);
+  const nativeMenuActive = NATIVE_MENU_TARGET_OS.has(appInfo?.targetOs ?? "");
   const gitStatus = usePaneGitStatus(client, activeUri);
   const statusItems = buildTitleBarStatus({
     activeUri,
@@ -110,6 +114,7 @@ export function AppShell({
           <TitleBar
             onSettings={() => setSettingsOpen(true)}
             menuBarProps={menuBarProps}
+            nativeMenuActive={nativeMenuActive}
             statusItems={statusItems}
             titlePath={titlePath}
             windowControls={windowControls}

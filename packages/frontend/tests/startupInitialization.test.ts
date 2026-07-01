@@ -10,7 +10,7 @@ import { useStartupInitialization } from "../src/hooks/useStartupInitialization"
 
 const appInfo = {
   name: "FileOctopus",
-  version: "0.1.0",
+  version: "0.1.1",
   tauriVersion: "2.0.0",
   platform: "linux",
   debug: false,

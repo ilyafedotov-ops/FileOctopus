@@ -4,6 +4,7 @@ import { AppShell } from "../src/shell/AppShell";
 import type { ShellLayoutContextValue } from "../src/shell/ShellLayoutContext";
 import { ShellLayoutProvider } from "../src/shell/ShellLayoutContext";
 import { createInitialState } from "../src/panelStore";
+import type { AppInfoResponse } from "@fileoctopus/ts-api";
 
 vi.mock("../src/components/ErrorBoundary", () => ({
   ErrorBoundary: ({ children }: { children: React.ReactNode }) => (
@@ -18,12 +19,17 @@ vi.mock("../src/pane/usePaneGitStatus", () => ({
 vi.mock("../src/shell/TitleBar", () => ({
   TitleBar: ({
     onSettings,
+    nativeMenuActive,
     titlePath,
   }: {
     onSettings: () => void;
+    nativeMenuActive?: boolean;
     titlePath: string;
   }) => (
-    <div data-testid="title-bar">
+    <div
+      data-native-menu-active={String(Boolean(nativeMenuActive))}
+      data-testid="title-bar"
+    >
       <span data-testid="title-path">{titlePath}</span>
       <button onClick={onSettings} data-testid="settings-btn">
         Settings
@@ -204,6 +210,18 @@ function makeCtx(
   } as ShellLayoutContextValue;
 }
 
+function appInfoForTargetOs(targetOs: string): AppInfoResponse {
+  return {
+    name: "FileOctopus",
+    version: "0.1.1",
+    buildProfile: "release",
+    commitSha: "abcdef1",
+    targetOs,
+    dataDir: "/tmp/fileoctopus",
+    networkEnabled: true,
+  };
+}
+
 function renderShell(
   ctxOverrides: Partial<ShellLayoutContextValue> = {},
   children?: {
@@ -254,6 +272,29 @@ describe("AppShell", () => {
   it("renders the TitleBar", () => {
     renderShell();
     expect(screen.getByTestId("title-bar")).toBeTruthy();
+  });
+
+  it.each(["macos", "linux", "windows"])(
+    "marks the native menu active on desktop target %s",
+    (targetOs) => {
+      renderShell({
+        appInfo: appInfoForTargetOs(targetOs),
+      });
+
+      expect(screen.getByTestId("title-bar").dataset.nativeMenuActive).toBe(
+        "true",
+      );
+    },
+  );
+
+  it("keeps the in-window menu path for browser preview", () => {
+    renderShell({
+      appInfo: appInfoForTargetOs("browser"),
+    });
+
+    expect(screen.getByTestId("title-bar").dataset.nativeMenuActive).toBe(
+      "false",
+    );
   });
 
   it("renders the toolbar slot", () => {

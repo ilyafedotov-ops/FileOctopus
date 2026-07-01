@@ -11,6 +11,7 @@ export interface WindowControlHandlers {
 interface TitleBarProps {
   onSettings: () => void;
   menuBarProps?: MenuBarProps;
+  nativeMenuActive?: boolean;
   statusItems?: TitleBarStatusItem[];
   titlePath?: string;
   windowControls?: WindowControlHandlers;
@@ -19,6 +20,7 @@ interface TitleBarProps {
 export function TitleBar({
   onSettings,
   menuBarProps,
+  nativeMenuActive = false,
   statusItems = [],
   titlePath = "FileOctopus",
   windowControls,
@@ -62,7 +64,7 @@ export function TitleBar({
           ),
         )}
       </div>
-      {menuBarProps ? (
+      {menuBarProps && !nativeMenuActive ? (
         <div className="fo-menubar-host" data-tauri-drag-region="false">
           <MenuBar {...menuBarProps} />
         </div>
