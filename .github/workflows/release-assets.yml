@@ -74,7 +74,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.event.release.tag_name || inputs.tag }}
         run: |
-          mapfile -d '' files < <(
+          files=()
+          while IFS= read -r -d '' file; do
+            files+=("$file")
+          done < <(
             find target/release/bundle -type f \
               \( -name "*.dmg" \
                 -o -name "*.msi" \
