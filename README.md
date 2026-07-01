@@ -7,13 +7,13 @@ execution.
 
 ## Status
 
-FileOctopus is pre-1.0 and preparing its first public source release,
-`v0.1.0`. Core local browsing, file operations, navigation, job progress,
-preferences, diagnostics, Git status, embedded terminal, remote providers, cloud
-provider connectors, plugins, archive browsing, previews, diff/merge, ACLs, and
-sync features are present on `main`.
+FileOctopus is pre-1.0. Current release `v0.1.3` includes the core local
+browsing, file operations, navigation, job progress, preferences, diagnostics,
+Git status, embedded terminal, remote providers, cloud provider connectors,
+plugins, archive browsing, previews, diff/merge, ACLs, and sync features present
+on `main`.
 
-See the [v0.1.0 release notes](docs/release-notes/v0.1.0.md) for supported
+See the [v0.1.3 release notes](docs/release-notes/v0.1.3.md) for supported
 features, platform status, and known limitations.
 
 ## Interface Preview

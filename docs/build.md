@@ -20,4 +20,4 @@ Tauri runs `corepack pnpm build` before packaging, uses the release Rust profile
 
 ## Metadata
 
-The packaged app identifies as `com.fileoctopus.desktop`, product name `FileOctopus`, version `0.1.0`. The diagnostics panel shows version, build profile, commit SHA when supplied, target OS, data directory, log directory, and database schema version.
+The packaged app identifies as `com.fileoctopus.desktop`, product name `FileOctopus`, version `0.1.3`. The diagnostics panel shows version, build profile, commit SHA when supplied, target OS, data directory, log directory, and database schema version.
