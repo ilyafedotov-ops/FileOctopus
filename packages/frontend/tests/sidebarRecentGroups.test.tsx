@@ -65,6 +65,21 @@ describe("Sidebar recent groups", () => {
     expect(screen.getByText("projects")).toBeTruthy();
   });
 
+  it("does not render empty hint when This Week has entries", () => {
+    renderSidebar({
+      recentWeek: [
+        {
+          uri: "local:///home/projects",
+          label: "projects",
+          visitedAt: "2026-05-22T10:00:00Z",
+        },
+      ],
+    });
+    expect(screen.getByText("This Week")).toBeTruthy();
+    expect(screen.getByText("projects")).toBeTruthy();
+    expect(screen.queryByText("No recent folders")).toBeNull();
+  });
+
   it("renders both Today and This Week when both have entries", () => {
     renderSidebar({
       recentToday: [

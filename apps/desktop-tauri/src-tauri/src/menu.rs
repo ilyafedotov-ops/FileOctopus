@@ -49,6 +49,8 @@ const DIRECT_COMMAND_IDS: &[&str] = &[
     "nav.home",
     "nav.goToLocation",
     "nav.volumePicker",
+    "nav.networkLocations",
+    "nav.addServer",
     "nav.addFavorite",
     "nav.manageFavorites",
     "nav.recentLocations",
@@ -64,9 +66,11 @@ const DIRECT_COMMAND_IDS: &[&str] = &[
     "app.operationHistory",
     "app.diagnostics",
     "layout.switchPane",
+    "layout.togglePaneDirection",
     "layout.swapPanes",
     "layout.equalizePanes",
     "app.shortcuts",
+    "app.documentation",
     "app.about",
     "app.settings",
 ];
@@ -490,6 +494,18 @@ pub(crate) fn build_native_menu<R: Runtime, M: Manager<R>>(manager: &M) -> tauri
             "Volumes...",
             None,
         )?)
+        .item(&command_item(
+            manager,
+            "nav.networkLocations",
+            "Network Locations",
+            None,
+        )?)
+        .item(&command_item(
+            manager,
+            "nav.addServer",
+            "Add Connection...",
+            None,
+        )?)
         .separator()
         .item(&command_item(
             manager,
@@ -584,6 +600,12 @@ pub(crate) fn build_native_menu<R: Runtime, M: Manager<R>>(manager: &M) -> tauri
             "Switch Active Pane",
             None,
         )?)
+        .item(&command_item(
+            manager,
+            "layout.togglePaneDirection",
+            "Toggle Pane Direction",
+            None,
+        )?)
         .separator()
         .item(&command_item(
             manager,
@@ -605,6 +627,12 @@ pub(crate) fn build_native_menu<R: Runtime, M: Manager<R>>(manager: &M) -> tauri
             "app.shortcuts",
             "Keyboard Shortcuts...",
             Some("CmdOrCtrl+/"),
+        )?)
+        .item(&command_item(
+            manager,
+            "app.documentation",
+            "Documentation...",
+            None,
         )?)
         .separator()
         .item(&command_item(
@@ -662,5 +690,21 @@ mod tests {
         assert_eq!(payload.command_id, "op.rename");
         assert_eq!(payload.sort_field, None);
         assert_eq!(payload.preference_value, None);
+    }
+
+    #[test]
+    fn maps_native_only_parity_menu_ids_to_command_payloads() {
+        for id in [
+            "nav.networkLocations",
+            "nav.addServer",
+            "layout.togglePaneDirection",
+            "app.documentation",
+        ] {
+            let payload = native_menu_command(id).unwrap();
+
+            assert_eq!(payload.command_id, id);
+            assert_eq!(payload.sort_field, None);
+            assert_eq!(payload.preference_value, None);
+        }
     }
 }
