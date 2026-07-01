@@ -11,6 +11,8 @@ import type {
   RecursiveSearchCompletedEventDto,
   RecursiveSearchRequest,
   SetPreferenceRequest,
+  SyncDirectoriesRequest,
+  SyncDirectoriesResponse,
   TerminalProfileDto,
   TerminalSessionDto,
   TerminalSessionEventDto,
@@ -832,6 +834,13 @@ export function createPreviewTransport(): IpcTransport {
         } as TResponse;
       }
 
+      if (command === "fs.sync_directories") {
+        const request = args?.request as
+          | Partial<SyncDirectoriesRequest>
+          | undefined;
+        return previewSyncDirectories(request) as TResponse;
+      }
+
       if (command === "fs.folder_size_start") {
         const request = args?.request as Partial<FolderSizeRequest> | undefined;
         const now = new Date().toISOString();
@@ -1471,6 +1480,62 @@ function previewEntriesForUri(uri: string): FileEntryDto[] {
     entry("FileOctopus", "directory", null),
     entry("README.md", "file", 8200, "md"),
   ];
+}
+
+function previewSyncDirectories(
+  request: Partial<SyncDirectoriesRequest> | undefined,
+): SyncDirectoriesResponse {
+  const leftUri = request?.leftUri ?? previewPathUri("Documents");
+  const rightUri = request?.rightUri ?? previewPathUri("Pictures");
+  const comparison = request?.comparison ?? "size";
+  const leftEntries = previewEntriesForUri(leftUri);
+  const rightEntries = previewEntriesForUri(rightUri);
+  const leftByName = new Map(leftEntries.map((entry) => [entry.name, entry]));
+  const rightByName = new Map(rightEntries.map((entry) => [entry.name, entry]));
+  const names = Array.from(
+    new Set([...leftByName.keys(), ...rightByName.keys()]),
+  ).sort((left, right) => left.localeCompare(right));
+
+  return {
+    leftUri,
+    rightUri,
+    recursive: request?.recursive ?? false,
+    entries: names.map((name) => {
+      const left = leftByName.get(name) ?? null;
+      const right = rightByName.get(name) ?? null;
+      return {
+        name,
+        leftUri: left?.uri ?? null,
+        rightUri: right?.uri ?? null,
+        leftSize: left?.size ?? null,
+        rightSize: right?.size ?? null,
+        leftModified: left?.modifiedAt ?? null,
+        rightModified: right?.modifiedAt ?? null,
+        leftIsDir: left?.kind === "directory",
+        rightIsDir: right?.kind === "directory",
+        status: previewSyncStatus(left, right, comparison),
+      };
+    }),
+  };
+}
+
+function previewSyncStatus(
+  left: FileEntryDto | null,
+  right: FileEntryDto | null,
+  comparison: SyncDirectoriesRequest["comparison"],
+): string {
+  if (!left) return "onlyRight";
+  if (!right) return "onlyLeft";
+  if (comparison === "name") return "same";
+  if (comparison === "date") {
+    if (left.modifiedAt === right.modifiedAt) return "same";
+    if (!right.modifiedAt) return "newerLeft";
+    if (!left.modifiedAt) return "newerRight";
+    return left.modifiedAt > right.modifiedAt ? "newerLeft" : "newerRight";
+  }
+  return left.size === right.size && left.kind === right.kind
+    ? "same"
+    : "different";
 }
 
 function defaultNetworkOptions() {

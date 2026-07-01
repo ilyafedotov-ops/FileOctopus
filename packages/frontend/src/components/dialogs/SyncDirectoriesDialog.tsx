@@ -63,16 +63,22 @@ export function SyncDirectoriesDialog({
   initialComparison = "size",
   onClose,
 }: SyncDirectoriesDialogProps) {
-  const [comparison, setComparison] =
-    useState<SyncComparisonMode>(initialComparison);
+  const [comparisonState, setComparisonState] = useState({
+    seed: initialComparison,
+    value: initialComparison,
+  });
   const [recursive, setRecursive] = useState(false);
   const [result, setResult] = useState<SyncDirectoriesResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const comparison =
+    comparisonState.seed === initialComparison
+      ? comparisonState.value
+      : initialComparison;
 
   useEffect(() => {
     if (!open) return;
-    setComparison(initialComparison);
+    setComparisonState({ seed: initialComparison, value: initialComparison });
   }, [open, initialComparison]);
 
   useEffect(() => {
@@ -154,7 +160,10 @@ export function SyncDirectoriesDialog({
             <select
               value={comparison}
               onChange={(e) =>
-                setComparison(e.target.value as SyncComparisonMode)
+                setComparisonState({
+                  seed: initialComparison,
+                  value: e.target.value as SyncComparisonMode,
+                })
               }
             >
               <option value="name">Name</option>

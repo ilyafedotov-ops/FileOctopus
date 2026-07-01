@@ -6,6 +6,7 @@ import type {
   NetworkProfileTestResponse,
   NetworkProvidersListResponse,
   StandardLocationsResponse,
+  SyncDirectoriesResponse,
 } from "../src/types";
 
 describe("preview transport — platform-safe fixtures", () => {
@@ -25,6 +26,32 @@ describe("preview transport — platform-safe fixtures", () => {
     expect(serialized).not.toContain("/tmp/fileoctopus-diagnostics.zip");
     expect(health.databasePath).toContain("fileoctopus");
     expect(locations.locations[0].uri).toMatch(/^local:\/\//);
+  });
+
+  it("returns a deterministic sync directories response for browser preview", async () => {
+    const leftUri = "local:///Users/preview/Documents";
+    const rightUri = "local:///Users/preview/Pictures";
+
+    const response = await transport.invoke<SyncDirectoriesResponse>(
+      "fs.sync_directories",
+      {
+        request: {
+          leftUri,
+          rightUri,
+          comparison: "size",
+          recursive: false,
+        },
+      },
+    );
+
+    expect(response.leftUri).toBe(leftUri);
+    expect(response.rightUri).toBe(rightUri);
+    expect(response.recursive).toBe(false);
+    expect(response.entries.length).toBeGreaterThan(0);
+    expect(response.entries.map((entry) => entry.status)).toContain("onlyLeft");
+    expect(response.entries.map((entry) => entry.status)).toContain(
+      "onlyRight",
+    );
   });
 });
 
