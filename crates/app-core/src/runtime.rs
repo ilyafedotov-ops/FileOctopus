@@ -250,11 +250,13 @@ impl OperationRuntime {
         let token = CancellationToken::new();
         let pause_token = PauseToken::new();
         let timed_out = Arc::new(AtomicBool::new(false));
+        let user_cancelled = Arc::new(AtomicBool::new(false));
         let state = JobRuntimeState {
             snapshot: snapshot.clone(),
             cancel: token.clone(),
             pause: pause_token.clone(),
             timed_out: timed_out.clone(),
+            user_cancelled: user_cancelled.clone(),
         };
 
         self.jobs
@@ -323,7 +325,10 @@ impl OperationRuntime {
                         completed_at,
                     }));
                 }
-                Err(FileOperationError::Cancelled { .. }) if timed_out.load(Ordering::SeqCst) => {
+                Err(FileOperationError::Cancelled { .. })
+                    if timed_out.load(Ordering::SeqCst)
+                        && !user_cancelled.load(Ordering::SeqCst) =>
+                {
                     // The watchdog cancelled this job for inactivity; surface it
                     // as a timeout failure rather than a user cancellation.
                     let failed_at = Utc::now();
@@ -414,6 +419,9 @@ impl OperationRuntime {
                 uri: job_id.to_string(),
             })?;
 
+        if !state.timed_out.load(Ordering::SeqCst) {
+            state.user_cancelled.store(true, Ordering::SeqCst);
+        }
         state.cancel.cancel();
         telemetry::info(&format!(
             "operation job cancellation requested job_id={job_id}"
@@ -519,6 +527,7 @@ struct JobRuntimeState {
     cancel: CancellationToken,
     pause: PauseToken,
     timed_out: Arc<AtomicBool>,
+    user_cancelled: Arc<AtomicBool>,
 }
 
 fn worker_loop(receiver: &Arc<Mutex<mpsc::Receiver<QueuedJob>>>) {
@@ -567,7 +576,9 @@ fn watchdog_loop(
             break;
         };
         for state in jobs.values() {
-            if state.snapshot.status != JobStatus::Running || state.timed_out.load(Ordering::SeqCst)
+            if state.snapshot.status != JobStatus::Running
+                || state.timed_out.load(Ordering::SeqCst)
+                || state.user_cancelled.load(Ordering::SeqCst)
             {
                 continue;
             }

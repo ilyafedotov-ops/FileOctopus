@@ -153,6 +153,7 @@ export function Sidebar({
     }),
     {},
   );
+  const hasRecentItems = recentToday.length > 0 || recentWeek.length > 0;
 
   useEffect(() => {
     if (renamingFavoriteId != null && renameInputRef.current) {
@@ -381,7 +382,7 @@ export function Sidebar({
       ) : null}
 
       <SidebarSection title="Today">
-        {recentToday.length === 0 ? (
+        {recentToday.length === 0 && !hasRecentItems ? (
           <SidebarEmptyHint>No recent folders</SidebarEmptyHint>
         ) : (
           recentToday.map((item) => (

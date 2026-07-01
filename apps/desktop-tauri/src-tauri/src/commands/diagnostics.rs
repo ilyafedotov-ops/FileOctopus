@@ -168,12 +168,9 @@ fn allowed_export_roots(paths: &AppPaths) -> Vec<PathBuf> {
         paths.data_dir.clone(),
         paths.config_dir.clone(),
     ];
-    // The shipped default export path is the literal `/tmp/...`, but on some
-    // Unix targets (e.g. macOS) `temp_dir()` resolves elsewhere, so allow `/tmp`
-    // explicitly to keep the default working.
-    if cfg!(unix) {
-        roots.push(PathBuf::from("/tmp"));
-    }
+    // The shipped default export path is the literal `/tmp/...`, but platform
+    // temp directories may resolve elsewhere, so keep it as a compatibility root.
+    roots.push(PathBuf::from("/tmp"));
     if let Some(home) = home_dir() {
         roots.push(home);
     }

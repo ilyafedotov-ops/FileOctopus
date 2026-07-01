@@ -108,7 +108,6 @@ fn diagnostics_destination_rejects_outside_allowed_roots() {
 }
 
 #[test]
-#[cfg(unix)]
 fn diagnostics_destination_accepts_shipped_default_path() {
     let paths = app_paths_under(&temp_dir("diag-default"));
 
