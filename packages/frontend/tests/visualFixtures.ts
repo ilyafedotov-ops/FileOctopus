@@ -40,7 +40,7 @@ export function renderVisualState(
 }
 
 export const sampleAppInfo = {
-  version: "0.1.3",
+  version: "0.1.4",
   buildProfile: "debug",
   commitSha: "abc1234",
 } as const;

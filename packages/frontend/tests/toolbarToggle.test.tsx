@@ -117,7 +117,7 @@ vi.mock("@fileoctopus/ts-api", async (importOriginal) => {
     createFileOctopusClient: () => ({
       getAppInfo: vi.fn(async () => ({
         name: "FileOctopus",
-        version: "0.1.3",
+        version: "0.1.4",
       })),
       fs: {
         listStart,
