@@ -38,7 +38,7 @@ vfs = { path = "../../../crates/vfs" }
 plugin-core = { path = "../../../crates/plugin-core" }
 sha256 = "1"
 base64 = "0.22"
-zip = "0.6"
+zip = "8.6"
 tar = "0.4"
 flate2 = "1"
 bzip2 = "0.4"
