@@ -99,7 +99,7 @@ The sink is `Arc<FileOperationEventSink>`; `OperationRuntime::start` clones it i
 
 `tauri.conf.json` is intentionally minimal:
 
-- `productName: "FileOctopus"`, `identifier: "com.fileoctopus.desktop"`, version pinned to `0.1.3`.
+- `productName: "FileOctopus"`, `identifier: "com.fileoctopus.desktop"`, version pinned to `0.1.4`.
 - `build.beforeDevCommand = "pnpm dev"`, `devUrl = "http://localhost:1420"`, `beforeBuildCommand = "pnpm build"`, `frontendDist = "../dist"`.
 - A single undecorated window at 1280×800 with title `"FileOctopus"`.
 - `security.csp` is explicit: self/tauri/ipc/asset sources, data images, inline styles for the current CSS pipeline, and self-only scripts.

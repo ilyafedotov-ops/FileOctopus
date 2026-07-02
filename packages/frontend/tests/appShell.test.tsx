@@ -286,7 +286,7 @@ const listRecentOperations = vi.fn(async () => ({ operations: [] }));
 const clearOperationHistory = vi.fn(async () => ({ deletedCount: 0 }));
 const getAppInfo = vi.fn(async () => ({
   name: "FileOctopus",
-  version: "0.1.3",
+  version: "0.1.4",
   buildProfile: "debug",
   commitSha: null,
   targetOs: "browser",
@@ -902,7 +902,7 @@ describe("FileOctopusShell", () => {
       .find((el) => el.textContent?.includes("Help"));
     fireEvent.click(helpTrigger!);
     fireEvent.click(await screen.findByText("Diagnostics…"));
-    expect(await screen.findByText("0.1.3")).toBeTruthy();
+    expect(await screen.findByText("0.1.4")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Export bundle" }));
 
     await waitFor(() => expect(exportBundle).toHaveBeenCalledTimes(1));

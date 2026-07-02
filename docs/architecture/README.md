@@ -1,6 +1,6 @@
 # Architecture
 
-Architecture notes for FileOctopus v0.1.3. Contributors should start with the
+Architecture notes for FileOctopus v0.1.4. Contributors should start with the
 API reference for runtime contracts, then use the per-module docs for
 implementation detail.
 
