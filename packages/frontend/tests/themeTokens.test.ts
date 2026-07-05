@@ -215,6 +215,21 @@ describe("Design token architecture", () => {
     }
   });
 
+  it("does not let system dark-mode chrome override explicit aubergine theme chrome", () => {
+    expect(shellContent).toContain(
+      ':root[data-theme="aubergine-technical"] .fo-shell',
+    );
+    const mediaBlockStart = shellContent.indexOf(
+      "@media (prefers-color-scheme: dark)",
+    );
+    const mediaBlock = shellContent.slice(mediaBlockStart);
+
+    expect(mediaBlock).toContain(":root:not([data-theme]) .fo-shell");
+    expect(mediaBlock).not.toContain(
+      ':root:not([data-theme="light"]) .fo-shell',
+    );
+  });
+
   it("keeps shell toolbar accessories in the toolbar flex row", () => {
     expect(
       /\.fo-workbench-toolbar\s*\{[^}]*display:\s*flex;/s.test(shellContent),

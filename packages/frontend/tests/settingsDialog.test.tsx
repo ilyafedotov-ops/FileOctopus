@@ -66,6 +66,30 @@ function navButton(name: string) {
 }
 
 describe("SettingsDialog", () => {
+  it("shows and persists the Aubergine Muted Technical theme option", () => {
+    const onChange = vi.fn();
+    render(
+      <SettingsDialog
+        open
+        preferences={makePreferences({ theme: "aubergine-technical" })}
+        autostart={null}
+        onClose={() => {}}
+        onChange={onChange}
+        onSetAutostart={async () => {}}
+      />,
+    );
+    fireEvent.click(navButton("Display"));
+    const themeSelect = screen.getByLabelText("Theme") as HTMLSelectElement;
+    expect(
+      within(themeSelect).getByRole("option", {
+        name: "Aubergine Muted Technical",
+      }),
+    ).toBeTruthy();
+    expect(themeSelect.value).toBe("aubergine-technical");
+    fireEvent.change(themeSelect, { target: { value: "dark" } });
+    expect(onChange).toHaveBeenCalledWith("theme", "dark");
+  });
+
   it("fires onChange for accent color selection", () => {
     const onChange = vi.fn();
     render(

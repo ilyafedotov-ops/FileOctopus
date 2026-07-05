@@ -52,6 +52,77 @@
   --fo-tag-pink: #ff8ad6;
 }
 
+:root[data-theme="aubergine-technical"] {
+  color-scheme: dark;
+  --fo-app-bg: #08090a;
+  --fo-workspace-bg: #08090a;
+  --fo-surface: #160d1f;
+  --fo-surface-elevated: #21172a;
+  --fo-panel-bg: #160d1f;
+  --fo-editor-bg: #0e0a13;
+  --fo-titlebar-bg: #120a19;
+  --fo-text: #e9e0d0;
+  --fo-muted-text: #a79da8;
+  --fo-secondary-text: #bdb2bd;
+  --fo-body-muted: #a79da8;
+  --fo-disabled-text: #6d6872;
+  --fo-icon-muted: #b7adb6;
+  --fo-border: #34243f;
+  --fo-strong-border: #51445c;
+  --fo-control-border: #3b3045;
+  --fo-subtle-border: #261b30;
+  --fo-divider: #34243f;
+  --fo-control-bg: #120c19;
+  --fo-accent: #5e8f89;
+  --fo-accent-soft: #17312f;
+  --fo-on-accent: #f4eee4;
+  --fo-on-accent-soft: #e9e0d0;
+  --fo-focus: #8ab8b2;
+  --fo-success: #7aa68f;
+  --fo-warning: #c0a36e;
+  --fo-danger: #d08080;
+  --fo-danger-text: #e1a0a0;
+  --fo-danger-bg: #321723;
+  --fo-danger-border: #744051;
+  --fo-tab-bg: #120c19;
+  --fo-tab-hover-bg: #21172a;
+  --fo-selection-inactive-bg: #2b2133;
+  --fo-row-hover-bg: #1b1324;
+  --fo-chrome-hover-bg: #2a1f35;
+  --fo-chrome-hover-text: #f2eadc;
+  --fo-strip-bg: #120c19;
+  --fo-dialog-border: #51445c;
+  --fo-menu-shadow: rgb(0 0 0 / 54%);
+  --fo-dialog-shadow: rgb(0 0 0 / 58%);
+  --fo-backdrop: rgb(8 9 10 / 66%);
+  --fo-dialog-backdrop-blur: 2px;
+  --fo-shell-shadow: rgb(0 0 0 / 38%);
+  --fo-shell-frame-shadow: 0 18px 58px rgb(0 0 0 / 42%);
+
+  --fo-tag-red: #d08080;
+  --fo-tag-orange: #b9866b;
+  --fo-tag-amber: #c0a36e;
+  --fo-tag-yellow: #d7c58c;
+  --fo-tag-green: #7aa68f;
+  --fo-tag-teal: #5e8f89;
+  --fo-tag-blue: #7f8fa8;
+  --fo-tag-indigo: #8b83aa;
+  --fo-tag-violet: #8e6f82;
+  --fo-tag-pink: #b1849d;
+
+  --fo-file-icon-shadow: #08090a;
+  --fo-file-icon-outline: #7f828a;
+  --fo-file-icon-folder-tab: #5e8f89;
+  --fo-file-icon-folder-body: #34243f;
+  --fo-file-icon-folder-highlight: #8e6f82;
+  --fo-file-icon-folder-accent: #5e8f89;
+  --fo-file-icon-page: #e9e0d0;
+  --fo-file-icon-page-fold: #cfc4b5;
+  --fo-file-icon-detail: #5e8f89;
+  --fo-file-icon-detail-muted: #7f828a;
+  --fo-file-icon-archive: #8e6f82;
+}
+
 :root {
   --fo-text: #cccccc;
   --fo-app-bg: #1e1e1e;
@@ -101,6 +172,17 @@
   --fo-row-hover-bg: #2a2d2e;
   --fo-selection-inactive-bg: #37373d;
   --fo-icon-muted: #c5c5c5;
+  --fo-file-icon-shadow: #0f172a;
+  --fo-file-icon-outline: #64748b;
+  --fo-file-icon-folder-tab: #d79a18;
+  --fo-file-icon-folder-body: #f5c84b;
+  --fo-file-icon-folder-highlight: #ffe28a;
+  --fo-file-icon-folder-accent: #2563eb;
+  --fo-file-icon-page: #f8fafc;
+  --fo-file-icon-page-fold: #dbeafe;
+  --fo-file-icon-detail: #2563eb;
+  --fo-file-icon-detail-muted: #94a3b8;
+  --fo-file-icon-archive: #f59e0b;
 
   --fo-syntax-keyword: #569cd6;
   --fo-syntax-string: #ce9178;

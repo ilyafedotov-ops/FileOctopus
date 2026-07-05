@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   THEMES,
   isKnownTheme,
-  themeById,
   selectableThemes,
+  themeById,
 } from "../src/themeRegistry";
 
 describe("themeRegistry", () => {
@@ -12,6 +12,7 @@ describe("themeRegistry", () => {
     expect(isKnownTheme("light")).toBe(true);
     expect(isKnownTheme("dark")).toBe(true);
     expect(isKnownTheme("commander-blue")).toBe(true);
+    expect(isKnownTheme("aubergine-technical")).toBe(true);
   });
 
   it("rejects unknown ids", () => {
@@ -25,9 +26,19 @@ describe("themeRegistry", () => {
     expect(theme?.selectable).toBe(true);
   });
 
+  it("exposes Aubergine Muted Technical as a selectable dark theme", () => {
+    expect(themeById("aubergine-technical")).toEqual({
+      id: "aubergine-technical",
+      label: "Aubergine Muted Technical",
+      isDark: true,
+      selectable: true,
+    });
+  });
+
   it("returns only selectable themes for the picker", () => {
     const ids = selectableThemes().map((t) => t.id);
     expect(ids).toContain("commander-blue");
+    expect(ids).toContain("aubergine-technical");
     expect(selectableThemes().length).toBe(
       THEMES.filter((t) => t.selectable).length,
     );

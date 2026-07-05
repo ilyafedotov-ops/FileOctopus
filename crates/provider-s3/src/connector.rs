@@ -3,31 +3,28 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use config::{AuthKind, NetworkProfile};
 use remote_core::{AuthSecrets, RemoteConnector, RemoteError, RemoteSession};
-use s3::creds::Credentials;
-use s3::{Bucket, Region};
+
+use crate::client::S3Client;
 
 pub struct S3Session {
-    bucket: Arc<Bucket>,
+    client: S3Client,
     profile_id: String,
 }
 
 impl S3Session {
-    pub fn new(bucket: Bucket, profile_id: String) -> Self {
-        Self {
-            bucket: Arc::new(bucket),
-            profile_id,
-        }
+    pub fn new(client: S3Client, profile_id: String) -> Self {
+        Self { client, profile_id }
     }
 
     pub fn clone_handle(&self) -> Self {
         Self {
-            bucket: Arc::clone(&self.bucket),
+            client: self.client.clone(),
             profile_id: self.profile_id.clone(),
         }
     }
 
-    pub fn bucket(&self) -> &Bucket {
-        &self.bucket
+    pub fn client(&self) -> &S3Client {
+        &self.client
     }
 
     pub fn _profile_id(&self) -> &str {
@@ -38,14 +35,7 @@ impl S3Session {
 #[async_trait]
 impl RemoteSession for S3Session {
     async fn ping(&self) -> Result<(), RemoteError> {
-        self.bucket()
-            .location()
-            .await
-            .map_err(|e| RemoteError::ConnectionFailed {
-                uri: format!("s3://{}", self.profile_id),
-                message: e.to_string(),
-            })?;
-        Ok(())
+        self.client().head_bucket().await
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -66,7 +56,7 @@ impl S3Connector {
         Self
     }
 
-    fn resolve_region_and_bucket(profile: &NetworkProfile) -> (Region, String) {
+    fn resolve_endpoint_region_and_bucket(profile: &NetworkProfile) -> (String, String, String) {
         let host = &profile.host;
         let default_path = profile.default_path.trim_start_matches('/');
 
@@ -77,47 +67,43 @@ impl S3Connector {
             .unwrap_or(default_path)
             .to_string();
 
-        // Parse host for region/endpoint
-        // host could be:
-        //   "s3.amazonaws.com" -> region from profile or us-east-1
-        //   "s3.eu-west-1.amazonaws.com" -> extract region
-        //   "minio.local:9000" -> custom endpoint
-        //   "s3.amazonaws.com" with path-style
-        let region = if host.contains("amazonaws.com") {
-            // Try to extract region from subdomain: s3.{region}.amazonaws.com
+        // Parse host for region/endpoint.
+        let (endpoint, region) = if host.contains("amazonaws.com") {
             if let Some(rest) = host.strip_prefix("s3.") {
                 if let Some(region_str) = rest.strip_suffix(".amazonaws.com") {
-                    Region::Custom {
-                        region: region_str.to_string(),
-                        endpoint: format!("https://s3.{region_str}.amazonaws.com"),
-                    }
+                    (
+                        format!("https://s3.{region_str}.amazonaws.com"),
+                        region_str.to_string(),
+                    )
                 } else {
-                    Region::UsEast1
+                    (
+                        "https://s3.amazonaws.com".to_string(),
+                        "us-east-1".to_string(),
+                    )
                 }
             } else {
-                Region::UsEast1
+                (
+                    "https://s3.amazonaws.com".to_string(),
+                    "us-east-1".to_string(),
+                )
             }
         } else {
-            // Custom endpoint (MinIO, Garage, etc.)
             let endpoint = if host.starts_with("http://") || host.starts_with("https://") {
                 host.to_string()
             } else {
                 format!("http://{host}")
             };
-            Region::Custom {
-                region: "auto".to_string(),
-                endpoint,
-            }
+            (endpoint, "auto".to_string())
         };
 
-        (region, bucket_name)
+        (endpoint, region, bucket_name)
     }
 
     fn connect_blocking(
         profile: &NetworkProfile,
         secrets: &AuthSecrets,
     ) -> Result<S3Session, RemoteError> {
-        let (region, bucket_name) = Self::resolve_region_and_bucket(profile);
+        let (endpoint, region, bucket_name) = Self::resolve_endpoint_region_and_bucket(profile);
 
         if bucket_name.is_empty() {
             return Err(RemoteError::ConnectionFailed {
@@ -126,7 +112,7 @@ impl S3Connector {
             });
         }
 
-        let credentials = match profile.auth_kind {
+        let (access_key, secret_key) = match profile.auth_kind {
             AuthKind::AccessKey | AuthKind::Password => {
                 let access_key = profile.username.clone();
                 let secret_key = secrets.password.as_deref().ok_or_else(|| {
@@ -135,12 +121,7 @@ impl S3Connector {
                         message: "missing secret access key".to_string(),
                     }
                 })?;
-                Credentials::new(Some(&access_key), Some(secret_key), None, None, None).map_err(
-                    |e| RemoteError::AuthenticationFailed {
-                        uri: format!("s3://{}", profile.id),
-                        message: format!("invalid credentials: {e}"),
-                    },
-                )?
+                (access_key, secret_key.to_string())
             }
             AuthKind::PrivateKey => {
                 return Err(RemoteError::AuthenticationFailed {
@@ -156,14 +137,9 @@ impl S3Connector {
             }
         };
 
-        let bucket = Bucket::new(&bucket_name, region, credentials).map_err(|e| {
-            RemoteError::ConnectionFailed {
-                uri: format!("s3://{}", profile.id),
-                message: format!("failed to create bucket: {e}"),
-            }
-        })?;
+        let client = S3Client::new(endpoint, region, bucket_name, access_key, secret_key);
 
-        Ok(S3Session::new(*bucket, profile.id.clone()))
+        Ok(S3Session::new(client, profile.id.clone()))
     }
 }
 

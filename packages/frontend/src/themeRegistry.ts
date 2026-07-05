@@ -19,6 +19,12 @@ export const THEMES: ReadonlyArray<ThemeDefinition> = [
     isDark: true,
     selectable: true,
   },
+  {
+    id: "aubergine-technical",
+    label: "Aubergine Muted Technical",
+    isDark: true,
+    selectable: true,
+  },
 ];
 
 export function themeById(id: string): ThemeDefinition | undefined {

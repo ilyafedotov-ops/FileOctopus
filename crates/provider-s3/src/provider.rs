@@ -40,11 +40,11 @@ fn remove_s3_tree_blocking(
     _uri: &ResourceUri,
     prefix: &str,
 ) -> Result<(), VfsError> {
-    let bucket = session.bucket();
+    let bucket = session.client();
     let rt = tokio::runtime::Handle::current();
 
     // List all objects with this prefix
-    let (list_result, _status) = rt
+    let list_result = rt
         .block_on(bucket.list_page(prefix.to_string(), None, None, None, Some(1000)))
         .map_err(|e| VfsError::internal(&format!("s3 list failed: {e}")))?;
 
@@ -112,9 +112,9 @@ impl VfsProvider for S3Provider {
         }
 
         // Try head_object
-        let head_result = session.bucket().head_object(&key).await;
+        let head_result = session.client().head_object(&key).await;
         match head_result {
-            Ok((head, _status)) => {
+            Ok(head) => {
                 let name = key.rsplit('/').next().unwrap_or(&key).to_string();
                 let extension = name
                     .rsplit('.')
@@ -138,7 +138,7 @@ impl VfsProvider for S3Provider {
                     name,
                     extension,
                     kind: FileKind::File,
-                    size: head.content_length.map(|s| s as u64),
+                    size: head.content_length,
                     modified_at,
                     created_at: None,
                     accessed_at: None,
@@ -156,16 +156,12 @@ impl VfsProvider for S3Provider {
                 // Maybe it's a "directory" (common prefix)
                 let prefix = format!("{key}/");
                 let list_result = session
-                    .bucket()
+                    .client()
                     .list_page(prefix, Some("/".to_string()), None, None, Some(1))
                     .await;
                 match list_result {
-                    Ok((result, _))
-                        if !result.contents.is_empty()
-                            || result
-                                .common_prefixes
-                                .as_ref()
-                                .is_some_and(|cp| !cp.is_empty()) =>
+                    Ok(result)
+                        if !result.contents.is_empty() || !result.common_prefixes.is_empty() =>
                     {
                         let name = key.rsplit('/').next().unwrap_or(&key).to_string();
                         self.sessions.touch_session(&profile_id).await;
@@ -217,8 +213,8 @@ impl VfsProvider for S3Provider {
                 return Err(VfsError::cancelled(uri));
             }
 
-            let (result, _status) = session
-                .bucket()
+            let result = session
+                .client()
                 .list_page(
                     prefix.clone(),
                     Some("/".to_string()),
@@ -230,25 +226,23 @@ impl VfsProvider for S3Provider {
                 .map_err(|e| VfsError::internal(&format!("s3 list_page failed: {e}")))?;
 
             // Common prefixes = "directories"
-            if let Some(prefixes) = &result.common_prefixes {
-                for cp in prefixes {
-                    let dir_name = cp
-                        .prefix
-                        .trim_end_matches('/')
-                        .rsplit('/')
-                        .next()
-                        .unwrap_or("")
-                        .to_string();
-                    if !include_hidden && dir_name.starts_with('.') {
-                        continue;
-                    }
-                    let child_uri = ResourceUri::from_remote_profile(
-                        "s3",
-                        &profile_id,
-                        &format!("/{}/{}", s3_bucket_from_uri_path(&uri_path), cp.prefix),
-                    )?;
-                    all_entries.push(dir_entry(&child_uri, &profile_id, &cp.prefix)?);
+            for cp in &result.common_prefixes {
+                let dir_name = cp
+                    .prefix
+                    .trim_end_matches('/')
+                    .rsplit('/')
+                    .next()
+                    .unwrap_or("")
+                    .to_string();
+                if !include_hidden && dir_name.starts_with('.') {
+                    continue;
                 }
+                let child_uri = ResourceUri::from_remote_profile(
+                    "s3",
+                    &profile_id,
+                    &format!("/{}/{}", s3_bucket_from_uri_path(&uri_path), cp.prefix),
+                )?;
+                all_entries.push(dir_entry(&child_uri, &profile_id, &cp.prefix)?);
             }
 
             // Objects = files
@@ -327,7 +321,7 @@ impl VfsProvider for S3Provider {
 
         // S3 "directories" are 0-byte objects ending with /
         session
-            .bucket()
+            .client()
             .put_object(&dir_key, &[])
             .await
             .map_err(|e| VfsError::internal(&format!("s3 mkdir failed: {e}")))?;
@@ -342,7 +336,7 @@ impl VfsProvider for S3Provider {
         let (_, key) = parse_bucket_key(&uri_path);
 
         session
-            .bucket()
+            .client()
             .put_object(&key, &[])
             .await
             .map_err(|e| VfsError::internal(&format!("s3 create file failed: {e}")))?;
@@ -368,13 +362,13 @@ impl VfsProvider for S3Provider {
         let (_, to_key) = parse_bucket_key(&to_path);
 
         session
-            .bucket()
-            .copy_object_internal(&from_key, &to_key)
+            .client()
+            .copy_object(&from_key, &to_key)
             .await
             .map_err(|e| VfsError::internal(&format!("s3 copy_object failed: {e}")))?;
 
         session
-            .bucket()
+            .client()
             .delete_object(&from_key)
             .await
             .map_err(|e| VfsError::internal(&format!("s3 delete_object failed: {e}")))?;
@@ -398,7 +392,7 @@ impl VfsProvider for S3Provider {
             run_blocking_io(move || remove_s3_tree_blocking(&session, &uri_clone, &prefix)).await?;
         } else {
             session
-                .bucket()
+                .client()
                 .delete_object(&key)
                 .await
                 .map_err(|e| VfsError::internal(&format!("s3 delete failed: {e}")))?;
@@ -430,8 +424,8 @@ impl VfsProvider for S3Provider {
         let (_, to_key) = parse_bucket_key(&to_path);
 
         // Get source size for reporting
-        let (head, _status) = session
-            .bucket()
+        let head = session
+            .client()
             .head_object(&from_key)
             .await
             .map_err(|e| VfsError::internal(&format!("s3 head_object failed: {e}")))?;
@@ -443,8 +437,8 @@ impl VfsProvider for S3Provider {
         // Note: copy_object_internal only takes 2 args in rust-s3 0.34
         let _ = content_type; // unused but kept for future upgrade
         session
-            .bucket()
-            .copy_object_internal(&from_key, &to_key)
+            .client()
+            .copy_object(&from_key, &to_key)
             .await
             .map_err(|e| VfsError::internal(&format!("s3 copy_object failed: {e}")))?;
 
@@ -462,13 +456,13 @@ impl VfsProvider for S3Provider {
         let (_, key) = parse_bucket_key(&uri_path);
 
         let response = session
-            .bucket()
+            .client()
             .get_object_range(&key, 0, Some(max_bytes.saturating_sub(1)))
             .await
             .map_err(|e| VfsError::internal(&format!("s3 get_object_range failed: {e}")))?;
 
         self.sessions.touch_session(&profile_id).await;
-        Ok(response.to_vec())
+        Ok(response)
     }
 }
 

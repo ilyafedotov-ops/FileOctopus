@@ -206,6 +206,11 @@ describe("applyThemePreference", () => {
     expect(root.dataset.theme).toBe("commander-blue");
   });
 
+  it("sets known theme aubergine-technical", () => {
+    applyThemePreference("aubergine-technical");
+    expect(root.dataset.theme).toBe("aubergine-technical");
+  });
+
   it("falls back to system for unknown themes", () => {
     applyThemePreference("neon");
     expect(root.dataset.theme).toBe("system");

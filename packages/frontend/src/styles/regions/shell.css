@@ -898,6 +898,34 @@
   --fo-commander-keycap-border: #5fefef;
 }
 
+/* ── Aubergine Muted Technical: premium shell chrome ── */
+:root[data-theme="aubergine-technical"] .fo-shell {
+  --fo-classic-face: #21172a;
+  --fo-classic-window: #160d1f;
+  --fo-classic-light: #51445c;
+  --fo-classic-shadow: #34243f;
+  --fo-classic-dark: #08090a;
+  --fo-classic-black: #08090a;
+  --fo-classic-title: #5e8f89;
+  --fo-classic-title-end: #5e8f89;
+  --fo-classic-text: #e9e0d0;
+  --fo-classic-muted: #a79da8;
+
+  --fo-statusbar-bg: #17312f;
+  --fo-statusbar-fg: #e9e0d0;
+  --fo-path-rail-bg: #120c19;
+  --fo-path-rail-field-bg: #0e0a13;
+  --fo-path-rail-field-border: #34243f;
+  --fo-commander-bar-bg: #160d1f;
+  --fo-commander-key-bg: #160d1f;
+  --fo-commander-key-border: #34243f;
+  --fo-commander-key-hover-bg: #21172a;
+  --fo-commander-key-hover-border: #5e8f89;
+  --fo-commander-keycap-bg: #34243f;
+  --fo-commander-keycap-fg: #e9e0d0;
+  --fo-commander-keycap-border: #5e8f89;
+}
+
 /* ── Light: Win98-style classic tokens for dialogs, properties, etc. ── */
 :root[data-theme="light"] .fo-shell {
   --fo-classic-face: #dfdfdf;
@@ -926,7 +954,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .fo-shell {
+  :root:not([data-theme]) .fo-shell {
     --fo-classic-face: #2d2d30;
     --fo-classic-window: #1e1e1e;
     --fo-classic-light: #3c3c3c;

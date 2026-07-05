@@ -20,6 +20,12 @@ features, platform status, and known limitations.
 
 ![FileOctopus dual-pane workspace](docs/assets/screenshots/fileoctopus-workspace.png)
 
+Current visual direction: **Aubergine Muted Technical** — a premium dark theme with muted plum surfaces, bone text, and restrained teal accents.
+
+| Updated UI preview                                                                                                                          | Product deck                                                                                                         |
+| ------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| [![Aubergine UI preview](docs/assets/videos/fileoctopus-aubergine-ui-preview.gif)](docs/assets/videos/fileoctopus-aubergine-ui-preview.mp4) | [Download the Aubergine technical presentation](docs/assets/presentations/fileoctopus-aubergine-technical-deck.pptx) |
+
 | First-run setup                                                                    | Command palette                                                                         |
 | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | ![FileOctopus first-run setup](docs/assets/screenshots/fileoctopus-onboarding.png) | ![FileOctopus command palette](docs/assets/screenshots/fileoctopus-command-palette.png) |

@@ -1,3 +1,4 @@
+mod client;
 pub mod connector;
 pub mod ops;
 mod provider;

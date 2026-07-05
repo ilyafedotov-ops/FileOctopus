@@ -1254,7 +1254,9 @@ fn parse_toolbar_entries(value: &str) -> Result<String, PreferencesError> {
 
 fn parse_theme(value: &str) -> Result<String, PreferencesError> {
     match value {
-        "system" | "light" | "dark" => Ok(value.to_string()),
+        "system" | "light" | "dark" | "commander-blue" | "aubergine-technical" => {
+            Ok(value.to_string())
+        }
         other => Err(invalid_value(
             "theme",
             format!("unsupported value `{other}`"),
@@ -1385,6 +1387,21 @@ mod tests {
             .get_all()
             .unwrap();
         assert_eq!(reloaded.theme, "dark");
+    }
+
+    #[test]
+    fn accepts_aubergine_technical_theme() {
+        let dir = tempdir().unwrap();
+        let repository = PreferencesRepository::new(dir.path().join("preferences.sqlite")).unwrap();
+
+        let updated = repository.set("theme", "aubergine-technical").unwrap();
+
+        assert_eq!(updated.theme, "aubergine-technical");
+        let reloaded = PreferencesRepository::new(dir.path().join("preferences.sqlite"))
+            .unwrap()
+            .get_all()
+            .unwrap();
+        assert_eq!(reloaded.theme, "aubergine-technical");
     }
 
     #[test]

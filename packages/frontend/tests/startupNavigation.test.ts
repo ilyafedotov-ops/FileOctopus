@@ -17,7 +17,9 @@ const documentsLocation: StandardLocationDto = {
   section: "places",
 };
 
-function createClient(stat = vi.fn(async () => ({}))) {
+function createClient(
+  stat = vi.fn(async () => ({ entry: { kind: "directory" } })),
+) {
   const locations = [homeLocation, documentsLocation];
   return {
     fs: {
@@ -58,8 +60,36 @@ describe("resolveStartupNavigation", () => {
     expect(result.rightUri).toBe(documentsLocation.uri);
   });
 
+  it("falls back to standard locations when a local startup uri points to a file", async () => {
+    const stat = vi.fn(async () => ({ entry: { kind: "file" } }));
+    const client = createClient(stat);
+
+    const result = await resolveStartupNavigation(
+      client as never,
+      "local:///home/tester/notes.txt",
+      "local:///home/tester/archive.zip",
+    );
+
+    expect(result.leftUri).toBe(homeLocation.uri);
+    expect(result.rightUri).toBe(documentsLocation.uri);
+  });
+
+  it("keeps local symlinks navigable because they may target directories", async () => {
+    const stat = vi.fn(async () => ({ entry: { kind: "symlink" } }));
+    const client = createClient(stat);
+
+    const result = await resolveStartupNavigation(
+      client as never,
+      "local:///home/tester/project-link",
+      "local:///home/tester/docs-link",
+    );
+
+    expect(result.leftUri).toBe("local:///home/tester/project-link");
+    expect(result.rightUri).toBe("local:///home/tester/docs-link");
+  });
+
   it("keeps remote, network, and non-local uris without stat checks", async () => {
-    const stat = vi.fn(async () => ({}));
+    const stat = vi.fn(async () => ({ entry: { kind: "directory" } }));
     const client = createClient(stat);
 
     const result = await resolveStartupNavigation(
