@@ -235,7 +235,7 @@ export function createPreviewTransport(): IpcTransport {
       if (command === "app.get_info") {
         return {
           name: "FileOctopus",
-          version: "0.1.4",
+          version: "0.1.5",
           buildProfile: "preview",
           commitSha: null,
           targetOs: "browser",
@@ -1348,7 +1348,7 @@ fn main() -> anyhow::Result<()> {
   if (name === "package.json") {
     return `{
   "name": "fileoctopus-preview",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "scripts": {
     "dev": "tauri dev",

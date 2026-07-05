@@ -110,7 +110,7 @@ checksum = "2a4385e2e34eb35d6b3efe798b9eb88096925d87726c0798709bf56d9ed84af3"
 
 [[package]]
 name = "app-core"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "chrono",
  "config",
@@ -137,7 +137,7 @@ dependencies = [
 
 [[package]]
 name = "app-ipc"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "chrono",
  "config",
@@ -569,7 +569,7 @@ dependencies = [
 
 [[package]]
 name = "config"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "chrono",
  "rusqlite",
@@ -1164,7 +1164,7 @@ dependencies = [
 
 [[package]]
 name = "fileoctopus-cli"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "app-ipc",
  "clap",
@@ -1176,7 +1176,7 @@ dependencies = [
 
 [[package]]
 name = "fileoctopus-desktop"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "app-core",
  "app-ipc",
@@ -1306,7 +1306,7 @@ dependencies = [
 
 [[package]]
 name = "fs-core"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "bzip2 0.4.4",
@@ -1581,7 +1581,7 @@ dependencies = [
 
 [[package]]
 name = "git-intel"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "serde",
  "similar",
@@ -2242,7 +2242,7 @@ dependencies = [
 
 [[package]]
 name = "jobs"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "chrono",
  "serde",
@@ -3109,7 +3109,7 @@ checksum = "19f132c84eca552bf34cab8ec81f1c1dcc229b811638f9d283dceabe58c5569e"
 
 [[package]]
 name = "platform"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "keyring",
  "thiserror 1.0.69",
@@ -3132,7 +3132,7 @@ dependencies = [
 
 [[package]]
 name = "plugin-core"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "serde",
  "serde_json",
@@ -3297,7 +3297,7 @@ dependencies = [
 
 [[package]]
 name = "provider-dropbox"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3314,7 +3314,7 @@ dependencies = [
 
 [[package]]
 name = "provider-gdrive"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3331,7 +3331,7 @@ dependencies = [
 
 [[package]]
 name = "provider-onedrive"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3348,7 +3348,7 @@ dependencies = [
 
 [[package]]
 name = "provider-s3"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3369,7 +3369,7 @@ dependencies = [
 
 [[package]]
 name = "provider-sftp"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3386,7 +3386,7 @@ dependencies = [
 
 [[package]]
 name = "provider-smb"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "chrono",
@@ -3602,7 +3602,7 @@ checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
 
 [[package]]
 name = "remote-core"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "config",
@@ -4872,7 +4872,7 @@ dependencies = [
 
 [[package]]
 name = "telemetry"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "serde",
  "tokio",
@@ -4915,7 +4915,7 @@ dependencies = [
 
 [[package]]
 name = "terminal-core"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "dashmap",
  "data-encoding",
@@ -4940,7 +4940,7 @@ dependencies = [
 
 [[package]]
 name = "test-support"
-version = "0.1.4"
+version = "0.1.5"
 
 [[package]]
 name = "thiserror"
@@ -5585,7 +5585,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vfs"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "async-trait",
  "chrono",

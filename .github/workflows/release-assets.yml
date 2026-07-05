@@ -6,7 +6,7 @@ on:
       tag:
         description: "Release tag to build and upload assets for"
         required: true
-        default: "v0.1.2"
+        default: "v0.1.5"
   release:
     types: [published]
 

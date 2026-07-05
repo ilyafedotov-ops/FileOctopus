@@ -216,7 +216,7 @@ describe("visual state fixtures", () => {
     expect(
       screen.getByRole("dialog", { name: "About FileOctopus" }),
     ).toBeTruthy();
-    expect(screen.getByText("0.1.4")).toBeTruthy();
+    expect(screen.getByText("0.1.5")).toBeTruthy();
     view.restore();
   });
 
@@ -274,7 +274,7 @@ describe("visual state fixtures", () => {
     );
 
     expect(screen.getByText("Diagnostics")).toBeTruthy();
-    expect(screen.getByText("0.1.4")).toBeTruthy();
+    expect(screen.getByText("0.1.5")).toBeTruthy();
     expect(screen.getByText("/tmp/logs")).toBeTruthy();
     view.restore();
   });

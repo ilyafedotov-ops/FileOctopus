@@ -4,7 +4,7 @@ import { resolveStartupAppInfo } from "../src/hooks/startupAppInfo";
 
 const appInfo = {
   name: "FileOctopus",
-  version: "0.1.4",
+  version: "0.1.5",
   tauriVersion: "2.0.0",
   platform: "linux",
   debug: false,
