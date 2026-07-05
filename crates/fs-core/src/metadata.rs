@@ -128,7 +128,8 @@ fn extract_exif_metadata(path: &Path) -> Option<ExifMetadata> {
         camera_model: string_tag(&exif, Tag::Model),
         lens_model: string_tag(&exif, Tag::LensModel),
         date_taken: string_tag(&exif, Tag::DateTimeOriginal)
-            .or_else(|| string_tag(&exif, Tag::DateTime)),
+            .or_else(|| string_tag(&exif, Tag::DateTime))
+            .map(|value| normalize_exif_datetime(&value)),
         width: u32_tag(&exif, Tag::PixelXDimension).or_else(|| u32_tag(&exif, Tag::ImageWidth)),
         height: u32_tag(&exif, Tag::PixelYDimension).or_else(|| u32_tag(&exif, Tag::ImageLength)),
         orientation: display_tag(&exif, Tag::Orientation),
@@ -168,6 +169,42 @@ fn display_tag(exif: &exif::Exif, tag: Tag) -> Option<String> {
     field(exif, tag)
         .map(|field| field.display_value().with_unit(exif).to_string())
         .filter(|value| !value.is_empty())
+}
+
+fn normalize_exif_datetime(value: &str) -> String {
+    let trimmed = value.trim();
+    let Some((date, time)) = trimmed.split_once(' ') else {
+        return trimmed.to_string();
+    };
+    let mut date_parts = date.split(':');
+    let Some(year) = date_parts.next() else {
+        return trimmed.to_string();
+    };
+    let Some(month) = date_parts.next() else {
+        return trimmed.to_string();
+    };
+    let Some(day) = date_parts.next() else {
+        return trimmed.to_string();
+    };
+    let time_bytes = time.as_bytes();
+    if date_parts.next().is_some()
+        || year.len() != 4
+        || month.len() != 2
+        || day.len() != 2
+        || ![year, month, day]
+            .iter()
+            .all(|part| part.chars().all(|ch| ch.is_ascii_digit()))
+        || time_bytes.len() < 8
+        || time_bytes[2] != b':'
+        || time_bytes[5] != b':'
+        || ![0, 1, 3, 4, 6, 7]
+            .into_iter()
+            .all(|index| time_bytes[index].is_ascii_digit())
+    {
+        return trimmed.to_string();
+    }
+
+    format!("{year}-{month}-{day}T{time}")
 }
 
 fn u32_tag(exif: &exif::Exif, tag: Tag) -> Option<u32> {
@@ -396,6 +433,18 @@ mod tests {
         assert_eq!(exif.camera_make.as_deref(), Some("Canon"));
         assert_eq!(exif.camera_model.as_deref(), Some("EOS R5"));
         assert!(exif.tags.iter().any(|tag| tag.tag == "Make"));
+    }
+
+    #[test]
+    fn normalize_exif_datetime_makes_standard_camera_timestamp_parseable() {
+        assert_eq!(
+            normalize_exif_datetime("2024:05:12 10:30:00"),
+            "2024-05-12T10:30:00"
+        );
+        assert_eq!(
+            normalize_exif_datetime("2024-05-12T10:30:00Z"),
+            "2024-05-12T10:30:00Z"
+        );
     }
 
     fn minimal_exif_jpeg() -> Vec<u8> {
