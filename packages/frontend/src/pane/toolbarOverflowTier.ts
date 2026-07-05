@@ -1,8 +1,5 @@
 export type ToolbarOverflowTier =
-  | "full"
-  | "comfortable"
-  | "compact"
-  | "minimal";
+  "full" | "comfortable" | "compact" | "minimal";
 
 export type ToolbarSection =
   | "archive"

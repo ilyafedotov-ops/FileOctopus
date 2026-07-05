@@ -26,14 +26,11 @@ let jobStartedHandler: ((event: JobStartedEvent) => void) | null = null;
 let jobProgressHandler: ((event: JobProgressEvent) => void) | null = null;
 let jobCompletedHandler: ((event: JobCompletedEvent) => void) | null = null;
 let folderSizeCompletedHandler:
-  | ((event: FolderSizeCompletedEventDto) => void)
-  | null = null;
+  ((event: FolderSizeCompletedEventDto) => void) | null = null;
 let recursiveSearchMatchHandler:
-  | ((event: RecursiveSearchMatchEventDto) => void)
-  | null = null;
+  ((event: RecursiveSearchMatchEventDto) => void) | null = null;
 let recursiveSearchCompletedHandler:
-  | ((event: RecursiveSearchCompletedEventDto) => void)
-  | null = null;
+  ((event: RecursiveSearchCompletedEventDto) => void) | null = null;
 let sessionIndex = 0;
 const panelSessions: Partial<
   Record<"left" | "right", { sessionId: string; requestId: string }>

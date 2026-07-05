@@ -7,8 +7,7 @@ import {
 } from "./registry";
 
 export type ToolbarEntry =
-  | { kind: "command"; commandId: CommandId }
-  | { kind: "separator" };
+  { kind: "command"; commandId: CommandId } | { kind: "separator" };
 
 export interface ToolbarCommandMeta {
   commandId: CommandId;

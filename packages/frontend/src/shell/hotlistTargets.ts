@@ -16,13 +16,7 @@ import {
 } from "../navigation/driveTargets";
 
 export type HotlistTargetKind =
-  | "parent"
-  | "home"
-  | "volume"
-  | "network"
-  | "favorite"
-  | "starred"
-  | "recent";
+  "parent" | "home" | "volume" | "network" | "favorite" | "starred" | "recent";
 
 export interface HotlistTarget {
   id: string;

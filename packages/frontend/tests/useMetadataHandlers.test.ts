@@ -152,8 +152,7 @@ describe("useMetadataHandlers", () => {
     const applyJobId = setDialog.mock.calls
       .map((call) => call[0])
       .find((value) => typeof value === "function") as
-      | ((current: unknown) => unknown)
-      | undefined;
+      ((current: unknown) => unknown) | undefined;
     expect(applyJobId).toBeTypeOf("function");
     expect(
       applyJobId?.({

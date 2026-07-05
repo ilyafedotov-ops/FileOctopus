@@ -81,30 +81,26 @@ export function buildDriveTargets(
 ): DriveTarget[] {
   const local = locations
     .filter((location) => location.section === "Devices/Volumes")
-    .map(
-      (location): DriveTarget => ({
-        kind: "local",
-        id: location.id,
-        label: location.name,
-        uri: location.uri,
-        action: { type: "navigate", uri: location.uri },
-      }),
-    );
+    .map((location): DriveTarget => ({
+      kind: "local",
+      id: location.id,
+      label: location.name,
+      uri: location.uri,
+      action: { type: "navigate", uri: location.uri },
+    }));
 
   const cloud = networkQuickEntries
     .filter(
       (entry) => entry.virtualKind === "cloudDrive" && Boolean(entry.targetUri),
     )
-    .map(
-      (entry): DriveTarget => ({
-        kind: "cloud",
-        id: entry.uri,
-        label: entry.name,
-        uri: entry.targetUri ?? entry.uri,
-        entry,
-        action: { type: "navigate", uri: entry.targetUri ?? entry.uri },
-      }),
-    );
+    .map((entry): DriveTarget => ({
+      kind: "cloud",
+      id: entry.uri,
+      label: entry.name,
+      uri: entry.targetUri ?? entry.uri,
+      entry,
+      action: { type: "navigate", uri: entry.targetUri ?? entry.uri },
+    }));
 
   const network = networkProfiles
     .filter(isQuickConnectionProfile)

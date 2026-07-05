@@ -1,10 +1,5 @@
 export type FileKind =
-  | "file"
-  | "directory"
-  | "symlink"
-  | "archive"
-  | "virtual"
-  | "unknown";
+  "file" | "directory" | "symlink" | "archive" | "virtual" | "unknown";
 
 export const IPC_ERROR_CODES = {
   INVALID_URI: "invalid_uri",
@@ -61,8 +56,7 @@ export const FILE_OPERATION_WARNING_CODES = {
 export type KnownFileOperationWarningCode =
   (typeof FILE_OPERATION_WARNING_CODES)[keyof typeof FILE_OPERATION_WARNING_CODES];
 export type FileOperationWarningCode =
-  | KnownFileOperationWarningCode
-  | (string & {});
+  KnownFileOperationWarningCode | (string & {});
 
 export function isKnownIpcErrorCode(code: string): code is KnownIpcErrorCode {
   return Object.values(IPC_ERROR_CODES).includes(code as KnownIpcErrorCode);
@@ -1244,19 +1238,10 @@ export type FileOperationKind =
   | "contentSearch";
 
 export type ConflictPolicy =
-  | "fail"
-  | "skip"
-  | "overwrite"
-  | "renameNew"
-  | "renameExisting";
+  "fail" | "skip" | "overwrite" | "renameNew" | "renameExisting";
 
 export type JobStatus =
-  | "queued"
-  | "running"
-  | "paused"
-  | "cancelled"
-  | "completed"
-  | "failed";
+  "queued" | "running" | "paused" | "cancelled" | "completed" | "failed";
 
 export interface FileOperationRequestDto {
   kind: FileOperationKind;

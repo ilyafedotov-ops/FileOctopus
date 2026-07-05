@@ -120,8 +120,7 @@ export interface UseAppInitReturn {
   starredUriSet: Set<string>;
   rowHeight: number;
   previewEntry:
-    | import("../panelStore").PanelTabState["entriesById"][string]
-    | null;
+    import("../panelStore").PanelTabState["entriesById"][string] | null;
 }
 
 export function useAppInit({

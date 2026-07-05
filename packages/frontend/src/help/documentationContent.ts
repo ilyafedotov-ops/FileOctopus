@@ -1,6 +1,5 @@
 export type DocBlock =
-  | { kind: "paragraph"; text: string }
-  | { kind: "list"; items: string[] };
+  { kind: "paragraph"; text: string } | { kind: "list"; items: string[] };
 
 export interface DocSection {
   id: string;

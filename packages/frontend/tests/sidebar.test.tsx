@@ -168,8 +168,7 @@ function makeSidebarProps(overrides: Record<string, unknown> = {}) {
     onOpenSmartFolder: undefined as ((folder: SmartFolder) => void) | undefined,
     onRemoveSmartFolder: undefined as ((id: string) => void) | undefined,
     onRenameSmartFolder: undefined as
-      | ((id: string, name: string) => void)
-      | undefined,
+      ((id: string, name: string) => void) | undefined,
     onSaveSearch: undefined as (() => void) | undefined,
     ...overrides,
   };

@@ -274,8 +274,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "preferences.set") {
         const request = args?.request as
-          | Partial<SetPreferenceRequest>
-          | undefined;
+          Partial<SetPreferenceRequest> | undefined;
         const value = request?.value ?? "";
 
         previewPreferences = {
@@ -506,8 +505,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "git.revisionDiff") {
         const request = args?.request as
-          | { uri?: string; base?: string; head?: string }
-          | undefined;
+          { uri?: string; base?: string; head?: string } | undefined;
         const rootUri = request?.uri ?? previewPathUri("Documents");
         return {
           repo: {
@@ -565,8 +563,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "git.revisionFiles") {
         const request = args?.request as
-          | { uri?: string; revision?: string | null }
-          | undefined;
+          { uri?: string; revision?: string | null } | undefined;
         const rootUri = request?.uri ?? previewPathUri("Documents");
         return {
           repo: {
@@ -672,8 +669,7 @@ export function createPreviewTransport(): IpcTransport {
         command === "network.profileUpdate"
       ) {
         const request = args?.request as
-          | { label?: string; id?: string }
-          | undefined;
+          { label?: string; id?: string } | undefined;
         return {
           profile: {
             id: request?.id ?? "550e8400-e29b-41d4-a716-446655440000",
@@ -796,8 +792,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "fs.properties") {
         const request = args?.request as
-          | Partial<PathPropertiesRequest>
-          | undefined;
+          Partial<PathPropertiesRequest> | undefined;
         const uri = request?.uri ?? previewHomeUri();
         return {
           properties: {
@@ -836,8 +831,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "fs.sync_directories") {
         const request = args?.request as
-          | Partial<SyncDirectoriesRequest>
-          | undefined;
+          Partial<SyncDirectoriesRequest> | undefined;
         return previewSyncDirectories(request) as TResponse;
       }
 
@@ -891,8 +885,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "fs.recursive_search_start") {
         const request = args?.request as
-          | Partial<RecursiveSearchRequest>
-          | undefined;
+          Partial<RecursiveSearchRequest> | undefined;
         const now = new Date().toISOString();
         const jobId = `preview-recursive-search-${Date.now()}`;
         const result = {
@@ -955,8 +948,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "fs.read_text_file") {
         const request = args?.request as
-          | { uri?: string; maxBytes?: number }
-          | undefined;
+          { uri?: string; maxBytes?: number } | undefined;
         const content = previewTextForUri(request?.uri ?? "");
         const encoded = new TextEncoder().encode(content);
         const maxBytes = request?.maxBytes ?? encoded.length;
@@ -971,8 +963,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "fs.read_file_range") {
         const request = args?.request as
-          | { uri?: string; offset?: number; length?: number }
-          | undefined;
+          { uri?: string; offset?: number; length?: number } | undefined;
         const content = previewTextForUri(request?.uri ?? "");
         const encoded = new TextEncoder().encode(content);
         const offset = Math.max(0, request?.offset ?? 0);
@@ -1022,8 +1013,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "terminal.write") {
         const request = args?.request as
-          | { sessionId?: string; data?: string }
-          | undefined;
+          { sessionId?: string; data?: string } | undefined;
         if (request?.sessionId && request.data) {
           globalThis.setTimeout(() => {
             emitTerminalOutput({
@@ -1040,8 +1030,7 @@ export function createPreviewTransport(): IpcTransport {
         command === "terminal.runCommand"
       ) {
         const request = args?.request as
-          | { sessionId?: string; text?: string; command?: string }
-          | undefined;
+          { sessionId?: string; text?: string; command?: string } | undefined;
         if (request?.sessionId) {
           const text = request.text ?? request.command ?? "";
           globalThis.setTimeout(() => {
@@ -1138,8 +1127,7 @@ export function createPreviewTransport(): IpcTransport {
 
       if (command === "terminal.profileUpdate") {
         const request = args?.request as
-          | { id?: string; profile?: TerminalProfileDto }
-          | undefined;
+          { id?: string; profile?: TerminalProfileDto } | undefined;
         const existing = previewTerminalProfiles.find(
           (profile) => profile.id === request?.id,
         );

@@ -111,13 +111,7 @@ export interface MenuBarProps {
 }
 
 export type MenuId =
-  | "file"
-  | "edit"
-  | "view"
-  | "go"
-  | "tools"
-  | "window"
-  | "help";
+  "file" | "edit" | "view" | "go" | "tools" | "window" | "help";
 
 export const MENU_ORDER: MenuId[] = [
   "file",

@@ -23,14 +23,7 @@ export function applyDensityPreference(density: string): DensityPreference {
 }
 
 export type AccentPreference =
-  | "blue"
-  | "indigo"
-  | "violet"
-  | "pink"
-  | "red"
-  | "orange"
-  | "amber"
-  | "green";
+  "blue" | "indigo" | "violet" | "pink" | "red" | "orange" | "amber" | "green";
 export type ScalePreference = "small" | "medium" | "large";
 
 const ACCENT_VALUES: ReadonlyArray<AccentPreference> = [

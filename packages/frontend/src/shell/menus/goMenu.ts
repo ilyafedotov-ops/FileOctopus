@@ -100,24 +100,22 @@ export function buildGoItems(
     ...(props.starredLocations.length > 0
       ? [
           sep("sep-starred"),
-          ...props.starredLocations.slice(0, 10).map(
-            (loc): DropdownMenuItem => ({
+          ...props.starredLocations
+            .slice(0, 10)
+            .map((loc): DropdownMenuItem => ({
               id: "starred-" + loc.uri,
               label: loc.label,
               icon: Icons.star(),
               onSelect: wrapArg(props.goStandardLocation, loc.uri),
-            }),
-          ),
+            })),
         ]
       : []),
     sep("sep-recent"),
-    ...props.recentLocations.slice(0, 10).map(
-      (loc): DropdownMenuItem => ({
-        id: "recent-" + loc.uri,
-        label: loc.label,
-        onSelect: wrapArg(props.goStandardLocation, loc.uri),
-      }),
-    ),
+    ...props.recentLocations.slice(0, 10).map((loc): DropdownMenuItem => ({
+      id: "recent-" + loc.uri,
+      label: loc.label,
+      onSelect: wrapArg(props.goStandardLocation, loc.uri),
+    })),
     ...(props.recentLocations.length > 10
       ? [
           {

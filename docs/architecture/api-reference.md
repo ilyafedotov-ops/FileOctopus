@@ -747,11 +747,7 @@ Shape rules enforced by the planner (`crates/fs-core/src/file_ops/mod.rs` — `v
 
 ```ts
 type ConflictPolicy =
-  | "fail"
-  | "skip"
-  | "overwrite"
-  | "renameNew"
-  | "renameExisting";
+  "fail" | "skip" | "overwrite" | "renameNew" | "renameExisting";
 ```
 
 The planner always reports conflicts in `FileOperationPlanDto.conflicts`. The executor's reaction is policy-driven:
