@@ -18,7 +18,7 @@ cp -R crates/app-ipc/bindings/git \
 
 for dir in "$OUT_DIR"/git "$OUT_DIR"/ipc "$OUT_DIR"/jobs "$OUT_DIR"/vfs; do
   find "$dir" -maxdepth 1 -type f -name '*.ts' ! -name 'index.ts' -exec basename {} .ts \; \
-    | sort \
+    | LC_ALL=C sort \
     | awk '{ printf "export type { %s } from \"./%s\";\n", $0, $0 }' \
     > "$dir/index.ts"
 done
