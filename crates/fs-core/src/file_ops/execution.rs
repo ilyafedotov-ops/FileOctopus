@@ -73,9 +73,16 @@ pub(super) fn execute_copy(
                             message: "symlink item has no source".to_string(),
                         })?;
 
+                if source.scheme() == "local" && destination.scheme() == "local" {
+                    copy_local_symlink(&source.to_local_path()?, &destination.to_local_path()?)?;
+                    progress.complete_item(item, job_id, sink);
+                    continue;
+                }
+
                 return Err(FileOperationError::UnsupportedSymlink {
                     uri: source.as_str().to_string(),
-                    message: "copying symlink objects is not supported in the MVP".to_string(),
+                    message: "copying symlink objects is only supported for local paths"
+                        .to_string(),
                 });
             }
         }
@@ -83,6 +90,28 @@ pub(super) fn execute_copy(
         progress.complete_item(item, job_id, sink);
     }
 
+    Ok(())
+}
+
+fn copy_local_symlink(source: &Path, destination: &Path) -> Result<(), FileOperationError> {
+    let target = fs::read_link(source).map_err(|error| map_std_io_error(source, error))?;
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(&target, destination)
+            .map_err(|error| map_std_io_error(destination, error))?;
+    }
+    #[cfg(windows)]
+    {
+        let target_metadata =
+            fs::metadata(source).map_err(|error| map_std_io_error(source, error))?;
+        if target_metadata.is_dir() {
+            std::os::windows::fs::symlink_dir(&target, destination)
+                .map_err(|error| map_std_io_error(destination, error))?;
+        } else {
+            std::os::windows::fs::symlink_file(&target, destination)
+                .map_err(|error| map_std_io_error(destination, error))?;
+        }
+    }
     Ok(())
 }
 

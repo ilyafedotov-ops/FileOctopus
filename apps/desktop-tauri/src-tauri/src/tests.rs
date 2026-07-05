@@ -7,7 +7,9 @@ use fs_core::{direct_ops, metadata};
 use vfs::{FileKind, ResourceUri};
 
 use crate::commands::app_info::app_get_info;
-use crate::commands::diagnostics::{resolve_diagnostics_destination, write_diagnostics_bundle};
+use crate::commands::diagnostics::{
+    redact_diagnostics_history_path, resolve_diagnostics_destination, write_diagnostics_bundle,
+};
 
 fn temp_dir(prefix: &str) -> std::path::PathBuf {
     let dir = std::env::temp_dir().join(format!("fo-ipc-test-{}-{}", prefix, uuid::Uuid::new_v4()));
@@ -50,6 +52,20 @@ fn diagnostics_bundle_contains_expected_files() {
     assert!(files.contains(&"recent-log.txt".to_string()));
 
     let _ = std::fs::remove_dir_all(dir);
+}
+
+#[test]
+fn diagnostics_history_path_redaction_preserves_basename_without_parent_details() {
+    let home = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(std::path::PathBuf::from)
+        .expect("test requires a home directory");
+    let path = home.join("private").join("project").join("report.txt");
+    let redacted = redact_diagnostics_history_path(&path.to_string_lossy());
+
+    assert_eq!(redacted, "~/…/report.txt");
+    assert!(!redacted.contains("private"));
+    assert!(!redacted.contains("project"));
 }
 
 fn app_paths_under(root: &std::path::Path) -> app_core::AppPaths {
@@ -287,7 +303,7 @@ fn fs_properties_returns_metadata() {
     std::fs::write(&file_path, "properties test").unwrap();
 
     let uri = ResourceUri::parse(&local_uri(&file_path)).unwrap();
-    let props = metadata::path_properties(&uri, false).unwrap();
+    let props = metadata::path_properties(&uri, false, false).unwrap();
 
     assert_eq!(props.name, "info.txt");
     assert_eq!(props.size, Some(15));
@@ -302,7 +318,7 @@ fn fs_properties_directory_includes_item_count() {
     std::fs::write(dir.join("b.txt"), "b").unwrap();
 
     let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
-    let props = metadata::path_properties(&uri, true).unwrap();
+    let props = metadata::path_properties(&uri, true, false).unwrap();
 
     assert_eq!(props.kind, FileKind::Directory);
     assert!(props.item_count.unwrap() >= 2);

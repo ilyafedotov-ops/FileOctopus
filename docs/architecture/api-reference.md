@@ -241,9 +241,9 @@ The `FsClient` exposes several one-shot filesystem helpers. These still cross th
 | `fs_standard_locations` / `fs.standard_locations`             | none                                                                                                 | `{ locations }`                             | Returns standard local locations as `{ id, name, uri, section }`.                                                                   |
 | `fs_open_default` / `fs.open_default`                         | `{ uri }`                                                                                            | `{ ok }`                                    | Opens the resource with the OS default application.                                                                                 |
 | `fs_reveal` / `fs.reveal`                                     | `{ uri }`                                                                                            | `{ ok }`                                    | Reveals the resource in the platform file manager.                                                                                  |
-| `fs_properties` / `fs.properties`                             | `{ uri, includeFolderSummary? }`                                                                     | `{ properties }`                            | Returns metadata plus optional recursive summary for directories.                                                                   |
+| `fs_properties` / `fs.properties`                             | `{ uri, includeFolderSummary?, includeExif? }`                                                       | `{ properties }`                            | Returns metadata plus optional recursive directory summary and image EXIF metadata.                                                 |
 
-`PathPropertiesDto` includes `uri`, `name`, `kind`, file `size`, optional `totalSize`/`itemCount`/`fileCount`/`directoryCount`, timestamps, hidden/symlink flags, `symlinkTarget`, `readonly`, and non-fatal `warnings`.
+`PathPropertiesDto` includes `uri`, `name`, `kind`, file `size`, optional `totalSize`/`itemCount`/`fileCount`/`directoryCount`, timestamps, hidden/symlink flags, `symlinkTarget`, `readonly`, optional `exif`, and non-fatal `warnings`. `exif` is present only when requested and extractable, with curated camera/dimension/exposure fields plus raw tag rows.
 
 ### Git commands
 
@@ -861,46 +861,46 @@ interface IpcError {
 
 The `code` is stable and is what the UI branches on (`packages/frontend/src/dialogs/OperationDialogView.tsx::operationErrorMessage`). All current codes:
 
-| Code                      | Origin                                        | Meaning                                                         |
-| ------------------------- | --------------------------------------------- | --------------------------------------------------------------- |
-| `invalid_uri`             | `VfsError`                                    | URI failed to parse (missing scheme, relative path, NUL byte).  |
-| `unsupported_provider`    | `VfsError`, `FileOperationError`              | No provider registered for the scheme.                          |
-| `duplicate_provider`      | `VfsError`                                    | Two providers tried to claim the same scheme.                   |
-| `not_found`               | `VfsError`, `FileOperationError`, Tauri shell | Resource or job id does not exist.                              |
-| `permission_denied`       | `VfsError`, `FileOperationError`              | OS denied the read/write/delete.                                |
-| `timeout`                 | `VfsError`                                    | Directory listing exceeded the server timeout (30s).            |
-| `cancelled`               | `VfsError`, `FileOperationError`              | Directory listing or operation cancellation token was observed. |
-| `preferences_error`       | Preferences repository                        | Invalid preference key/value or database failure.               |
-| `is_directory`            | Tauri shell                                   | File-only command was pointed at a directory.                   |
-| `file_too_large`          | Tauri shell                                   | Hash computation refused an oversized file.                     |
-| `unsupported_algorithm`   | Tauri shell                                   | Hash request named an unsupported digest algorithm.             |
-| `spawn_error`             | Tauri shell                                   | External process launch failed.                                 |
-| `no_terminal`             | Tauri shell                                   | No terminal emulator was found for `fs.open_terminal`.          |
-| `terminal_spawn_failed`   | `terminal-core`, Tauri shell                  | Embedded PTY session could not be started.                      |
-| `terminal_not_found`      | `terminal-core`, Tauri shell                  | Unknown `sessionId` for terminal write/resize/kill.             |
-| `invalid_terminal_size`   | `terminal-core`, Tauri shell                  | Terminal `cols` or `rows` must be greater than zero.            |
-| `terminal_session_exited` | `terminal-core`, Tauri shell                  | Write attempted after the PTY session exited.                   |
-| `autostart_unavailable`   | Tauri shell                                   | OS autostart integration is unavailable or failed.              |
-| `navigation_error`        | Navigation repository                         | Favorites/recent/starred persistence failed.                    |
-| `network_error`           | `RemoteError`, network handlers               | Generic remote/network failure.                                 |
-| `connection_required`     | `VfsError`, `RemoteError`                     | Remote URI used before session connect.                         |
-| `authentication_failed`   | `VfsError`, `RemoteError`, `terminal-core`    | SFTP or SSH terminal login/key auth rejected.                   |
-| `connection_lost`         | `VfsError`, `RemoteError`                     | Active session dropped mid-operation.                           |
-| `folder_not_found`        | Tauri shell                                   | Watch start requires an existing directory.                     |
-| `git_command_failed`      | `git-intel`, Tauri shell                      | Local `git` command failed for a repository query.              |
-| `invalid_request`         | `FileOperationError`                          | Operation request shape is wrong (missing sources, etc.).       |
-| `invalid_name`            | `FileOperationError`                          | Proposed name is empty, contains separators, or is reserved.    |
-| `invalid_path`            | `FileOperationError`                          | URI parsed but is not usable for this operation.                |
-| `destination_missing`     | `FileOperationError`                          | Destination parent does not exist.                              |
-| `destination_conflict`    | `FileOperationError`                          | Conflict detected and policy is `fail`.                         |
-| `recursive_operation`     | `FileOperationError`                          | Source contains destination (move/copy into itself).            |
-| `unsupported_symlink`     | `FileOperationError`                          | Symlink object copy is not supported in the MVP.                |
-| `unsupported_trash`       | `FileOperationError`                          | Platform trash unavailable.                                     |
-| `io_error`                | `FileOperationError`, Tauri shell             | Unclassified `std::io::Error`.                                  |
-| `internal`                | `VfsError`, `FileOperationError`, Tauri shell | Bug or invariant violation — file an issue.                     |
-| `unknown`                 | TS client                                     | A non-IPC error was caught and wrapped.                         |
-| `tauri_unavailable`       | Preview transport                             | The requested command is unsupported outside the Tauri shell.   |
-| `unsupported_transport`   | TS client                                     | Event subscription on a transport without `listen`.             |
+| Code                      | Origin                                        | Meaning                                                           |
+| ------------------------- | --------------------------------------------- | ----------------------------------------------------------------- |
+| `invalid_uri`             | `VfsError`                                    | URI failed to parse (missing scheme, relative path, NUL byte).    |
+| `unsupported_provider`    | `VfsError`, `FileOperationError`              | No provider registered for the scheme.                            |
+| `duplicate_provider`      | `VfsError`                                    | Two providers tried to claim the same scheme.                     |
+| `not_found`               | `VfsError`, `FileOperationError`, Tauri shell | Resource or job id does not exist.                                |
+| `permission_denied`       | `VfsError`, `FileOperationError`              | OS denied the read/write/delete.                                  |
+| `timeout`                 | `VfsError`                                    | Directory listing exceeded the server timeout (30s).              |
+| `cancelled`               | `VfsError`, `FileOperationError`              | Directory listing or operation cancellation token was observed.   |
+| `preferences_error`       | Preferences repository                        | Invalid preference key/value or database failure.                 |
+| `is_directory`            | Tauri shell                                   | File-only command was pointed at a directory.                     |
+| `file_too_large`          | Tauri shell                                   | Hash computation refused an oversized file.                       |
+| `unsupported_algorithm`   | Tauri shell                                   | Hash request named an unsupported digest algorithm.               |
+| `spawn_error`             | Tauri shell                                   | External process launch failed.                                   |
+| `no_terminal`             | Tauri shell                                   | No terminal emulator was found for `fs.open_terminal`.            |
+| `terminal_spawn_failed`   | `terminal-core`, Tauri shell                  | Embedded PTY session could not be started.                        |
+| `terminal_not_found`      | `terminal-core`, Tauri shell                  | Unknown `sessionId` for terminal write/resize/kill.               |
+| `invalid_terminal_size`   | `terminal-core`, Tauri shell                  | Terminal `cols` or `rows` must be greater than zero.              |
+| `terminal_session_exited` | `terminal-core`, Tauri shell                  | Write attempted after the PTY session exited.                     |
+| `autostart_unavailable`   | Tauri shell                                   | OS autostart integration is unavailable or failed.                |
+| `navigation_error`        | Navigation repository                         | Favorites/recent/starred persistence failed.                      |
+| `network_error`           | `RemoteError`, network handlers               | Generic remote/network failure.                                   |
+| `connection_required`     | `VfsError`, `RemoteError`                     | Remote URI used before session connect.                           |
+| `authentication_failed`   | `VfsError`, `RemoteError`, `terminal-core`    | SFTP or SSH terminal login/key auth rejected.                     |
+| `connection_lost`         | `VfsError`, `RemoteError`                     | Active session dropped mid-operation.                             |
+| `folder_not_found`        | Tauri shell                                   | Watch start requires an existing directory.                       |
+| `git_command_failed`      | `git-intel`, Tauri shell                      | Local `git` command failed for a repository query.                |
+| `invalid_request`         | `FileOperationError`                          | Operation request shape is wrong (missing sources, etc.).         |
+| `invalid_name`            | `FileOperationError`                          | Proposed name is empty, contains separators, or is reserved.      |
+| `invalid_path`            | `FileOperationError`                          | URI parsed but is not usable for this operation.                  |
+| `destination_missing`     | `FileOperationError`                          | Destination parent does not exist.                                |
+| `destination_conflict`    | `FileOperationError`                          | Conflict detected and policy is `fail`.                           |
+| `recursive_operation`     | `FileOperationError`                          | Source contains destination (move/copy into itself).              |
+| `unsupported_symlink`     | `FileOperationError`                          | Symlink object copy is unsupported for the current provider pair. |
+| `unsupported_trash`       | `FileOperationError`                          | Platform trash unavailable.                                       |
+| `io_error`                | `FileOperationError`, Tauri shell             | Unclassified `std::io::Error`.                                    |
+| `internal`                | `VfsError`, `FileOperationError`, Tauri shell | Bug or invariant violation — file an issue.                       |
+| `unknown`                 | TS client                                     | A non-IPC error was caught and wrapped.                           |
+| `tauri_unavailable`       | Preview transport                             | The requested command is unsupported outside the Tauri shell.     |
+| `unsupported_transport`   | TS client                                     | Event subscription on a transport without `listen`.               |
 
 The Rust source of truth is `crates/app-ipc/src/lib.rs`: `error_codes::ALL` for boundary-wide codes, plus `VfsError::code()` and `FileOperationError::code()` for the domain enums that feed into it. The TS mirror is exported from `packages/ts-api/src/types.ts` as `IPC_ERROR_CODES`.
 

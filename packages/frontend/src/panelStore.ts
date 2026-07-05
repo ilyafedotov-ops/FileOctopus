@@ -124,6 +124,7 @@ export type PanelAction =
       name: string;
     }
   | { type: "setSelection"; panelId: PanelId; entryId: string | null }
+  | { type: "setSelectionMany"; panelId: PanelId; entryIds: string[] }
   | { type: "selectAll"; panelId: PanelId }
   | { type: "invertSelection"; panelId: PanelId }
   | { type: "clearSelection"; panelId: PanelId }

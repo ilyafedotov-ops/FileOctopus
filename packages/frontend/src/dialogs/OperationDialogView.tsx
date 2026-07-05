@@ -430,8 +430,8 @@ export function OperationDialogView({
                     <span>
                       Includes{" "}
                       {dialog.entries.filter((e) => e.isSymlink).length}{" "}
-                      symlink(s) — the link target will be copied, not the link
-                      itself
+                      symlink(s) — local copies preserve the link object; remote
+                      or archive copies may be unsupported
                     </span>
                   </div>
                 ) : null}

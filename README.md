@@ -80,8 +80,6 @@ Demo videos:
 
 ## Current Limitations
 
-- Rubber-band select.
-- EXIF metadata display.
 - Trash browser/restore.
 - AI semantic search and peer-to-peer sync are intentionally deferred.
 

@@ -9,6 +9,7 @@ import {
 type SelectionAction = Extract<
   PanelAction,
   | { type: "setSelection" }
+  | { type: "setSelectionMany" }
   | { type: "selectAll" }
   | { type: "invertSelection" }
   | { type: "clearSelection" }
@@ -21,6 +22,7 @@ export function isSelectionAction(
 ): action is SelectionAction {
   return (
     action.type === "setSelection" ||
+    action.type === "setSelectionMany" ||
     action.type === "selectAll" ||
     action.type === "invertSelection" ||
     action.type === "clearSelection" ||
@@ -42,6 +44,19 @@ export function reduceSelection(
         focusedId: action.entryId,
         anchorId: action.entryId,
       }));
+    case "setSelectionMany":
+      return updatePanel(state, action.panelId, (tab) => {
+        const existing = new Set(Object.keys(tab.entriesById));
+        const ids = action.entryIds.filter((id) => existing.has(id));
+        const focusedId = ids[ids.length - 1] ?? null;
+        return {
+          ...tab,
+          selectedIds: ids,
+          selectedId: focusedId,
+          focusedId,
+          anchorId: ids[0] ?? null,
+        };
+      });
     case "selectAll":
       return updatePanel(state, action.panelId, (tab) => {
         const ids = selectVisibleEntries(tab).map((entry) => entry.uri);

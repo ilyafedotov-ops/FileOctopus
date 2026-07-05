@@ -49,7 +49,7 @@ fn properties_include_core_metadata_and_folder_summary() {
     fs::write(folder.join("one.txt"), b"1234").unwrap();
     fs::write(folder.join(".hidden"), b"xx").unwrap();
 
-    let properties = path_properties(&uri(&folder), true).unwrap();
+    let properties = path_properties(&uri(&folder), true, false).unwrap();
 
     assert_eq!(properties.kind, FileKind::Directory);
     assert_eq!(properties.name, "folder");

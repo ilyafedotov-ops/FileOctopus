@@ -280,8 +280,8 @@ fn redact_history_record(record: OperationHistoryRecord) -> serde_json::Value {
         "jobId": record.job_id,
         "operationKind": record.operation_kind,
         "sourceCount": record.source_count,
-        "representativeSourcePath": record.representative_source_path.map(|path| redact_home(&path)),
-        "destinationPath": record.destination_path.map(|path| redact_home(&path)),
+        "representativeSourcePath": record.representative_source_path.map(|path| redact_diagnostics_history_path(&path)),
+        "destinationPath": record.destination_path.map(|path| redact_diagnostics_history_path(&path)),
         "status": record.status,
         "startedAt": record.started_at,
         "completedAt": record.completed_at,
@@ -329,6 +329,25 @@ pub(crate) fn redact_home(value: &str) -> String {
     let home = home.to_string_lossy();
 
     value.replace(home.as_ref(), "~")
+}
+
+pub(crate) fn redact_diagnostics_history_path(value: &str) -> String {
+    let basename = Path::new(value)
+        .file_name()
+        .map(|name| name.to_string_lossy().to_string())
+        .filter(|name| !name.is_empty());
+    let redacted = redact_home(value);
+    let Some(basename) = basename else {
+        return redacted;
+    };
+
+    if redacted.starts_with("~/") || redacted == "~" {
+        format!("~/…/{basename}")
+    } else if Path::new(value).is_absolute() {
+        format!("…/{basename}")
+    } else {
+        basename
+    }
 }
 
 pub(crate) fn redact_diagnostics_text(value: &str) -> String {

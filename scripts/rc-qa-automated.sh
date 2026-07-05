@@ -14,6 +14,7 @@ echo "  commit: $COMMIT"
 echo "  utc:    $DATE_UTC"
 
 mkdir -p ./tmp
+mkdir -p "$(dirname "$REPORT")"
 
 echo ""
 echo "== Sprint 3 smoke fixture =="
@@ -74,12 +75,14 @@ cat >"$REPORT" <<EOF
 | Smoke fixture | \`/tmp/fileoctopus-smoke\` | prepared |
 | Sprint 4 fixture | \`/tmp/fileoctopus-sprint-4\` | prepared |
 | 10k tree | \`./tmp/10k\` | prepared or reused |
+| Locked-file QA | platform-specific manual evidence item | recorded below |
 
 ## Manual follow-up (human on target hardware)
 
 - [ ] \`docs/qa/sprint-3-smoke-test.md\` against packaged \`.deb\` / AppImage
 - [ ] \`docs/qa/sprint-4-baseline-qa.md\` full checklist
 - [ ] \`docs/testing/large-directory-performance.md\` scroll recording for \`tmp/10k\` and \`tmp/100k\`
+- [ ] Locked-file behavior on target OS: record whether rename, delete, and overwrite of an open file succeed, fail, or require retry
 - [ ] Export diagnostics bundle from Help menu and inspect zip contents
 
 ## Navigation URIs (preview / dev)

@@ -1,12 +1,14 @@
 use std::collections::HashSet;
-use std::fs;
+use std::fs::{self, File};
+use std::io::BufReader;
 use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
+use exif::{Tag, Value};
 use jobs::CancellationToken;
 use vfs::{FileKind, FileOperationError, ResourceUri};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct PathProperties {
     pub uri: String,
     pub name: String,
@@ -24,6 +26,34 @@ pub struct PathProperties {
     pub symlink_target: Option<String>,
     pub readonly: bool,
     pub warnings: Vec<String>,
+    pub exif: Option<ExifMetadata>,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct ExifMetadata {
+    pub camera_make: Option<String>,
+    pub camera_model: Option<String>,
+    pub lens_model: Option<String>,
+    pub date_taken: Option<String>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub orientation: Option<String>,
+    pub exposure_time: Option<String>,
+    pub f_number: Option<String>,
+    pub iso: Option<u32>,
+    pub focal_length: Option<String>,
+    pub gps_latitude: Option<f64>,
+    pub gps_longitude: Option<f64>,
+    pub tags: Vec<ExifTag>,
+    pub warnings: Vec<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ExifTag {
+    pub group: String,
+    pub tag: String,
+    pub label: String,
+    pub value: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -39,6 +69,7 @@ pub struct FolderSizeSummary {
 pub fn path_properties(
     uri: &ResourceUri,
     include_folder_summary: bool,
+    include_exif: bool,
 ) -> Result<PathProperties, FileOperationError> {
     let path = uri.to_local_path()?;
     let metadata = fs::symlink_metadata(&path).map_err(|error| map_io_error(uri, error))?;
@@ -70,7 +101,112 @@ pub fn path_properties(
             .map(|target| target.as_str().to_string()),
         readonly: metadata.permissions().readonly(),
         warnings: summary.map(|value| value.warnings).unwrap_or_default(),
+        exif: if include_exif && metadata.is_file() {
+            extract_exif_metadata(&path)
+        } else {
+            None
+        },
     })
+}
+
+fn extract_exif_metadata(path: &Path) -> Option<ExifMetadata> {
+    let file = File::open(path).ok()?;
+    let mut reader = BufReader::new(file);
+    let exif = exif::Reader::new().read_from_container(&mut reader).ok()?;
+    let tags = exif
+        .fields()
+        .map(|field| ExifTag {
+            group: format!("{:?}", field.ifd_num),
+            tag: field.tag.to_string(),
+            label: field.tag.to_string(),
+            value: field.display_value().with_unit(&exif).to_string(),
+        })
+        .collect::<Vec<_>>();
+
+    Some(ExifMetadata {
+        camera_make: string_tag(&exif, Tag::Make),
+        camera_model: string_tag(&exif, Tag::Model),
+        lens_model: string_tag(&exif, Tag::LensModel),
+        date_taken: string_tag(&exif, Tag::DateTimeOriginal)
+            .or_else(|| string_tag(&exif, Tag::DateTime)),
+        width: u32_tag(&exif, Tag::PixelXDimension).or_else(|| u32_tag(&exif, Tag::ImageWidth)),
+        height: u32_tag(&exif, Tag::PixelYDimension).or_else(|| u32_tag(&exif, Tag::ImageLength)),
+        orientation: display_tag(&exif, Tag::Orientation),
+        exposure_time: display_tag(&exif, Tag::ExposureTime),
+        f_number: display_tag(&exif, Tag::FNumber),
+        iso: u32_tag(&exif, Tag::PhotographicSensitivity),
+        focal_length: display_tag(&exif, Tag::FocalLength),
+        gps_latitude: gps_coordinate(&exif, Tag::GPSLatitude, Tag::GPSLatitudeRef),
+        gps_longitude: gps_coordinate(&exif, Tag::GPSLongitude, Tag::GPSLongitudeRef),
+        tags,
+        warnings: Vec::new(),
+    })
+}
+
+fn field(exif: &exif::Exif, tag: Tag) -> Option<&exif::Field> {
+    exif.fields().find(|field| field.tag == tag)
+}
+
+fn string_tag(exif: &exif::Exif, tag: Tag) -> Option<String> {
+    let field = field(exif, tag)?;
+    match &field.value {
+        Value::Ascii(values) => values
+            .first()
+            .map(|value| {
+                String::from_utf8_lossy(value)
+                    .trim_matches('\0')
+                    .trim()
+                    .to_string()
+            })
+            .filter(|value| !value.is_empty()),
+        _ => Some(field.display_value().with_unit(exif).to_string())
+            .filter(|value| !value.is_empty()),
+    }
+}
+
+fn display_tag(exif: &exif::Exif, tag: Tag) -> Option<String> {
+    field(exif, tag)
+        .map(|field| field.display_value().with_unit(exif).to_string())
+        .filter(|value| !value.is_empty())
+}
+
+fn u32_tag(exif: &exif::Exif, tag: Tag) -> Option<u32> {
+    let field = field(exif, tag)?;
+    match &field.value {
+        Value::Short(values) => values.first().map(|value| *value as u32),
+        Value::Long(values) => values.first().copied(),
+        Value::Rational(values) => values
+            .first()
+            .and_then(|value| value.num.checked_div(value.denom)),
+        _ => field
+            .display_value()
+            .with_unit(exif)
+            .to_string()
+            .parse()
+            .ok(),
+    }
+}
+
+fn gps_coordinate(exif: &exif::Exif, value_tag: Tag, reference_tag: Tag) -> Option<f64> {
+    let value = field(exif, value_tag)?;
+    let components = match &value.value {
+        Value::Rational(values) if values.len() >= 3 => values,
+        _ => return None,
+    };
+    let to_f64 = |value: &exif::Rational| {
+        if value.denom == 0 {
+            None
+        } else {
+            Some(value.num as f64 / value.denom as f64)
+        }
+    };
+    let mut coordinate =
+        to_f64(&components[0])? + to_f64(&components[1])? / 60.0 + to_f64(&components[2])? / 3600.0;
+    let reference = string_tag(exif, reference_tag).unwrap_or_default();
+    if reference.eq_ignore_ascii_case("S") || reference.eq_ignore_ascii_case("W") {
+        coordinate = -coordinate;
+    }
+    Some(coordinate)
 }
 
 pub fn calculate_folder_size(uri: &ResourceUri) -> Result<FolderSizeSummary, FileOperationError> {
@@ -239,5 +375,55 @@ fn map_io_error(uri: &ResourceUri, error: std::io::Error) -> FileOperationError 
         },
         std::io::ErrorKind::TimedOut => crate::placeholder::classify_timed_out_uri(uri, &error),
         _ => FileOperationError::io(error.to_string()),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::tempdir;
+
+    #[test]
+    fn path_properties_extracts_basic_exif_when_requested() {
+        let dir = tempdir().unwrap();
+        let image = dir.path().join("photo.jpg");
+        std::fs::write(&image, minimal_exif_jpeg()).unwrap();
+        let uri = ResourceUri::from_local_path(&image).unwrap();
+
+        let properties = path_properties(&uri, false, true).unwrap();
+        let exif = properties.exif.expect("EXIF metadata should be present");
+
+        assert_eq!(exif.camera_make.as_deref(), Some("Canon"));
+        assert_eq!(exif.camera_model.as_deref(), Some("EOS R5"));
+        assert!(exif.tags.iter().any(|tag| tag.tag == "Make"));
+    }
+
+    fn minimal_exif_jpeg() -> Vec<u8> {
+        let mut tiff = Vec::new();
+        tiff.extend_from_slice(b"II");
+        tiff.extend_from_slice(&42_u16.to_le_bytes());
+        tiff.extend_from_slice(&8_u32.to_le_bytes());
+        tiff.extend_from_slice(&2_u16.to_le_bytes());
+        tiff.extend_from_slice(&0x010f_u16.to_le_bytes());
+        tiff.extend_from_slice(&2_u16.to_le_bytes());
+        tiff.extend_from_slice(&6_u32.to_le_bytes());
+        tiff.extend_from_slice(&38_u32.to_le_bytes());
+        tiff.extend_from_slice(&0x0110_u16.to_le_bytes());
+        tiff.extend_from_slice(&2_u16.to_le_bytes());
+        tiff.extend_from_slice(&7_u32.to_le_bytes());
+        tiff.extend_from_slice(&44_u32.to_le_bytes());
+        tiff.extend_from_slice(&0_u32.to_le_bytes());
+        tiff.extend_from_slice(b"Canon\0");
+        tiff.extend_from_slice(b"EOS R5\0");
+
+        let mut app1 = Vec::new();
+        app1.extend_from_slice(b"Exif\0\0");
+        app1.extend_from_slice(&tiff);
+
+        let mut jpeg = vec![0xff, 0xd8, 0xff, 0xe1];
+        jpeg.extend_from_slice(&(app1.len() as u16 + 2).to_be_bytes());
+        jpeg.extend_from_slice(&app1);
+        jpeg.extend_from_slice(&[0xff, 0xd9]);
+        jpeg
     }
 }

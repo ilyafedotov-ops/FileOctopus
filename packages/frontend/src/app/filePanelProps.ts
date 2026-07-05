@@ -127,6 +127,8 @@ export function buildFilePanelProps(
     onAddServer: () => handleCommandSelect("nav.addServer"),
     locationTargets,
     onSelect: (entryId) => dispatch({ type: "setSelection", panelId, entryId }),
+    onSelectionMany: (entryIds) =>
+      dispatch({ type: "setSelectionMany", panelId, entryIds }),
     onEntrySelect: (entryId, mode) =>
       dispatch({ type: "selectEntry", panelId, entryId, mode }),
     onCreateFolder: () => runPanel("create.folder"),

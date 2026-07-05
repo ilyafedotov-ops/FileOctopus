@@ -861,6 +861,14 @@
   min-width: 520px;
 }
 
+.fo-rubber-band {
+  position: absolute;
+  z-index: 4;
+  pointer-events: none;
+  border: 1px solid var(--fo-accent);
+  background: color-mix(in srgb, var(--fo-accent) 18%, transparent);
+}
+
 .fo-row {
   position: absolute;
   left: 0;

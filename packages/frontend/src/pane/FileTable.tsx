@@ -7,6 +7,7 @@ import {
   useState,
   type KeyboardEvent,
   type MouseEvent,
+  type PointerEvent,
   type ReactNode,
 } from "react";
 import { isPaneLoading, type PaneLoadState } from "../paneTypes";
@@ -18,6 +19,10 @@ import {
   parseFileTypeColorRules,
 } from "../utils/fileTypeColors";
 import { FileRow } from "./FileRow";
+import {
+  entryIdsInRubberBand,
+  normalizeRubberBandRectangle,
+} from "./rubberBandSelection";
 import {
   buildVisibleGridTemplate,
   buildVisibleHeaderGridTemplate,
@@ -62,6 +67,7 @@ export interface FileTableProps {
   onColumnResize?: (columnId: ColumnId, newWidth: number) => void;
   onColumnReorder?: (fromIndex: number, toIndex: number) => void;
   onSelect: (entryId: string | null) => void;
+  onSelectionMany?: (entryIds: string[]) => void;
   onEntrySelect: (entryId: string, mode: "single" | "toggle" | "range") => void;
   onMove: (delta: number) => void;
   onSort: (field: SortField) => void;
@@ -100,6 +106,7 @@ export function FileTable({
   onColumnResize,
   onColumnReorder,
   onSelect,
+  onSelectionMany,
   onEntrySelect,
   onMove,
   onSort,
@@ -120,6 +127,13 @@ export function FileTable({
   } | null>(null);
   const [resizeStartX, setResizeStartX] = useState(0);
   const [resizeStartWidth, setResizeStartWidth] = useState(0);
+  const [rubberBand, setRubberBand] = useState<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
   const ICON_ITEM_MIN_WIDTH = 96;
   const ICON_GAP = 5;
   const ICON_ROW_HEIGHT = 110;
@@ -282,6 +296,84 @@ export function FileTable({
     }
   }
 
+  const rubberBandRect = rubberBand
+    ? normalizeRubberBandRectangle(
+        rubberBand.startX,
+        rubberBand.startY,
+        rubberBand.currentX,
+        rubberBand.currentY,
+      )
+    : null;
+
+  function handleRubberBandStart(event: PointerEvent<HTMLDivElement>) {
+    const startedOnInteractiveElement =
+      event.target instanceof Element &&
+      Boolean(event.target.closest(".fo-row, .fo-table-header, button, input"));
+    if (event.button !== 0 || startedOnInteractiveElement) {
+      return;
+    }
+    const viewport = viewportRef.current;
+    if (!viewport) {
+      return;
+    }
+    viewport.setPointerCapture(event.pointerId);
+    setRubberBand({
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      currentX: event.clientX,
+      currentY: event.clientY,
+    });
+  }
+
+  function handleRubberBandMove(event: PointerEvent<HTMLDivElement>) {
+    setRubberBand((current) =>
+      current && current.pointerId === event.pointerId
+        ? { ...current, currentX: event.clientX, currentY: event.clientY }
+        : current,
+    );
+  }
+
+  function handleRubberBandEnd(event: PointerEvent<HTMLDivElement>) {
+    const current = rubberBand;
+    if (!current || current.pointerId !== event.pointerId) {
+      return;
+    }
+    const viewport = viewportRef.current;
+    setRubberBand(null);
+    if (!viewport) {
+      return;
+    }
+    const rect = viewport.getBoundingClientRect();
+    const dragRect = normalizeRubberBandRectangle(
+      current.startX,
+      current.startY,
+      event.clientX,
+      event.clientY,
+    );
+    if (
+      Math.abs(dragRect.right - dragRect.left) < 3 ||
+      Math.abs(dragRect.bottom - dragRect.top) < 3
+    ) {
+      return;
+    }
+    const itemWidth = isGrid ? containerWidth / itemsPerRow : rect.width;
+    const ids = entryIdsInRubberBand({
+      entries: entries.map((entry) => ({
+        uri: entry.uri,
+        isParent: isParentDirectoryEntry(entry, currentUri),
+      })),
+      rowHeight: effectiveRowHeight,
+      itemsPerRow,
+      scrollTop: viewport.scrollTop,
+      viewportTop: rect.top,
+      viewportLeft: rect.left,
+      itemWidth,
+      rectangle: dragRect,
+    });
+    onSelectionMany?.(ids);
+  }
+
   return (
     <div
       className={cx(
@@ -370,6 +462,10 @@ export function FileTable({
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
+        onPointerDown={handleRubberBandStart}
+        onPointerMove={handleRubberBandMove}
+        onPointerUp={handleRubberBandEnd}
+        onPointerCancel={() => setRubberBand(null)}
       >
         {loading && entries.length === 0 ? (
           <FileListSkeleton rowHeight={rowHeight} viewMode={viewMode} />
@@ -454,6 +550,22 @@ export function FileTable({
             ))}
           </div>
         )}
+        {rubberBandRect ? (
+          <div
+            className="fo-rubber-band"
+            aria-hidden="true"
+            style={{
+              left:
+                rubberBandRect.left -
+                (viewportRef.current?.getBoundingClientRect().left ?? 0),
+              top:
+                rubberBandRect.top -
+                (viewportRef.current?.getBoundingClientRect().top ?? 0),
+              width: rubberBandRect.right - rubberBandRect.left,
+              height: rubberBandRect.bottom - rubberBandRect.top,
+            }}
+          />
+        ) : null}
       </div>
       {colVisMenu && onToggleColumn && (
         <div className="fo-colvis-backdrop" onClick={() => setColVisMenu(null)}>

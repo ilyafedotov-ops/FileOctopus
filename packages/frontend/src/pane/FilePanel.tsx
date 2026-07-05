@@ -69,6 +69,7 @@ export interface FilePanelProps {
   onAddServer?: () => void;
   locationTargets: PaneLocationTarget[];
   onSelect: (entryId: string | null) => void;
+  onSelectionMany?: (entryIds: string[]) => void;
   onEntrySelect: (entryId: string, mode: "single" | "toggle" | "range") => void;
   onMove: (delta: number) => void;
   onSort: (field: SortField) => void;
@@ -121,6 +122,7 @@ export function FilePanel({
   onAddServer,
   locationTargets,
   onSelect,
+  onSelectionMany,
   onEntrySelect,
   onMove,
   onSort,
@@ -492,6 +494,7 @@ export function FilePanel({
               onCreateFolder={onCreateFolder}
               onCreateFile={onCreateFile}
               onSelect={onSelect}
+              onSelectionMany={onSelectionMany}
               onEntrySelect={onEntrySelect}
               onMove={onMove}
               onSort={onSort}

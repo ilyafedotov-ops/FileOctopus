@@ -27,6 +27,8 @@ export type { DirectoryEntryDto } from "./DirectoryEntryDto";
 export type { DiscoverVolumesResponse } from "./DiscoverVolumesResponse";
 export type { EjectVolumeRequest } from "./EjectVolumeRequest";
 export type { EjectVolumeResponse } from "./EjectVolumeResponse";
+export type { ExifMetadataDto } from "./ExifMetadataDto";
+export type { ExifTagDto } from "./ExifTagDto";
 export type { ExportDiagnosticsBundleRequest } from "./ExportDiagnosticsBundleRequest";
 export type { ExportDiagnosticsBundleResponse } from "./ExportDiagnosticsBundleResponse";
 export type { FavoriteEntryDto } from "./FavoriteEntryDto";

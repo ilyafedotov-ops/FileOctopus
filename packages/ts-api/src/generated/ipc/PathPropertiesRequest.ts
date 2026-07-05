@@ -3,4 +3,5 @@
 export type PathPropertiesRequest = {
   uri: string;
   includeFolderSummary: boolean | null;
+  includeExif: boolean | null;
 };

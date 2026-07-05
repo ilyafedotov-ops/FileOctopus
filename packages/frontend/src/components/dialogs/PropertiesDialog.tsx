@@ -17,6 +17,34 @@ import { formatDate, formatSize } from "../../pane/fileTableUtils";
 import { isImagePreviewable } from "../PreviewPanel";
 import { AclEditor } from "./AclEditor";
 
+function exifRows(properties: PathPropertiesDto) {
+  const exif = properties.exif;
+  if (!exif) {
+    return [];
+  }
+  const camera = [exif.cameraMake, exif.cameraModel].filter(Boolean).join(" ");
+  const dimensions =
+    exif.width != null && exif.height != null
+      ? `${exif.width} × ${exif.height}`
+      : null;
+  const gps =
+    exif.gpsLatitude != null && exif.gpsLongitude != null
+      ? `${exif.gpsLatitude.toFixed(6)}, ${exif.gpsLongitude.toFixed(6)}`
+      : null;
+  return [
+    ["Camera", camera],
+    ["Lens", exif.lensModel],
+    ["Date taken", exif.dateTaken ? formatDate(exif.dateTaken) : null],
+    ["Dimensions", dimensions],
+    ["Orientation", exif.orientation],
+    ["Exposure", exif.exposureTime],
+    ["Aperture", exif.fNumber],
+    ["ISO", exif.iso != null ? String(exif.iso) : null],
+    ["Focal length", exif.focalLength],
+    ["GPS", gps],
+  ].filter((row): row is [string, string] => Boolean(row[1]));
+}
+
 export interface PropertiesDialogState {
   panelId: PanelId;
   entry: FileEntryDto | null;
@@ -234,6 +262,35 @@ export function PropertiesDialog({
               ) : null}
             </dl>
           </PropertiesSection>
+
+          {properties.exif ? (
+            <>
+              <PropertiesSection title="EXIF" collapsible>
+                <dl className="fo-properties-grid">
+                  {exifRows(properties).map(([label, value]) => (
+                    <PropertiesRow key={label} label={label} value={value} />
+                  ))}
+                </dl>
+              </PropertiesSection>
+              {properties.exif.tags.length > 0 ? (
+                <PropertiesSection
+                  title="Raw EXIF"
+                  collapsible
+                  defaultOpen={false}
+                >
+                  <dl className="fo-properties-grid">
+                    {properties.exif.tags.slice(0, 12).map((tag) => (
+                      <PropertiesRow
+                        key={`${tag.group}:${tag.tag}:${tag.label}`}
+                        label={tag.label}
+                        value={tag.value}
+                      />
+                    ))}
+                  </dl>
+                </PropertiesSection>
+              ) : null}
+            </>
+          ) : null}
 
           {properties.kind !== "directory" ? (
             <PropertiesSection title="Checksum" collapsible>

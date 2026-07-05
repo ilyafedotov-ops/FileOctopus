@@ -42,7 +42,7 @@ fn fs_properties_returns_file_metadata() {
     std::fs::write(&file_path, "properties body").unwrap();
 
     let uri = ResourceUri::from_local_path(&file_path).unwrap();
-    let props = metadata::path_properties(&uri, false).unwrap();
+    let props = metadata::path_properties(&uri, false, false).unwrap();
 
     assert_eq!(props.name, "notes.txt");
     assert_eq!(props.kind, FileKind::File);
@@ -59,7 +59,7 @@ fn fs_properties_directory_with_summary_includes_children() {
     std::fs::write(dir.join("two.txt"), "22").unwrap();
 
     let uri = ResourceUri::from_local_path(&dir).unwrap();
-    let props = metadata::path_properties(&uri, true).unwrap();
+    let props = metadata::path_properties(&uri, true, false).unwrap();
 
     assert_eq!(props.kind, FileKind::Directory);
     assert!(props.item_count.unwrap() >= 2);
@@ -73,7 +73,7 @@ fn fs_properties_missing_path_returns_not_found() {
     let missing = dir.join("ghost.txt");
     let uri = ResourceUri::from_local_path(&missing).unwrap();
 
-    let result = metadata::path_properties(&uri, false);
+    let result = metadata::path_properties(&uri, false, false);
     assert!(result.is_err());
     let err: IpcError = result.unwrap_err().into();
     assert_eq!(err.code, "not_found");

@@ -173,6 +173,7 @@ export function useMetadataHandlers(
       const response = await client.fs.properties({
         uri,
         includeFolderSummary: false,
+        includeExif: target?.kind !== "directory",
       });
       const properties = response.properties;
 

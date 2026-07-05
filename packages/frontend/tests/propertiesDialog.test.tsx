@@ -211,3 +211,65 @@ describe("PropertiesDialog hero thumbnail", () => {
     expect(screen.queryByAltText("file.txt")).toBeNull();
   });
 });
+
+describe("PropertiesDialog EXIF section", () => {
+  it("renders curated EXIF metadata when present", () => {
+    const exifImageEntry: FileEntryDto = {
+      uri: "local:///tmp/photo.jpg",
+      name: "photo.jpg",
+      kind: "file",
+    } as FileEntryDto;
+    const exifImageProperties: PathPropertiesDto = {
+      uri: "local:///tmp/photo.jpg",
+      name: "photo.jpg",
+      kind: "file",
+      size: 2048,
+      isHidden: false,
+      isSymlink: false,
+      readonly: false,
+      warnings: [],
+    } as PathPropertiesDto;
+
+    renderDialog(
+      makeFs({
+        readFileAsDataUri: vi.fn().mockResolvedValue({
+          dataUri: "data:image/jpeg;base64,/9j/",
+          byteSize: 2048,
+        }),
+      }),
+      exifImageEntry,
+      {
+        ...exifImageProperties,
+        exif: {
+          cameraMake: "Canon",
+          cameraModel: "EOS R5",
+          lensModel: null,
+          dateTaken: "2024-05-12T10:30:00Z",
+          width: 8192,
+          height: 5464,
+          orientation: "Horizontal",
+          exposureTime: "1/125",
+          fNumber: "f/2.8",
+          iso: 400,
+          focalLength: "50 mm",
+          gpsLatitude: null,
+          gpsLongitude: null,
+          tags: [
+            {
+              group: "Exif",
+              tag: "FNumber",
+              label: "FNumber",
+              value: "f/2.8",
+            },
+          ],
+          warnings: [],
+        },
+      } as PathPropertiesDto,
+    );
+
+    expect(screen.getByText("EXIF")).toBeTruthy();
+    expect(screen.getByText("Canon EOS R5")).toBeTruthy();
+    expect(screen.getByText("8192 × 5464")).toBeTruthy();
+    expect(screen.getByText("f/2.8")).toBeTruthy();
+  });
+});

@@ -812,6 +812,7 @@ export function createPreviewTransport(): IpcTransport {
             symlinkTarget: null,
             readonly: false,
             warnings: [],
+            exif: null,
           },
         } as TResponse;
       }

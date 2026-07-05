@@ -76,6 +76,15 @@ describe("isSelectionAction", () => {
       } as PanelAction),
     ).toBe(true);
   });
+  it("matches setSelectionMany", () => {
+    expect(
+      isSelectionAction({
+        type: "setSelectionMany",
+        panelId: "left",
+        entryIds: ["x", "y"],
+      } as PanelAction),
+    ).toBe(true);
+  });
   it("matches selectAll", () => {
     expect(
       isSelectionAction({ type: "selectAll", panelId: "left" } as PanelAction),
@@ -159,6 +168,23 @@ describe("reduceSelection", () => {
     const tab = activeTab(result.panels.left);
     expect(tab.selectedIds).toEqual([]);
     expect(tab.selectedId).toBeNull();
+  });
+
+  it("setSelectionMany replaces selection and focuses the last selected entry", () => {
+    state = addEntries(state, "left");
+    const result = reduceSelection(state, {
+      type: "setSelectionMany",
+      panelId: "left",
+      entryIds: ["local:///home/file-a", "local:///home/file-c"],
+    } as PanelAction);
+    const tab = activeTab(result.panels.left);
+    expect(tab.selectedIds).toEqual([
+      "local:///home/file-a",
+      "local:///home/file-c",
+    ]);
+    expect(tab.selectedId).toBe("local:///home/file-c");
+    expect(tab.focusedId).toBe("local:///home/file-c");
+    expect(tab.anchorId).toBe("local:///home/file-a");
   });
 
   it("selectAll selects all visible entries", () => {

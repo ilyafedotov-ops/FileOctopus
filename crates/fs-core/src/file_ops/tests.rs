@@ -301,7 +301,7 @@ fn unicode_paths_copy_move_rename_and_trash_plan_without_lossy_conversion() {
 
 #[cfg(unix)]
 #[test]
-fn symlink_listing_policy_does_not_recurse_or_copy_link_objects() {
+fn local_copy_preserves_symlink_object_without_recursing_into_target() {
     let dir = tempdir().unwrap();
     let source = dir.path().join("source");
     let dest = dir.path().join("dest");
@@ -323,7 +323,7 @@ fn symlink_listing_policy_does_not_recurse_or_copy_link_objects() {
 
     assert!(plan.items.iter().any(|item| item.kind == FileKind::Symlink));
 
-    let error = execute_file_operation(
+    execute_file_operation(
         &vfs(),
         &plan,
         &JobId::new("job"),
@@ -331,9 +331,12 @@ fn symlink_listing_policy_does_not_recurse_or_copy_link_objects() {
         &PauseToken::new(),
         &|_| {},
     )
-    .unwrap_err();
+    .unwrap();
 
-    assert_eq!(error.code(), "unsupported_symlink");
+    let copied_link = dest.join("source").join("loop");
+    let copied_metadata = fs::symlink_metadata(&copied_link).unwrap();
+    assert!(copied_metadata.file_type().is_symlink());
+    assert_eq!(fs::read_link(copied_link).unwrap(), source);
 }
 
 #[test]

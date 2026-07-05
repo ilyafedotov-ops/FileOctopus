@@ -1008,6 +1008,32 @@ export interface OkResponse {
 export interface PathPropertiesRequest {
   uri: string;
   includeFolderSummary?: boolean;
+  includeExif?: boolean;
+}
+
+export interface ExifTagDto {
+  group: string;
+  tag: string;
+  label: string;
+  value: string;
+}
+
+export interface ExifMetadataDto {
+  cameraMake?: string | null;
+  cameraModel?: string | null;
+  lensModel?: string | null;
+  dateTaken?: string | null;
+  width?: number | null;
+  height?: number | null;
+  orientation?: string | null;
+  exposureTime?: string | null;
+  fNumber?: string | null;
+  iso?: number | null;
+  focalLength?: string | null;
+  gpsLatitude?: number | null;
+  gpsLongitude?: number | null;
+  tags: ExifTagDto[];
+  warnings: string[];
 }
 
 export interface PathPropertiesDto {
@@ -1027,6 +1053,7 @@ export interface PathPropertiesDto {
   symlinkTarget?: string | null;
   readonly: boolean;
   warnings: string[];
+  exif?: ExifMetadataDto | null;
 }
 
 export interface PathPropertiesResponse {

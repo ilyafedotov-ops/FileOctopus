@@ -7,14 +7,14 @@ use app_core::AppState;
 use app_ipc::{
     error_codes, ComputeHashRequest, ComputeHashResponse, DiffHunk, DiffLine, DiffTextRequest,
     DiffTextResponse, DirectoryBatchEventDto, DirectoryEntryDto, DiscoverVolumesResponse,
-    EjectVolumeRequest, EjectVolumeResponse, FileEntryDto, IpcError, ListArchiveRequest,
-    ListArchiveResponse, ListDirectoriesRequest, ListDirectoriesResponse, ListStartRequest,
-    ListStartResponse, OkResponse, OpenTerminalRequest, OpenTerminalResponse, PathPropertiesDto,
-    PathPropertiesRequest, PathPropertiesResponse, PathRequest, ReadFileAsDataUriRequest,
-    ReadFileAsDataUriResponse, ReadFileRangeRequest, ReadFileRangeResponse,
-    ReadImageAsDataUriRequest, ReadImageAsDataUriResponse, ReadTextFileRequest,
-    ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse, StatRequest,
-    StatResponse, WriteTextFileRequest, WriteTextFileResponse, DIRECTORY_BATCH_EVENT,
+    EjectVolumeRequest, EjectVolumeResponse, ExifMetadataDto, ExifTagDto, FileEntryDto, IpcError,
+    ListArchiveRequest, ListArchiveResponse, ListDirectoriesRequest, ListDirectoriesResponse,
+    ListStartRequest, ListStartResponse, OkResponse, OpenTerminalRequest, OpenTerminalResponse,
+    PathPropertiesDto, PathPropertiesRequest, PathPropertiesResponse, PathRequest,
+    ReadFileAsDataUriRequest, ReadFileAsDataUriResponse, ReadFileRangeRequest,
+    ReadFileRangeResponse, ReadImageAsDataUriRequest, ReadImageAsDataUriResponse,
+    ReadTextFileRequest, ReadTextFileResponse, StandardLocationDto, StandardLocationsResponse,
+    StatRequest, StatResponse, WriteTextFileRequest, WriteTextFileResponse, DIRECTORY_BATCH_EVENT,
 };
 use fs_core::{external_open, locations, metadata, vfs_io::VfsFilesystem};
 use tauri::{AppHandle, State};
@@ -309,8 +309,9 @@ pub async fn fs_properties(
 ) -> Result<PathPropertiesResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
     let include_folder_summary = request.include_folder_summary.unwrap_or(false);
+    let include_exif = request.include_exif.unwrap_or(false);
     let properties = tauri::async_runtime::spawn_blocking(move || {
-        metadata::path_properties(&uri, include_folder_summary)
+        metadata::path_properties(&uri, include_folder_summary, include_exif)
     })
     .await
     .map_err(|_| IpcError::internal("properties task join failed"))?
@@ -334,8 +335,38 @@ pub async fn fs_properties(
             symlink_target: properties.symlink_target,
             readonly: properties.readonly,
             warnings: properties.warnings,
+            exif: properties.exif.map(exif_metadata_to_dto),
         },
     })
+}
+
+fn exif_metadata_to_dto(value: metadata::ExifMetadata) -> ExifMetadataDto {
+    ExifMetadataDto {
+        camera_make: value.camera_make,
+        camera_model: value.camera_model,
+        lens_model: value.lens_model,
+        date_taken: value.date_taken,
+        width: value.width,
+        height: value.height,
+        orientation: value.orientation,
+        exposure_time: value.exposure_time,
+        f_number: value.f_number,
+        iso: value.iso,
+        focal_length: value.focal_length,
+        gps_latitude: value.gps_latitude,
+        gps_longitude: value.gps_longitude,
+        tags: value
+            .tags
+            .into_iter()
+            .map(|tag| ExifTagDto {
+                group: tag.group,
+                tag: tag.tag,
+                label: tag.label,
+                value: tag.value,
+            })
+            .collect(),
+        warnings: value.warnings,
+    }
 }
 
 const MAX_IMAGE_BYTES: u64 = 20 * 1024 * 1024; // 20 MB
