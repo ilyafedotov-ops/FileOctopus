@@ -62,7 +62,9 @@ describe("SettingsPlugins", () => {
     await waitFor(() => {
       expect(screen.getByText("No plugins installed")).toBeTruthy();
     });
-    expect(screen.getByText(/Install plugins by copying them/)).toBeTruthy();
+    expect(
+      screen.getByText(/installation is disabled until signed Wasm packages/),
+    ).toBeTruthy();
   });
 
   it("renders plugin list with details", async () => {

@@ -243,7 +243,7 @@ describe("panel store", () => {
     expect(homeUri()).not.toContain("/ilya");
   });
 
-  it("transitions to empty and loaded terminal states", () => {
+  it("keeps a completed empty listing terminal when late batches arrive", () => {
     let state = createInitialState("local:///left", "local:///right");
 
     state = startPanelSession(state, "left", "session", "request");
@@ -273,7 +273,8 @@ describe("panel store", () => {
       },
     });
 
-    expect(activeTab(state.panels.left).loadState).toBe("loaded");
+    expect(activeTab(state.panels.left).loadState).toBe("empty");
+    expect(activeTab(state.panels.left).orderedEntryIds).toEqual([]);
   });
 
   it("maps permission and timeout errors to pane states", () => {

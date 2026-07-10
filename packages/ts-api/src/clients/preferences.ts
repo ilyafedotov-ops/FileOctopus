@@ -1,9 +1,9 @@
+import type { IpcTransport } from "../types";
 import type {
   GetPreferencesResponse,
-  IpcTransport,
   SetPreferenceRequest,
   SetPreferenceResponse,
-} from "../types";
+} from "../generated/ipc";
 
 export class PreferencesClient {
   constructor(private readonly transport: IpcTransport) {}

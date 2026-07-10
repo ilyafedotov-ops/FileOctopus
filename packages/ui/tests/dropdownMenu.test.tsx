@@ -151,6 +151,8 @@ describe("DropdownMenu submenu behaviour", () => {
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
 
     const child = screen.getByRole("menuitem", { name: "Name" });
+    fireEvent.mouseDown(child);
+    expect(onOpenChange).not.toHaveBeenCalled();
     fireEvent.click(child);
     expect(onChildSelect).toHaveBeenCalledOnce();
     expect(onOpenChange).toHaveBeenCalledWith(false);

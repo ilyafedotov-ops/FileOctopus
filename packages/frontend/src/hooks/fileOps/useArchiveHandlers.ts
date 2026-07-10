@@ -1,7 +1,11 @@
 import { normalizeIpcError } from "@fileoctopus/ts-api";
 import type { PanelId } from "../../panelStore";
 import { activeTab, selectVisibleEntries } from "../../panelStore";
-import { jobIdValue, joinLocalUri } from "../../dialogs/OperationDialogView";
+import {
+  jobIdValue,
+  joinLocalUri,
+  mergeJobSnapshot,
+} from "../../dialogs/OperationDialogView";
 import type { UseFileOpHandlersDeps } from "./types";
 import { useOperationCore, type OperationCore } from "./useOperationCore";
 
@@ -51,7 +55,7 @@ export function useArchiveHandlers(
       });
       setJobs((current) => ({
         ...current,
-        [jobIdValue(started.job.jobId)]: started.job,
+        [jobIdValue(started.job.jobId)]: mergeJobSnapshot(current, started.job),
       }));
       pushToast({
         tone: "info",
@@ -96,7 +100,7 @@ export function useArchiveHandlers(
       });
       setJobs((current) => ({
         ...current,
-        [jobIdValue(started.job.jobId)]: started.job,
+        [jobIdValue(started.job.jobId)]: mergeJobSnapshot(current, started.job),
       }));
       pushToast({
         tone: "info",

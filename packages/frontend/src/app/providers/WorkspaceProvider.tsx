@@ -12,7 +12,6 @@ import type { ToastMessage } from "../../components/ToastStack";
 import type { FileClipboardState } from "../../hooks/useFileOpHandlers";
 import type { ContextMenuState } from "../../components/ContextMenu";
 import type { SearchState } from "../../pane/PaneFilterBar";
-import type { ContentSearchState } from "../../pane/ContentSearchPanel";
 import {
   useLayoutFocusStore,
   type LayoutFocusStore,
@@ -26,7 +25,6 @@ export interface WorkspaceContextValue extends LayoutFocusStore {
   clipboard: FileClipboardState | null;
   contextMenu: ContextMenuState | null;
   search: SearchState | null;
-  contentSearch: ContentSearchState | null;
   diagnosticsDestination: string;
   diagnosticsMessage: string | null;
   exportingDiagnostics: boolean;
@@ -36,7 +34,6 @@ export interface WorkspaceContextValue extends LayoutFocusStore {
   setClipboard: Dispatch<SetStateAction<FileClipboardState | null>>;
   setContextMenu: Dispatch<SetStateAction<ContextMenuState | null>>;
   setSearch: Dispatch<SetStateAction<SearchState | null>>;
-  setContentSearch: Dispatch<SetStateAction<ContentSearchState | null>>;
   setDiagnosticsDestination: Dispatch<SetStateAction<string>>;
   setDiagnosticsMessage: Dispatch<SetStateAction<string | null>>;
   setExportingDiagnostics: Dispatch<SetStateAction<boolean>>;
@@ -60,9 +57,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [clipboard, setClipboard] = useState<FileClipboardState | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [search, setSearch] = useState<SearchState | null>(null);
-  const [contentSearch, setContentSearch] = useState<ContentSearchState | null>(
-    null,
-  );
   const [diagnosticsDestination, setDiagnosticsDestination] = useState(
     preferences?.diagnosticsExportPath ?? "",
   );
@@ -87,7 +81,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       clipboard,
       contextMenu,
       search,
-      contentSearch,
       diagnosticsDestination,
       diagnosticsMessage,
       exportingDiagnostics,
@@ -97,7 +90,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setClipboard,
       setContextMenu,
       setSearch,
-      setContentSearch,
       setDiagnosticsDestination,
       setDiagnosticsMessage,
       setExportingDiagnostics,
@@ -110,7 +102,6 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       clipboard,
       contextMenu,
       search,
-      contentSearch,
       diagnosticsDestination,
       diagnosticsMessage,
       exportingDiagnostics,

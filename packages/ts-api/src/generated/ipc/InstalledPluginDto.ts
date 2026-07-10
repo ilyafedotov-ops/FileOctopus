@@ -3,6 +3,5 @@ import type { PluginManifestDto } from "./PluginManifestDto";
 
 export type InstalledPluginDto = {
   manifest: PluginManifestDto;
-  installPath: string;
   enabled: boolean;
 };

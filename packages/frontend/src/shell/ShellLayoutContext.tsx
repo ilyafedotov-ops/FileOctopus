@@ -16,7 +16,7 @@ import type {
   NetworkConnectionStatusDto,
   NetworkConnectionDraftDto,
   NetworkProfileTestResponse,
-  NetworkProtocolOptionsDto,
+  NetworkProtocolOptionsInput,
   NetworkProfileDto,
   RecentEntryDto,
   StarredEntryDto,
@@ -120,9 +120,8 @@ export interface ShellLayoutContextValue {
   disconnectProfile: (profileId: string) => Promise<void>;
   deleteProfile: (profileId: string) => Promise<void>;
   forgetFingerprint: (profileId: string) => Promise<void>;
-  testConnection: (
-    profileId: string,
-  ) => Promise<{ ok: boolean; message: string }>;
+  trustFingerprint: (profileId: string, fingerprint: string) => Promise<void>;
+  testConnection: (profileId: string) => Promise<NetworkProfileTestResponse>;
   testConnectionDraft: (payload: {
     scheme: "sftp" | "ssh" | "smb" | "s3" | "webdav";
     label: string;
@@ -132,7 +131,7 @@ export interface ShellLayoutContextValue {
     authKind: "password" | "privateKey" | "accessKey";
     privateKeyPath: string | null;
     defaultPath: string;
-    options: NetworkProtocolOptionsDto;
+    options: NetworkProtocolOptionsInput;
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileTestResponse>;
@@ -146,7 +145,7 @@ export interface ShellLayoutContextValue {
     authKind: "password" | "privateKey" | "accessKey";
     privateKeyPath: string | null;
     defaultPath: string;
-    options: NetworkProtocolOptionsDto;
+    options: NetworkProtocolOptionsInput;
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileDto>;
@@ -213,6 +212,9 @@ export interface ShellLayoutContextValue {
     typeof DialogOverlayGroup
   >[0]["submitCreateFile"];
   submitRename: Parameters<typeof DialogOverlayGroup>[0]["submitRename"];
+  submitMultiRename: Parameters<
+    typeof DialogOverlayGroup
+  >[0]["submitMultiRename"];
   submitCopyMove: Parameters<typeof DialogOverlayGroup>[0]["submitCopyMove"];
   submitTrash: Parameters<typeof DialogOverlayGroup>[0]["submitTrash"];
   submitPermanentDelete: Parameters<

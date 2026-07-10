@@ -229,6 +229,7 @@ describe("PathBar", () => {
     );
     const input = screen.getByLabelText("Current path");
     expect(input).toBeTruthy();
+    expect(document.activeElement).toBe(input);
   });
 
   it("calls onSubmit when breadcrumb segment is clicked", () => {

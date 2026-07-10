@@ -1,10 +1,17 @@
 import type { FileEntryDto } from "@fileoctopus/ts-api";
-import type { FileOctopusState, PanelAction } from "../../panelStore";
+import type {
+  FileOctopusState,
+  PanelAction,
+  PanelId,
+  PanelTabState,
+} from "../../panelStore";
 import {
   applyBatch,
+  findTabByRequest,
   removeEntriesFromState,
   renameEntryInState,
   updatePanel,
+  updatePanelTab,
 } from "../../panelStore";
 type ListingAction = Extract<
   PanelAction,
@@ -52,12 +59,11 @@ export function reduceListing(
           : null,
       }));
     case "startSession":
-      return updatePanel(state, action.panelId, (tab) => {
-        if (tab.activeRequestId !== action.requestId) {
-          return tab;
-        }
-
-        return {
+      return updateRequestTab(
+        state,
+        action.panelId,
+        action.requestId,
+        (tab) => ({
           ...tab,
           sessionId: action.sessionId,
           activeRequestId: action.requestId,
@@ -71,8 +77,8 @@ export function reduceListing(
           loadState: tab.loadState !== "loading" ? tab.loadState : "loading",
           error: tab.loadState !== "loading" ? tab.error : null,
           errorCode: tab.loadState !== "loading" ? tab.errorCode : null,
-        };
-      });
+        }),
+      );
     case "applyBatch":
       return applyBatch(state, action.batch);
     case "removeEntries":
@@ -85,16 +91,28 @@ export function reduceListing(
         action.name,
       );
     case "setPaneError":
-      return updatePanel(state, action.panelId, (tab) => ({
-        ...tab,
-        error: action.error,
-        errorCode: action.errorCode ?? null,
-        loadState: action.loadState ?? (action.error ? "error" : tab.loadState),
-      }));
+      return action.requestId
+        ? updateRequestTab(state, action.panelId, action.requestId, (tab) => ({
+            ...tab,
+            activeRequestId: null,
+            sessionId: null,
+            error: action.error,
+            errorCode: action.errorCode ?? null,
+            loadState:
+              action.loadState ?? (action.error ? "error" : tab.loadState),
+          }))
+        : updatePanel(state, action.panelId, (tab) => ({
+            ...tab,
+            error: action.error,
+            errorCode: action.errorCode ?? null,
+            loadState:
+              action.loadState ?? (action.error ? "error" : tab.loadState),
+          }));
     case "setArchiveEntries":
       return setArchiveEntriesReducer(
         state,
         action.panelId,
+        action.requestId,
         action.uri,
         action.entries,
       );
@@ -105,13 +123,11 @@ export function reduceListing(
 
 function setArchiveEntriesReducer(
   state: FileOctopusState,
-  panelId: "left" | "right",
+  panelId: PanelId,
+  requestId: string | undefined,
   uri: string,
   entries: FileEntryDto[],
 ): FileOctopusState {
-  const tab = state.panels[panelId].tabs[state.panels[panelId].activeTabId];
-  const changed = uri !== tab.uri;
-  const backStack = changed ? [...tab.backStack, tab.uri] : tab.backStack;
   const entriesById: Record<string, FileEntryDto> = {};
   const orderedEntryIds: string[] = [];
   for (const entry of entries) {
@@ -119,7 +135,7 @@ function setArchiveEntriesReducer(
     orderedEntryIds.push(entry.uri);
   }
   const firstId = orderedEntryIds[0] ?? null;
-  return updatePanel(state, panelId, (current) => ({
+  const update = (current: PanelTabState): PanelTabState => ({
     ...current,
     uri,
     entriesById,
@@ -134,8 +150,27 @@ function setArchiveEntriesReducer(
     error: null,
     errorCode: null,
     filter: "",
-    backStack,
-    forwardStack: changed ? [] : current.forwardStack,
+    backStack:
+      uri !== current.uri
+        ? [...current.backStack, current.uri]
+        : current.backStack,
+    forwardStack: uri !== current.uri ? [] : current.forwardStack,
     backgroundListing: null,
-  }));
+  });
+  return requestId
+    ? updateRequestTab(state, panelId, requestId, update)
+    : updatePanel(state, panelId, update);
+}
+
+function updateRequestTab(
+  state: FileOctopusState,
+  panelId: PanelId,
+  requestId: string,
+  update: (tab: PanelTabState) => PanelTabState,
+): FileOctopusState {
+  const target = findTabByRequest(state, requestId);
+  if (!target || target.panelId !== panelId) {
+    return state;
+  }
+  return updatePanelTab(state, target.panelId, target.tabId, update);
 }

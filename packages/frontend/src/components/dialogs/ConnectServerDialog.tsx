@@ -2,7 +2,7 @@ import type {
   FsClient,
   NetworkConnectionDraftDto,
   NetworkProfileTestResponse,
-  NetworkProtocolOptionsDto,
+  NetworkProtocolOptionsInput,
   NetworkProviderCapabilityDto,
   NetworkProfileDto,
   StandardLocationDto,
@@ -127,13 +127,17 @@ interface ConnectServerDialogProps {
     authKind: AuthKindType;
     privateKeyPath: string | null;
     defaultPath: string;
-    options: NetworkProtocolOptionsDto;
+    options: NetworkProtocolOptionsInput;
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileDto>;
   onConnectProfile?: (profile: NetworkProfileDto) => void;
   onForgetFingerprint?: (profileId: string) => Promise<void>;
-  onTest?: (profileId: string) => Promise<{ ok: boolean; message: string }>;
+  onTrustFingerprint?: (
+    profileId: string,
+    fingerprint: string,
+  ) => Promise<void>;
+  onTest?: (profileId: string) => Promise<NetworkProfileTestResponse>;
   onTestDraft?: (payload: {
     scheme: SchemeType;
     label: string;
@@ -143,7 +147,7 @@ interface ConnectServerDialogProps {
     authKind: AuthKindType;
     privateKeyPath: string | null;
     defaultPath: string;
-    options: NetworkProtocolOptionsDto;
+    options: NetworkProtocolOptionsInput;
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileTestResponse>;
@@ -242,6 +246,7 @@ export function ConnectServerDialog({
   onSave,
   onConnectProfile,
   onForgetFingerprint,
+  onTrustFingerprint,
   onTest,
   onTestDraft,
   preferences,
@@ -560,8 +565,8 @@ export function ConnectServerDialog({
     setTestState({ status: "idle" });
   }
 
-  function buildProtocolOptions(): NetworkProtocolOptionsDto {
-    const options: NetworkProtocolOptionsDto = {};
+  function buildProtocolOptions(): NetworkProtocolOptionsInput {
+    const options: NetworkProtocolOptionsInput = {};
     if (scheme === "sftp" || scheme === "ssh") {
       options.ssh = {
         useAgent,
@@ -676,6 +681,11 @@ export function ConnectServerDialog({
         setTestState({
           status: result.ok ? "success" : "error",
           message: result.message,
+          durationMs: result.durationMs,
+          resolvedUri: result.resolvedUri,
+          fingerprint: result.observedFingerprint,
+          trustState: result.trustState,
+          warnings: result.warnings,
         });
       } catch (testError) {
         setTestState({
@@ -709,6 +719,39 @@ export function ConnectServerDialog({
           testError instanceof Error
             ? testError.message
             : "Connection test failed.",
+      });
+    }
+  }
+
+  async function trustObservedFingerprint() {
+    if (
+      !currentProfile ||
+      testState.status === "idle" ||
+      testState.status === "testing" ||
+      !testState.fingerprint ||
+      !onTrustFingerprint
+    ) {
+      return;
+    }
+    const fingerprint = testState.fingerprint;
+    setTestState({ status: "testing" });
+    try {
+      await onTrustFingerprint(currentProfile.id, fingerprint);
+      setTestState({
+        status: "success",
+        message: "Host key trusted. Run Test again to authenticate.",
+        fingerprint,
+        trustState: "trusted",
+      });
+    } catch (trustError) {
+      setTestState({
+        status: "error",
+        message:
+          trustError instanceof Error
+            ? trustError.message
+            : "Failed to trust the SSH host key.",
+        fingerprint,
+        trustState: "untrusted",
       });
     }
   }
@@ -1346,6 +1389,22 @@ export function ConnectServerDialog({
                       <code className="fo-fingerprint-display">
                         {testState.fingerprint}
                       </code>
+                    ) : null}
+                    {currentProfile &&
+                    testState.fingerprint &&
+                    (testState.trustState === "untrusted" ||
+                      testState.trustState === "mismatch") &&
+                    onTrustFingerprint ? (
+                      <Button
+                        type="button"
+                        variant="primary"
+                        size="sm"
+                        onClick={() => void trustObservedFingerprint()}
+                      >
+                        {testState.trustState === "mismatch"
+                          ? "Trust replacement key"
+                          : "Trust this host key"}
+                      </Button>
                     ) : null}
                     {testState.warnings?.length ? (
                       <ul>

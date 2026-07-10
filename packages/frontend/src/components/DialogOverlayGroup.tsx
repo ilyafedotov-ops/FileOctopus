@@ -10,7 +10,7 @@ import type {
   FileEntryDto,
   NetworkConnectionDraftDto,
   NetworkProfileTestResponse,
-  NetworkProtocolOptionsDto,
+  NetworkProtocolOptionsInput,
   UserPreferencesDto,
 } from "@fileoctopus/ts-api";
 import type { PanelId } from "../panelStore";
@@ -30,6 +30,7 @@ import {
   DialogOverlaySectionOperations,
 } from "./dialogOverlaySections";
 import type { SyncComparisonMode } from "./dialogs/SyncDirectoriesDialog";
+import type { RenameResult } from "../utils/multiRename";
 
 export interface DialogOverlayGroupProps {
   preferences: UserPreferencesDto | null;
@@ -129,10 +130,9 @@ export interface DialogOverlayGroupProps {
   multiRenameEntries: FileEntryDto[];
   connectProfile: (profileId: string) => Promise<void>;
   forgetFingerprint: (profileId: string) => Promise<void>;
+  trustFingerprint: (profileId: string, fingerprint: string) => Promise<void>;
   deleteProfile: (profileId: string) => Promise<void>;
-  testConnection: (
-    profileId: string,
-  ) => Promise<{ ok: boolean; message: string }>;
+  testConnection: (profileId: string) => Promise<NetworkProfileTestResponse>;
   testConnectionDraft: (payload: {
     scheme: "sftp" | "ssh" | "smb" | "s3" | "webdav";
     label: string;
@@ -142,7 +142,7 @@ export interface DialogOverlayGroupProps {
     authKind: "password" | "privateKey" | "accessKey";
     privateKeyPath: string | null;
     defaultPath: string;
-    options: NetworkProtocolOptionsDto;
+    options: NetworkProtocolOptionsInput;
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileTestResponse>;
@@ -156,7 +156,7 @@ export interface DialogOverlayGroupProps {
     authKind: "password" | "privateKey" | "accessKey";
     privateKeyPath: string | null;
     defaultPath: string;
-    options: NetworkProtocolOptionsDto;
+    options: NetworkProtocolOptionsInput;
     password: string;
     passphrase: string;
   }) => Promise<NetworkProfileDto>;
@@ -182,6 +182,10 @@ export interface DialogOverlayGroupProps {
     dialog: Extract<OperationDialog, { type: "createFile" }>,
   ) => void;
   submitRename: (dialog: Extract<OperationDialog, { type: "rename" }>) => void;
+  submitMultiRename: (
+    entries: FileEntryDto[],
+    results: RenameResult[],
+  ) => Promise<string | null>;
   submitCopyMove: (
     dialog: Extract<OperationDialog, { type: "copyMove" }>,
   ) => void;

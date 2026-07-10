@@ -1,5 +1,10 @@
+import type { IpcTransport, UnlistenFn } from "../types";
 import type {
-  IpcTransport,
+  PlanFileOperationResponse,
+  StartFileOperationRequest,
+  StartFileOperationResponse,
+} from "../generated/ipc";
+import type {
   JobCancelledEvent,
   JobCompletedEvent,
   JobFailedEvent,
@@ -7,12 +12,8 @@ import type {
   JobProgressEvent,
   JobResumedEvent,
   JobStartedEvent,
-  PlanFileOperationRequest,
-  PlanFileOperationResponse,
-  StartFileOperationRequest,
-  StartFileOperationResponse,
-  UnlistenFn,
-} from "../types";
+} from "../generated/jobs";
+import type { PlanFileOperationInput } from "../input";
 import {
   JOB_CANCELLED_EVENT,
   JOB_COMPLETED_EVENT,
@@ -28,7 +29,7 @@ export class FileOperationsClient {
   constructor(private readonly transport: IpcTransport) {}
 
   async planFileOperation(
-    request: PlanFileOperationRequest,
+    request: PlanFileOperationInput,
   ): Promise<PlanFileOperationResponse> {
     return this.transport.invoke<PlanFileOperationResponse>(
       "fileOperation.plan",

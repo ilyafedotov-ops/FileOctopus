@@ -2,7 +2,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act, cleanup } from "@testing-library/react";
 import { afterEach } from "vitest";
 import { useNetworkHandlers } from "../src/hooks/useNetworkHandlers";
-import type { FileOctopusClient } from "@fileoctopus/ts-api";
+import type {
+  FileOctopusClient,
+  NetworkProfileTestResponse,
+} from "@fileoctopus/ts-api";
 
 afterEach(cleanup);
 
@@ -21,6 +24,19 @@ function createMockClient() {
       forgetFingerprint: vi
         .fn<() => Promise<{ ok: boolean }>>()
         .mockResolvedValue({ ok: true }),
+      trustFingerprint: vi
+        .fn<() => Promise<{ ok: boolean }>>()
+        .mockResolvedValue({ ok: true }),
+      testProfile: vi.fn().mockResolvedValue({
+        ok: false,
+        status: "warning",
+        message: "Confirm this SSH host key before authentication.",
+        durationMs: 5,
+        resolvedUri: "sftp://profile-1/",
+        observedFingerprint: "SHA256:observed",
+        trustState: "untrusted",
+        warnings: ["No credentials were loaded or sent."],
+      }),
       addProfile: vi
         .fn<() => Promise<{ profile: { id: string } }>>()
         .mockResolvedValue({
@@ -124,6 +140,42 @@ describe("useNetworkHandlers", () => {
 
     expect(client.network.forgetFingerprint).toHaveBeenCalledWith({
       id: "profile-1",
+    });
+    expect(refreshNetworkProfiles).toHaveBeenCalled();
+  });
+
+  it("testConnection returns the host-key challenge without calling connect", async () => {
+    const { result } = renderHook(() =>
+      useNetworkHandlers({ client, refreshNetworkProfiles, setOperationError }),
+    );
+
+    let response: NetworkProfileTestResponse | undefined;
+    await act(async () => {
+      response = await result.current.testConnection("profile-1");
+    });
+
+    expect(client.network.testProfile).toHaveBeenCalledWith({
+      id: "profile-1",
+    });
+    expect(client.network.connect).not.toHaveBeenCalled();
+    expect(response).toMatchObject({
+      observedFingerprint: "SHA256:observed",
+      trustState: "untrusted",
+    });
+  });
+
+  it("trustFingerprint confirms only the displayed challenge", async () => {
+    const { result } = renderHook(() =>
+      useNetworkHandlers({ client, refreshNetworkProfiles, setOperationError }),
+    );
+
+    await act(async () => {
+      await result.current.trustFingerprint("profile-1", "SHA256:observed");
+    });
+
+    expect(client.network.trustFingerprint).toHaveBeenCalledWith({
+      id: "profile-1",
+      fingerprint: "SHA256:observed",
     });
     expect(refreshNetworkProfiles).toHaveBeenCalled();
   });

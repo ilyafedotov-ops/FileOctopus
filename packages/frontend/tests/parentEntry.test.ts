@@ -30,15 +30,24 @@ describe("parentEntry", () => {
     expect(entry).toEqual({
       uri: "local:///Users/ilya",
       name: "..",
+      extension: null,
       kind: "directory",
+      size: null,
+      modifiedAt: null,
+      createdAt: null,
+      accessedAt: null,
       isHidden: false,
       isSymlink: false,
+      isPlaceholder: false,
+      symlinkTarget: null,
       providerId: "local",
       canRead: true,
       canList: true,
       canWrite: false,
       canDelete: false,
       canRename: false,
+      permissions: null,
+      owner: null,
     });
   });
 
@@ -54,15 +63,24 @@ describe("parentEntry", () => {
     expect(entry).toEqual({
       uri: "sftp://77ac077d-d721-480f-9ee0-bb22403f0fd5/home",
       name: "..",
+      extension: null,
       kind: "directory",
+      size: null,
+      modifiedAt: null,
+      createdAt: null,
+      accessedAt: null,
       isHidden: false,
       isSymlink: false,
+      isPlaceholder: false,
+      symlinkTarget: null,
       providerId: "sftp",
       canRead: true,
       canList: true,
       canWrite: false,
       canDelete: false,
       canRename: false,
+      permissions: null,
+      owner: null,
     });
   });
 

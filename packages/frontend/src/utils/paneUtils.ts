@@ -47,17 +47,24 @@ export function searchMatchToEntry(
   return {
     uri: match.uri,
     name: match.name,
+    extension: null,
     kind: match.kind,
-    size: match.size,
-    modifiedAt: match.modifiedAt,
+    size: match.size ?? null,
+    modifiedAt: match.modifiedAt ?? null,
+    createdAt: null,
+    accessedAt: null,
     isHidden: false,
     isSymlink: match.kind === "symlink",
+    isPlaceholder: false,
+    symlinkTarget: null,
     providerId: "local",
     canRead: true,
     canList: match.kind === "directory",
     canWrite: true,
     canDelete: true,
     canRename: true,
+    permissions: null,
+    owner: null,
   };
 }
 

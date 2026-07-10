@@ -1,2 +1,9 @@
+export type { JobCancelledEvent } from "./JobCancelledEvent";
+export type { JobCompletedEvent } from "./JobCompletedEvent";
+export type { JobFailedEvent } from "./JobFailedEvent";
+export type { JobPausedEvent } from "./JobPausedEvent";
+export type { JobProgressEvent } from "./JobProgressEvent";
+export type { JobResumedEvent } from "./JobResumedEvent";
 export type { JobSnapshot } from "./JobSnapshot";
+export type { JobStartedEvent } from "./JobStartedEvent";
 export type { JobStatus } from "./JobStatus";

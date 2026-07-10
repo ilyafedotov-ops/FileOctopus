@@ -1,7 +1,14 @@
+import { useEffect, useRef } from "react";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { normalizeIpcError } from "@fileoctopus/ts-api";
-import type { PanelId } from "../../panelStore";
-import { activeTab, parentUri, selectVisibleEntries } from "../../panelStore";
+import {
+  activeTab,
+  isContentSearchActive,
+  parentUri,
+  selectVisibleEntries,
+  type ContentSearchOptions,
+  type PanelId,
+} from "../../panelStore";
 import {
   jobIdValue,
   operationErrorMessage,
@@ -9,6 +16,7 @@ import {
 import type { OperationDialog } from "../../dialogs/OperationDialogView";
 import type { UseFileOpHandlersDeps } from "./types";
 import { useOperationCore, type OperationCore } from "./useOperationCore";
+import { createRequestId } from "../../paneTypes";
 
 function fileSizeBaseline(entries: FileEntryDto[]): number {
   return entries
@@ -20,6 +28,17 @@ export function useMetadataHandlers(
   deps: UseFileOpHandlersDeps,
   coreOverride?: OperationCore,
 ) {
+  const contentSearchRequestsRef = useRef(
+    new Map<
+      string,
+      {
+        panelId: PanelId;
+        tabId: string;
+        requestId: string;
+        jobId: string | null;
+      }
+    >(),
+  );
   const {
     client,
     state,
@@ -31,6 +50,27 @@ export function useMetadataHandlers(
     refreshPanel,
     navigatePanel,
   } = deps;
+
+  useEffect(() => {
+    for (const [key, tracked] of contentSearchRequestsRef.current) {
+      const search =
+        state.panels[tracked.panelId].tabs[tracked.tabId]?.contentSearch;
+      if (!search || search.requestId !== tracked.requestId) {
+        if (tracked.jobId) {
+          dispatch({
+            type: "discardContentSearchJobEvents",
+            jobId: tracked.jobId,
+          });
+          void client.jobs
+            .cancelJob({ jobId: tracked.jobId })
+            .catch(() => undefined);
+        }
+        contentSearchRequestsRef.current.delete(key);
+      } else if (!isContentSearchActive(search)) {
+        contentSearchRequestsRef.current.delete(key);
+      }
+    }
+  }, [client.jobs, state]);
 
   const { selectedEntries } = coreOverride ?? useOperationCore(deps);
 
@@ -325,6 +365,119 @@ export function useMetadataHandlers(
     }
   }
 
+  async function runContentSearch(
+    panelId: PanelId,
+    options: ContentSearchOptions = {
+      caseSensitive: false,
+      useRegex: false,
+      filePattern: "",
+    },
+  ) {
+    const panel = state.panels[panelId];
+    const tabId = panel.activeTabId;
+    const tab = panel.tabs[tabId];
+    const query = tab.contentSearchQuery.trim();
+    if (!query) {
+      return;
+    }
+
+    const key = `${panelId}:${tabId}`;
+    const tracked = contentSearchRequestsRef.current.get(key);
+    const replacedJobId =
+      tracked?.jobId ??
+      (isContentSearchActive(tab.contentSearch)
+        ? tab.contentSearch?.jobId
+        : null);
+    if (replacedJobId) {
+      dispatch({
+        type: "discardContentSearchJobEvents",
+        jobId: replacedJobId,
+      });
+      void client.jobs
+        .cancelJob({ jobId: replacedJobId })
+        .catch(() => undefined);
+    }
+
+    const requestId = createRequestId();
+    contentSearchRequestsRef.current.set(key, {
+      panelId,
+      tabId,
+      requestId,
+      jobId: null,
+    });
+    dispatch({
+      type: "startContentSearch",
+      panelId,
+      tabId,
+      requestId,
+      rootUri: tab.uri,
+      query,
+      options,
+    });
+
+    try {
+      const response = await client.fs.startContentSearchJob({
+        uri: tab.uri,
+        query,
+        limit: 500,
+        caseSensitive: options.caseSensitive,
+        useRegex: options.useRegex,
+        filePattern: options.filePattern || undefined,
+      });
+      const jobId = jobIdValue(response.job.jobId);
+      const current = contentSearchRequestsRef.current.get(key);
+      if (!current || current.requestId !== requestId) {
+        dispatch({ type: "discardContentSearchJobEvents", jobId });
+        void client.jobs.cancelJob({ jobId }).catch(() => undefined);
+        return;
+      }
+      current.jobId = jobId;
+      dispatch({
+        type: "bindContentSearchJob",
+        panelId,
+        tabId,
+        requestId,
+        jobId,
+      });
+    } catch (error) {
+      const current = contentSearchRequestsRef.current.get(key);
+      if (!current || current.requestId !== requestId) {
+        return;
+      }
+      contentSearchRequestsRef.current.delete(key);
+      dispatch({
+        type: "failContentSearchStart",
+        panelId,
+        tabId,
+        requestId,
+        error: normalizeIpcError(error).message,
+      });
+    }
+  }
+
+  async function cancelContentSearch(panelId: PanelId, tabId: string) {
+    const tab = state.panels[panelId].tabs[tabId];
+    const key = `${panelId}:${tabId}`;
+    const tracked = contentSearchRequestsRef.current.get(key);
+    const jobId = tracked?.jobId ?? tab?.contentSearch?.jobId;
+    if (!jobId || !isContentSearchActive(tab?.contentSearch)) {
+      return;
+    }
+
+    try {
+      await client.jobs.cancelJob({ jobId });
+      contentSearchRequestsRef.current.delete(key);
+      dispatch({
+        type: "terminateContentSearchJob",
+        jobId,
+        status: "cancelled",
+        error: "Operation cancelled.",
+      });
+    } catch (error) {
+      setOperationError(normalizeIpcError(error).message);
+    }
+  }
+
   function toggleHidden(panelId: PanelId) {
     const tab = activeTab(state.panels[panelId]);
 
@@ -382,6 +535,8 @@ export function useMetadataHandlers(
     calculateSelectionSize,
     handleProperties,
     runRecursiveSearch,
+    runContentSearch,
+    cancelContentSearch,
     toggleHidden,
     openTerminal,
     handleChecksum,

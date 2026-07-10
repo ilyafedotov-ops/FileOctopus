@@ -290,6 +290,7 @@ function makeCtx(
     submitCreateFolder: vi.fn(),
     submitCreateFile: vi.fn(),
     submitRename: vi.fn(),
+    submitMultiRename: vi.fn(),
     submitCopyMove: vi.fn(),
     submitTrash: vi.fn(),
     submitPermanentDelete: vi.fn(),

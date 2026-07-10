@@ -14,7 +14,6 @@ import { encodeTerminalInput, terminalControlFromKeydown } from "./shellEscape";
 import type { TerminalSearchDirection } from "./TerminalTabBar";
 
 const SAFE_LINK_SCHEMES = new Set(["http:", "https:"]);
-const TERMINAL_DEBUG_PREFIX = "[fileoctopus:terminal]";
 const IS_MAC =
   typeof navigator !== "undefined" &&
   /mac/i.test(
@@ -23,11 +22,6 @@ const IS_MAC =
       navigator.platform ??
       navigator.userAgent,
   );
-const TERMINAL_DEBUG_ENABLED =
-  typeof globalThis !== "undefined" &&
-  (globalThis as { __FILEOCTOPUS_TERMINAL_DEBUG__?: boolean })
-    .__FILEOCTOPUS_TERMINAL_DEBUG__ !== false;
-
 interface TerminalViewProps {
   client: FileOctopusClient;
   sessionId: string;
@@ -38,27 +32,6 @@ interface TerminalViewProps {
 
 export interface TerminalViewHandle {
   search: (query: string, direction: TerminalSearchDirection) => boolean;
-}
-
-function terminalDebug(event: string, payload: Record<string, unknown>) {
-  if (!TERMINAL_DEBUG_ENABLED) {
-    return;
-  }
-  // Render the payload as a JSON-ish string so it's readable in DevTools without
-  // having to expand the object (which is awkward when triaging quickly).
-  let summary = "";
-  try {
-    summary = JSON.stringify(payload);
-  } catch {
-    summary = String(payload);
-  }
-  console.warn(`${TERMINAL_DEBUG_PREFIX} ${event} ${summary}`);
-}
-
-function dataToHex(data: string): string {
-  return Array.from(data, (char) =>
-    char.charCodeAt(0).toString(16).padStart(2, "0"),
-  ).join(" ");
 }
 
 export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
@@ -127,25 +100,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
         }),
       );
       terminal.open(container);
-      terminal.attachCustomKeyEventHandler((event) => {
-        if (
-          event.ctrlKey ||
-          event.metaKey ||
-          event.altKey ||
-          event.key === "Backspace" ||
-          event.key === "Delete"
-        ) {
-          terminalDebug("xterm-key", {
-            type: event.type,
-            key: event.key,
-            code: event.code,
-            ctrlKey: event.ctrlKey,
-            metaKey: event.metaKey,
-            altKey: event.altKey,
-          });
-        }
-        return true;
-      });
       terminalRef.current = terminal;
       fitRef.current = fitAddon;
       searchRef.current = searchAddon;
@@ -159,21 +113,12 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
 
       const sendControlSequence = (sequence: string) => {
         const sid = sessionIdRef.current;
-        terminalDebug("control-write", {
-          sessionId: sid,
-          hex: dataToHex(sequence),
-        });
         void client.terminal
           .write({
             sessionId: sid,
             data: encodeTerminalInput(sequence),
           })
-          .catch((error) => {
-            terminalDebug("control-write-error", {
-              sessionId: sid,
-              message: error instanceof Error ? error.message : String(error),
-            });
-          });
+          .catch(() => undefined);
       };
 
       const eventTargetsThisTerminal = (event: KeyboardEvent): boolean => {
@@ -215,21 +160,11 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
           // with the muscle-memory Cmd+C.
           if (term.hasSelection()) {
             const text = term.getSelection();
-            terminalDebug("cmd-c-copy", {
-              sessionId: sessionIdRef.current,
-              length: text.length,
-            });
             if (text) {
-              void navigator.clipboard.writeText(text).catch((error) => {
-                terminalDebug("clipboard-write-error", {
-                  message:
-                    error instanceof Error ? error.message : String(error),
-                });
-              });
+              void navigator.clipboard.writeText(text).catch(() => undefined);
             }
             term.clearSelection();
           } else {
-            terminalDebug("cmd-c-sigint", { sessionId: sessionIdRef.current });
             sendControlSequence("\x03");
           }
           event.preventDefault();
@@ -237,7 +172,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
           return true;
         }
         if (key === "v") {
-          terminalDebug("cmd-v-paste", { sessionId: sessionIdRef.current });
           navigator.clipboard
             .readText()
             .then((text) => {
@@ -245,11 +179,7 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
                 terminalRef.current.paste(text);
               }
             })
-            .catch((error) => {
-              terminalDebug("clipboard-read-error", {
-                message: error instanceof Error ? error.message : String(error),
-              });
-            });
+            .catch(() => undefined);
           event.preventDefault();
           event.stopImmediatePropagation();
           return true;
@@ -259,31 +189,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
 
       const handleInterruptKeys = (event: KeyboardEvent) => {
         const ownsEvent = eventTargetsThisTerminal(event);
-        // Log every keydown that either belongs to this terminal OR uses a modifier —
-        // this lets us prove Ctrl+C is actually reaching the window listener.
-        if (
-          ownsEvent ||
-          event.ctrlKey ||
-          event.metaKey ||
-          event.altKey ||
-          event.key === "Backspace" ||
-          event.key === "Delete"
-        ) {
-          terminalDebug("keydown", {
-            sessionId: sessionIdRef.current,
-            ownsEvent,
-            key: event.key,
-            code: event.code,
-            ctrlKey: event.ctrlKey,
-            metaKey: event.metaKey,
-            altKey: event.altKey,
-            shiftKey: event.shiftKey,
-            activeTag:
-              document.activeElement instanceof HTMLElement
-                ? document.activeElement.tagName.toLowerCase()
-                : null,
-          });
-        }
         if (!ownsEvent) {
           return;
         }
@@ -292,11 +197,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
         }
         const control = terminalControlFromKeydown(event);
         if (!control) {
-          terminalDebug("keydown-no-control", {
-            sessionId: sessionIdRef.current,
-            key: event.key,
-            code: event.code,
-          });
           return;
         }
         event.preventDefault();
@@ -305,23 +205,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
       };
 
       const stopKeyBubble = (event: KeyboardEvent) => {
-        if (
-          event.ctrlKey ||
-          event.metaKey ||
-          event.altKey ||
-          event.key === "Backspace" ||
-          event.key === "Delete"
-        ) {
-          terminalDebug("container-key", {
-            type: event.type,
-            key: event.key,
-            code: event.code,
-            ctrlKey: event.ctrlKey,
-            metaKey: event.metaKey,
-            altKey: event.altKey,
-            defaultPrevented: event.defaultPrevented,
-          });
-        }
         event.stopPropagation();
       };
 
@@ -332,10 +215,6 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
       container.addEventListener("mousedown", focusTerminal);
       container.addEventListener("pointerdown", focusTerminal);
       container.addEventListener("click", focusTerminal);
-      terminalDebug("mount", {
-        sessionId: sessionIdRef.current,
-        hasContainer: true,
-      });
 
       const resize = () => {
         fitAddon.fit();
@@ -361,19 +240,9 @@ export const TerminalView = forwardRef<TerminalViewHandle, TerminalViewProps>(
 
       const onData = terminal.onData((data) => {
         const sid = sessionIdRef.current;
-        terminalDebug("xterm-data", {
-          sessionId: sid,
-          length: data.length,
-          hex: dataToHex(data),
-        });
         void client.terminal
           .write({ sessionId: sid, data: encodeTerminalInput(data) })
-          .catch((error) => {
-            terminalDebug("xterm-write-error", {
-              sessionId: sid,
-              message: error instanceof Error ? error.message : String(error),
-            });
-          });
+          .catch(() => undefined);
       });
 
       const unregister = registerTerminalSessionHandlers(sessionId, {

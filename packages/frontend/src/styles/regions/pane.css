@@ -1775,7 +1775,8 @@
 }
 
 .fo-panel-filter-row .fo-filter,
-.fo-panel-filter-row .fo-recursive-search {
+.fo-panel-filter-row .fo-recursive-search,
+.fo-panel-filter-row .fo-content-search-input {
   flex: 1;
 }
 
@@ -2373,12 +2374,6 @@
 .fo-settings-plugins .fo-plugin-empty,
 .fo-settings-plugins .fo-plugin-list {
   margin-top: 16px;
-}
-
-.fo-content-search {
-  display: grid;
-  gap: var(--fo-spacing-sm);
-  min-height: 0;
 }
 
 .fo-content-search-results {

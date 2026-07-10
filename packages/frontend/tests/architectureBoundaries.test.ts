@@ -21,4 +21,20 @@ describe("frontend architecture boundaries", () => {
 
     expect(offenders).toEqual([]);
   });
+
+  it("does not log terminal input or enable console capture in production", () => {
+    const terminalSource = readFileSync(
+      join(frontendSrc, "terminal", "TerminalView.tsx"),
+      "utf8",
+    );
+    const debugStoreSource = readFileSync(
+      join(frontendSrc, "dev", "debugLogStore.ts"),
+      "utf8",
+    );
+
+    expect(terminalSource).not.toContain("terminalDebug");
+    expect(terminalSource).not.toContain("dataToHex");
+    expect(terminalSource).not.toContain("xterm-data");
+    expect(debugStoreSource).toContain("enabled = false");
+  });
 });

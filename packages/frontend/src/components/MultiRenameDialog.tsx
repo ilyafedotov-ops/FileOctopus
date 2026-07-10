@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { Button } from "@fileoctopus/ui";
 import { useDialogEscape } from "../hooks/useDialogEscape";
@@ -15,7 +15,7 @@ interface MultiRenameDialogProps {
   open: boolean;
   entries: FileEntryDto[];
   onClose: () => void;
-  onExecute: (results: RenameResult[]) => void;
+  onExecute: (results: RenameResult[]) => Promise<string | null>;
 }
 
 export function MultiRenameDialog({
@@ -25,7 +25,9 @@ export function MultiRenameDialog({
   onExecute,
 }: MultiRenameDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  useDialogEscape(open, onClose);
+  const [executing, setExecuting] = useState(false);
+  const [executionError, setExecutionError] = useState<string | null>(null);
+  useDialogEscape(open && !executing, onClose);
   useFocusTrap(dialogRef, open);
 
   const [pattern, setPattern] = useState("[N]");
@@ -36,6 +38,12 @@ export function MultiRenameDialog({
   const [counterStart, setCounterStart] = useState(1);
   const [counterStep, setCounterStep] = useState(1);
   const [counterPadding, setCounterPadding] = useState(0);
+
+  useEffect(() => {
+    if (open) {
+      setExecutionError(null);
+    }
+  }, [open]);
 
   const names = useMemo(() => entries.map((e) => e.name), [entries]);
 
@@ -70,10 +78,24 @@ export function MultiRenameDialog({
     return null;
   }
 
-  const handleExecute = () => {
-    if (hasConflicts || !hasChanges) return;
-    onExecute(results);
-    onClose();
+  const handleExecute = async () => {
+    if (hasConflicts || !hasChanges || executing) return;
+    setExecuting(true);
+    setExecutionError(null);
+    try {
+      const error = await onExecute(results);
+      if (error) {
+        setExecutionError(error);
+      } else {
+        onClose();
+      }
+    } catch (error) {
+      setExecutionError(
+        error instanceof Error ? error.message : "Multi-rename failed.",
+      );
+    } finally {
+      setExecuting(false);
+    }
   };
 
   const insertToken = (token: string) => {
@@ -81,20 +103,33 @@ export function MultiRenameDialog({
   };
 
   return (
-    <div className="fo-dialog-backdrop" role="presentation" onClick={onClose}>
+    <div
+      className="fo-dialog-backdrop"
+      role="presentation"
+      onClick={() => {
+        if (!executing) onClose();
+      }}
+    >
       <dialog
         ref={dialogRef}
         open
         role="dialog"
         className="fo-dialog fo-multi-rename-dialog"
         aria-labelledby="multi-rename-title"
+        aria-busy={executing}
         onClick={(event) => event.stopPropagation()}
       >
         <header className="fo-dialog-header">
           <div className="fo-dialog-titleblock">
             <h2 id="multi-rename-title">Multi-Rename</h2>
           </div>
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            disabled={executing}
+          >
             Close
           </Button>
         </header>
@@ -238,16 +273,26 @@ export function MultiRenameDialog({
             </div>
           </div>
         </div>
+        {executionError && (
+          <div className="fo-dialog-error" role="alert">
+            {executionError}
+          </div>
+        )}
         <footer className="fo-dialog-footer">
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onClose}
+            disabled={executing}
+          >
             Cancel
           </Button>
           <Button
             type="button"
-            onClick={handleExecute}
-            disabled={hasConflicts || !hasChanges}
+            onClick={() => void handleExecute()}
+            disabled={hasConflicts || !hasChanges || executing}
           >
-            Rename {results.length} files
+            {executing ? "Starting…" : `Rename ${results.length} files`}
           </Button>
         </footer>
       </dialog>

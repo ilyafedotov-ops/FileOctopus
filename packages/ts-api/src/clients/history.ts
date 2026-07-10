@@ -1,15 +1,16 @@
+import type { IpcTransport } from "../types";
 import type {
-  IpcTransport,
   ListRecentOperationsRequest,
   ListRecentOperationsResponse,
   ClearOperationHistoryResponse,
-} from "../types";
+} from "../generated/ipc";
+import type { IpcInput } from "../input";
 
 export class OperationHistoryClient {
   constructor(private readonly transport: IpcTransport) {}
 
   async listRecentOperations(
-    request: ListRecentOperationsRequest = {},
+    request: IpcInput<ListRecentOperationsRequest> = {},
   ): Promise<ListRecentOperationsResponse> {
     return this.transport.invoke<ListRecentOperationsResponse>(
       "operationHistory.listRecent",

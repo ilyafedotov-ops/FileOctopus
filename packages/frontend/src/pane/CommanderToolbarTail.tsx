@@ -188,14 +188,14 @@ export function CommanderToolbarTail({
             ) : null}
             {showSync ? (
               <DropdownMenu
-                label="Sync"
-                triggerAriaLabel="Synchronize panes"
+                label="Compare"
+                triggerAriaLabel="Compare panes"
                 open={syncOpen}
                 onOpenChange={setSyncOpen}
                 items={syncItems}
               >
                 {Icons.move()}
-                <span className="fo-toolbar-label">Sync</span>
+                <span className="fo-toolbar-label">Compare</span>
                 {Icons.chevronDown()}
               </DropdownMenu>
             ) : null}

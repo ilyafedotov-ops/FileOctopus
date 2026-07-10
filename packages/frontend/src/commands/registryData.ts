@@ -584,7 +584,7 @@ export const COMMAND_REGISTRY = [
     group: "app",
     shortcutMac: "⌘⌥L",
     shortcutWin: "Ctrl+Alt+L",
-    surfaces: ["menu", "palette"],
+    surfaces: [],
   },
   {
     id: "app.commandPalette",
@@ -628,7 +628,7 @@ export const COMMAND_REGISTRY = [
   },
   {
     id: "tools.syncDirectories",
-    label: "Synchronize Directories…",
+    label: "Compare Directories…",
     group: "tools",
     surfaces: ["toolbar", "menu", "palette"],
   },

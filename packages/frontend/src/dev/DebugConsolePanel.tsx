@@ -12,7 +12,13 @@ import {
 import { useModals } from "../app/providers/ModalsProvider";
 import { useShell } from "../app/providers/ShellProvider";
 
-installConsoleCapture();
+export const DEBUG_CONSOLE_ENABLED =
+  (globalThis as { __FILEOCTOPUS_DEBUG_CONSOLE__?: boolean })
+    .__FILEOCTOPUS_DEBUG_CONSOLE__ === true;
+
+if (DEBUG_CONSOLE_ENABLED) {
+  installConsoleCapture(true);
+}
 
 const LEVEL_COLOR: Record<DebugLogLevel, string> = {
   trace: "#7d8694",

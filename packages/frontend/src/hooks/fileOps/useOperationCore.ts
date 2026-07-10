@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import type {
+  BatchRenameItemDto,
   ConflictPolicy,
   FileEntryDto,
   FileOperationKind,
@@ -12,6 +13,7 @@ import { activeTab, normalizeLocalInput } from "../../panelStore";
 import { isParentDirectoryUri } from "../../utils/parentEntry";
 import {
   jobIdValue,
+  mergeJobSnapshot,
   operationErrorMessage,
 } from "../../dialogs/OperationDialogView";
 import type { OperationDialog } from "../../dialogs/OperationDialogView";
@@ -38,6 +40,7 @@ export function useOperationCore(deps: UseFileOpHandlersDeps) {
     destination?: string,
     newName?: string,
     conflictPolicy: ConflictPolicy = "fail",
+    batchRenames?: BatchRenameItemDto[],
   ) {
     return client.fileOperations.planFileOperation({
       operation: {
@@ -46,6 +49,7 @@ export function useOperationCore(deps: UseFileOpHandlersDeps) {
         destination,
         newName,
         conflictPolicy,
+        batchRenames,
       },
     });
   }
@@ -67,7 +71,7 @@ export function useOperationCore(deps: UseFileOpHandlersDeps) {
 
       setJobs((current) => ({
         ...current,
-        [jobId]: snapshot,
+        [jobId]: mergeJobSnapshot(current, snapshot),
       }));
       registerOperationRefresh?.(started.job.jobId, plan);
 
@@ -82,7 +86,10 @@ export function useOperationCore(deps: UseFileOpHandlersDeps) {
               }
               return {
                 ...current,
-                [jobId]: promoteQueuedJob(response.job),
+                [jobId]: mergeJobSnapshot(
+                  current,
+                  promoteQueuedJob(response.job),
+                ),
               };
             });
           })

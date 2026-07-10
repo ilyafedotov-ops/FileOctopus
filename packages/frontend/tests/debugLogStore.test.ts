@@ -16,7 +16,7 @@ describe("debugLogStore", () => {
   });
 
   it("installConsoleCapture captures console.log entries", () => {
-    installConsoleCapture();
+    installConsoleCapture(true);
     console.log("Test message");
     const logs = getDebugLog();
     expect(logs).toHaveLength(1);
@@ -27,14 +27,14 @@ describe("debugLogStore", () => {
   });
 
   it("captured entries include timestamp", () => {
-    installConsoleCapture();
+    installConsoleCapture(true);
     console.warn("Warning message");
     const logs = getDebugLog();
     expect(logs[0].timestamp).toBeTypeOf("number");
   });
 
   it("captured entries preserve order", () => {
-    installConsoleCapture();
+    installConsoleCapture(true);
     console.log("First");
     console.warn("Second");
     console.error("Third");
@@ -43,7 +43,7 @@ describe("debugLogStore", () => {
   });
 
   it("clearDebugLog removes all entries", () => {
-    installConsoleCapture();
+    installConsoleCapture(true);
     console.log("A");
     console.log("B");
     clearDebugLog();
@@ -51,7 +51,7 @@ describe("debugLogStore", () => {
   });
 
   it("supports different log levels", () => {
-    installConsoleCapture();
+    installConsoleCapture(true);
     console.log("Log msg");
     console.warn("Warn msg");
     console.error("Error msg");
@@ -88,7 +88,7 @@ describe("debugLogStore", () => {
   });
 
   it("frontend captures are tagged with the frontend source", () => {
-    installConsoleCapture();
+    installConsoleCapture(true);
     console.log("hello");
     expect(getDebugLog()[0].source).toBe("frontend");
   });

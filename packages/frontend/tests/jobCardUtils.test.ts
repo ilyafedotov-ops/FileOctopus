@@ -134,6 +134,10 @@ describe("operationVerb", () => {
     expect(operationVerb("rename")).toBe("Renaming");
   });
 
+  it("returns Renaming for batch rename", () => {
+    expect(operationVerb("batchRename")).toBe("Renaming");
+  });
+
   it("returns Saving for writeTextFile", () => {
     expect(operationVerb("writeTextFile")).toBe("Saving");
   });

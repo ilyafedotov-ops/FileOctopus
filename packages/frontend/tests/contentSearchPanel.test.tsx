@@ -31,10 +31,11 @@ function makeState(
   overrides: Partial<ContentSearchState> = {},
 ): ContentSearchState {
   return {
-    panelId: "left",
+    requestId: "request-1",
+    rootUri: "local:///home/user",
     query: "Hello",
     options: { caseSensitive: false, useRegex: false, filePattern: "" },
-    running: false,
+    status: "completed",
     jobId: null,
     result: null,
     error: null,
@@ -72,12 +73,38 @@ describe("ContentSearchPanel", () => {
     render(
       <ContentSearchPanel
         panelId="left"
-        search={makeState({ running: true })}
+        search={makeState({ status: "running", jobId: "job-1" })}
         onOpen={vi.fn()}
         onReveal={vi.fn()}
       />,
     );
     expect(screen.getByText("Searching")).toBeTruthy();
+  });
+
+  it("cancels only an active bound search", () => {
+    const onCancel = vi.fn();
+    const { rerender } = render(
+      <ContentSearchPanel
+        panelId="left"
+        search={makeState({ status: "running", jobId: "job-1" })}
+        onOpen={vi.fn()}
+        onReveal={vi.fn()}
+        onCancel={onCancel}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ContentSearchPanel
+        panelId="left"
+        search={makeState({ status: "cancelled", jobId: "job-1" })}
+        onOpen={vi.fn()}
+        onReveal={vi.fn()}
+        onCancel={onCancel}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
   });
 
   it("renders error message", () => {
@@ -234,7 +261,7 @@ describe("ContentSearchPanel", () => {
     render(
       <ContentSearchPanel
         panelId="left"
-        search={makeState({ running: true })}
+        search={makeState({ status: "running", jobId: "job-1" })}
         onOpen={vi.fn()}
         onReveal={vi.fn()}
       />,
@@ -317,6 +344,46 @@ describe("ContentSearchPanel", () => {
 
     fireEvent.click(header);
     expect(document.querySelector(".fo-content-search-matches")).toBeNull();
+  });
+
+  it("resets expanded result state when the request is replaced", () => {
+    const firstMatch = makeMatch({ lineContent: "first needle" });
+    const { rerender } = render(
+      <ContentSearchPanel
+        panelId="left"
+        search={makeState({
+          requestId: "request-a",
+          result: { matches: [firstMatch], warnings: [], incomplete: false },
+        })}
+        onOpen={vi.fn()}
+        onReveal={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByText("readme.txt"));
+    expect(screen.getByText("first", { selector: "mark" })).toBeTruthy();
+
+    rerender(
+      <ContentSearchPanel
+        panelId="left"
+        search={makeState({
+          requestId: "request-b",
+          result: {
+            matches: [
+              makeMatch({
+                lineContent: "second needle",
+                matchStart: 7,
+                matchEnd: 13,
+              }),
+            ],
+            warnings: [],
+            incomplete: false,
+          },
+        })}
+        onOpen={vi.fn()}
+        onReveal={vi.fn()}
+      />,
+    );
+    expect(screen.queryByText("needle", { selector: "mark" })).toBeNull();
   });
 
   it("renders highlight mark around matched text", () => {

@@ -89,6 +89,7 @@ export function DialogOverlaySectionWorkspace(props: DialogOverlayGroupProps) {
     manageHotlistOpen,
     setManageHotlistOpen,
     multiRenameEntries,
+    submitMultiRename,
     onNavigateActivePane,
     setPreviewOpen,
   } = props;
@@ -161,7 +162,7 @@ export function DialogOverlaySectionWorkspace(props: DialogOverlayGroupProps) {
         open={multiRenameOpen}
         entries={multiRenameEntries}
         onClose={() => setMultiRenameOpen(false)}
-        onExecute={() => setMultiRenameOpen(false)}
+        onExecute={(results) => submitMultiRename(multiRenameEntries, results)}
       />
       <SyncDirectoriesDialog
         open={syncDirectoriesOpen}
@@ -339,6 +340,7 @@ export function DialogOverlaySectionOperations(props: DialogOverlayGroupProps) {
     deleteProfile,
     saveProfile,
     forgetFingerprint,
+    trustFingerprint,
     testConnection,
     testConnectionDraft,
     onOpenProfileTerminal,
@@ -410,6 +412,7 @@ export function DialogOverlaySectionOperations(props: DialogOverlayGroupProps) {
           setConnectServerInitial(null);
         }}
         onForgetFingerprint={forgetFingerprint}
+        onTrustFingerprint={trustFingerprint}
         onTest={testConnection}
         onTestDraft={testConnectionDraft}
         preferences={preferences ?? FALLBACK_PREFERENCES}

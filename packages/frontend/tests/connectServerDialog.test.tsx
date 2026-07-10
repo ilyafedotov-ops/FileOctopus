@@ -477,3 +477,42 @@ describe("ConnectServerDialog", () => {
     expect(onConnectProfile).toHaveBeenCalledWith(profile);
   });
 });
+
+it("requires explicit confirmation of the observed host-key challenge", async () => {
+  const profile = existingProfile();
+  const onTest = vi.fn().mockResolvedValue({
+    ok: false,
+    status: "warning",
+    message: "Confirm this SSH host key before authentication.",
+    durationMs: 8,
+    resolvedUri: profile.defaultUri,
+    observedFingerprint: "SHA256:observed",
+    trustState: "untrusted",
+    warnings: ["No credentials were loaded or sent."],
+  });
+  const onTrustFingerprint = vi.fn().mockResolvedValue(undefined);
+  render(
+    <ConnectServerDialog
+      {...baseProps({
+        editingProfile: profile,
+        onTest,
+        onTrustFingerprint,
+      })}
+    />,
+  );
+
+  fireEvent.click(footerButton("Test"));
+
+  const trustButton = await within(dialog()).findByRole("button", {
+    name: "Trust this host key",
+  });
+  expect(within(dialog()).getByText("SHA256:observed")).toBeTruthy();
+  fireEvent.click(trustButton);
+
+  await vi.waitFor(() => {
+    expect(onTrustFingerprint).toHaveBeenCalledWith(
+      profile.id,
+      "SHA256:observed",
+    );
+  });
+});

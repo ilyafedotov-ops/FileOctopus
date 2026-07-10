@@ -1,11 +1,10 @@
+import type { IpcTransport, UnlistenFn } from "../types";
 import type {
-  IpcTransport,
   AppDataHealthResponse,
   ExportDiagnosticsBundleRequest,
   ExportDiagnosticsBundleResponse,
   LogRecordDto,
-  UnlistenFn,
-} from "../types";
+} from "../generated/ipc";
 import { DIAGNOSTICS_LOG_EVENT } from "../events";
 import { requireListen } from "../requireListen";
 

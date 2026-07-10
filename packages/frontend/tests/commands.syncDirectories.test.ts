@@ -156,7 +156,7 @@ describe("tools.syncDirectories command", () => {
       (cmd) => cmd.id === "tools.syncDirectories",
     );
     expect(found).toBeTruthy();
-    expect(found!.label).toBe("Synchronize Directories…");
+    expect(found!.label).toBe("Compare Directories…");
     expect(found!.group).toBe("tools");
   });
 

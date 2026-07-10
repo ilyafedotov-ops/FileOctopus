@@ -1,4 +1,10 @@
-import type { DirectoryBatchEventDto, FileEntryDto } from "@fileoctopus/ts-api";
+import type {
+  ContentSearchCompletedEventDto,
+  ContentSearchMatchEventDto,
+  ContentSearchResultDto,
+  DirectoryBatchEventDto,
+  FileEntryDto,
+} from "@fileoctopus/ts-api";
 import type { HashState } from "./pane/hashUtils";
 import {
   type PaneLoadState,
@@ -48,6 +54,41 @@ export interface SortState {
   directoriesFirst: boolean;
 }
 
+export interface ContentSearchOptions {
+  caseSensitive: boolean;
+  useRegex: boolean;
+  filePattern: string;
+}
+
+export type ContentSearchStatus =
+  "starting" | "running" | "completed" | "failed" | "cancelled";
+
+export interface ContentSearchState {
+  requestId: string;
+  rootUri: string;
+  query: string;
+  options: ContentSearchOptions;
+  status: ContentSearchStatus;
+  jobId: string | null;
+  result: ContentSearchResultDto | null;
+  error: string | null;
+}
+
+export interface PendingContentSearchEvents {
+  matches: ContentSearchMatchEventDto[];
+  completion: ContentSearchCompletedEventDto | null;
+  terminal: {
+    status: "failed" | "cancelled";
+    error: string;
+  } | null;
+}
+
+export function isContentSearchActive(
+  search: ContentSearchState | null | undefined,
+): boolean {
+  return search?.status === "starting" || search?.status === "running";
+}
+
 export interface PanelTabState {
   tabKind: TabKind;
   uri: string;
@@ -67,6 +108,8 @@ export interface PanelTabState {
   errorCode: string | null;
   filter: string;
   recursiveQuery: string;
+  contentSearchQuery: string;
+  contentSearch: ContentSearchState | null;
   sort: SortState;
   viewMode: ViewMode;
   showHidden: boolean;
@@ -90,6 +133,8 @@ export interface PanelState {
 export interface FileOctopusState {
   activePanelId: PanelId;
   panels: Record<PanelId, PanelState>;
+  pendingContentSearchEvents: Record<string, PendingContentSearchEvents>;
+  absorbedContentSearchJobIds: string[];
 }
 
 export type PanelAction =
@@ -138,12 +183,54 @@ export type PanelAction =
   | {
       type: "setPaneError";
       panelId: PanelId;
+      requestId?: string;
       error: string | null;
       errorCode?: string | null;
       loadState?: PaneLoadState;
     }
   | { type: "setFilter"; panelId: PanelId; filter: string }
   | { type: "setRecursiveQuery"; panelId: PanelId; query: string }
+  | {
+      type: "setContentSearchQuery";
+      panelId: PanelId;
+      tabId: string;
+      query: string;
+    }
+  | {
+      type: "startContentSearch";
+      panelId: PanelId;
+      tabId: string;
+      requestId: string;
+      rootUri: string;
+      query: string;
+      options: ContentSearchOptions;
+    }
+  | {
+      type: "bindContentSearchJob";
+      panelId: PanelId;
+      tabId: string;
+      requestId: string;
+      jobId: string;
+    }
+  | {
+      type: "failContentSearchStart";
+      panelId: PanelId;
+      tabId: string;
+      requestId: string;
+      error: string;
+    }
+  | { type: "applyContentSearchMatch"; event: ContentSearchMatchEventDto }
+  | {
+      type: "applyContentSearchCompleted";
+      event: ContentSearchCompletedEventDto;
+    }
+  | {
+      type: "terminateContentSearchJob";
+      jobId: string;
+      status: "failed" | "cancelled";
+      error: string;
+    }
+  | { type: "discardContentSearchJobEvents"; jobId: string }
   | { type: "setSort"; panelId: PanelId; field: SortField }
   | { type: "setViewMode"; panelId: PanelId; viewMode: ViewMode }
   | { type: "toggleHidden"; panelId: PanelId }
@@ -180,6 +267,7 @@ export type PanelAction =
   | {
       type: "setArchiveEntries";
       panelId: PanelId;
+      requestId?: string;
       uri: string;
       entries: FileEntryDto[];
     }
@@ -191,6 +279,8 @@ export function createInitialState(
 ): FileOctopusState {
   return {
     activePanelId: "left",
+    pendingContentSearchEvents: {},
+    absorbedContentSearchJobIds: [],
     panels: {
       left: createPanel("left", leftUri),
       right: createPanel("right", rightUri),
@@ -302,6 +392,8 @@ function createPanel(id: PanelId, uri: string): PanelState {
         errorCode: null,
         filter: "",
         recursiveQuery: "",
+        contentSearchQuery: "",
+        contentSearch: null,
         sort: storedSort(),
         viewMode: "details",
         showHidden: storedShowHidden(),
@@ -362,6 +454,8 @@ export function applyNavigation(
     error: null,
     errorCode: null,
     filter: "",
+    contentSearchQuery: changed ? "" : tab.contentSearchQuery,
+    contentSearch: changed ? null : tab.contentSearch,
     backStack,
     forwardStack,
     backgroundListing: null,
@@ -391,7 +485,7 @@ export function updatePanel(
   };
 }
 
-function updatePanelTab(
+export function updatePanelTab(
   state: FileOctopusState,
   panelId: PanelId,
   tabId: string,
@@ -439,6 +533,7 @@ export function applyBatch(
   if (batch.error && batch.isComplete) {
     return updatePanelTab(state, target.panelId, target.tabId, (current) => ({
       ...current,
+      activeRequestId: null,
       loadState: terminalLoadState(0, batch.error),
       error: batch.error?.message ?? "Failed to load directory",
       errorCode: batch.error?.code ?? null,
@@ -504,6 +599,7 @@ export function applyBatch(
             : [],
       selectedId: firstId,
       focusedId: firstId,
+      activeRequestId: batch.isComplete ? null : current.activeRequestId,
       loadState,
       error: batch.error?.message ?? null,
       errorCode: batch.error?.code ?? null,
@@ -742,7 +838,7 @@ function findTabBySession(
   return null;
 }
 
-function findTabByRequest(
+export function findTabByRequest(
   state: FileOctopusState,
   requestId: string,
 ): BatchTarget | null {

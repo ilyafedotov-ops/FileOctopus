@@ -7,6 +7,7 @@ export type FileOperationKind =
   | "copy"
   | "move"
   | "rename"
+  | "batchRename"
   | "deleteToTrash"
   | "createDirectory"
   | "createFile"

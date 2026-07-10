@@ -104,8 +104,8 @@ export function clearDebugLog(): void {
 
 let consoleInstalled = false;
 
-export function installConsoleCapture(): void {
-  if (consoleInstalled || typeof console === "undefined") {
+export function installConsoleCapture(enabled = false): void {
+  if (!enabled || consoleInstalled || typeof console === "undefined") {
     return;
   }
   consoleInstalled = true;

@@ -89,8 +89,6 @@ function renderJobListeners(overrides = {}) {
     const preferencesRef = useRef<UserPreferencesDto | null>(preferences);
     useJobEventListeners({
       client: client as never,
-      leftUri: "local:///left",
-      rightUri: "local:///right",
       preferencesRef,
       setJobs,
       setJobMetrics,
@@ -254,5 +252,25 @@ describe("useJobEventListeners", () => {
     expect(setSearch).toHaveBeenCalled();
     expect(refreshOperationTargets).toHaveBeenCalledWith(["local:///target"]);
     expect(refreshHistory).toHaveBeenCalled();
+  });
+
+  it("routes content-search failures to the tab-scoped reducer", async () => {
+    const { handlers, dispatch } = renderJobListeners();
+
+    await waitFor(() => expect(handlers.failed).toBeDefined());
+    handlers.failed?.({
+      jobId: "content-job",
+      operationKind: "contentSearch",
+      errorCode: "io_error",
+      message: "Search failed",
+      failedAt: "2026-06-06T00:00:00Z",
+    });
+
+    expect(dispatch).toHaveBeenCalledWith({
+      type: "terminateContentSearchJob",
+      jobId: "content-job",
+      status: "failed",
+      error: "Search failed",
+    });
   });
 });

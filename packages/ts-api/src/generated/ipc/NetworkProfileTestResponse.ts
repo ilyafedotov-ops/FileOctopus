@@ -4,7 +4,7 @@ export type NetworkProfileTestResponse = {
   ok: boolean;
   status: string;
   message: string;
-  durationMs: bigint;
+  durationMs: number;
   resolvedUri: string | null;
   observedFingerprint: string | null;
   trustState: string;

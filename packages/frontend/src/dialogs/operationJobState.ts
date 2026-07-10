@@ -17,6 +17,33 @@ export function jobIdValue(jobId: JobSnapshot["jobId"]): string {
   return jobId;
 }
 
+function isTerminalStatus(status: JobSnapshot["status"]): boolean {
+  return (
+    status === "completed" || status === "failed" || status === "cancelled"
+  );
+}
+
+function isOlder(timestamp: string, existing: JobSnapshot): boolean {
+  return Date.parse(timestamp) < Date.parse(existing.updatedAt);
+}
+
+export function mergeJobSnapshot(
+  current: Record<string, JobSnapshot>,
+  incoming: JobSnapshot,
+): JobSnapshot {
+  const existing = current[jobIdValue(incoming.jobId)];
+  if (!existing) {
+    return incoming;
+  }
+  if (
+    isTerminalStatus(existing.status) ||
+    isOlder(incoming.updatedAt, existing)
+  ) {
+    return existing;
+  }
+  return incoming;
+}
+
 export function snapshotFromStarted(event: JobStartedEvent): JobSnapshot {
   const now = event.startedAt;
 
@@ -50,13 +77,17 @@ export function mergeProgress(
       startedAt: event.updatedAt,
     });
 
+  if (isTerminalStatus(existing.status) || isOlder(event.updatedAt, existing)) {
+    return existing;
+  }
+
   return {
     ...existing,
-    status: "running",
+    status: existing.status === "paused" ? "paused" : "running",
     currentItem: event.currentItem,
-    completedItems: event.completedItems,
-    totalItems: event.totalItems,
-    completedBytes: event.completedBytes,
+    completedItems: Math.max(existing.completedItems, event.completedItems),
+    totalItems: Math.max(existing.totalItems, event.totalItems),
+    completedBytes: Math.max(existing.completedBytes, event.completedBytes),
     totalBytes: event.totalBytes,
     updatedAt: event.updatedAt,
   };
@@ -76,11 +107,15 @@ export function mergeCompleted(
       startedAt: event.completedAt,
     });
 
+  if (isTerminalStatus(existing.status)) {
+    return existing;
+  }
+
   return {
     ...existing,
     status: "completed",
-    completedItems: event.completedItems,
-    completedBytes: event.completedBytes,
+    completedItems: Math.max(existing.completedItems, event.completedItems),
+    completedBytes: Math.max(existing.completedBytes, event.completedBytes),
     updatedAt: event.completedAt,
   };
 }
@@ -98,6 +133,10 @@ export function mergeFailed(
       totalBytes: 0,
       startedAt: event.failedAt,
     });
+
+  if (isTerminalStatus(existing.status)) {
+    return existing;
+  }
 
   return {
     ...existing,
@@ -122,6 +161,10 @@ export function mergeCancelled(
       startedAt: event.cancelledAt,
     });
 
+  if (isTerminalStatus(existing.status)) {
+    return existing;
+  }
+
   return {
     ...existing,
     status: "cancelled",
@@ -143,6 +186,10 @@ export function mergePaused(
       startedAt: event.pausedAt,
     });
 
+  if (isTerminalStatus(existing.status) || isOlder(event.pausedAt, existing)) {
+    return existing;
+  }
+
   return {
     ...existing,
     status: "paused",
@@ -163,6 +210,10 @@ export function mergeResumed(
       totalBytes: 0,
       startedAt: event.resumedAt,
     });
+
+  if (isTerminalStatus(existing.status) || isOlder(event.resumedAt, existing)) {
+    return existing;
+  }
 
   return {
     ...existing,

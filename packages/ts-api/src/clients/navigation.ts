@@ -1,5 +1,5 @@
+import type { IpcTransport } from "../types";
 import type {
-  IpcTransport,
   NavigationAddFavoriteRequest,
   NavigationFavoriteResponse,
   NavigationIsStarredRequest,
@@ -10,11 +10,12 @@ import type {
   NavigationListStarredResponse,
   NavigationRecordVisitRequest,
   NavigationRemoveFavoriteRequest,
+  NavigationRemoveRecentRequest,
   NavigationRenameFavoriteRequest,
   NavigationToggleStarredRequest,
   NavigationToggleStarredResponse,
   OkResponse,
-} from "../types";
+} from "../generated/ipc";
 
 export class NavigationClient {
   constructor(private readonly transport: IpcTransport) {}
@@ -62,7 +63,7 @@ export class NavigationClient {
   }
 
   async removeRecent(
-    request: import("../types").NavigationRemoveRecentRequest,
+    request: NavigationRemoveRecentRequest,
   ): Promise<OkResponse> {
     return this.transport.invoke("navigation.removeRecent", {
       request,

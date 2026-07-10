@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useRef,
   type Dispatch,
   type MutableRefObject,
   type SetStateAction,
@@ -22,6 +23,7 @@ import {
   mergeCancelled,
   mergeCompleted,
   mergeFailed,
+  mergeJobSnapshot,
   mergePaused,
   mergeProgress,
   mergeResumed,
@@ -47,8 +49,6 @@ export function shouldRefreshOperationCompleted(
 
 export interface UseJobEventListenersParams {
   client: FileOctopusClient;
-  leftUri: string;
-  rightUri: string;
   preferencesRef: MutableRefObject<UserPreferencesDto | null>;
   setJobs: Dispatch<SetStateAction<Record<string, JobSnapshot>>>;
   setJobMetrics: Dispatch<SetStateAction<Record<string, JobMetrics>>>;
@@ -72,8 +72,6 @@ export interface UseJobEventListenersParams {
 
 export function useJobEventListeners({
   client,
-  leftUri,
-  rightUri,
   preferencesRef,
   setJobs,
   setJobMetrics,
@@ -88,21 +86,39 @@ export function useJobEventListeners({
   setSearch,
   setDialog,
 }: UseJobEventListenersParams) {
+  const callbacksRef = useRef({
+    updatePreference,
+    pushToast,
+    takeOperationRefreshTargets,
+    refreshOperationTargets,
+    refreshHistory,
+  });
+  callbacksRef.current = {
+    updatePreference,
+    pushToast,
+    takeOperationRefreshTargets,
+    refreshOperationTargets,
+    refreshHistory,
+  };
+
   useEffect(() => {
     const unlisteners: Array<() => void> = [];
     let disposed = false;
     const remember = (event: JobSnapshot) =>
       setJobs((current) => ({
         ...current,
-        [jobIdValue(event.jobId)]: event,
+        [jobIdValue(event.jobId)]: mergeJobSnapshot(current, event),
       }));
 
-    Promise.all([
+    Promise.allSettled([
       client.fileOperations.onJobStarted((event) => {
         remember(snapshotFromStarted(event));
         if (preferencesRef.current?.jobDrawerBehavior === "openOnStart") {
           setActivityCollapsed(false);
-          void updatePreference("activityPanelVisible", "true");
+          void callbacksRef.current.updatePreference(
+            "activityPanelVisible",
+            "true",
+          );
         }
       }),
       client.fileOperations.onJobProgress((event) => {
@@ -148,21 +164,23 @@ export function useJobEventListeners({
           ...current,
           [jobIdValue(event.jobId)]: mergeCompleted(current, event),
         }));
-        pushToast({
+        callbacksRef.current.pushToast({
           tone: "success",
           title: "Operation completed",
           detail: event.operationKind,
           popup: shouldPopupOperationCompleted(event.operationKind),
         });
         if (shouldRefreshOperationCompleted(event.operationKind)) {
-          const refreshPlan = takeOperationRefreshTargets(event.jobId);
+          const refreshPlan = callbacksRef.current.takeOperationRefreshTargets(
+            event.jobId,
+          );
           if (refreshPlan?.removedEntryUris.length) {
             dispatch({
               type: "removeEntries",
               uris: refreshPlan.removedEntryUris,
             });
           }
-          refreshOperationTargets(
+          callbacksRef.current.refreshOperationTargets(
             refreshPlan?.folderUris.length ? refreshPlan.folderUris : null,
             {
               fullReload:
@@ -171,14 +189,14 @@ export function useJobEventListeners({
             },
           );
         }
-        void refreshHistory();
+        void callbacksRef.current.refreshHistory();
       }),
       client.fileOperations.onJobFailed((event) => {
         setJobs((current) => ({
           ...current,
           [jobIdValue(event.jobId)]: mergeFailed(current, event),
         }));
-        pushToast({
+        callbacksRef.current.pushToast({
           tone: "error",
           title: "Operation failed",
           detail: event.message,
@@ -187,13 +205,24 @@ export function useJobEventListeners({
         });
         if (preferencesRef.current?.jobDrawerBehavior === "openOnError") {
           setActivityCollapsed(false);
-          void updatePreference("activityPanelVisible", "true");
+          void callbacksRef.current.updatePreference(
+            "activityPanelVisible",
+            "true",
+          );
         }
         setSearch((current) =>
           current?.jobId === jobIdValue(event.jobId)
             ? { ...current, running: false, error: event.message }
             : current,
         );
+        if (event.operationKind === "contentSearch") {
+          dispatch({
+            type: "terminateContentSearchJob",
+            jobId: jobIdValue(event.jobId),
+            status: "failed",
+            error: event.message,
+          });
+        }
         setDialog((current) => {
           const jobId = jobIdValue(event.jobId);
           if (
@@ -223,18 +252,20 @@ export function useJobEventListeners({
           }
           return current;
         });
-        const refreshPlan = takeOperationRefreshTargets(event.jobId);
-        refreshOperationTargets(
+        const refreshPlan = callbacksRef.current.takeOperationRefreshTargets(
+          event.jobId,
+        );
+        callbacksRef.current.refreshOperationTargets(
           refreshPlan?.folderUris.length ? refreshPlan.folderUris : null,
         );
-        void refreshHistory();
+        void callbacksRef.current.refreshHistory();
       }),
       client.fileOperations.onJobCancelled((event) => {
         setJobs((current) => ({
           ...current,
           [jobIdValue(event.jobId)]: mergeCancelled(current, event),
         }));
-        pushToast({
+        callbacksRef.current.pushToast({
           tone: "info",
           title: "Operation cancelled",
           detail: event.operationKind,
@@ -244,6 +275,14 @@ export function useJobEventListeners({
             ? { ...current, running: false, error: "Operation cancelled." }
             : current,
         );
+        if (event.operationKind === "contentSearch") {
+          dispatch({
+            type: "terminateContentSearchJob",
+            jobId: jobIdValue(event.jobId),
+            status: "cancelled",
+            error: "Operation cancelled.",
+          });
+        }
         setDialog((current) => {
           const jobId = jobIdValue(event.jobId);
           if (
@@ -272,13 +311,14 @@ export function useJobEventListeners({
           }
           return current;
         });
-        const cancelledRefreshPlan = takeOperationRefreshTargets(event.jobId);
-        refreshOperationTargets(
+        const cancelledRefreshPlan =
+          callbacksRef.current.takeOperationRefreshTargets(event.jobId);
+        callbacksRef.current.refreshOperationTargets(
           cancelledRefreshPlan?.folderUris.length
             ? cancelledRefreshPlan.folderUris
             : null,
         );
-        void refreshHistory();
+        void callbacksRef.current.refreshHistory();
       }),
       client.fileOperations.onJobPaused((event) => {
         setJobs((current) => ({
@@ -292,19 +332,23 @@ export function useJobEventListeners({
           [jobIdValue(event.jobId)]: mergeResumed(current, event),
         }));
       }),
-    ])
-      .then((items) => {
-        if (disposed) {
-          for (const unlisten of items) {
-            unlisten();
-          }
-          return;
+    ]).then((results) => {
+      const errors: unknown[] = [];
+      for (const result of results) {
+        if (result.status === "rejected") {
+          errors.push(result.reason);
+          continue;
         }
-        unlisteners.push(...items);
-      })
-      .catch((error) => {
-        setOperationError(normalizeIpcError(error).message);
-      });
+        if (disposed) {
+          result.value();
+        } else {
+          unlisteners.push(result.value);
+        }
+      }
+      if (errors.length > 0 && !disposed) {
+        setOperationError(normalizeIpcError(errors[0]).message);
+      }
+    });
 
     return () => {
       disposed = true;
@@ -312,5 +356,5 @@ export function useJobEventListeners({
         unlisten();
       }
     };
-  }, [client, leftUri, rightUri]);
+  }, [client]);
 }
