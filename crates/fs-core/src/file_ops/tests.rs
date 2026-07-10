@@ -5,9 +5,11 @@ use std::sync::Arc;
 
 use jobs::{CancellationToken, JobEvent, JobId, PauseToken};
 use tempfile::tempdir;
+#[cfg(unix)]
+use vfs::FileKind;
 use vfs::{
-    BatchRenameItem, ConflictPolicy, FileKind, FileOperationKind, FileOperationRequest,
-    ResourceUri, VfsRegistry,
+    BatchRenameItem, ConflictPolicy, FileOperationKind, FileOperationRequest, ResourceUri,
+    VfsRegistry,
 };
 use zip::write::SimpleFileOptions;
 
