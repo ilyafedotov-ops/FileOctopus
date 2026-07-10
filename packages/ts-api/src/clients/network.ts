@@ -1,22 +1,24 @@
+import type { IpcTransport } from "../types";
 import type {
-  IpcTransport,
   NetworkConnectionStatusResponse,
   NetworkNeighborhoodRequest,
   NetworkNeighborhoodResponse,
-  NetworkProfileTestRequest,
   NetworkProfileTestResponse,
   NetworkProfileActionRequest,
-  NetworkProfileAddRequest,
   NetworkProfileDeleteRequest,
   NetworkProfileResponse,
   NetworkProfileSetSecretRequest,
-  NetworkProfileUpdateRequest,
   NetworkProfileTrustFingerprintRequest,
   NetworkProvidersListResponse,
   NetworkProfilesListResponse,
-  NetworkStatusEvent,
+  NetworkStatusEventDto,
   OkResponse,
-} from "../types";
+} from "../generated/ipc";
+import type {
+  NetworkProfileAddInput,
+  NetworkProfileTestInput,
+  NetworkProfileUpdateInput,
+} from "../input";
 import { NETWORK_STATUS_EVENT } from "../events";
 import { requireListen } from "../requireListen";
 
@@ -32,13 +34,13 @@ export class NetworkClient {
   }
 
   async addProfile(
-    request: NetworkProfileAddRequest,
+    request: NetworkProfileAddInput,
   ): Promise<NetworkProfileResponse> {
     return this.transport.invoke("network.profileAdd", { request });
   }
 
   async updateProfile(
-    request: NetworkProfileUpdateRequest,
+    request: NetworkProfileUpdateInput,
   ): Promise<NetworkProfileResponse> {
     return this.transport.invoke("network.profileUpdate", { request });
   }
@@ -70,7 +72,7 @@ export class NetworkClient {
   }
 
   async testProfile(
-    request: NetworkProfileTestRequest,
+    request: NetworkProfileTestInput,
   ): Promise<NetworkProfileTestResponse> {
     return this.transport.invoke("network.profileTest", { request });
   }
@@ -88,7 +90,7 @@ export class NetworkClient {
   }
 
   async subscribeStatusEvents(
-    listener: (event: NetworkStatusEvent) => void,
+    listener: (event: NetworkStatusEventDto) => void,
   ): Promise<() => void> {
     return requireListen(this.transport, NETWORK_STATUS_EVENT, listener);
   }

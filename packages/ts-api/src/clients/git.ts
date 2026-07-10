@@ -1,3 +1,4 @@
+import type { IpcTransport } from "../types";
 import type {
   GitBranchesRequest,
   GitBranchesResponse,
@@ -17,8 +18,8 @@ import type {
   GitStatusForRepositoryResponse,
   GitWorktreesRequest,
   GitWorktreesResponse,
-  IpcTransport,
-} from "../types";
+} from "../generated/ipc";
+import type { IpcInput } from "../input";
 
 export class GitClient {
   constructor(private readonly transport: IpcTransport) {}
@@ -47,13 +48,17 @@ export class GitClient {
     );
   }
 
-  async diffFile(request: GitDiffFileRequest): Promise<GitDiffFileResponse> {
+  async diffFile(
+    request: IpcInput<GitDiffFileRequest>,
+  ): Promise<GitDiffFileResponse> {
     return this.transport.invoke<GitDiffFileResponse>("git.diffFile", {
       request,
     });
   }
 
-  async history(request: GitHistoryRequest): Promise<GitHistoryResponse> {
+  async history(
+    request: IpcInput<GitHistoryRequest>,
+  ): Promise<GitHistoryResponse> {
     return this.transport.invoke<GitHistoryResponse>("git.history", {
       request,
     });
@@ -72,7 +77,7 @@ export class GitClient {
   }
 
   async revisionDiff(
-    request: GitRevisionDiffRequest,
+    request: IpcInput<GitRevisionDiffRequest>,
   ): Promise<GitRevisionDiffResponse> {
     return this.transport.invoke<GitRevisionDiffResponse>("git.revisionDiff", {
       request,
@@ -80,7 +85,7 @@ export class GitClient {
   }
 
   async revisionFiles(
-    request: GitRevisionFilesRequest,
+    request: IpcInput<GitRevisionFilesRequest>,
   ): Promise<GitRevisionFilesResponse> {
     return this.transport.invoke<GitRevisionFilesResponse>(
       "git.revisionFiles",

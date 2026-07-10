@@ -224,8 +224,6 @@ export function useAppInit({
 
   useJobEventListeners({
     client,
-    leftUri: left.uri,
-    rightUri: right.uri,
     preferencesRef,
     setJobs,
     setJobMetrics,

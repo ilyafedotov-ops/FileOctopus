@@ -103,6 +103,7 @@ function operationIcon(kind: JobSnapshot["operationKind"]): ReactNode {
     case "deleteToTrash":
       return Icons.trash();
     case "rename":
+    case "batchRename":
       return Icons.pencil();
     default:
       return Icons.file();

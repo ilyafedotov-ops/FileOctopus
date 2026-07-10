@@ -67,7 +67,8 @@ export function SettingsPlugins({ pluginClient }: SettingsPluginsProps) {
           <div className="fo-plugin-empty">
             <p>No plugins installed</p>
             <p className="fo-plugin-empty-hint">
-              Install plugins by copying them to ~/.fileoctopus/plugins/
+              Plugin installation is disabled until signed Wasm packages are
+              supported.
             </p>
           </div>
         )}

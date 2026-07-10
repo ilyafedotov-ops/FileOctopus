@@ -2,6 +2,7 @@ export type { AclEntry } from "./AclEntry";
 export type { AppDataHealthResponse } from "./AppDataHealthResponse";
 export type { AppInfoResponse } from "./AppInfoResponse";
 export type { AutostartStatusDto } from "./AutostartStatusDto";
+export type { BatchRenameItemDto } from "./BatchRenameItemDto";
 export type { ByteDifferenceDto } from "./ByteDifferenceDto";
 export type { CancelJobRequest } from "./CancelJobRequest";
 export type { ClearOperationHistoryResponse } from "./ClearOperationHistoryResponse";

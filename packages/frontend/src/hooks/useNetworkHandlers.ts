@@ -3,7 +3,7 @@ import { normalizeIpcError, type FileOctopusClient } from "@fileoctopus/ts-api";
 import type {
   NetworkProfileDto,
   NetworkProfileTestResponse,
-  NetworkProtocolOptionsDto,
+  NetworkProtocolOptionsInput,
 } from "@fileoctopus/ts-api";
 
 interface UseNetworkHandlersParams {
@@ -72,19 +72,10 @@ export function useNetworkHandlers({
   );
 
   const testConnection = useCallback(
-    async (profileId: string): Promise<{ ok: boolean; message: string }> => {
-      try {
-        await client.network.connect({ id: profileId });
-        try {
-          await client.network.disconnect({ id: profileId });
-        } catch (disconnectError) {
-          void disconnectError;
-        }
-        await refreshNetworkProfiles();
-        return { ok: true, message: "Connection succeeded." };
-      } catch (error) {
-        return { ok: false, message: normalizeIpcError(error).message };
-      }
+    async (profileId: string): Promise<NetworkProfileTestResponse> => {
+      const result = await client.network.testProfile({ id: profileId });
+      await refreshNetworkProfiles();
+      return result;
     },
     [client, refreshNetworkProfiles],
   );
@@ -99,7 +90,7 @@ export function useNetworkHandlers({
       authKind: "password" | "privateKey" | "accessKey";
       privateKeyPath: string | null;
       defaultPath: string;
-      options: NetworkProtocolOptionsDto;
+      options: NetworkProtocolOptionsInput;
       password: string;
       passphrase: string;
     }): Promise<NetworkProfileTestResponse> =>
@@ -149,6 +140,24 @@ export function useNetworkHandlers({
     [client, refreshNetworkProfiles, setOperationError],
   );
 
+  const trustFingerprint = useCallback(
+    async (profileId: string, fingerprint: string) => {
+      setOperationError(null);
+      try {
+        await client.network.trustFingerprint({
+          id: profileId,
+          fingerprint,
+        });
+        await refreshNetworkProfiles();
+      } catch (error) {
+        const message = normalizeIpcError(error).message;
+        setOperationError(message);
+        throw new Error(message);
+      }
+    },
+    [client, refreshNetworkProfiles, setOperationError],
+  );
+
   const saveProfile = useCallback(
     async (payload: {
       id?: string;
@@ -160,7 +169,7 @@ export function useNetworkHandlers({
       authKind: "password" | "privateKey" | "accessKey";
       privateKeyPath: string | null;
       defaultPath: string;
-      options: NetworkProtocolOptionsDto;
+      options: NetworkProtocolOptionsInput;
       password: string;
       passphrase: string;
     }) => {
@@ -231,6 +240,7 @@ export function useNetworkHandlers({
     deleteProfile,
     saveProfile,
     forgetFingerprint,
+    trustFingerprint,
     testConnection,
     testConnectionDraft,
     busyProfileIds,

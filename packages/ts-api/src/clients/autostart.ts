@@ -1,4 +1,5 @@
-import type { IpcTransport, AutostartStatusDto } from "../types";
+import type { IpcTransport } from "../types";
+import type { AutostartStatusDto } from "../generated/ipc";
 
 export class AutostartClient {
   constructor(private readonly transport: IpcTransport) {}

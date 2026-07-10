@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { SearchInput } from "@fileoctopus/ui";
-import type {
-  ContentSearchMatchDto,
-  ContentSearchResultDto,
-  FileEntryDto,
-} from "@fileoctopus/ts-api";
-import type { PanelId } from "../panelStore";
+import type { ContentSearchMatchDto, FileEntryDto } from "@fileoctopus/ts-api";
+import {
+  isContentSearchActive,
+  type ContentSearchState,
+  type PanelId,
+} from "../panelStore";
 import { fileIconGlyph } from "./fileTableUtils";
 import { localPathFromUri, searchMatchToEntry } from "../utils/paneUtils";
 
@@ -38,7 +38,7 @@ export function ContentSearchInput({
   return (
     <SearchInput
       ref={inputRef}
-      className="fo-content-search"
+      className="fo-content-search-input"
       aria-label={`${panelId} content search`}
       value={value}
       placeholder="Search in file contents…"
@@ -53,40 +53,33 @@ export function ContentSearchInput({
   );
 }
 
-export interface ContentSearchOptions {
-  caseSensitive: boolean;
-  useRegex: boolean;
-  filePattern: string;
-}
-
-export interface ContentSearchState {
-  panelId: PanelId;
-  query: string;
-  options: ContentSearchOptions;
-  running: boolean;
-  jobId: string | null;
-  result: ContentSearchResultDto | null;
-  error: string | null;
-}
+export type { ContentSearchOptions, ContentSearchState } from "../panelStore";
 
 export interface ContentSearchPanelProps {
   panelId: PanelId;
   search: ContentSearchState | null;
   onOpen: (entry: FileEntryDto, match: ContentSearchMatchDto) => void;
   onReveal: (entry: FileEntryDto) => void;
+  onCancel?: () => void;
 }
 
 export function ContentSearchPanel({
   search,
   onOpen,
   onReveal,
+  onCancel,
 }: ContentSearchPanelProps) {
   const [expandedUri, setExpandedUri] = useState<string | null>(null);
+
+  useEffect(() => {
+    setExpandedUri(null);
+  }, [search?.requestId]);
 
   if (!search) {
     return null;
   }
 
+  const running = isContentSearchActive(search);
   const matches = search.result?.matches ?? [];
   const groupedByFile = groupMatchesByFile(matches);
 
@@ -97,13 +90,18 @@ export function ContentSearchPanel({
     >
       <header>
         <strong>
-          {search.running
+          {running
             ? "Searching"
             : `${matches.length} match(es) in ${groupedByFile.size} file(s)`}
         </strong>
         {search.error ? <span>{search.error}</span> : null}
+        {running && search.jobId && onCancel ? (
+          <button type="button" onClick={onCancel}>
+            Cancel
+          </button>
+        ) : null}
       </header>
-      {matches.length === 0 && !search.running ? (
+      {matches.length === 0 && !running ? (
         <div className="fo-empty-inline">No content matches</div>
       ) : null}
       {Array.from(groupedByFile.entries())

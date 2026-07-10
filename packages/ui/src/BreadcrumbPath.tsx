@@ -60,6 +60,10 @@ export function BreadcrumbPath({
           type="button"
           variant="ghost"
           size="sm"
+          className={
+            visibleSegments.length === 1 ? "fo-breadcrumb-current" : undefined
+          }
+          aria-current={visibleSegments.length === 1 ? "page" : undefined}
           title={visibleSegments[0].path}
           onClick={() => onNavigate(visibleSegments[0].path)}
           onContextMenu={
@@ -86,13 +90,20 @@ export function BreadcrumbPath({
         ) : null}
 
         {visibleSegments.length > 1
-          ? visibleSegments.slice(1).map((segment) => (
+          ? visibleSegments.slice(1).map((segment, index) => (
               <Button
                 key={segment.path}
                 type="button"
                 variant="ghost"
                 size="sm"
-                className="fo-breadcrumb-current"
+                className={
+                  index === visibleSegments.length - 2
+                    ? "fo-breadcrumb-current"
+                    : undefined
+                }
+                aria-current={
+                  index === visibleSegments.length - 2 ? "page" : undefined
+                }
                 title={segment.path}
                 onClick={() => onNavigate(segment.path)}
                 onContextMenu={

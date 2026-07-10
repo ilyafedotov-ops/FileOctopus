@@ -1,11 +1,11 @@
+import type { IpcTransport } from "../types";
 import type {
-  IpcTransport,
   CancelJobRequest,
   JobStatusRequest,
   JobStatusResponse,
   PauseJobRequest,
   ResumeJobRequest,
-} from "../types";
+} from "../generated/ipc";
 
 export class JobsClient {
   constructor(private readonly transport: IpcTransport) {}

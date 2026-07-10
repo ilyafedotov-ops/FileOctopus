@@ -14,15 +14,24 @@ export function createParentDirectoryEntry(
   return {
     uri,
     name: PARENT_DIRECTORY_NAME,
+    extension: null,
     kind: "directory",
+    size: null,
+    modifiedAt: null,
+    createdAt: null,
+    accessedAt: null,
     isHidden: false,
     isSymlink: false,
+    isPlaceholder: false,
+    symlinkTarget: null,
     providerId: providerIdFromUri(currentUri),
     canRead: true,
     canList: true,
     canWrite: false,
     canDelete: false,
     canRename: false,
+    permissions: null,
+    owner: null,
   };
 }
 

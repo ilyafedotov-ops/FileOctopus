@@ -19,7 +19,10 @@ import { ShellLayout } from "../shell/ShellLayout";
 import { buildPaletteEntries } from "../commands/paletteEntries";
 import type { LocalPathPicker } from "../utils/pathPicker";
 
-import { DebugConsolePanel } from "../dev/DebugConsolePanel";
+import {
+  DEBUG_CONSOLE_ENABLED,
+  DebugConsolePanel,
+} from "../dev/DebugConsolePanel";
 import { buildFilePanelProps } from "./filePanelProps";
 import {
   AppProviders,
@@ -102,7 +105,6 @@ function FileOctopusAppInner({
     setClipboard,
     setContextMenu,
     setSearch,
-    setContentSearch,
     setPathFocusToken,
     setRenameFocusToken,
     setFilterFocusToken,
@@ -250,7 +252,6 @@ function FileOctopusAppInner({
     setActivityCollapsed,
     setOperationError,
     setSearch,
-    setContentSearch,
     setAutostart,
     setFavorites,
     setRecentToday,
@@ -380,6 +381,8 @@ function FileOctopusAppInner({
     handlePermanentDelete,
     handleProperties,
     runRecursiveSearch,
+    runContentSearch,
+    cancelContentSearch,
     toggleHidden,
     handleChecksum,
     handleCompress,
@@ -388,6 +391,7 @@ function FileOctopusAppInner({
     submitCreateFile,
     submitRename,
     submitInlineRename,
+    submitMultiRename,
     submitCopyMove,
     submitTrash,
     submitPermanentDelete,
@@ -396,7 +400,6 @@ function FileOctopusAppInner({
     state,
     dispatch,
     setSearch,
-    setContentSearch,
     setDialog,
     setClipboard,
     clipboard,
@@ -442,6 +445,7 @@ function FileOctopusAppInner({
     deleteProfile,
     saveProfile,
     forgetFingerprint,
+    trustFingerprint,
     testConnection,
     testConnectionDraft,
     busyProfileIds,
@@ -820,6 +824,8 @@ function FileOctopusAppInner({
       revealEntry,
       activateEntry,
       runRecursiveSearch,
+      runContentSearch,
+      cancelContentSearch,
       setContextMenu,
       setDialog,
       submitInlineRename,
@@ -909,6 +915,7 @@ function FileOctopusAppInner({
         deleteProfile={deleteProfile}
         saveProfile={saveProfile}
         forgetFingerprint={forgetFingerprint}
+        trustFingerprint={trustFingerprint}
         testConnection={testConnection}
         testConnectionDraft={testConnectionDraft}
         refreshNetworkProfiles={refreshNetworkProfiles}
@@ -965,6 +972,7 @@ function FileOctopusAppInner({
         submitCreateFolder={submitCreateFolder}
         submitCreateFile={submitCreateFile}
         submitRename={submitRename}
+        submitMultiRename={submitMultiRename}
         submitCopyMove={submitCopyMove}
         submitTrash={submitTrash}
         submitPermanentDelete={submitPermanentDelete}
@@ -1045,7 +1053,7 @@ export function FileOctopusApp({
         onRequestToggleMaximize={onRequestToggleMaximize}
         pickLocalPath={pickLocalPath}
       />
-      <DebugConsolePanel />
+      {DEBUG_CONSOLE_ENABLED ? <DebugConsolePanel /> : null}
     </AppProviders>
   );
 }

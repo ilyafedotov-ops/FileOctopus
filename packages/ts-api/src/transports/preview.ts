@@ -1,11 +1,10 @@
 import { IPC_ERROR_CODES } from "../types";
+import type { IpcError, IpcTransport } from "../types";
 import type {
   DirectoryBatchEventDto,
   FileEntryDto,
   FolderSizeCompletedEventDto,
   FolderSizeRequest,
-  IpcError,
-  IpcTransport,
   ListStartRequest,
   PathPropertiesRequest,
   RecursiveSearchCompletedEventDto,
@@ -13,12 +12,12 @@ import type {
   SetPreferenceRequest,
   SyncDirectoriesRequest,
   SyncDirectoriesResponse,
+  TerminalOutputEventDto,
   TerminalProfileDto,
   TerminalSessionDto,
   TerminalSessionEventDto,
-  TerminalOutputEvent,
   UserPreferencesDto,
-} from "../types";
+} from "../generated/ipc";
 import { preferenceValue } from "../clients/preferences";
 import {
   DIRECTORY_BATCH_EVENT,
@@ -137,10 +136,6 @@ export function createPreviewTransport(): IpcTransport {
     columnPresets: "",
     tabSessions: "",
     hotlistEntries: "",
-    leftDefaultViewMode: "details",
-    rightDefaultViewMode: "details",
-    leftDefaultSortField: "name",
-    rightDefaultSortField: "name",
     logLevel: "warn",
     experimentalFeatures: false,
     cacheSizeLimit: 256,
@@ -171,12 +166,12 @@ export function createPreviewTransport(): IpcTransport {
     (payload: RecursiveSearchCompletedEventDto) => void
   >();
   const terminalOutputHandlers = new Set<
-    (payload: TerminalOutputEvent) => void
+    (payload: TerminalOutputEventDto) => void
   >();
   const terminalSessionHandlers = new Set<
     (payload: TerminalSessionEventDto) => void
   >();
-  const terminalOutputBuffer: TerminalOutputEvent[] = [];
+  const terminalOutputBuffer: TerminalOutputEventDto[] = [];
   const now = "2026-06-01T00:00:00.000Z";
   let previewTerminalProfiles: TerminalProfileDto[] = [
     {
@@ -211,7 +206,7 @@ export function createPreviewTransport(): IpcTransport {
   ];
   const previewTerminalSessions = new Map<string, TerminalSessionDto>();
 
-  const emitTerminalOutput = (payload: TerminalOutputEvent) => {
+  const emitTerminalOutput = (payload: TerminalOutputEventDto) => {
     if (terminalOutputHandlers.size === 0) {
       terminalOutputBuffer.push(payload);
       if (terminalOutputBuffer.length > 100) {
@@ -1192,7 +1187,6 @@ export function createPreviewTransport(): IpcTransport {
               entryPoint: "main.js",
               permissions: [],
             },
-            installPath: "/tmp/preview-plugin",
             enabled: true,
           },
         } as TResponse;
@@ -1214,7 +1208,6 @@ export function createPreviewTransport(): IpcTransport {
               entryPoint: "main.js",
               permissions: [],
             },
-            installPath: "/tmp/preview-plugin",
             enabled:
               (args?.request as Record<string, unknown>)?.enabled ?? true,
           },
@@ -1268,7 +1261,9 @@ export function createPreviewTransport(): IpcTransport {
       }
 
       if (event === TERMINAL_OUTPUT_EVENT) {
-        const typedHandler = handler as (payload: TerminalOutputEvent) => void;
+        const typedHandler = handler as (
+          payload: TerminalOutputEventDto,
+        ) => void;
         terminalOutputHandlers.add(typedHandler);
         if (terminalOutputBuffer.length > 0) {
           const pending = terminalOutputBuffer.splice(0);
@@ -1410,6 +1405,7 @@ function previewEntriesForUri(uri: string): FileEntryDto[] {
     accessedAt: now,
     isHidden: name.startsWith("."),
     isSymlink: false,
+    isPlaceholder: false,
     symlinkTarget: null,
     providerId: "preview",
     canRead: true,
@@ -1417,6 +1413,8 @@ function previewEntriesForUri(uri: string): FileEntryDto[] {
     canWrite: true,
     canDelete: true,
     canRename: true,
+    permissions: null,
+    owner: null,
   });
 
   if (uri.includes("/Documents")) {
@@ -1645,6 +1643,7 @@ function previewNetworkEntries(uri: string): FileEntryDto[] {
     accessedAt: null,
     isHidden: false,
     isSymlink: false,
+    isPlaceholder: false,
     symlinkTarget: null,
     providerId: "network",
     canRead: targetUri !== null,
@@ -1652,6 +1651,8 @@ function previewNetworkEntries(uri: string): FileEntryDto[] {
     canWrite: false,
     canDelete: false,
     canRename: false,
+    permissions: null,
+    owner: null,
     targetUri,
     virtualKind,
     protocol,

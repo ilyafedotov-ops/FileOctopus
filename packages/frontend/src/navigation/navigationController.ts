@@ -129,6 +129,7 @@ export function createNavigationController(
       dispatch({
         type: "setPaneError",
         panelId,
+        requestId,
         error: normalized.message,
         errorCode: normalized.code,
         loadState: loadStateFromBatchError(normalized),
@@ -144,6 +145,7 @@ export function createNavigationController(
       dispatch({
         type: "setArchiveEntries",
         panelId,
+        requestId,
         uri: response.uri,
         entries: response.entries,
       });
@@ -152,6 +154,7 @@ export function createNavigationController(
       dispatch({
         type: "setPaneError",
         panelId,
+        requestId,
         error: normalized.message,
         errorCode: normalized.code,
         loadState: loadStateFromBatchError(normalized),
@@ -313,12 +316,15 @@ export function createNavigationController(
   }
 
   async function navigateArchive(panelId: PanelId, entry: FileEntryDto) {
+    const requestId = createRequestId();
     dispatch({ type: "navigate", panelId, uri: entry.uri });
+    dispatch({ type: "startRequest", panelId, requestId });
     try {
       const response = await client.fs.listArchive({ uri: entry.uri });
       dispatch({
         type: "setArchiveEntries",
         panelId,
+        requestId,
         uri: entry.uri,
         entries: response.entries,
       });
@@ -327,6 +333,7 @@ export function createNavigationController(
       dispatch({
         type: "setPaneError",
         panelId,
+        requestId,
         error: normalized.message,
         errorCode: normalized.code,
         loadState: "error",

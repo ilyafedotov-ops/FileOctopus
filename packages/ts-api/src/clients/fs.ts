@@ -1,11 +1,10 @@
 import { IPC_ERROR_CODES } from "../types";
+import type { IpcError, IpcTransport, UnlistenFn } from "../types";
 import type {
-  ComputeHashRequest,
-  ComputeHashResponse,
   CompareFilesRequest,
   CompareFilesResponse,
-  SyncDirectoriesRequest,
-  SyncDirectoriesResponse,
+  ComputeHashRequest,
+  ComputeHashResponse,
   ContentSearchCompletedEventDto,
   ContentSearchJobResponse,
   ContentSearchMatchEventDto,
@@ -19,46 +18,48 @@ import type {
   FolderSizeJobResponse,
   FolderSizeRequest,
   FolderSizeResponse,
-  IpcError,
-  IpcTransport,
-  ListDirectoriesRequest,
-  ListDirectoriesResponse,
+  GetAclRequest,
+  GetAclResponse,
   ListArchiveRequest,
   ListArchiveResponse,
+  ListDirectoriesRequest,
+  ListDirectoriesResponse,
   ListStartRequest,
   ListStartResponse,
-  OkResponse,
   OpenTerminalRequest,
   OpenTerminalResponse,
+  OkResponse,
   PathPropertiesRequest,
   PathPropertiesResponse,
   PathRequest,
   ReadFileAsDataUriRequest,
   ReadFileAsDataUriResponse,
-  ReadImageAsDataUriRequest,
-  ReadImageAsDataUriResponse,
   ReadFileRangeRequest,
   ReadFileRangeResponse,
+  ReadImageAsDataUriRequest,
+  ReadImageAsDataUriResponse,
   ReadTextFileRequest,
   ReadTextFileResponse,
-  WriteTextFileRequest,
-  WriteTextFileResponse,
   RecursiveSearchCompletedEventDto,
   RecursiveSearchJobResponse,
   RecursiveSearchMatchEventDto,
   RecursiveSearchRequest,
   RecursiveSearchResponse,
+  SetAclRequest,
+  SetAclResponse,
   StandardLocationsResponse,
   StatRequest,
   StatResponse,
-  UnlistenFn,
+  SyncDirectoriesRequest,
+  SyncDirectoriesResponse,
   WatchEventDto,
   WatchStartRequest,
-  GetAclRequest,
-  GetAclResponse,
-  SetAclRequest,
-  SetAclResponse,
-} from "../types";
+  WriteTextFileRequest,
+  WriteTextFileResponse,
+  DiffTextRequest,
+  DiffTextResponse,
+} from "../generated/ipc";
+import type { IpcInput } from "../input";
 import {
   DIRECTORY_BATCH_EVENT,
   CONTENT_SEARCH_COMPLETED_EVENT,
@@ -78,7 +79,7 @@ export class FsClient {
   }
 
   async readTextFile(
-    request: ReadTextFileRequest,
+    request: IpcInput<ReadTextFileRequest>,
   ): Promise<ReadTextFileResponse> {
     return this.transport.invoke<ReadTextFileResponse>("fs.read_text_file", {
       request,
@@ -94,7 +95,7 @@ export class FsClient {
   }
 
   async writeTextFile(
-    request: WriteTextFileRequest,
+    request: IpcInput<WriteTextFileRequest>,
   ): Promise<WriteTextFileResponse> {
     return this.transport.invoke<WriteTextFileResponse>("fs.write_text_file", {
       request,
@@ -111,7 +112,7 @@ export class FsClient {
   }
 
   async readFileAsDataUri(
-    request: ReadFileAsDataUriRequest,
+    request: IpcInput<ReadFileAsDataUriRequest>,
   ): Promise<ReadFileAsDataUriResponse> {
     return this.transport.invoke<ReadFileAsDataUriResponse>(
       "fs.read_file_as_data_uri",
@@ -133,7 +134,9 @@ export class FsClient {
     });
   }
 
-  async listStart(request: ListStartRequest): Promise<ListStartResponse> {
+  async listStart(
+    request: IpcInput<ListStartRequest>,
+  ): Promise<ListStartResponse> {
     return this.transport.invoke<ListStartResponse>("fs.list_start", {
       request,
     });
@@ -173,12 +176,11 @@ export class FsClient {
   }
 
   async diffText(
-    request: import("../types").DiffTextRequest,
-  ): Promise<import("../types").DiffTextResponse> {
-    return this.transport.invoke<import("../types").DiffTextResponse>(
-      "fs.diff_text",
-      { request },
-    );
+    request: IpcInput<DiffTextRequest>,
+  ): Promise<DiffTextResponse> {
+    return this.transport.invoke<DiffTextResponse>("fs.diff_text", {
+      request,
+    });
   }
 
   async openPathWithDefaultApp(request: PathRequest): Promise<OkResponse> {
@@ -194,7 +196,7 @@ export class FsClient {
   }
 
   async properties(
-    request: PathPropertiesRequest,
+    request: IpcInput<PathPropertiesRequest>,
   ): Promise<PathPropertiesResponse> {
     return this.transport.invoke<PathPropertiesResponse>("fs.properties", {
       request,
@@ -217,7 +219,7 @@ export class FsClient {
   }
 
   async recursiveSearch(
-    request: RecursiveSearchRequest,
+    request: IpcInput<RecursiveSearchRequest>,
   ): Promise<RecursiveSearchResponse> {
     return this.transport.invoke<RecursiveSearchResponse>(
       "fs.recursive_search",
@@ -226,7 +228,7 @@ export class FsClient {
   }
 
   async startRecursiveSearchJob(
-    request: RecursiveSearchRequest,
+    request: IpcInput<RecursiveSearchRequest>,
   ): Promise<RecursiveSearchJobResponse> {
     return this.transport.invoke<RecursiveSearchJobResponse>(
       "fs.recursive_search_start",
@@ -235,7 +237,7 @@ export class FsClient {
   }
 
   async contentSearch(
-    request: ContentSearchRequest,
+    request: IpcInput<ContentSearchRequest>,
   ): Promise<ContentSearchResponse> {
     return this.transport.invoke<ContentSearchResponse>("fs.content_search", {
       request,
@@ -243,7 +245,7 @@ export class FsClient {
   }
 
   async startContentSearchJob(
-    request: ContentSearchRequest,
+    request: IpcInput<ContentSearchRequest>,
   ): Promise<ContentSearchJobResponse> {
     return this.transport.invoke<ContentSearchJobResponse>(
       "fs.content_search_start",

@@ -1,9 +1,8 @@
+import type { IpcTransport, UnlistenFn } from "./types";
 import type {
   AppInfoResponse,
-  IpcTransport,
   NativeMenuCommandEventDto,
-  UnlistenFn,
-} from "./types";
+} from "./generated/ipc";
 import { AutostartClient } from "./clients/autostart";
 import { DiagnosticsClient } from "./clients/diagnostics";
 import { FileOperationsClient } from "./clients/fileOperations";

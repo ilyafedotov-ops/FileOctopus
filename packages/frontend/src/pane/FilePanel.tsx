@@ -22,6 +22,7 @@ import {
 import { FileTable } from "./FileTable";
 import { ColumnsView } from "./ColumnsView";
 import { RecursiveSearchPanel } from "./PaneFilterBar";
+import { ContentSearchInput, ContentSearchPanel } from "./ContentSearchPanel";
 import { PaneStateView } from "../components/PaneStateView";
 import { PaneHeader } from "./PaneHeader";
 import { PaneTerminalSplit } from "./PaneTerminalSplit";
@@ -76,6 +77,9 @@ export interface FilePanelProps {
   onFilter: (filter: string) => void;
   onRecursiveQuery: (query: string) => void;
   onRecursiveSearch: () => void;
+  onContentSearchQuery: (query: string) => void;
+  onContentSearch: () => void;
+  onCancelContentSearch: () => void;
   onEntryActivate: (entry: FileEntryDto | null) => void;
   onCreateFolder: () => void;
   onCreateFile: () => void;
@@ -129,6 +133,9 @@ export function FilePanel({
   onFilter,
   onRecursiveQuery,
   onRecursiveSearch,
+  onContentSearchQuery,
+  onContentSearch,
+  onCancelContentSearch,
   onEntryActivate,
   onCreateFolder,
   onCreateFile,
@@ -360,7 +367,7 @@ export function FilePanel({
       <PaneHeader
         uri={tab.uri}
         pathError={tab.error}
-        pathFocusToken={pathFocusToken}
+        pathFocusToken={active ? pathFocusToken : 0}
         onNavigate={onNavigate}
         onOpenProfileTerminal={onOpenProfileTerminal}
         onAddServer={onAddServer}
@@ -386,6 +393,14 @@ export function FilePanel({
           focusToken={recursiveSearchFocusToken}
           onChange={onRecursiveQuery}
           onSubmit={onRecursiveSearch}
+        />
+        <ContentSearchInput
+          panelId={panelId}
+          active={active}
+          value={tab.contentSearchQuery}
+          focusToken={0}
+          onChange={onContentSearchQuery}
+          onSubmit={onContentSearch}
         />
       </div>
       <div
@@ -522,6 +537,13 @@ export function FilePanel({
             onOpen={(entry) => onEntryActivate(entry)}
             onReveal={onReveal}
             onProperties={onProperties}
+          />
+          <ContentSearchPanel
+            panelId={panelId}
+            search={tab.contentSearch}
+            onOpen={(entry) => onEntryActivate(entry)}
+            onReveal={onReveal}
+            onCancel={onCancelContentSearch}
           />
           <footer className="fo-pane-status">
             {selectedCount} selected - {itemCount} items

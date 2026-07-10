@@ -71,6 +71,8 @@ function baseArgs() {
     revealEntry: vi.fn(),
     activateEntry: vi.fn(),
     runRecursiveSearch: vi.fn(),
+    runContentSearch: vi.fn(),
+    cancelContentSearch: vi.fn(),
     setContextMenu: vi.fn(),
     setDialog: vi.fn(),
     submitInlineRename: vi.fn(),
@@ -139,5 +141,23 @@ describe("buildFilePanelProps", () => {
       panelId: "left",
       uri: "local:///source",
     });
+  });
+
+  it("routes content search input and execution to the active tab", () => {
+    const args = baseArgs();
+    const props = buildFilePanelProps("left", args);
+
+    props.onContentSearchQuery("needle");
+    props.onContentSearch();
+    props.onCancelContentSearch();
+
+    expect(args.dispatch).toHaveBeenCalledWith({
+      type: "setContentSearchQuery",
+      panelId: "left",
+      tabId: "main",
+      query: "needle",
+    });
+    expect(args.runContentSearch).toHaveBeenCalledWith("left");
+    expect(args.cancelContentSearch).toHaveBeenCalledWith("left", "main");
   });
 });

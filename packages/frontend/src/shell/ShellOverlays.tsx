@@ -10,6 +10,7 @@ import {
 import { useShellLayout } from "./ShellLayoutContext";
 import { activeTab, selectVisibleEntries } from "../panelStore";
 import { isImagePreviewable } from "../components/PreviewPanel";
+import { isParentDirectoryUri } from "../utils/parentEntry";
 
 export function ShellOverlays() {
   const ctx = useShellLayout();
@@ -31,11 +32,15 @@ export function ShellOverlays() {
     const selectedIds = tab.selectedIds;
     if (selectedIds.length === 0) {
       const focused = tab.selectedId ? tab.entriesById[tab.selectedId] : null;
-      return focused ? [focused] : [];
+      return focused && !isParentDirectoryUri(focused.uri, tab.uri)
+        ? [focused]
+        : [];
     }
     return selectedIds
       .map((id) => tab.entriesById[id])
-      .filter(Boolean) as import("@fileoctopus/ts-api").FileEntryDto[];
+      .filter(
+        (entry) => entry && !isParentDirectoryUri(entry.uri, tab.uri),
+      ) as import("@fileoctopus/ts-api").FileEntryDto[];
   }, [ctx.state]);
 
   return (
@@ -154,6 +159,7 @@ export function ShellOverlays() {
         deleteProfile={ctx.deleteProfile}
         saveProfile={ctx.saveProfile}
         forgetFingerprint={ctx.forgetFingerprint}
+        trustFingerprint={ctx.trustFingerprint}
         testConnection={ctx.testConnection}
         testConnectionDraft={ctx.testConnectionDraft}
         onOpenProfileTerminal={(profile) =>
@@ -187,6 +193,7 @@ export function ShellOverlays() {
         submitCreateFolder={ctx.submitCreateFolder}
         submitCreateFile={ctx.submitCreateFile}
         submitRename={ctx.submitRename}
+        submitMultiRename={ctx.submitMultiRename}
         submitCopyMove={ctx.submitCopyMove}
         submitTrash={ctx.submitTrash}
         submitPermanentDelete={ctx.submitPermanentDelete}

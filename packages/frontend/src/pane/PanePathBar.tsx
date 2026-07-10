@@ -31,12 +31,15 @@ export function PathBar({
   useEffect(() => {
     if (focusToken > 0) {
       setEditing(true);
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      });
     }
   }, [focusToken]);
+
+  useEffect(() => {
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    }
+  }, [editing, focusToken]);
 
   if (!editing) {
     const allSegments = breadcrumbSegments(value);

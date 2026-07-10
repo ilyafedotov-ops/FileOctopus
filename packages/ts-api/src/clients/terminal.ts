@@ -1,26 +1,27 @@
+import type { IpcTransport, UnlistenFn } from "../types";
 import type {
-  IpcTransport,
-  TerminalExitEvent,
   TerminalCapabilitiesResponse,
+  TerminalExitEventDto,
   TerminalKillRequest,
   TerminalOkResponse,
-  TerminalOutputEvent,
   TerminalProfileActionRequest,
-  TerminalProfileAddRequest,
+  TerminalOutputEventDto,
   TerminalProfileResponse,
   TerminalProfilesListResponse,
-  TerminalProfileUpdateRequest,
   TerminalResizeRequest,
   TerminalRunCommandRequest,
   TerminalSendTextRequest,
   TerminalSessionEventDto,
   TerminalSessionsListResponse,
-  TerminalSpawnAndRunRequest,
   TerminalSpawnRequest,
   TerminalSpawnResponse,
   TerminalWriteRequest,
-  UnlistenFn,
-} from "../types";
+} from "../generated/ipc";
+import type {
+  TerminalProfileAddInput,
+  TerminalProfileUpdateInput,
+  TerminalSpawnAndRunInput,
+} from "../input";
 import {
   TERMINAL_EXIT_EVENT,
   TERMINAL_OUTPUT_EVENT,
@@ -68,7 +69,7 @@ export class TerminalClient {
   }
 
   async addProfile(
-    request: TerminalProfileAddRequest,
+    request: TerminalProfileAddInput,
   ): Promise<TerminalProfileResponse> {
     return this.transport.invoke<TerminalProfileResponse>(
       "terminal.profileAdd",
@@ -77,7 +78,7 @@ export class TerminalClient {
   }
 
   async updateProfile(
-    request: TerminalProfileUpdateRequest,
+    request: TerminalProfileUpdateInput,
   ): Promise<TerminalProfileResponse> {
     return this.transport.invoke<TerminalProfileResponse>(
       "terminal.profileUpdate",
@@ -125,7 +126,7 @@ export class TerminalClient {
   }
 
   async spawnAndRun(
-    request: TerminalSpawnAndRunRequest,
+    request: TerminalSpawnAndRunInput,
   ): Promise<TerminalSpawnResponse> {
     return this.transport.invoke<TerminalSpawnResponse>(
       "terminal.spawnAndRun",
@@ -133,11 +134,13 @@ export class TerminalClient {
     );
   }
 
-  onOutput(handler: (event: TerminalOutputEvent) => void): Promise<UnlistenFn> {
+  onOutput(
+    handler: (event: TerminalOutputEventDto) => void,
+  ): Promise<UnlistenFn> {
     return requireListen(this.transport, TERMINAL_OUTPUT_EVENT, handler);
   }
 
-  onExit(handler: (event: TerminalExitEvent) => void): Promise<UnlistenFn> {
+  onExit(handler: (event: TerminalExitEventDto) => void): Promise<UnlistenFn> {
     return requireListen(this.transport, TERMINAL_EXIT_EVENT, handler);
   }
 

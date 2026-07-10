@@ -8,6 +8,7 @@ import {
   snapshotFromStarted,
   mergeProgress,
   mergeCompleted,
+  mergeJobSnapshot,
   mergeFailed,
   mergeCancelled,
   mergePaused,
@@ -172,6 +173,62 @@ describe("mergeProgress", () => {
 
     expect(result.status).toBe("running");
     expect(result.jobId).toBe("j-new");
+  });
+
+  it("does not regress terminal state or counters", () => {
+    const completed = mergeCompleted(
+      {},
+      {
+        jobId: "j-1",
+        operationKind: "copy",
+        completedItems: 10,
+        completedBytes: 1024,
+        completedAt: "2026-01-01T00:05:00Z",
+      },
+    );
+    const result = mergeProgress(
+      { "j-1": completed },
+      {
+        jobId: "j-1",
+        operationKind: "copy",
+        currentItem: "late.txt",
+        completedItems: 1,
+        totalItems: 10,
+        completedBytes: 10,
+        totalBytes: 1024,
+        updatedAt: "2026-01-01T00:06:00Z",
+      },
+    );
+
+    expect(result).toBe(completed);
+    expect(result.status).toBe("completed");
+    expect(result.completedBytes).toBe(1024);
+  });
+});
+
+describe("mergeJobSnapshot", () => {
+  it("ignores a late start response after completion", () => {
+    const completed = mergeCompleted(
+      {},
+      {
+        jobId: "j-1",
+        operationKind: "copy",
+        completedItems: 1,
+        completedBytes: 10,
+        completedAt: "2026-01-01T00:00:01Z",
+      },
+    );
+    const startResponse = snapshotFromStarted({
+      jobId: "j-1",
+      operationKind: "copy",
+      totalItems: 1,
+      totalBytes: 10,
+      startedAt: "2026-01-01T00:00:00Z",
+    });
+
+    expect(mergeJobSnapshot({ "j-1": completed }, startResponse)).toBe(
+      completed,
+    );
   });
 });
 

@@ -38,9 +38,11 @@ export interface DropdownMenuProps {
 
 function SubmenuItem({
   item,
+  rootId,
   onCloseRoot,
 }: {
   item: DropdownMenuItem;
+  rootId: string;
   onCloseRoot: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -104,6 +106,7 @@ function SubmenuItem({
         ? createPortal(
             <MenuSurface
               ref={submenuRef}
+              data-dropdown-root={rootId}
               role="menu"
               className="fo-ui-dropdown-menu fo-ui-dropdown-menu--portal fo-ui-dropdown-submenu"
               style={{
@@ -202,9 +205,14 @@ export function DropdownMenu({
 
     const onPointerDown = (event: MouseEvent) => {
       const target = event.target as Node;
+      const dropdownRoot =
+        target instanceof Element
+          ? target.closest<HTMLElement>("[data-dropdown-root]")
+          : null;
       if (
         !rootRef.current?.contains(target) &&
-        !menuRef.current?.contains(target)
+        !menuRef.current?.contains(target) &&
+        dropdownRoot?.dataset.dropdownRoot !== menuId
       ) {
         onOpenChange(false);
       }
@@ -223,7 +231,7 @@ export function DropdownMenu({
       window.removeEventListener("mousedown", onPointerDown);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [onOpenChange, open]);
+  }, [menuId, onOpenChange, open]);
 
   // When the menu opens, move focus to the menu container so arrow keys work
   // immediately (ARIA menu pattern, mirroring the context-menu behavior).
@@ -346,6 +354,7 @@ export function DropdownMenu({
                     <SubmenuItem
                       key={item.id}
                       item={item}
+                      rootId={menuId}
                       onCloseRoot={() => onOpenChange(false)}
                     />
                   );

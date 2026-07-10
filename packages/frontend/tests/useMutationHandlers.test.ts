@@ -636,6 +636,83 @@ describe("useMutationHandlers", () => {
     expect(deps.setOperationError).toHaveBeenCalledWith(expect.any(String));
   });
 
+  it("submitMultiRename plans and starts one batch rename job", async () => {
+    const { deps, coreOverride, entry } = buildDeps();
+    const second = makeEntry({
+      name: "second.txt",
+      uri: "local:///home/user/second.txt",
+    });
+    const plan = { operationId: "batch-plan", kind: "batchRename" };
+    coreOverride.planOperation = vi.fn(async () => ({ plan }));
+    coreOverride.startPlannedOperation = vi.fn(async () => true);
+    const { result } = renderHook(() =>
+      useMutationHandlers(deps, coreOverride),
+    );
+
+    let message: string | null = "not-run";
+    await act(async () => {
+      message = await result.current.submitMultiRename(
+        [entry, second],
+        [
+          {
+            originalName: entry.name,
+            newName: "second.txt",
+            hasConflict: false,
+          },
+          {
+            originalName: second.name,
+            newName: "test.txt",
+            hasConflict: false,
+          },
+        ],
+      );
+    });
+
+    expect(message).toBeNull();
+    expect(coreOverride.planOperation).toHaveBeenCalledTimes(1);
+    expect(coreOverride.planOperation).toHaveBeenCalledWith(
+      "batchRename",
+      [entry.uri, second.uri],
+      undefined,
+      undefined,
+      "fail",
+      [
+        { source: entry.uri, newName: "second.txt" },
+        { source: second.uri, newName: "test.txt" },
+      ],
+    );
+    expect(coreOverride.startPlannedOperation).toHaveBeenCalledTimes(1);
+    expect(coreOverride.startPlannedOperation).toHaveBeenCalledWith(plan);
+  });
+
+  it("submitMultiRename returns a planning error without starting a job", async () => {
+    const { deps, coreOverride, entry } = buildDeps();
+    coreOverride.planOperation = vi.fn(async () => {
+      throw new Error("destination exists");
+    });
+    const { result } = renderHook(() =>
+      useMutationHandlers(deps, coreOverride),
+    );
+
+    let message: string | null = null;
+    await act(async () => {
+      message = await result.current.submitMultiRename(
+        [entry],
+        [
+          {
+            originalName: entry.name,
+            newName: "renamed.txt",
+            hasConflict: false,
+          },
+        ],
+      );
+    });
+
+    expect(message).toContain("destination exists");
+    expect(coreOverride.startPlannedOperation).not.toHaveBeenCalled();
+    expect(deps.setOperationError).toHaveBeenCalledWith(message);
+  });
+
   it("submitInlineRename validates and starts rename", async () => {
     const { deps, coreOverride, entry } = buildDeps();
     coreOverride.startOperation = vi.fn(async () => true);

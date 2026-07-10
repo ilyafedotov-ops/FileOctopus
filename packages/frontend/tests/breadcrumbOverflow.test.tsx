@@ -52,6 +52,34 @@ describe("BreadcrumbPath overflow", () => {
     ).toBe(true);
   });
 
+  it("marks a single segment as the current page", () => {
+    const segments = makeSegments(1);
+    render(
+      <BreadcrumbPath
+        segments={segments}
+        onNavigate={() => {}}
+        onEditPath={() => {}}
+      />,
+    );
+
+    const button = screen.getByText(segments[0].label).closest("button");
+    expect(button?.classList.contains("fo-breadcrumb-current")).toBe(true);
+    expect(button?.getAttribute("aria-current")).toBe("page");
+  });
+
+  it("marks only the last visible segment as current", () => {
+    const segments = makeSegments(3);
+    render(
+      <BreadcrumbPath
+        segments={segments}
+        onNavigate={() => {}}
+        onEditPath={() => {}}
+      />,
+    );
+
+    expect(document.querySelectorAll(".fo-breadcrumb-current")).toHaveLength(1);
+  });
+
   it("shows an overflow button when maxVisible limits displayed segments", () => {
     const segments = makeSegments(8);
     render(

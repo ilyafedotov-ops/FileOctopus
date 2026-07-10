@@ -98,6 +98,43 @@ describe("FileOctopusClient", () => {
     });
   });
 
+  it("uses the generated camelCase content-search contract", async () => {
+    const calls: Array<{ command: string; args?: Record<string, unknown> }> =
+      [];
+    const transport: IpcTransport = {
+      async invoke<TResponse>(command: string, args?: Record<string, unknown>) {
+        calls.push({ command, args });
+        return {
+          result: { matches: [], warnings: [], incomplete: false },
+        } as TResponse;
+      },
+    };
+    const client = new FileOctopusClient(transport);
+
+    await client.fs.contentSearch({
+      uri: "local:///tmp",
+      query: "needle",
+      caseSensitive: true,
+      useRegex: false,
+      filePattern: "*.txt",
+    });
+
+    expect(calls).toEqual([
+      {
+        command: "fs.content_search",
+        args: {
+          request: {
+            uri: "local:///tmp",
+            query: "needle",
+            caseSensitive: true,
+            useRegex: false,
+            filePattern: "*.txt",
+          },
+        },
+      },
+    ]);
+  });
+
   it("routes advanced terminal commands through the terminal client", async () => {
     const calls: Array<{ command: string; args?: Record<string, unknown> }> =
       [];
@@ -528,6 +565,49 @@ describe("FileOctopusClient", () => {
       "diagnostics.exportBundle",
     ]);
     expect(events).toEqual(["job-1"]);
+  });
+
+  it("sends a batch rename as one planned file operation", async () => {
+    const calls: Array<{ command: string; args?: Record<string, unknown> }> =
+      [];
+    const transport: IpcTransport = {
+      async invoke<TResponse>(command: string, args?: Record<string, unknown>) {
+        calls.push({ command, args });
+        return { plan: { operationId: "batch-1" } } as TResponse;
+      },
+    };
+    const client = new FileOctopusClient(transport);
+
+    await client.fileOperations.planFileOperation({
+      operation: {
+        kind: "batchRename",
+        sources: ["local:///tmp/a.txt", "local:///tmp/b.txt"],
+        conflictPolicy: "fail",
+        batchRenames: [
+          { source: "local:///tmp/a.txt", newName: "b.txt" },
+          { source: "local:///tmp/b.txt", newName: "a.txt" },
+        ],
+      },
+    });
+
+    expect(calls).toEqual([
+      {
+        command: "fileOperation.plan",
+        args: {
+          request: {
+            operation: {
+              kind: "batchRename",
+              sources: ["local:///tmp/a.txt", "local:///tmp/b.txt"],
+              conflictPolicy: "fail",
+              batchRenames: [
+                { source: "local:///tmp/a.txt", newName: "b.txt" },
+                { source: "local:///tmp/b.txt", newName: "a.txt" },
+              ],
+            },
+          },
+        },
+      },
+    ]);
   });
 
   it("routes diagnostics log streaming through the diagnostics client", async () => {

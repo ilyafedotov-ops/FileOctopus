@@ -158,6 +158,7 @@ describe("tools.multiRename command", () => {
     expect(found!.label).toBe("Multi-Rename…");
     expect(found!.group).toBe("tools");
     expect(found!.shortcutWin).toBe("Ctrl+M");
+    expect(found!.surfaces).toEqual(["toolbar", "menu", "palette", "context"]);
   });
 
   it("dispatch opens the multi-rename dialog", () => {

@@ -55,6 +55,8 @@ export interface FilePanelPropsBuilderArgs {
   revealEntry: (panelId: PanelId, entry: FileEntryDto | null) => void;
   activateEntry: (panelId: PanelId, entry: FileEntryDto | null) => void;
   runRecursiveSearch: (panelId: PanelId) => void;
+  runContentSearch: (panelId: PanelId) => void;
+  cancelContentSearch: (panelId: PanelId, tabId: string) => void;
   setContextMenu: (menu: ContextMenuState | null) => void;
   setDialog: (dialog: OperationDialog | null) => void;
   submitInlineRename: (
@@ -92,6 +94,8 @@ export function buildFilePanelProps(
     revealEntry,
     activateEntry,
     runRecursiveSearch,
+    runContentSearch,
+    cancelContentSearch,
     setContextMenu,
     setDialog,
     submitInlineRename,
@@ -146,6 +150,16 @@ export function buildFilePanelProps(
     onRecursiveQuery: (query) =>
       dispatch({ type: "setRecursiveQuery", panelId, query }),
     onRecursiveSearch: () => runRecursiveSearch(panelId),
+    onContentSearchQuery: (query) =>
+      dispatch({
+        type: "setContentSearchQuery",
+        panelId,
+        tabId: state.panels[panelId].activeTabId,
+        query,
+      }),
+    onContentSearch: () => runContentSearch(panelId),
+    onCancelContentSearch: () =>
+      cancelContentSearch(panelId, state.panels[panelId].activeTabId),
     canPaste: Boolean(clipboard),
     onEntryActivate: (entry) => activateEntry(panelId, entry),
     pathFocusToken,

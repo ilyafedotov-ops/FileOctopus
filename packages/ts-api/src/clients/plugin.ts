@@ -6,7 +6,7 @@ import type {
   PluginUninstallRequest,
   PluginToggleRequest,
   PluginToggleResponse,
-} from "../types";
+} from "../generated/ipc";
 
 export class PluginClient {
   constructor(private readonly transport: IpcTransport) {}

@@ -8,6 +8,7 @@ import {
 } from "../../dialogs/OperationDialogView";
 import type { OperationDialog } from "../../dialogs/OperationDialogView";
 import { joinUri } from "../../navigation/uriJoin";
+import type { RenameResult } from "../../utils/multiRename";
 import type { UseFileOpHandlersDeps } from "./types";
 import { useOperationCore, type OperationCore } from "./useOperationCore";
 
@@ -336,6 +337,44 @@ export function useMutationHandlers(
     }
   }
 
+  async function submitMultiRename(
+    entries: FileEntryDto[],
+    results: RenameResult[],
+  ): Promise<string | null> {
+    setOperationError(null);
+    const batchRenames = entries
+      .map((entry, index) => ({
+        source: entry.uri,
+        newName: results[index]?.newName ?? entry.name,
+      }))
+      .filter((rename, index) => rename.newName !== entries[index]?.name);
+
+    if (batchRenames.length === 0) {
+      return "No names were changed.";
+    }
+
+    try {
+      const planResponse = await planOperation(
+        "batchRename",
+        batchRenames.map((rename) => rename.source),
+        undefined,
+        undefined,
+        "fail",
+        batchRenames,
+      );
+      const ok = await startPlannedOperation(planResponse.plan);
+      return ok ? null : "Multi-rename could not be started.";
+    } catch (error) {
+      const normalized = normalizeIpcError(error);
+      const message = operationErrorMessage(
+        normalized.code,
+        normalized.message,
+      );
+      setOperationError(message);
+      return message;
+    }
+  }
+
   return {
     handleCreateFolder,
     handleCreateFile,
@@ -348,6 +387,7 @@ export function useMutationHandlers(
     submitCreateFile,
     submitRename,
     submitInlineRename,
+    submitMultiRename,
     submitTrash,
     submitPermanentDelete,
     toggleStarredForEntry,

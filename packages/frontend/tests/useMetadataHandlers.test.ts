@@ -1,7 +1,12 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FileEntryDto } from "@fileoctopus/ts-api";
 import { renderHook, act } from "@testing-library/react";
-import { createInitialState } from "../src/panelStore";
+import {
+  createInitialState,
+  panelReducer,
+  type FileOctopusState,
+  type PanelAction,
+} from "../src/panelStore";
 import { useMetadataHandlers } from "../src/hooks/fileOps/useMetadataHandlers";
 
 function makeEntry(overrides: Partial<FileEntryDto> = {}): FileEntryDto {
@@ -51,6 +56,10 @@ function buildDeps(overrides: Record<string, unknown> = {}) {
       startFolderSizeJob: vi.fn(async () => ({
         job: { jobId: "job-1" },
       })),
+      startContentSearchJob: vi.fn(),
+    },
+    jobs: {
+      cancelJob: vi.fn(async () => ({ job: { jobId: "cancelled" } })),
     },
   };
 
@@ -195,4 +204,101 @@ describe("useMetadataHandlers", () => {
       }),
     );
   });
+
+  it("cancels a stale overlapping start response without replacing the latest search", async () => {
+    const first = deferred<{ job: { jobId: string } }>();
+    const second = deferred<{ job: { jobId: string } }>();
+    const built = buildDeps();
+    let currentState = built.state;
+    currentState.panels.left.tabs.main.contentSearchQuery = "first";
+    built.deps.client.fs.startContentSearchJob = vi.fn((request) =>
+      request.query === "first" ? first.promise : second.promise,
+    );
+    const dispatch = vi.fn((action: PanelAction) => {
+      currentState = panelReducer(currentState, action);
+    });
+    const { result, rerender } = renderHook(
+      ({ state }: { state: FileOctopusState }) =>
+        useMetadataHandlers({ ...built.deps, state, dispatch }),
+      { initialProps: { state: currentState } },
+    );
+
+    let firstRun!: Promise<void>;
+    act(() => {
+      firstRun = result.current.runContentSearch("left");
+    });
+    currentState = panelReducer(currentState, {
+      type: "setContentSearchQuery",
+      panelId: "left",
+      tabId: "main",
+      query: "second",
+    });
+    rerender({ state: currentState });
+    let secondRun!: Promise<void>;
+    act(() => {
+      secondRun = result.current.runContentSearch("left");
+    });
+
+    await act(async () => {
+      second.resolve({ job: { jobId: "job-second" } });
+      await secondRun;
+    });
+    rerender({ state: currentState });
+    await act(async () => {
+      first.resolve({ job: { jobId: "job-first" } });
+      await firstRun;
+    });
+
+    expect(currentState.panels.left.tabs.main.contentSearch?.query).toBe(
+      "second",
+    );
+    expect(currentState.panels.left.tabs.main.contentSearch?.jobId).toBe(
+      "job-second",
+    );
+    expect(built.deps.client.jobs.cancelJob).toHaveBeenCalledWith({
+      jobId: "job-first",
+    });
+  });
+
+  it("cancels the tab-owned content search and marks it terminal", async () => {
+    const built = buildDeps();
+    let currentState = built.state;
+    currentState.panels.left.tabs.main.contentSearchQuery = "needle";
+    built.deps.client.fs.startContentSearchJob = vi.fn(async () => ({
+      job: { jobId: "job-content" },
+    }));
+    const dispatch = vi.fn((action: PanelAction) => {
+      currentState = panelReducer(currentState, action);
+    });
+    const { result, rerender } = renderHook(
+      ({ state }: { state: FileOctopusState }) =>
+        useMetadataHandlers({ ...built.deps, state, dispatch }),
+      { initialProps: { state: currentState } },
+    );
+
+    await act(async () => {
+      await result.current.runContentSearch("left");
+    });
+    rerender({ state: currentState });
+    await act(async () => {
+      await result.current.cancelContentSearch("left", "main");
+    });
+
+    expect(built.deps.client.jobs.cancelJob).toHaveBeenCalledWith({
+      jobId: "job-content",
+    });
+    expect(currentState.panels.left.tabs.main.contentSearch?.status).toBe(
+      "cancelled",
+    );
+  });
 });
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}

@@ -39,6 +39,7 @@ export function operationVerb(kind: FileOperationKind): string {
     case "deleteToTrash":
       return "Moving to Trash";
     case "rename":
+    case "batchRename":
       return "Renaming";
     case "writeTextFile":
       return "Saving";
@@ -62,6 +63,7 @@ function operationPastTense(kind: FileOperationKind): string {
     case "deleteToTrash":
       return "Moved to Trash";
     case "rename":
+    case "batchRename":
       return "Renamed";
     case "writeTextFile":
       return "Saved";

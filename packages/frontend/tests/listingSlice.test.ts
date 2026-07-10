@@ -287,6 +287,31 @@ describe("reduceListing — startSession", () => {
     expect(tab.errorCode).toBe("err");
     expect(tab.loadState).toBe("error");
   });
+  it("binds a session to the requesting tab after a tab switch", () => {
+    const started = reduceListing(state, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "r1",
+    });
+    const main = started.panels.left.tabs.main;
+    started.panels.left.tabs.other = {
+      ...main,
+      activeRequestId: null,
+      sessionId: null,
+      uri: "local:///other",
+    };
+    started.panels.left.activeTabId = "other";
+
+    const result = reduceListing(started, {
+      type: "startSession",
+      panelId: "left",
+      sessionId: "s1",
+      requestId: "r1",
+    });
+
+    expect(result.panels.left.tabs.main.sessionId).toBe("s1");
+    expect(result.panels.left.tabs.other.sessionId).toBeNull();
+  });
 });
 
 describe("reduceListing — applyBatch", () => {
@@ -313,6 +338,19 @@ describe("reduceListing — applyBatch", () => {
     const result = reduceListing(sessioned, { type: "applyBatch", batch });
     const tab = activeTab(result.panels.left);
     expect(tab.entriesById["local:///home/file.txt"]).toBeDefined();
+    expect(tab.activeRequestId).toBeNull();
+
+    const late = reduceListing(result, {
+      type: "applyBatch",
+      batch: {
+        ...batch,
+        entries: [makeEntry("late.txt", "local:///home/late.txt")],
+        batchIndex: 1,
+      },
+    });
+    expect(
+      activeTab(late.panels.left).entriesById["local:///home/late.txt"],
+    ).toBeUndefined();
   });
   it("stages background batches and swaps visible rows only when complete", () => {
     const oldEntry = makeEntry("old.txt", "local:///home/old.txt");
@@ -436,6 +474,43 @@ describe("reduceListing — setPaneError", () => {
     });
     const tab = activeTab(result.panels.left);
     expect(tab.errorCode).toBeNull();
+  });
+  it("ignores an error from a superseded request", () => {
+    const first = reduceListing(state, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "request-1",
+    });
+    const second = reduceListing(first, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "request-2",
+    });
+    const result = reduceListing(second, {
+      type: "setPaneError",
+      panelId: "left",
+      requestId: "request-1",
+      error: "stale failure",
+    });
+
+    expect(activeTab(result.panels.left).activeRequestId).toBe("request-2");
+    expect(activeTab(result.panels.left).error).toBeNull();
+  });
+  it("makes a matching request error terminal", () => {
+    const started = reduceListing(state, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "request-1",
+    });
+    const result = reduceListing(started, {
+      type: "setPaneError",
+      panelId: "left",
+      requestId: "request-1",
+      error: "failed",
+    });
+
+    expect(activeTab(result.panels.left).activeRequestId).toBeNull();
+    expect(activeTab(result.panels.left).loadState).toBe("error");
   });
 });
 
@@ -578,5 +653,27 @@ describe("reduceListing — setArchiveEntries", () => {
     expect(tab.entriesById).toEqual({});
     expect(tab.selectedId).toBeNull();
     expect(tab.selectedIds).toEqual([]);
+  });
+  it("ignores archive results from a superseded request", () => {
+    const first = reduceListing(state, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "request-1",
+    });
+    const second = reduceListing(first, {
+      type: "startRequest",
+      panelId: "left",
+      requestId: "request-2",
+    });
+    const result = reduceListing(second, {
+      type: "setArchiveEntries",
+      panelId: "left",
+      requestId: "request-1",
+      uri: "local:///stale.zip",
+      entries: [makeEntry("stale", "local:///stale.zip/stale")],
+    });
+
+    expect(activeTab(result.panels.left).uri).toBe("local:///home");
+    expect(activeTab(result.panels.left).activeRequestId).toBe("request-2");
   });
 });
