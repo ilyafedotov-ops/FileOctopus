@@ -277,3 +277,11 @@ test("workflow remains prerelease-only and reusable CI accepts an exact checkout
   assert.match(ciWorkflow, /checkout_ref:/u);
   assert.match(ciWorkflow, /inputs\.checkout_ref \|\| github\.sha/u);
 });
+
+test("Tauri production builds prepare workspace package outputs", async () => {
+  const tauriConfig = JSON.parse(
+    await readFile("apps/desktop-tauri/src-tauri/tauri.conf.json", "utf8"),
+  );
+
+  assert.equal(tauriConfig.build.beforeBuildCommand, "pnpm -w build");
+});
