@@ -1,3 +1,5 @@
+#![cfg(unix)]
+
 //! Integration tests for fs_get_acl / fs_set_acl command logic.
 
 use std::os::unix::fs::PermissionsExt;
