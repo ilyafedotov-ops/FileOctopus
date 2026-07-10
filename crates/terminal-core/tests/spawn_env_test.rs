@@ -11,17 +11,30 @@ fn spawn_and_capture(
     rx: &Receiver<TerminalEvent>,
     env: Vec<(String, String)>,
 ) -> String {
+    #[cfg(windows)]
+    let (shell, args) = (
+        std::env::var("COMSPEC").unwrap_or_else(|_| "cmd.exe".to_string()),
+        vec![
+            "/C".to_string(),
+            "echo TERM=[%TERM%] COLORTERM=[%COLORTERM%]".to_string(),
+        ],
+    );
+    #[cfg(not(windows))]
+    let (shell, args) = (
+        "/bin/sh".to_string(),
+        vec![
+            "-c".to_string(),
+            "printf 'TERM=[%s] COLORTERM=[%s]' \"$TERM\" \"$COLORTERM\"".to_string(),
+        ],
+    );
     let id = service
         .spawn(SpawnTerminalRequest {
             cwd: std::env::temp_dir(),
             cwd_uri: None,
             cols: 80,
             rows: 24,
-            shell: Some("/bin/sh".to_string()),
-            args: Some(vec![
-                "-c".to_string(),
-                "printf 'TERM=[%s] COLORTERM=[%s]' \"$TERM\" \"$COLORTERM\"".to_string(),
-            ]),
+            shell: Some(shell),
+            args: Some(args),
             env,
             terminal_profile_id: None,
             title: None,
