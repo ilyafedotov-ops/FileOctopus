@@ -7,14 +7,14 @@ execution.
 
 ## Status
 
-FileOctopus is pre-1.0. Current release `v0.1.5` includes the core local
+FileOctopus is pre-1.0. Current release `v0.1.6` includes the core local
 browsing, file operations, navigation, job progress, preferences, diagnostics,
 Git status, embedded terminal, remote providers, cloud provider connectors,
 plugins, archive browsing, previews, diff/merge, ACLs, and sync features present
 on `main`.
 
-See the [v0.1.5 release notes](docs/release-notes/v0.1.5.md) for supported
-features, platform status, and known limitations.
+See [GitHub Releases](https://github.com/ilyafedotov-ops/FileOctopus/releases)
+for release assets, platform status, and generated release notes.
 
 ## Interface Preview
 
@@ -72,22 +72,25 @@ Demo videos:
   terminal, network, editor, viewer, diagnostics, shortcuts, and autostart.
 - Git review: branch display, compact status badges, changed-file review, and
   unified/side-by-side worktree diffs.
-- Remote workspace: SFTP, SMB, S3 profiles and Google Drive, Dropbox, OneDrive
-  OAuth connector crates.
-- Advanced tools: embedded local/SSH terminal, plugin marketplace, ACL editor,
-  diff/merge, directory sync, archive browsing, saved searches, tags/labels,
-  media/PDF/text previews, vertical split, and storage gauge.
+- Remote workspace: SFTP and WebDAV providers, plus preview S3 support.
+- Advanced tools: embedded local/SSH terminal, installed-plugin management,
+  ACL editor, diff/merge, directory sync, archive browsing, saved searches,
+  tags/labels, media/PDF/text previews, vertical split, and storage gauge.
 
 ## Current Limitations
 
 - Trash browser/restore.
 - AI semantic search and peer-to-peer sync are intentionally deferred.
+- SMB remains unavailable until its subprocess implementation is replaced.
+- Cloud OAuth providers require a production OAuth broker and registrations.
+- Plugin installation remains disabled until signed Wasm packages are supported.
+- S3 remains preview-only until multipart and interoperability gates pass.
 
 ## Prerequisites
 
 - Rust via `rustup`
-- Node.js
-- pnpm 10.26.2+ (`corepack enable` recommended)
+- Node.js 22.12.x
+- pnpm 10.26.2 (`corepack enable` recommended)
 - Platform prerequisites for Tauri v2
 
 ## Quick Start
