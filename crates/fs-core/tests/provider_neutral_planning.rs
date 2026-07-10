@@ -257,12 +257,16 @@ fn plans_registered_remote_to_local_copy() {
     .unwrap();
 
     assert_eq!(plan.total_items, 1);
+    let planned_destination = plan.items[0]
+        .destination
+        .as_ref()
+        .unwrap()
+        .to_local_path()
+        .unwrap();
+    let expected_destination = dir.path().join("file.txt");
     assert_eq!(
-        plan.items[0]
-            .destination
-            .as_ref()
-            .map(ResourceUri::display_path),
-        Some(dir.path().join("file.txt").to_string_lossy().to_string())
+        planned_destination.components().collect::<Vec<_>>(),
+        expected_destination.components().collect::<Vec<_>>()
     );
     assert_eq!(plan.items[0].size, Some(7));
 }
