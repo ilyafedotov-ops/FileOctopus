@@ -291,6 +291,7 @@ impl OperationRuntime {
             event_gate: event_gate.clone(),
             timed_out: timed_out.clone(),
             user_cancelled: user_cancelled.clone(),
+            last_activity: None,
         };
 
         let mut jobs_guard = self.jobs.lock().map_err(|_| FileOperationError::Internal {
@@ -324,6 +325,12 @@ impl OperationRuntime {
 
         let task = move || {
             let _admission = admission;
+            if let Ok(mut jobs) = jobs.lock() {
+                if let Some(state) = jobs.get_mut(task_job_id.as_str()) {
+                    state.last_activity = Some(Instant::now());
+                    state.snapshot.updated_at = Utc::now();
+                }
+            }
             let progress_jobs = jobs.clone();
             let progress_base = sink.clone();
             let progress_event_gate = event_gate.clone();
@@ -584,6 +591,7 @@ impl OperationRuntime {
         let resumed_at = Utc::now();
         state.snapshot.status = JobStatus::Running;
         state.snapshot.updated_at = resumed_at;
+        state.last_activity = Some(Instant::now());
         let snapshot = state.snapshot.clone();
         let sink = state.sink.upgrade();
         let event = JobEvent::Resumed(JobResumedEvent {
@@ -655,6 +663,7 @@ struct JobRuntimeState {
     event_gate: Arc<Mutex<()>>,
     timed_out: Arc<AtomicBool>,
     user_cancelled: Arc<AtomicBool>,
+    last_activity: Option<Instant>,
 }
 
 struct PlannedOperation {
@@ -754,7 +763,6 @@ fn watchdog_loop(
         }
         let idle_timeout = Duration::from_millis(current_ms);
 
-        let now = Utc::now();
         let Ok(jobs) = jobs.lock() else {
             break;
         };
@@ -765,12 +773,10 @@ fn watchdog_loop(
             {
                 continue;
             }
-            let idle = now.signed_duration_since(state.snapshot.updated_at);
-            let exceeded = idle
-                .to_std()
-                .map(|idle| idle >= idle_timeout)
-                .unwrap_or(false);
-            if exceeded {
+            let Some(last_activity) = state.last_activity else {
+                continue;
+            };
+            if last_activity.elapsed() >= idle_timeout {
                 state.timed_out.store(true, Ordering::SeqCst);
                 state.cancel.cancel();
                 telemetry::info(&format!(
@@ -788,13 +794,17 @@ fn update_snapshot_progress(
 ) -> bool {
     if let Ok(mut jobs) = jobs.lock() {
         if let Some(state) = jobs.get_mut(progress.job_id.as_str()) {
-            if state.snapshot.status != JobStatus::Running {
+            if state.snapshot.status != JobStatus::Running
+                || state.timed_out.load(Ordering::SeqCst)
+                || state.user_cancelled.load(Ordering::SeqCst)
+            {
                 return false;
             }
             state.snapshot.current_item = progress.current_item.clone();
             state.snapshot.completed_items = progress.completed_items;
             state.snapshot.completed_bytes = progress.completed_bytes;
             state.snapshot.updated_at = progress.updated_at;
+            state.last_activity = Some(Instant::now());
             return true;
         }
     }

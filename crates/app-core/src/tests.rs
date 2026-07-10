@@ -337,11 +337,16 @@ fn user_cancelled_idle_job_stays_cancelled_after_timeout_window() {
         },
     );
     let (sender, receiver) = mpsc::channel();
+    let runtime_for_sink = runtime.clone();
 
-    let job = runtime
+    runtime
         .start_with_executor(
             noop_plan(),
             Arc::new(move |event| {
+                if let JobEvent::Started(started) = &event {
+                    std::thread::sleep(Duration::from_millis(500));
+                    runtime_for_sink.cancel(started.job_id.as_str()).unwrap();
+                }
                 let _ = sender.send(event);
             }),
             move |_vfs, _plan, job, cancel, _pause, _progress| loop {
@@ -355,8 +360,6 @@ fn user_cancelled_idle_job_stays_cancelled_after_timeout_window() {
             },
         )
         .unwrap();
-
-    runtime.cancel(job.job_id.as_str()).unwrap();
 
     let terminal = loop {
         let event = receiver.recv_timeout(Duration::from_secs(5)).unwrap();
