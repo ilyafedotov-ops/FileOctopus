@@ -1622,18 +1622,20 @@ mod tests {
         let dir = tempdir().unwrap();
         let path = dir.path().join("preferences.sqlite");
         let repository = PreferencesRepository::new(path.clone()).unwrap();
+        let diagnostics_path = dir
+            .path()
+            .join("fileoctopus-diagnostics.zip")
+            .to_string_lossy()
+            .into_owned();
         repository
             .set(
                 "diagnosticsExportPath",
-                " /home/user/fileoctopus-diagnostics.zip ",
+                format!(" {diagnostics_path} ").as_str(),
             )
             .unwrap();
 
         let reloaded = PreferencesRepository::new(path).unwrap().get_all().unwrap();
-        assert_eq!(
-            reloaded.diagnostics_export_path,
-            "/home/user/fileoctopus-diagnostics.zip"
-        );
+        assert_eq!(reloaded.diagnostics_export_path, diagnostics_path);
 
         let updated = repository.set("diagnosticsExportPath", "   ").unwrap();
         assert_eq!(
@@ -1661,8 +1663,13 @@ mod tests {
             .unwrap_err();
         assert!(matches!(relative, PreferencesError::InvalidValue { .. }));
 
+        let traversal_path = std::env::temp_dir()
+            .join("..")
+            .join("fileoctopus-diagnostics.zip")
+            .to_string_lossy()
+            .into_owned();
         let traversal = repository
-            .set("diagnosticsExportPath", "/tmp/../etc/diagnostics.zip")
+            .set("diagnosticsExportPath", traversal_path.as_str())
             .unwrap_err();
         assert!(matches!(traversal, PreferencesError::InvalidValue { .. }));
     }
