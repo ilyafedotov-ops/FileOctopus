@@ -16,6 +16,13 @@ fn temp_dir(prefix: &str) -> PathBuf {
     dir
 }
 
+fn local_uri(path: &std::path::Path) -> String {
+    ResourceUri::from_local_path(path)
+        .unwrap()
+        .as_str()
+        .to_string()
+}
+
 /// Simulates the fs_read_text_file handler logic:
 /// parse URI → check metadata → verify not directory → read up to max_bytes
 fn read_text_file_logic(
@@ -55,7 +62,7 @@ fn fs_read_text_file_reads_file_content() {
     let file_path = dir.join("hello.txt");
     std::fs::write(&file_path, "Hello, FileOctopus!").unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
     let (content, truncated, byte_size) = read_text_file_logic(&uri, None).unwrap();
 
     assert_eq!(content, "Hello, FileOctopus!");
@@ -68,7 +75,7 @@ fn fs_read_text_file_reads_file_content() {
 #[test]
 fn fs_read_text_file_rejects_directory() {
     let dir = temp_dir("read-dir");
-    let uri = format!("local://{}", dir.display());
+    let uri = local_uri(&dir);
     let result = read_text_file_logic(&uri, None);
 
     assert!(result.is_err());
@@ -85,7 +92,7 @@ fn fs_read_text_file_handles_truncation() {
     let data = "A".repeat(200);
     std::fs::write(&file_path, &data).unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
     let (content, truncated, byte_size) = read_text_file_logic(&uri, Some(100)).unwrap();
 
     assert_eq!(content.len(), 100);
@@ -101,7 +108,7 @@ fn fs_read_text_file_no_truncation_when_within_limit() {
     let file_path = dir.join("small.txt");
     std::fs::write(&file_path, "small content").unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
     let (content, truncated, byte_size) = read_text_file_logic(&uri, Some(1024)).unwrap();
 
     assert_eq!(content, "small content");
@@ -115,7 +122,7 @@ fn fs_read_text_file_no_truncation_when_within_limit() {
 fn fs_read_text_file_rejects_missing_file() {
     let dir = temp_dir("read-missing");
     let missing = dir.join("nope.txt");
-    let uri = format!("local://{}", missing.display());
+    let uri = local_uri(&missing);
     let result = read_text_file_logic(&uri, None);
 
     assert!(result.is_err());
@@ -146,7 +153,7 @@ fn fs_read_text_file_default_max_is_1mb() {
     let data = "X".repeat(1000);
     std::fs::write(&file_path, &data).unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
     let (content, truncated, byte_size) = read_text_file_logic(&uri, None).unwrap();
 
     // Default max_bytes is 1MB, so 1000 bytes should not be truncated
@@ -218,7 +225,7 @@ fn fs_read_image_reads_png_as_data_uri() {
     // Minimal PNG-like data (not valid PNG, but tests the read+encode path)
     std::fs::write(&file_path, b"\x89PNG\r\n\x1a\nfake").unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
     let (data_uri, byte_size, mime) = read_image_logic(&uri).unwrap();
 
     assert_eq!(mime, "image/png");
@@ -234,7 +241,7 @@ fn fs_read_image_reads_jpeg_as_data_uri() {
     let file_path = dir.join("photo.jpg");
     std::fs::write(&file_path, b"\xff\xd8\xff\xe0fake").unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
     let (data_uri, byte_size, mime) = read_image_logic(&uri).unwrap();
 
     assert_eq!(mime, "image/jpeg");
@@ -247,7 +254,7 @@ fn fs_read_image_reads_jpeg_as_data_uri() {
 #[test]
 fn fs_read_image_rejects_directory() {
     let dir = temp_dir("read-image-dir");
-    let uri = format!("local://{}", dir.display());
+    let uri = local_uri(&dir);
     let result = read_image_logic(&uri);
 
     assert!(result.is_err());
@@ -261,7 +268,7 @@ fn fs_read_image_rejects_directory() {
 fn fs_read_image_rejects_missing_file() {
     let dir = temp_dir("read-image-missing");
     let missing = dir.join("nope.png");
-    let uri = format!("local://{}", missing.display());
+    let uri = local_uri(&missing);
     let result = read_image_logic(&uri);
 
     assert!(result.is_err());

@@ -17,6 +17,13 @@ fn temp_dir(prefix: &str) -> PathBuf {
     dir
 }
 
+fn local_uri(path: &std::path::Path) -> String {
+    ResourceUri::from_local_path(path)
+        .unwrap()
+        .as_str()
+        .to_string()
+}
+
 /// Simulates fs_get_acl handler logic: parse URI → stat → extract mode → build response.
 #[allow(clippy::type_complexity)]
 fn get_acl_logic(uri_str: &str) -> Result<(String, Vec<(String, bool, bool, bool)>), String> {
@@ -100,7 +107,7 @@ fn fs_get_acl_returns_permissions_for_file() {
     // Set known permissions
     std::fs::set_permissions(&file_path, std::fs::Permissions::from_mode(0o644)).unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
     let (octal, entries) = get_acl_logic(&uri).unwrap();
 
     assert_eq!(octal, "644");
@@ -132,7 +139,7 @@ fn fs_get_acl_returns_permissions_for_directory() {
     let dir = temp_dir("get-dir");
     std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-    let uri = format!("local://{}", dir.display());
+    let uri = local_uri(&dir);
     let (octal, entries) = get_acl_logic(&uri).unwrap();
 
     assert_eq!(octal, "755");
@@ -154,7 +161,7 @@ fn fs_get_acl_full_permissions_777() {
     std::fs::write(&file_path, "full perms").unwrap();
     std::fs::set_permissions(&file_path, std::fs::Permissions::from_mode(0o777)).unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
     let (octal, entries) = get_acl_logic(&uri).unwrap();
 
     assert_eq!(octal, "777");
@@ -172,7 +179,7 @@ fn fs_get_acl_no_permissions_000() {
     std::fs::write(&file_path, "no perms").unwrap();
     std::fs::set_permissions(&file_path, std::fs::Permissions::from_mode(0o000)).unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
     let (octal, entries) = get_acl_logic(&uri).unwrap();
 
     assert_eq!(octal, "0");
@@ -187,7 +194,7 @@ fn fs_get_acl_no_permissions_000() {
 fn fs_get_acl_missing_file_returns_error() {
     let dir = temp_dir("get-missing");
     let missing = dir.join("ghost.txt");
-    let uri = format!("local://{}", missing.display());
+    let uri = local_uri(&missing);
 
     let result = get_acl_logic(&uri);
     assert!(result.is_err());
@@ -205,7 +212,7 @@ fn fs_set_acl_changes_file_permissions() {
     // Start with 644
     std::fs::set_permissions(&file_path, std::fs::Permissions::from_mode(0o644)).unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
     set_acl_logic(&uri, "755", false).unwrap();
 
     // Verify the change
@@ -221,7 +228,7 @@ fn fs_set_acl_changes_directory_permissions() {
     let dir = temp_dir("set-dir");
     std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-    let uri = format!("local://{}", dir.display());
+    let uri = local_uri(&dir);
     set_acl_logic(&uri, "700", false).unwrap();
 
     let metadata = std::fs::metadata(&dir).unwrap();
@@ -246,7 +253,7 @@ fn fs_set_acl_recursive_applies_to_children() {
     std::fs::set_permissions(&file2, std::fs::Permissions::from_mode(0o600)).unwrap();
     std::fs::set_permissions(&subdir, std::fs::Permissions::from_mode(0o755)).unwrap();
 
-    let uri = format!("local://{}", dir.display());
+    let uri = local_uri(&dir);
     set_acl_logic(&uri, "700", true).unwrap();
 
     // All entries should now be 700
@@ -267,7 +274,7 @@ fn fs_set_acl_rejects_invalid_octal() {
     let file_path = dir.join("test.txt");
     std::fs::write(&file_path, "data").unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
 
     // Non-octal characters
     let result = set_acl_logic(&uri, "abc", false);
@@ -284,7 +291,7 @@ fn fs_set_acl_rejects_invalid_octal() {
 fn fs_set_acl_rejects_missing_file() {
     let dir = temp_dir("set-missing");
     let missing = dir.join("ghost.txt");
-    let uri = format!("local://{}", missing.display());
+    let uri = local_uri(&missing);
 
     let result = set_acl_logic(&uri, "644", false);
     assert!(result.is_err());
@@ -301,7 +308,7 @@ fn fs_set_acl_non_recursive_does_not_affect_children() {
     std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o755)).unwrap();
     std::fs::set_permissions(&file1, std::fs::Permissions::from_mode(0o644)).unwrap();
 
-    let uri = format!("local://{}", dir.display());
+    let uri = local_uri(&dir);
     set_acl_logic(&uri, "700", false).unwrap();
 
     // Directory changed

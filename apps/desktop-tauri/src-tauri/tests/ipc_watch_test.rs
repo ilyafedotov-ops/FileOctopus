@@ -48,8 +48,8 @@ fn validate_watch_uri(uri_str: &str) -> Result<PathBuf, String> {
 #[test]
 fn watch_accepts_valid_directory_uri() {
     let dir = temp_dir("valid-dir");
-    let uri = format!("local://{}", dir.display());
-    let result = validate_watch_uri(&uri);
+    let uri = ResourceUri::from_local_path(&dir).unwrap();
+    let result = validate_watch_uri(uri.as_str());
     assert!(result.is_ok());
 
     let _ = std::fs::remove_dir_all(dir);
@@ -61,8 +61,8 @@ fn watch_rejects_file_uri() {
     let file_path = dir.join("test.txt");
     std::fs::write(&file_path, b"hello").unwrap();
 
-    let uri = format!("local://{}", file_path.display());
-    let result = validate_watch_uri(&uri);
+    let uri = ResourceUri::from_local_path(&file_path).unwrap();
+    let result = validate_watch_uri(uri.as_str());
     assert!(result.is_err());
 
     let _ = std::fs::remove_dir_all(dir);
@@ -72,8 +72,8 @@ fn watch_rejects_file_uri() {
 fn watch_rejects_nonexistent_path() {
     let dir = temp_dir("missing-path");
     let missing = dir.join("does-not-exist");
-    let uri = format!("local://{}", missing.display());
-    let result = validate_watch_uri(&uri);
+    let uri = ResourceUri::from_local_path(&missing).unwrap();
+    let result = validate_watch_uri(uri.as_str());
     assert!(result.is_err());
 
     let _ = std::fs::remove_dir_all(dir);

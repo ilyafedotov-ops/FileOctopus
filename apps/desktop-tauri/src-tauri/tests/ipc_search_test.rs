@@ -1,6 +1,6 @@
 //! Integration tests for fs_recursive_search command logic.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use fs_core::search::recursive_search;
 use vfs::ResourceUri;
@@ -15,17 +15,13 @@ fn temp_dir(prefix: &str) -> PathBuf {
     dir
 }
 
-fn local_uri(path: &Path) -> String {
-    format!("local://{}", path.display())
-}
-
 #[test]
 fn recursive_search_finds_matching_file() {
     let dir = temp_dir("find-file");
     std::fs::write(dir.join("report.pdf"), b"pdf data").unwrap();
     std::fs::write(dir.join("notes.txt"), b"notes").unwrap();
 
-    let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
+    let uri = ResourceUri::from_local_path(&dir).unwrap();
     let result = recursive_search(&uri, "report", 100).unwrap();
 
     assert_eq!(result.matches.len(), 1);
@@ -39,7 +35,7 @@ fn recursive_search_empty_query_returns_empty() {
     let dir = temp_dir("empty-query");
     std::fs::write(dir.join("file.txt"), b"data").unwrap();
 
-    let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
+    let uri = ResourceUri::from_local_path(&dir).unwrap();
     let result = recursive_search(&uri, "", 100).unwrap();
 
     assert!(result.matches.is_empty());
@@ -52,7 +48,7 @@ fn recursive_search_whitespace_only_query_returns_empty() {
     let dir = temp_dir("ws-query");
     std::fs::write(dir.join("file.txt"), b"data").unwrap();
 
-    let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
+    let uri = ResourceUri::from_local_path(&dir).unwrap();
     let result = recursive_search(&uri, "   ", 100).unwrap();
 
     assert!(result.matches.is_empty());
@@ -66,7 +62,7 @@ fn recursive_search_rejects_non_directory() {
     let file_path = dir.join("afile.txt");
     std::fs::write(&file_path, b"hello").unwrap();
 
-    let uri = ResourceUri::parse(&local_uri(&file_path)).unwrap();
+    let uri = ResourceUri::from_local_path(&file_path).unwrap();
     let result = recursive_search(&uri, "anything", 100);
 
     assert!(result.is_err());
@@ -79,7 +75,7 @@ fn recursive_search_case_insensitive() {
     let dir = temp_dir("case-insensitive");
     std::fs::write(dir.join("README.md"), b"readme").unwrap();
 
-    let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
+    let uri = ResourceUri::from_local_path(&dir).unwrap();
     let result = recursive_search(&uri, "readme", 100).unwrap();
 
     assert_eq!(result.matches.len(), 1);
@@ -95,7 +91,7 @@ fn recursive_search_limit_enforced() {
         std::fs::write(dir.join(format!("doc_{i:02}.txt")), b"x").unwrap();
     }
 
-    let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
+    let uri = ResourceUri::from_local_path(&dir).unwrap();
     let result = recursive_search(&uri, "doc", 5).unwrap();
 
     assert!(
@@ -115,7 +111,7 @@ fn recursive_search_finds_in_subdirectory() {
     std::fs::write(sub.join("deep_file.txt"), b"deep").unwrap();
     std::fs::write(dir.join("top_file.txt"), b"top").unwrap();
 
-    let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
+    let uri = ResourceUri::from_local_path(&dir).unwrap();
     let result = recursive_search(&uri, "deep", 100).unwrap();
 
     assert_eq!(result.matches.len(), 1);
@@ -130,7 +126,7 @@ fn recursive_search_no_match_returns_empty() {
     std::fs::write(dir.join("alpha.txt"), b"a").unwrap();
     std::fs::write(dir.join("beta.txt"), b"b").unwrap();
 
-    let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
+    let uri = ResourceUri::from_local_path(&dir).unwrap();
     let result = recursive_search(&uri, "xyzzy_nonexistent", 100).unwrap();
 
     assert!(result.matches.is_empty());
@@ -144,7 +140,7 @@ fn recursive_search_match_has_correct_fields() {
     let dir = temp_dir("fields");
     std::fs::write(dir.join("target.csv"), b"1,2,3").unwrap();
 
-    let uri = ResourceUri::parse(&local_uri(&dir)).unwrap();
+    let uri = ResourceUri::from_local_path(&dir).unwrap();
     let result = recursive_search(&uri, "target", 100).unwrap();
 
     assert_eq!(result.matches.len(), 1);

@@ -16,6 +16,13 @@ fn temp_dir(prefix: &str) -> PathBuf {
     dir
 }
 
+fn local_uri(path: &std::path::Path) -> String {
+    ResourceUri::from_local_path(path)
+        .unwrap()
+        .as_str()
+        .to_string()
+}
+
 /// Simulates the fs_list_archive handler logic:
 /// parse URI → check metadata → verify file exists → detect format → list entries
 fn list_archive_logic(uri_str: &str) -> Result<Vec<FileEntryDto>, IpcError> {
@@ -314,7 +321,7 @@ fn make_test_tar_gz(dir: &std::path::Path) -> PathBuf {
 fn list_archive_zip_returns_entries() {
     let dir = temp_dir("zip");
     let zip_path = make_test_zip(&dir);
-    let uri = format!("local://{}", zip_path.display());
+    let uri = local_uri(&zip_path);
 
     let result = list_archive_logic(&uri).unwrap();
 
@@ -356,7 +363,7 @@ fn list_archive_zip_returns_entries() {
 fn list_archive_tar_returns_entries() {
     let dir = temp_dir("tar");
     let tar_path = make_test_tar(&dir);
-    let uri = format!("local://{}", tar_path.display());
+    let uri = local_uri(&tar_path);
 
     let result = list_archive_logic(&uri).unwrap();
 
@@ -379,7 +386,7 @@ fn list_archive_tar_returns_entries() {
 fn list_archive_tar_gz_returns_entries() {
     let dir = temp_dir("targz");
     let tar_gz_path = make_test_tar_gz(&dir);
-    let uri = format!("local://{}", tar_gz_path.display());
+    let uri = local_uri(&tar_gz_path);
 
     let result = list_archive_logic(&uri).unwrap();
 
@@ -393,7 +400,7 @@ fn list_archive_tar_gz_returns_entries() {
 #[test]
 fn list_archive_directory_returns_error() {
     let dir = temp_dir("dir");
-    let uri = format!("local://{}", dir.display());
+    let uri = local_uri(&dir);
 
     let result = list_archive_logic(&uri);
     assert!(result.is_err());
@@ -405,7 +412,7 @@ fn list_archive_directory_returns_error() {
 fn list_archive_missing_file_returns_error() {
     let dir = temp_dir("missing");
     let missing = dir.join("nonexistent.zip");
-    let uri = format!("local://{}", missing.display());
+    let uri = local_uri(&missing);
 
     let result = list_archive_logic(&uri);
     assert!(result.is_err());
@@ -418,7 +425,7 @@ fn list_archive_unsupported_format_returns_error() {
     let dir = temp_dir("unsup");
     let file_path = dir.join("test.rar");
     std::fs::write(&file_path, b"not an archive").unwrap();
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
 
     let result = list_archive_logic(&uri);
     assert!(result.is_err());

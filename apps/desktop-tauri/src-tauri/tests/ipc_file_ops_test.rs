@@ -1,6 +1,6 @@
 //! Integration tests for fs_stat behavior.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use app_core::AppCore;
 use app_ipc::IpcError;
@@ -14,10 +14,6 @@ fn temp_dir(prefix: &str) -> PathBuf {
     ));
     std::fs::create_dir_all(&dir).unwrap();
     dir
-}
-
-fn _local_uri(path: &Path) -> String {
-    format!("local://{}", path.display())
 }
 
 #[test]

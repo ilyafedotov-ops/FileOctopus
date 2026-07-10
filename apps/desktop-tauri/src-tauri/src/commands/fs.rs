@@ -520,6 +520,8 @@ pub async fn fs_read_image_as_data_uri(
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_os = "linux")]
+    use super::linux_volume_from_mount_line;
     use super::{
         compute_hash_blocking, mime_for_extension, validate_list_identifier,
         MAX_LIST_IDENTIFIER_BYTES,
@@ -575,6 +577,99 @@ mod tests {
                 .is_err()
         );
     }
+
+    #[cfg(target_os = "linux")]
+    #[test]
+    fn linux_mount_parser_decodes_escaped_paths() {
+        let spaced =
+            linux_volume_from_mount_line("/dev/sdb1 /media/My\\040Drive ext4 rw 0 0").unwrap();
+        assert_eq!(spaced.name, "My Drive");
+        assert_eq!(spaced.mount_uri, "local:///media/My Drive");
+
+        let backslash =
+            linux_volume_from_mount_line("/dev/sdc1 /media/A\\134B ext4 rw 0 0").unwrap();
+        assert_eq!(backslash.name, "A\\B");
+        assert_eq!(backslash.mount_uri, "local:///media/A\\B");
+
+        let root = linux_volume_from_mount_line("/dev/nvme0n1p2 / ext4 rw 0 0").unwrap();
+        assert_eq!(root.name, "/");
+        assert_eq!(root.mount_uri, "local:///");
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn decode_linux_mount_field(value: &str) -> String {
+    value
+        .replace("\\040", " ")
+        .replace("\\011", "\t")
+        .replace("\\012", "\n")
+        .replace("\\134", "\\")
+}
+
+#[cfg(target_os = "linux")]
+fn linux_volume_from_mount_line(line: &str) -> Option<app_ipc::VolumeDto> {
+    let mut parts = line.split_whitespace();
+    let device = decode_linux_mount_field(parts.next()?);
+    let mount_point = decode_linux_mount_field(parts.next()?);
+    let fs_type = parts.next()?;
+    parts.next()?;
+
+    if fs_type.starts_with("sysfs")
+        || fs_type.starts_with("proc")
+        || fs_type.starts_with("dev")
+        || fs_type.starts_with("cgroup")
+        || fs_type.starts_with("securityfs")
+        || fs_type.starts_with("debugfs")
+        || fs_type.starts_with("pstore")
+        || fs_type.starts_with("bpf")
+        || fs_type.starts_with("tracefs")
+        || fs_type.starts_with("configfs")
+        || fs_type.starts_with("fusectl")
+        || fs_type.starts_with("hugetlbfs")
+        || fs_type.starts_with("mqueue")
+        || fs_type.starts_with("binfmt_misc")
+        || fs_type.starts_with("efivarfs")
+        || fs_type.starts_with("fuse.gvfsd-fuse")
+        || fs_type.starts_with("fuse.portal")
+        || device == "none"
+        || device == "tmpfs"
+        || device == "rootfs"
+    {
+        return None;
+    }
+
+    let is_removable = device.starts_with("/dev/sd")
+        || device.starts_with("/dev/usb")
+        || device.starts_with("/dev/sr");
+    let is_network = device.contains(':')
+        || device.starts_with("//")
+        || fs_type == "nfs"
+        || fs_type == "nfs4"
+        || fs_type == "cifs"
+        || fs_type == "smb";
+    let name = if mount_point == "/" {
+        "/".to_string()
+    } else {
+        mount_point
+            .rsplit('/')
+            .next()
+            .unwrap_or(&mount_point)
+            .to_string()
+    };
+    let mount_uri = ResourceUri::from_local_path(Path::new(&mount_point))
+        .ok()?
+        .as_str()
+        .to_string();
+
+    Some(app_ipc::VolumeDto {
+        name,
+        mount_uri,
+        total_bytes: None,
+        available_bytes: None,
+        file_system_type: Some(fs_type.to_string()),
+        is_removable,
+        is_network,
+    })
 }
 
 #[tauri::command]
@@ -586,74 +681,13 @@ pub async fn fs_discover_volumes() -> Result<DiscoverVolumesResponse, IpcError> 
     let volumes = Vec::new();
 
     #[cfg(target_os = "linux")]
-    let mut volumes = Vec::new();
-
-    #[cfg(target_os = "linux")]
-    {
+    let volumes = {
         let mounts = std::fs::read_to_string("/proc/mounts").unwrap_or_default();
-        for line in mounts.lines() {
-            let parts: Vec<&str> = line.split_whitespace().collect();
-            if parts.len() < 4 {
-                continue;
-            }
-            let device = parts[0];
-            let mount_point = parts[1];
-            let fs_type = parts[2];
-
-            // Skip pseudo/virtual filesystems
-            if fs_type.starts_with("sysfs")
-                || fs_type.starts_with("proc")
-                || fs_type.starts_with("dev")
-                || fs_type.starts_with("cgroup")
-                || fs_type.starts_with("securityfs")
-                || fs_type.starts_with("debugfs")
-                || fs_type.starts_with("pstore")
-                || fs_type.starts_with("bpf")
-                || fs_type.starts_with("tracefs")
-                || fs_type.starts_with("configfs")
-                || fs_type.starts_with("fusectl")
-                || fs_type.starts_with("hugetlbfs")
-                || fs_type.starts_with("mqueue")
-                || fs_type.starts_with("binfmt_misc")
-                || fs_type.starts_with("efivarfs")
-                || fs_type.starts_with("fuse.gvfsd-fuse")
-                || fs_type.starts_with("fuse.portal")
-            {
-                continue;
-            }
-
-            // Skip bind mounts and rootfs
-            if device == "none" || device == "tmpfs" || device == "rootfs" {
-                continue;
-            }
-
-            let is_removable = device.starts_with("/dev/sd")
-                || device.starts_with("/dev/usb")
-                || device.starts_with("/dev/sr");
-            let is_network = device.contains(':')
-                || device.starts_with("//")
-                || fs_type == "nfs"
-                || fs_type == "nfs4"
-                || fs_type == "cifs"
-                || fs_type == "smb";
-
-            let name = mount_point
-                .rsplit('/')
-                .next()
-                .unwrap_or(mount_point)
-                .to_string();
-
-            volumes.push(app_ipc::VolumeDto {
-                name,
-                mount_uri: format!("local://{}", mount_point),
-                total_bytes: None,
-                available_bytes: None,
-                file_system_type: Some(fs_type.to_string()),
-                is_removable,
-                is_network,
-            });
-        }
-    }
+        mounts
+            .lines()
+            .filter_map(linux_volume_from_mount_line)
+            .collect()
+    };
 
     Ok(DiscoverVolumesResponse { volumes })
 }
@@ -837,7 +871,10 @@ pub async fn fs_list_directories(
         }
         let name = entry.file_name().to_string_lossy().to_string();
         let child_path = entry.path();
-        let child_uri = format!("local://{}", child_path.display());
+        let child_uri = ResourceUri::from_local_path(&child_path)
+            .map_err(IpcError::from)?
+            .as_str()
+            .to_string();
         dirs.push(DirectoryEntryDto {
             name,
             uri: child_uri,

@@ -648,10 +648,10 @@ Every filesystem resource crossing the IPC boundary is identified by a `Resource
 
 - Scheme separator `://` is present.
 - Scheme equals `local`.
-- Body starts with `/` (POSIX absolute) or matches a Windows drive prefix `^[A-Za-z]:/`.
+- Body starts with `/` (POSIX absolute or Windows UNC `//server/share`) or matches a Windows drive prefix `^[A-Za-z]:/`.
 - No NUL bytes.
 
-`ResourceUri::from_local_path` accepts a platform `Path` and produces a normalized `local://…` URI, replacing `\` with `/`. Both constructors reject relative paths.
+`ResourceUri::from_local_path` accepts a native absolute platform `Path` and produces a normalized `local://…` URI. Windows separators are converted from `\` to `/`; Unix backslashes are preserved because they are valid filename characters. `ResourceUri::parse` accepts both POSIX and Windows absolute wire formats, while `to_local_path` rejects a URI whose body is not absolute on the current host platform.
 
 ```rust
 let uri = ResourceUri::parse("local:///home/me/Documents")?;
@@ -871,7 +871,7 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/dial
 
 | Code                      | Origin                                        | Meaning                                                           |
 | ------------------------- | --------------------------------------------- | ----------------------------------------------------------------- |
-| `invalid_uri`             | `VfsError`                                    | URI failed to parse (missing scheme, relative path, NUL byte).    |
+| `invalid_uri`             | `VfsError`                                    | URI is invalid or not absolute for this host.                     |
 | `unsupported_provider`    | `VfsError`, `FileOperationError`              | No provider registered for the scheme.                            |
 | `duplicate_provider`      | `VfsError`                                    | Two providers tried to claim the same scheme.                     |
 | `not_found`               | `VfsError`, `FileOperationError`, Tauri shell | Resource or job id does not exist.                                |

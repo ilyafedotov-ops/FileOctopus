@@ -18,7 +18,10 @@ fn temp_dir(prefix: &str) -> std::path::PathBuf {
 }
 
 fn local_uri(path: &std::path::Path) -> String {
-    format!("local://{}", path.display())
+    ResourceUri::from_local_path(path)
+        .unwrap()
+        .as_str()
+        .to_string()
 }
 
 #[test]
@@ -66,6 +69,34 @@ fn diagnostics_history_path_redaction_preserves_basename_without_parent_details(
     assert_eq!(redacted, "~/…/report.txt");
     assert!(!redacted.contains("private"));
     assert!(!redacted.contains("project"));
+}
+
+#[test]
+fn diagnostics_history_path_redaction_handles_foreign_windows_separators() {
+    let redacted = redact_diagnostics_history_path(r"C:\Users\alice\private\project\report.txt");
+    let expected = if cfg!(windows) {
+        "…/report.txt"
+    } else {
+        "report.txt"
+    };
+
+    assert_eq!(redacted, expected);
+    assert!(!redacted.contains("alice"));
+    assert!(!redacted.contains("private"));
+    assert!(!redacted.contains("project"));
+}
+
+#[test]
+fn diagnostics_history_path_redaction_hides_home_basename() {
+    let home = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(std::path::PathBuf::from)
+        .expect("test requires a home directory");
+
+    assert_eq!(
+        redact_diagnostics_history_path(&home.to_string_lossy()),
+        "~"
+    );
 }
 
 fn app_paths_under(root: &std::path::Path) -> app_core::AppPaths {
@@ -353,9 +384,13 @@ fn resource_uri_rejects_empty_string() {
 
 #[test]
 fn resource_uri_parses_local_path() {
-    let uri = ResourceUri::parse("local:///home/user/docs").unwrap();
-    let path = uri.to_local_path().unwrap();
-    assert!(path.to_string_lossy().contains("home"));
+    let path = temp_dir("uri-round-trip");
+    let serialized = ResourceUri::from_local_path(&path).unwrap();
+    let uri = ResourceUri::parse(serialized.as_str()).unwrap();
+
+    assert_eq!(uri.to_local_path().unwrap(), path);
+
+    let _ = std::fs::remove_dir_all(path);
 }
 
 #[test]

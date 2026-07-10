@@ -332,16 +332,22 @@ pub(crate) fn redact_home(value: &str) -> String {
 }
 
 pub(crate) fn redact_diagnostics_history_path(value: &str) -> String {
-    let basename = Path::new(value)
-        .file_name()
-        .map(|name| name.to_string_lossy().to_string())
-        .filter(|name| !name.is_empty());
+    let basename = value
+        .rsplit(['/', '\\'])
+        .find(|component| !component.is_empty())
+        .map(str::to_owned);
     let redacted = redact_home(value);
+    if redacted == "~" {
+        return redacted;
+    }
     let Some(basename) = basename else {
         return redacted;
     };
 
-    if redacted.starts_with("~/") || redacted == "~" {
+    let redacted_home_path = redacted
+        .strip_prefix('~')
+        .is_some_and(|suffix| suffix.starts_with('/') || suffix.starts_with('\\'));
+    if redacted_home_path {
         format!("~/…/{basename}")
     } else if Path::new(value).is_absolute() {
         format!("…/{basename}")

@@ -101,7 +101,18 @@ impl ResourceUri {
     }
 
     pub fn from_local_path(path: &Path) -> Result<Self, VfsError> {
-        let normalized = path.to_string_lossy().replace('\\', "/");
+        let normalized = if cfg!(windows) {
+            path.to_string_lossy().replace('\\', "/")
+        } else {
+            path.to_string_lossy().into_owned()
+        };
+
+        if !path.is_absolute() {
+            return Err(VfsError::invalid_uri(
+                &normalized,
+                "local path must be absolute on this platform",
+            ));
+        }
 
         if normalized.starts_with('/') {
             return Ok(Self(format!("local://{normalized}")));
@@ -151,7 +162,15 @@ impl ResourceUri {
             });
         }
 
-        Ok(PathBuf::from(self.display_path()))
+        let path = PathBuf::from(self.display_path());
+        if !path.is_absolute() {
+            return Err(VfsError::invalid_uri(
+                self.as_str(),
+                "local URI path must be absolute on this platform",
+            ));
+        }
+
+        Ok(path)
     }
 }
 
@@ -1041,10 +1060,15 @@ mod tests {
         assert_eq!(uri.as_str(), "local:///Users/ilya/Documents");
         assert_eq!(uri.scheme(), "local");
         assert_eq!(uri.display_path(), "/Users/ilya/Documents");
+
+        #[cfg(unix)]
         assert_eq!(
             uri.to_local_path().unwrap(),
             Path::new("/Users/ilya/Documents")
         );
+
+        #[cfg(windows)]
+        assert_eq!(uri.to_local_path().unwrap_err().code(), "invalid_uri");
     }
 
     #[test]
@@ -1054,12 +1078,18 @@ mod tests {
         assert_eq!(uri.as_str(), "local://C:/Users/Ilya/Documents");
         assert_eq!(uri.scheme(), "local");
         assert_eq!(uri.display_path(), "C:/Users/Ilya/Documents");
+
+        #[cfg(windows)]
         assert_eq!(
             uri.to_local_path().unwrap().to_string_lossy(),
             "C:/Users/Ilya/Documents"
         );
+
+        #[cfg(unix)]
+        assert_eq!(uri.to_local_path().unwrap_err().code(), "invalid_uri");
     }
 
+    #[cfg(unix)]
     #[test]
     fn creates_local_uri_from_unix_path() {
         let uri = ResourceUri::from_local_path(Path::new("/Users/ilya/Documents")).unwrap();
@@ -1067,11 +1097,32 @@ mod tests {
         assert_eq!(uri.as_str(), "local:///Users/ilya/Documents");
     }
 
+    #[cfg(windows)]
     #[test]
     fn creates_local_uri_from_windows_path() {
         let uri = ResourceUri::from_local_path(Path::new("C:\\Users\\Ilya\\Documents")).unwrap();
 
         assert_eq!(uri.as_str(), "local://C:/Users/Ilya/Documents");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn creates_local_uri_from_windows_unc_path() {
+        let path = Path::new(r"\\server\share\folder");
+        let uri = ResourceUri::from_local_path(path).unwrap();
+
+        assert_eq!(uri.as_str(), "local:////server/share/folder");
+        assert_eq!(uri.to_local_path().unwrap(), path);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn preserves_backslashes_in_unix_local_path() {
+        let path = Path::new("/tmp/file\\name");
+        let uri = ResourceUri::from_local_path(path).unwrap();
+
+        assert_eq!(uri.as_str(), "local:///tmp/file\\name");
+        assert_eq!(uri.to_local_path().unwrap(), path);
     }
 
     #[test]
@@ -1201,6 +1252,18 @@ mod tests {
     #[test]
     fn rejects_relative_platform_path() {
         let error = ResourceUri::from_local_path(Path::new("relative/path")).unwrap_err();
+
+        assert_eq!(error.code(), "invalid_uri");
+    }
+
+    #[test]
+    fn rejects_foreign_platform_path() {
+        #[cfg(unix)]
+        let path = Path::new("C:/Users/Ilya/Documents");
+        #[cfg(windows)]
+        let path = Path::new("/Users/ilya/Documents");
+
+        let error = ResourceUri::from_local_path(path).unwrap_err();
 
         assert_eq!(error.code(), "invalid_uri");
     }

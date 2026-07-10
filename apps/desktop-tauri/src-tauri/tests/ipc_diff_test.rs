@@ -1,6 +1,6 @@
 //! Integration tests for fs_diff_text command logic.
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use app_ipc::{DiffHunk, DiffLine, DiffTextRequest, IpcError};
 use vfs::ResourceUri;
@@ -13,6 +13,13 @@ fn temp_dir(prefix: &str) -> PathBuf {
     ));
     std::fs::create_dir_all(&dir).unwrap();
     dir
+}
+
+fn local_uri(path: &Path) -> String {
+    ResourceUri::from_local_path(path)
+        .unwrap()
+        .as_str()
+        .to_string()
 }
 
 /// Simulates the fs_diff_text handler logic:
@@ -170,8 +177,8 @@ fn diff_identical_files() {
     std::fs::write(&left, "hello\nworld\n").unwrap();
     std::fs::write(&right, "hello\nworld\n").unwrap();
 
-    let left_uri = format!("local://{}", left.display());
-    let right_uri = format!("local://{}", right.display());
+    let left_uri = local_uri(&left);
+    let right_uri = local_uri(&right);
 
     let result = diff_text_logic(&DiffTextRequest {
         left_uri,
@@ -196,8 +203,8 @@ fn diff_added_line() {
     std::fs::write(&left, "aaa\nbbb\nccc\n").unwrap();
     std::fs::write(&right, "aaa\nbbb\nNEW\nccc\n").unwrap();
 
-    let left_uri = format!("local://{}", left.display());
-    let right_uri = format!("local://{}", right.display());
+    let left_uri = local_uri(&left);
+    let right_uri = local_uri(&right);
 
     let result = diff_text_logic(&DiffTextRequest {
         left_uri,
@@ -224,8 +231,8 @@ fn diff_removed_line() {
     std::fs::write(&left, "aaa\nbbb\nccc\nddd\n").unwrap();
     std::fs::write(&right, "aaa\nddd\n").unwrap();
 
-    let left_uri = format!("local://{}", left.display());
-    let right_uri = format!("local://{}", right.display());
+    let left_uri = local_uri(&left);
+    let right_uri = local_uri(&right);
 
     let result = diff_text_logic(&DiffTextRequest {
         left_uri,
@@ -251,8 +258,8 @@ fn diff_changed_line() {
     std::fs::write(&left, "aaa\nbbb\nccc\n").unwrap();
     std::fs::write(&right, "aaa\nBBB\nccc\n").unwrap();
 
-    let left_uri = format!("local://{}", left.display());
-    let right_uri = format!("local://{}", right.display());
+    let left_uri = local_uri(&left);
+    let right_uri = local_uri(&right);
 
     let result = diff_text_logic(&DiffTextRequest {
         left_uri,
@@ -279,8 +286,8 @@ fn diff_directory_error() {
     let right = dir.join("right.txt");
     std::fs::write(&right, "hello\n").unwrap();
 
-    let left_uri = format!("local://{}", subdir.display());
-    let right_uri = format!("local://{}", right.display());
+    let left_uri = local_uri(&subdir);
+    let right_uri = local_uri(&right);
 
     let result = diff_text_logic(&DiffTextRequest {
         left_uri,
@@ -297,8 +304,8 @@ fn diff_missing_file_error() {
     let right = dir.join("right.txt");
     std::fs::write(&right, "hello\n").unwrap();
 
-    let left_uri = format!("local://{}/nonexistent.txt", dir.display());
-    let right_uri = format!("local://{}", right.display());
+    let left_uri = local_uri(&dir.join("nonexistent.txt"));
+    let right_uri = local_uri(&right);
 
     let result = diff_text_logic(&DiffTextRequest {
         left_uri,
@@ -318,8 +325,8 @@ fn diff_truncation() {
     std::fs::write(&left, &large_content).unwrap();
     std::fs::write(&right, "short\n").unwrap();
 
-    let left_uri = format!("local://{}", left.display());
-    let right_uri = format!("local://{}", right.display());
+    let left_uri = local_uri(&left);
+    let right_uri = local_uri(&right);
 
     let result = diff_text_logic(&DiffTextRequest {
         left_uri,
@@ -340,8 +347,8 @@ fn diff_empty_files() {
     std::fs::write(&left, "").unwrap();
     std::fs::write(&right, "").unwrap();
 
-    let left_uri = format!("local://{}", left.display());
-    let right_uri = format!("local://{}", right.display());
+    let left_uri = local_uri(&left);
+    let right_uri = local_uri(&right);
 
     let result = diff_text_logic(&DiffTextRequest {
         left_uri,
@@ -363,8 +370,8 @@ fn diff_empty_vs_content() {
     std::fs::write(&left, "").unwrap();
     std::fs::write(&right, "aaa\nbbb\n").unwrap();
 
-    let left_uri = format!("local://{}", left.display());
-    let right_uri = format!("local://{}", right.display());
+    let left_uri = local_uri(&left);
+    let right_uri = local_uri(&right);
 
     let result = diff_text_logic(&DiffTextRequest {
         left_uri,

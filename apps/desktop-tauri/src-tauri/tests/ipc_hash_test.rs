@@ -48,8 +48,8 @@ fn fs_compute_hash_produces_sha256_for_file() {
     let file_path = dir.join("data.bin");
     std::fs::write(&file_path, b"test content").unwrap();
 
-    let uri = format!("local://{}", file_path.display());
-    let hash = compute_hash_logic(&uri).unwrap();
+    let uri = ResourceUri::from_local_path(&file_path).unwrap();
+    let hash = compute_hash_logic(uri.as_str()).unwrap();
 
     assert_eq!(hash.len(), 64); // SHA-256 hex is 64 chars
     assert!(hash.chars().all(|c| c.is_ascii_hexdigit()));
@@ -60,8 +60,8 @@ fn fs_compute_hash_produces_sha256_for_file() {
 #[test]
 fn fs_compute_hash_rejects_directory() {
     let dir = temp_dir("hash-dir");
-    let uri = format!("local://{}", dir.display());
-    let result = compute_hash_logic(&uri);
+    let uri = ResourceUri::from_local_path(&dir).unwrap();
+    let result = compute_hash_logic(uri.as_str());
 
     assert!(result.is_err());
     let err = result.unwrap_err();
@@ -74,8 +74,8 @@ fn fs_compute_hash_rejects_directory() {
 fn fs_compute_hash_rejects_missing_file() {
     let dir = temp_dir("hash-missing");
     let missing = dir.join("does-not-exist.bin");
-    let uri = format!("local://{}", missing.display());
-    let result = compute_hash_logic(&uri);
+    let uri = ResourceUri::from_local_path(&missing).unwrap();
+    let result = compute_hash_logic(uri.as_str());
 
     assert!(result.is_err());
     let err = result.unwrap_err();
@@ -90,9 +90,9 @@ fn fs_compute_hash_deterministic() {
     let file_path = dir.join("same-content.bin");
     std::fs::write(&file_path, b"deterministic test data").unwrap();
 
-    let uri = format!("local://{}", file_path.display());
-    let hash1 = compute_hash_logic(&uri).unwrap();
-    let hash2 = compute_hash_logic(&uri).unwrap();
+    let uri = ResourceUri::from_local_path(&file_path).unwrap();
+    let hash1 = compute_hash_logic(uri.as_str()).unwrap();
+    let hash2 = compute_hash_logic(uri.as_str()).unwrap();
 
     assert_eq!(hash1, hash2);
 
@@ -105,8 +105,8 @@ fn fs_compute_hash_empty_file() {
     let file_path = dir.join("empty.bin");
     std::fs::write(&file_path, b"").unwrap();
 
-    let uri = format!("local://{}", file_path.display());
-    let hash = compute_hash_logic(&uri).unwrap();
+    let uri = ResourceUri::from_local_path(&file_path).unwrap();
+    let hash = compute_hash_logic(uri.as_str()).unwrap();
 
     // SHA-256 of empty string is well-known
     assert_eq!(
@@ -125,10 +125,10 @@ fn fs_compute_hash_different_files_different_hashes() {
     std::fs::write(&f1, b"content A").unwrap();
     std::fs::write(&f2, b"content B").unwrap();
 
-    let uri1 = format!("local://{}", f1.display());
-    let uri2 = format!("local://{}", f2.display());
-    let hash1 = compute_hash_logic(&uri1).unwrap();
-    let hash2 = compute_hash_logic(&uri2).unwrap();
+    let uri1 = ResourceUri::from_local_path(&f1).unwrap();
+    let uri2 = ResourceUri::from_local_path(&f2).unwrap();
+    let hash1 = compute_hash_logic(uri1.as_str()).unwrap();
+    let hash2 = compute_hash_logic(uri2.as_str()).unwrap();
 
     assert_ne!(hash1, hash2);
 

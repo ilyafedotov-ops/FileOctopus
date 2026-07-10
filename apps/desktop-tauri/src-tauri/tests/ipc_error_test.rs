@@ -1,6 +1,6 @@
 //! Integration tests for IPC error paths: invalid URIs, not found, permission denied.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
 use app_core::AppCore;
 use app_ipc::IpcError;
@@ -15,10 +15,6 @@ fn temp_dir(prefix: &str) -> PathBuf {
     ));
     std::fs::create_dir_all(&dir).unwrap();
     dir
-}
-
-fn _local_uri(path: &Path) -> String {
-    format!("local://{}", path.display())
 }
 
 // --- Invalid URI tests ---
@@ -57,9 +53,13 @@ fn resource_uri_rejects_relative_path_via_from_local_path() {
 
 #[test]
 fn resource_uri_parses_local_path_successfully() {
-    let uri = ResourceUri::parse("local:///home/user/docs").unwrap();
+    let dir = temp_dir("uri-round-trip");
+    let serialized = ResourceUri::from_local_path(&dir).unwrap();
+    let uri = ResourceUri::parse(serialized.as_str()).unwrap();
     let path = uri.to_local_path().unwrap();
-    assert!(path.to_string_lossy().contains("home"));
+    assert_eq!(path, dir);
+
+    let _ = std::fs::remove_dir_all(dir);
 }
 
 // --- Not found error tests ---

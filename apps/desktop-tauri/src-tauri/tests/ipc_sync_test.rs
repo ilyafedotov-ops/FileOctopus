@@ -14,6 +14,13 @@ fn temp_dir(prefix: &str) -> std::path::PathBuf {
     dir
 }
 
+fn local_uri(path: &std::path::Path) -> String {
+    ResourceUri::from_local_path(path)
+        .unwrap()
+        .as_str()
+        .to_string()
+}
+
 /// Simulates the fs_sync_directories handler logic:
 /// parse URIs → compare_directories → map to DTOs
 fn sync_directories_logic(
@@ -72,8 +79,8 @@ fn sync_identical_directories() {
     std::fs::write(right.join("a.txt"), "hello").unwrap();
 
     let result = sync_directories_logic(&SyncDirectoriesRequest {
-        left_uri: format!("local://{}", left.display()),
-        right_uri: format!("local://{}", right.display()),
+        left_uri: local_uri(&left),
+        right_uri: local_uri(&right),
         comparison: "size".to_string(),
         recursive: false,
     })
@@ -91,8 +98,8 @@ fn sync_file_only_in_left() {
     std::fs::write(left.join("b.txt"), "data").unwrap();
 
     let result = sync_directories_logic(&SyncDirectoriesRequest {
-        left_uri: format!("local://{}", left.display()),
-        right_uri: format!("local://{}", right.display()),
+        left_uri: local_uri(&left),
+        right_uri: local_uri(&right),
         comparison: "name".to_string(),
         recursive: false,
     })
@@ -111,8 +118,8 @@ fn sync_file_only_in_right() {
     std::fs::write(right.join("c.txt"), "data").unwrap();
 
     let result = sync_directories_logic(&SyncDirectoriesRequest {
-        left_uri: format!("local://{}", left.display()),
-        right_uri: format!("local://{}", right.display()),
+        left_uri: local_uri(&left),
+        right_uri: local_uri(&right),
         comparison: "name".to_string(),
         recursive: false,
     })
@@ -132,8 +139,8 @@ fn sync_different_sizes() {
     std::fs::write(right.join("a.txt"), "much longer content").unwrap();
 
     let result = sync_directories_logic(&SyncDirectoriesRequest {
-        left_uri: format!("local://{}", left.display()),
-        right_uri: format!("local://{}", right.display()),
+        left_uri: local_uri(&left),
+        right_uri: local_uri(&right),
         comparison: "size".to_string(),
         recursive: false,
     })
@@ -151,8 +158,8 @@ fn sync_by_name_always_same() {
     std::fs::write(right.join("a.txt"), "completely different").unwrap();
 
     let result = sync_directories_logic(&SyncDirectoriesRequest {
-        left_uri: format!("local://{}", left.display()),
-        right_uri: format!("local://{}", right.display()),
+        left_uri: local_uri(&left),
+        right_uri: local_uri(&right),
         comparison: "name".to_string(),
         recursive: false,
     })
@@ -166,7 +173,7 @@ fn sync_missing_directory_error() {
     let left = temp_dir("missing-l");
 
     let result = sync_directories_logic(&SyncDirectoriesRequest {
-        left_uri: format!("local://{}", left.display()),
+        left_uri: local_uri(&left),
         right_uri: "local:///nonexistent/xyz".to_string(),
         comparison: "name".to_string(),
         recursive: false,
@@ -180,16 +187,16 @@ fn sync_empty_directories() {
     let right = temp_dir("empty-r");
 
     let result = sync_directories_logic(&SyncDirectoriesRequest {
-        left_uri: format!("local://{}", left.display()),
-        right_uri: format!("local://{}", right.display()),
+        left_uri: local_uri(&left),
+        right_uri: local_uri(&right),
         comparison: "name".to_string(),
         recursive: false,
     })
     .unwrap();
 
     assert!(result.entries.is_empty());
-    assert_eq!(result.left_uri, format!("local://{}", left.display()));
-    assert_eq!(result.right_uri, format!("local://{}", right.display()));
+    assert_eq!(result.left_uri, local_uri(&left));
+    assert_eq!(result.right_uri, local_uri(&right));
 }
 
 #[test]
@@ -202,8 +209,8 @@ fn sync_multiple_files_mixed() {
     std::fs::write(right.join("right_only.txt"), "data").unwrap();
 
     let result = sync_directories_logic(&SyncDirectoriesRequest {
-        left_uri: format!("local://{}", left.display()),
-        right_uri: format!("local://{}", right.display()),
+        left_uri: local_uri(&left),
+        right_uri: local_uri(&right),
         comparison: "size".to_string(),
         recursive: false,
     })

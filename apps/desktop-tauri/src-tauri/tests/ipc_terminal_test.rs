@@ -15,6 +15,13 @@ fn temp_dir(prefix: &str) -> PathBuf {
     dir
 }
 
+fn local_uri(path: &std::path::Path) -> String {
+    ResourceUri::from_local_path(path)
+        .unwrap()
+        .as_str()
+        .to_string()
+}
+
 /// Mirrors `fs_open_terminal` validation before spawning a terminal emulator.
 fn open_terminal_validate(uri_str: &str) -> Result<(), IpcError> {
     let uri = ResourceUri::parse(uri_str).map_err(IpcError::from)?;
@@ -33,7 +40,7 @@ fn open_terminal_validate(uri_str: &str) -> Result<(), IpcError> {
 #[test]
 fn fs_open_terminal_accepts_existing_directory() {
     let dir = temp_dir("term-ok");
-    let uri = format!("local://{}", dir.display());
+    let uri = local_uri(&dir);
     assert!(open_terminal_validate(&uri).is_ok());
     let _ = std::fs::remove_dir_all(dir);
 }
@@ -42,7 +49,7 @@ fn fs_open_terminal_accepts_existing_directory() {
 fn fs_open_terminal_rejects_missing_directory() {
     let dir = temp_dir("term-missing");
     let missing = dir.join("no-such-dir");
-    let uri = format!("local://{}", missing.display());
+    let uri = local_uri(&missing);
     let result = open_terminal_validate(&uri);
 
     assert!(result.is_err());
@@ -56,7 +63,7 @@ fn fs_open_terminal_rejects_file_path() {
     let file_path = dir.join("file.txt");
     std::fs::write(&file_path, "not a directory").unwrap();
 
-    let uri = format!("local://{}", file_path.display());
+    let uri = local_uri(&file_path);
     let result = open_terminal_validate(&uri);
 
     assert!(result.is_err());
