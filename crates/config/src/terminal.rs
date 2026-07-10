@@ -516,7 +516,7 @@ impl TerminalProfileRepository {
     }
 
     fn connect(&self) -> Result<Connection, TerminalProfileError> {
-        Connection::open(self.path.as_ref()).map_err(TerminalProfileError::from)
+        crate::open_database(self.path.as_ref()).map_err(TerminalProfileError::from)
     }
 }
 

@@ -11,8 +11,8 @@ use crate::connector::{
 };
 use crate::ops::{
     create_empty_file_blocking, download_file_blocking, mkdir_blocking, read_file_prefix_blocking,
-    remove_dir_blocking, remove_file_blocking, rename_blocking, upload_file_blocking,
-    TRANSFER_CHUNK_SIZE,
+    remote_staging_path, remove_dir_blocking, remove_file_blocking, rename_blocking,
+    upload_file_blocking, TRANSFER_CHUNK_SIZE,
 };
 
 pub struct SftpProvider {
@@ -87,28 +87,47 @@ fn copy_within_session_blocking(
     let mut reader = sftp
         .open(Path::new(source_path))
         .map_err(|error| crate::connector::map_stat_error(source, error))?;
+    let staging_path = remote_staging_path(destination_path);
     let mut writer = sftp
-        .create(Path::new(destination_path))
+        .open_mode(
+            Path::new(&staging_path),
+            ssh2::OpenFlags::WRITE | ssh2::OpenFlags::EXCLUSIVE,
+            0o600,
+            ssh2::OpenType::File,
+        )
         .map_err(|error| crate::connector::map_stat_error(destination, error))?;
     let mut buffer = vec![0_u8; TRANSFER_CHUNK_SIZE];
     let mut total = 0_u64;
-    loop {
-        let read = reader
-            .read(&mut buffer)
-            .map_err(|error| VfsError::internal(&error.to_string()))?;
-        if read == 0 {
-            break;
+    let transfer = (|| {
+        loop {
+            let read = reader
+                .read(&mut buffer)
+                .map_err(|error| VfsError::internal(&error.to_string()))?;
+            if read == 0 {
+                break;
+            }
+            writer
+                .write_all(&buffer[..read])
+                .map_err(|error| VfsError::internal(&error.to_string()))?;
+            total += read as u64;
+            on_progress(total);
         }
         writer
-            .write_all(&buffer[..read])
+            .flush()
             .map_err(|error| VfsError::internal(&error.to_string()))?;
-        total += read as u64;
-        on_progress(total);
+        drop(writer);
+        sftp.rename(
+            Path::new(&staging_path),
+            Path::new(destination_path),
+            Some(ssh2::RenameFlags::empty()),
+        )
+        .map_err(|error| crate::connector::map_stat_error(destination, error))?;
+        Ok(total)
+    })();
+    if transfer.is_err() {
+        let _ = sftp.unlink(Path::new(&staging_path));
     }
-    writer
-        .flush()
-        .map_err(|error| VfsError::internal(&error.to_string()))?;
-    Ok(total)
+    transfer
 }
 
 fn join_remote_path(base: &str, name: &str) -> String {

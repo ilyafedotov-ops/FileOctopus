@@ -1,12 +1,13 @@
-use std::fs::{self, File};
-use std::path::Path;
+use std::collections::HashSet;
+use std::fs;
+use std::path::{Path, PathBuf};
 
 use vfs::{
     FileKind, FileOperationConflict, FileOperationError, FileOperationItem, FileOperationRequest,
     FileOperationWarning, ResourceUri, REMOTE_SCHEMES,
 };
 
-use super::archive::{detect_archive_format, sanitize_archive_entry_path, ArchiveFormat};
+use super::archive::inspect_archive;
 use super::paths::{
     canonical_existing_path, file_kind, map_io_error, map_std_io_error, reject_self_or_descendant,
     require_existing_directory,
@@ -90,6 +91,114 @@ pub(super) fn plan_rename_item(
         size,
         recursive: kind == FileKind::Directory,
     })
+}
+
+pub(super) fn plan_batch_rename_items(
+    request: &FileOperationRequest,
+) -> Result<Vec<FileOperationItem>, FileOperationError> {
+    let mut parent = None;
+    let mut source_paths = HashSet::new();
+    let mut destination_paths = HashSet::new();
+    let mut planned = Vec::with_capacity(request.batch_renames.len());
+
+    for rename in &request.batch_renames {
+        let source_path = rename.source.to_local_path()?;
+        let source_name =
+            source_path
+                .file_name()
+                .ok_or_else(|| FileOperationError::InvalidRequest {
+                    message: "cannot rename filesystem root".to_string(),
+                })?;
+        let source_parent = source_path
+            .parent()
+            .ok_or_else(|| FileOperationError::InvalidRequest {
+                message: "cannot rename filesystem root".to_string(),
+            })?
+            .canonicalize()
+            .map_err(|error| map_io_error(&rename.source, error))?;
+
+        if parent
+            .as_ref()
+            .is_some_and(|expected: &PathBuf| expected != &source_parent)
+        {
+            return Err(FileOperationError::InvalidRequest {
+                message: "batch rename sources must share one parent directory".to_string(),
+            });
+        }
+        parent.get_or_insert_with(|| source_parent.clone());
+
+        let normalized_source = source_parent.join(source_name);
+        let metadata = fs::symlink_metadata(&normalized_source)
+            .map_err(|error| map_io_error(&rename.source, error))?;
+        let source_key = rename_path_key(&normalized_source);
+        if !source_paths.insert(source_key) {
+            return Err(FileOperationError::InvalidRequest {
+                message: "batch rename contains a duplicate source".to_string(),
+            });
+        }
+
+        super::validate_basename(&rename.new_name)?;
+        let destination_path = source_parent.join(&rename.new_name);
+        let destination_key = rename_path_key(&destination_path);
+        if !destination_paths.insert(destination_key) {
+            return Err(FileOperationError::DestinationConflict {
+                uri: ResourceUri::from_local_path(&destination_path)?
+                    .as_str()
+                    .to_string(),
+            });
+        }
+
+        planned.push((normalized_source, destination_path, metadata));
+    }
+
+    for (_, destination, _) in &planned {
+        match fs::symlink_metadata(destination) {
+            Ok(_) if !source_paths.contains(&rename_path_key(destination)) => {
+                return Err(FileOperationError::DestinationConflict {
+                    uri: ResourceUri::from_local_path(destination)?
+                        .as_str()
+                        .to_string(),
+                });
+            }
+            Ok(_) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+            Err(error) => return Err(map_std_io_error(destination, error)),
+        }
+    }
+
+    let items = planned
+        .into_iter()
+        .filter(|(source, destination, _)| source != destination)
+        .map(|(source, destination, metadata)| {
+            let kind = file_kind(&metadata);
+            Ok(FileOperationItem {
+                source: Some(ResourceUri::from_local_path(&source)?),
+                destination: Some(ResourceUri::from_local_path(&destination)?),
+                kind,
+                size: metadata.is_file().then_some(metadata.len()),
+                recursive: kind == FileKind::Directory,
+            })
+        })
+        .collect::<Result<Vec<_>, FileOperationError>>()?;
+
+    if items.is_empty() {
+        return Err(FileOperationError::InvalidRequest {
+            message: "batch rename requires at least one changed name".to_string(),
+        });
+    }
+
+    Ok(items)
+}
+
+fn rename_path_key(path: &Path) -> String {
+    #[cfg(any(windows, target_vendor = "apple"))]
+    {
+        path.to_string_lossy().to_lowercase()
+    }
+    #[cfg(not(any(windows, target_vendor = "apple")))]
+    {
+        path.to_string_lossy().into_owned()
+    }
 }
 
 pub(super) fn plan_create_directory_item(
@@ -237,7 +346,7 @@ pub(super) fn plan_create_archive_items(
 
 pub(super) fn plan_extract_archive_items(
     request: &FileOperationRequest,
-) -> Result<Vec<FileOperationItem>, FileOperationError> {
+) -> Result<(Vec<FileOperationItem>, String), FileOperationError> {
     let source = request.sources[0].clone();
     let source_path = canonical_existing_path(&source.to_local_path()?, &source)?;
     let destination = request.destination.as_ref().unwrap().clone();
@@ -249,138 +358,23 @@ pub(super) fn plan_extract_archive_items(
         });
     }
 
-    let format = detect_archive_format(&source_path)?;
-    let mut items = Vec::new();
+    let inspection = inspect_archive(&source_path)?;
+    let items = inspection
+        .entries
+        .into_iter()
+        .map(|entry| {
+            let target_path = destination_path.join(entry.relative_path);
+            Ok(FileOperationItem {
+                source: Some(source.clone()),
+                destination: Some(ResourceUri::from_local_path(&target_path)?),
+                kind: FileKind::File,
+                size: Some(entry.size),
+                recursive: false,
+            })
+        })
+        .collect::<Result<Vec<_>, FileOperationError>>()?;
 
-    match format {
-        ArchiveFormat::Zip => {
-            let file =
-                File::open(&source_path).map_err(|error| map_std_io_error(&source_path, error))?;
-            let mut archive = zip::ZipArchive::new(file).map_err(|error| {
-                FileOperationError::io(format!("failed to read archive: {error}"))
-            })?;
-
-            for index in 0..archive.len() {
-                let entry = archive.by_index(index).map_err(|error| {
-                    FileOperationError::io(format!("failed to read archive entry {index}: {error}"))
-                })?;
-                let entry_name = entry.name().to_string();
-
-                if entry_name.ends_with('/') {
-                    continue;
-                }
-
-                let target_path = sanitize_archive_entry_path(&entry_name, &destination_path)?;
-                let target_uri = ResourceUri::from_local_path(&target_path)?;
-
-                items.push(FileOperationItem {
-                    source: Some(source.clone()),
-                    destination: Some(target_uri),
-                    kind: FileKind::File,
-                    size: Some(entry.size()),
-                    recursive: false,
-                });
-            }
-        }
-        _ => {
-            let file =
-                File::open(&source_path).map_err(|error| map_std_io_error(&source_path, error))?;
-            match format {
-                ArchiveFormat::Tar => {
-                    let mut archive = tar::Archive::new(file);
-                    for entry_result in archive.entries().map_err(|error| {
-                        FileOperationError::io(format!("failed to read tar archive: {error}"))
-                    })? {
-                        let entry = entry_result.map_err(|error| {
-                            FileOperationError::io(format!("failed to read tar entry: {error}"))
-                        })?;
-                        let entry_name = entry.path().map_err(|error| {
-                            FileOperationError::io(format!(
-                                "failed to read tar entry path: {error}"
-                            ))
-                        })?;
-                        let entry_name = entry_name.to_string_lossy().to_string();
-                        if entry_name.ends_with('/') {
-                            continue;
-                        }
-                        let target_path =
-                            sanitize_archive_entry_path(&entry_name, &destination_path)?;
-                        let target_uri = ResourceUri::from_local_path(&target_path)?;
-                        items.push(FileOperationItem {
-                            source: Some(source.clone()),
-                            destination: Some(target_uri),
-                            kind: FileKind::File,
-                            size: Some(entry.size()),
-                            recursive: false,
-                        });
-                    }
-                }
-                ArchiveFormat::TarGz => {
-                    let decoder = flate2::read::GzDecoder::new(file);
-                    let mut archive = tar::Archive::new(decoder);
-                    for entry_result in archive.entries().map_err(|error| {
-                        FileOperationError::io(format!("failed to read tar.gz archive: {error}"))
-                    })? {
-                        let entry = entry_result.map_err(|error| {
-                            FileOperationError::io(format!("failed to read tar.gz entry: {error}"))
-                        })?;
-                        let entry_name = entry.path().map_err(|error| {
-                            FileOperationError::io(format!(
-                                "failed to read tar.gz entry path: {error}"
-                            ))
-                        })?;
-                        let entry_name = entry_name.to_string_lossy().to_string();
-                        if entry_name.ends_with('/') {
-                            continue;
-                        }
-                        let target_path =
-                            sanitize_archive_entry_path(&entry_name, &destination_path)?;
-                        let target_uri = ResourceUri::from_local_path(&target_path)?;
-                        items.push(FileOperationItem {
-                            source: Some(source.clone()),
-                            destination: Some(target_uri),
-                            kind: FileKind::File,
-                            size: Some(entry.size()),
-                            recursive: false,
-                        });
-                    }
-                }
-                ArchiveFormat::TarBz2 => {
-                    let decoder = bzip2::read::BzDecoder::new(file);
-                    let mut archive = tar::Archive::new(decoder);
-                    for entry_result in archive.entries().map_err(|error| {
-                        FileOperationError::io(format!("failed to read tar.bz2 archive: {error}"))
-                    })? {
-                        let entry = entry_result.map_err(|error| {
-                            FileOperationError::io(format!("failed to read tar.bz2 entry: {error}"))
-                        })?;
-                        let entry_name = entry.path().map_err(|error| {
-                            FileOperationError::io(format!(
-                                "failed to read tar.bz2 entry path: {error}"
-                            ))
-                        })?;
-                        let entry_name = entry_name.to_string_lossy().to_string();
-                        if entry_name.ends_with('/') {
-                            continue;
-                        }
-                        let target_path =
-                            sanitize_archive_entry_path(&entry_name, &destination_path)?;
-                        let target_uri = ResourceUri::from_local_path(&target_path)?;
-                        items.push(FileOperationItem {
-                            source: Some(source.clone()),
-                            destination: Some(target_uri),
-                            kind: FileKind::File,
-                            size: Some(entry.size()),
-                            recursive: false,
-                        });
-                    }
-                }
-                ArchiveFormat::Zip => unreachable!(),
-            }
-        }
-    }
-
-    Ok(items)
+    Ok((items, inspection.fingerprint))
 }
 
 pub(crate) fn collect_copy_or_move_items(

@@ -91,9 +91,22 @@ impl S3Connector {
             let endpoint = if host.starts_with("http://") || host.starts_with("https://") {
                 host.to_string()
             } else {
-                format!("http://{host}")
+                let authority = if profile.port == 443 || host.contains(':') {
+                    host.to_string()
+                } else {
+                    format!("{host}:{}", profile.port)
+                };
+                format!("https://{authority}")
             };
-            (endpoint, "auto".to_string())
+            (
+                endpoint,
+                profile
+                    .options
+                    .s3
+                    .region
+                    .clone()
+                    .unwrap_or_else(|| "us-east-1".to_string()),
+            )
         };
 
         (endpoint, region, bucket_name)
@@ -104,6 +117,31 @@ impl S3Connector {
         secrets: &AuthSecrets,
     ) -> Result<S3Session, RemoteError> {
         let (endpoint, region, bucket_name) = Self::resolve_endpoint_region_and_bucket(profile);
+        let parsed_endpoint =
+            reqwest::Url::parse(&endpoint).map_err(|error| RemoteError::ConnectionFailed {
+                uri: format!("s3://{}", profile.id),
+                message: format!("invalid S3 endpoint: {error}"),
+            })?;
+        if parsed_endpoint.scheme() != "https" || profile.options.s3.use_tls == Some(false) {
+            return Err(RemoteError::ConnectionFailed {
+                uri: format!("s3://{}", profile.id),
+                message: "insecure S3 endpoints require native approval and are currently disabled"
+                    .to_string(),
+            });
+        }
+        if parsed_endpoint.host_str().is_none()
+            || !parsed_endpoint.username().is_empty()
+            || parsed_endpoint.password().is_some()
+            || parsed_endpoint.query().is_some()
+            || parsed_endpoint.fragment().is_some()
+        {
+            return Err(RemoteError::ConnectionFailed {
+                uri: format!("s3://{}", profile.id),
+                message:
+                    "S3 endpoint must be an HTTPS origin without credentials, query, or fragment"
+                        .to_string(),
+            });
+        }
 
         if bucket_name.is_empty() {
             return Err(RemoteError::ConnectionFailed {
@@ -137,7 +175,8 @@ impl S3Connector {
             }
         };
 
-        let client = S3Client::new(endpoint, region, bucket_name, access_key, secret_key);
+        let client = S3Client::new(endpoint, region, bucket_name, access_key, secret_key)
+            .map_err(RemoteError::Internal)?;
 
         Ok(S3Session::new(client, profile.id.clone()))
     }

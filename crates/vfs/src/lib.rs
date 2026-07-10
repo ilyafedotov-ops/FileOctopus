@@ -8,7 +8,7 @@ use std::sync::{Arc, RwLock};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct ResourceUri(String);
 
 pub const REMOTE_SCHEMES: &[&str] = &[
@@ -152,6 +152,25 @@ impl ResourceUri {
         }
 
         Ok(PathBuf::from(self.display_path()))
+    }
+}
+
+impl Serialize for ResourceUri {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for ResourceUri {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        Self::parse(&value).map_err(serde::de::Error::custom)
     }
 }
 
@@ -351,6 +370,7 @@ pub enum FileOperationKind {
     Copy,
     Move,
     Rename,
+    BatchRename,
     DeleteToTrash,
     CreateDirectory,
     CreateFile,
@@ -376,6 +396,13 @@ pub enum ConflictPolicy {
     RenameExisting,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BatchRenameItem {
+    pub source: ResourceUri,
+    pub new_name: String,
+}
+
 /// Backend-neutral request to plan or execute a file operation.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -385,6 +412,8 @@ pub struct FileOperationRequest {
     pub destination: Option<ResourceUri>,
     pub new_name: Option<String>,
     pub conflict_policy: ConflictPolicy,
+    #[serde(default)]
+    pub batch_renames: Vec<BatchRenameItem>,
 }
 
 /// Deterministic result produced by validating a requested operation.
@@ -473,6 +502,9 @@ pub enum FileOperationError {
     UnsupportedTrash { message: String },
     Cancelled { job_id: Option<String> },
     Timeout { message: String },
+    RuntimeBusy { resource: String },
+    ResourceLimitExceeded { resource: String, limit: usize },
+    PlanExpired { operation_id: String },
     CloudUnavailable { uri: String },
     Io { message: String },
     Internal { message: String },
@@ -506,6 +538,9 @@ impl FileOperationError {
             Self::UnsupportedTrash { .. } => "unsupported_trash",
             Self::Cancelled { .. } => "cancelled",
             Self::Timeout { .. } => "timeout",
+            Self::RuntimeBusy { .. } => "runtime_busy",
+            Self::ResourceLimitExceeded { .. } => "resource_limit_exceeded",
+            Self::PlanExpired { .. } => "plan_expired",
             Self::CloudUnavailable { .. } => "cloud_unavailable",
             Self::Io { .. } => "io_error",
             Self::Internal { .. } => "internal",
@@ -530,6 +565,13 @@ impl FileOperationError {
             Self::PermissionDenied { uri } => format!("permission denied `{uri}`"),
             Self::DestinationMissing { uri } => format!("destination parent missing `{uri}`"),
             Self::DestinationConflict { uri } => format!("destination already exists `{uri}`"),
+            Self::RuntimeBusy { resource } => format!("{resource} is busy; try again shortly"),
+            Self::ResourceLimitExceeded { resource, limit } => {
+                format!("{resource} limit of {limit} was reached")
+            }
+            Self::PlanExpired { operation_id } => {
+                format!("operation plan `{operation_id}` expired; preview it again")
+            }
             Self::CloudUnavailable { uri } => format!("could not download cloud file `{uri}`"),
             Self::Cancelled { .. } => "operation cancelled".to_string(),
         }
@@ -558,6 +600,7 @@ impl From<VfsError> for FileOperationError {
             } => Self::UnsupportedProvider { scheme },
             VfsError::NotFound { uri } => Self::NotFound { uri },
             VfsError::PermissionDenied { uri } => Self::PermissionDenied { uri },
+            VfsError::DestinationConflict { uri } => Self::DestinationConflict { uri },
             VfsError::Timeout { uri } => {
                 Self::timeout(format!("Directory listing timed out for `{uri}`"))
             }
@@ -756,6 +799,9 @@ pub enum VfsError {
     PermissionDenied {
         uri: String,
     },
+    DestinationConflict {
+        uri: String,
+    },
     Timeout {
         uri: String,
     },
@@ -793,6 +839,7 @@ impl VfsError {
             Self::DuplicateProvider { .. } => "duplicate_provider",
             Self::NotFound { .. } => "not_found",
             Self::PermissionDenied { .. } => "permission_denied",
+            Self::DestinationConflict { .. } => "destination_conflict",
             Self::Timeout { .. } => "timeout",
             Self::Cancelled { .. } => "cancelled",
             Self::DeviceUnavailable { .. } => "device_unavailable",
@@ -849,6 +896,12 @@ impl VfsError {
         }
     }
 
+    pub fn destination_conflict(uri: &ResourceUri) -> Self {
+        Self::DestinationConflict {
+            uri: uri.as_str().to_string(),
+        }
+    }
+
     pub fn timeout(uri: &ResourceUri) -> Self {
         Self::Timeout {
             uri: uri.as_str().to_string(),
@@ -882,6 +935,9 @@ impl fmt::Display for VfsError {
             }
             Self::NotFound { uri } => write!(formatter, "resource not found `{uri}`"),
             Self::PermissionDenied { uri } => write!(formatter, "permission denied `{uri}`"),
+            Self::DestinationConflict { uri } => {
+                write!(formatter, "destination already exists `{uri}`")
+            }
             Self::Timeout { uri } => write!(formatter, "directory listing timed out `{uri}`"),
             Self::Cancelled { uri } => write!(formatter, "directory listing cancelled `{uri}`"),
             Self::DeviceUnavailable { uri } => write!(formatter, "device unavailable `{uri}`"),
@@ -931,11 +987,9 @@ fn validate_remote_uri_body(scheme: &str, body: &str, full: &str) -> Result<(), 
         .filter(|value| !value.is_empty())
         .ok_or_else(|| VfsError::invalid_uri(full, "missing remote URI authority"))?;
 
-    if scheme == "sftp" && !is_valid_uuid(authority) {
-        return Err(VfsError::invalid_uri(
-            full,
-            "sftp authority must be a profile UUID",
-        ));
+    if !is_valid_uuid(authority) {
+        let reason = format!("{scheme} authority must be a profile UUID");
+        return Err(VfsError::invalid_uri(full, &reason));
     }
 
     if let Some(path) = body.strip_prefix(authority) {
@@ -1130,10 +1184,11 @@ mod tests {
     }
 
     #[test]
-    fn rejects_invalid_sftp_authority() {
-        let error = ResourceUri::parse("sftp://not-a-uuid/home").unwrap_err();
-
-        assert_eq!(error.code(), "invalid_uri");
+    fn rejects_invalid_remote_authority() {
+        for scheme in REMOTE_SCHEMES {
+            let error = ResourceUri::parse(&format!("{scheme}://not-a-uuid/home")).unwrap_err();
+            assert_eq!(error.code(), "invalid_uri", "scheme = {scheme}");
+        }
     }
 
     #[test]
@@ -1148,6 +1203,21 @@ mod tests {
         let error = ResourceUri::from_local_path(Path::new("relative/path")).unwrap_err();
 
         assert_eq!(error.code(), "invalid_uri");
+    }
+
+    #[test]
+    fn deserialization_revalidates_resource_uri() {
+        let valid: ResourceUri = serde_json::from_str("\"local:///tmp\"").unwrap();
+        assert_eq!(valid.as_str(), "local:///tmp");
+
+        for invalid in [
+            "\"file:///tmp\"",
+            "\"local://relative/path\"",
+            "\"sftp://not-a-uuid/home\"",
+            "\"local:///tmp\\u0000escape\"",
+        ] {
+            assert!(serde_json::from_str::<ResourceUri>(invalid).is_err());
+        }
     }
 
     #[test]
@@ -1206,6 +1276,7 @@ mod tests {
             FileOperationKind::Copy,
             FileOperationKind::Move,
             FileOperationKind::Rename,
+            FileOperationKind::BatchRename,
             FileOperationKind::DeleteToTrash,
             FileOperationKind::CreateDirectory,
             FileOperationKind::CreateFile,
@@ -1225,6 +1296,7 @@ mod tests {
                 destination: Some(ResourceUri::parse("local:///tmp/dest").unwrap()),
                 new_name: Some("renamed.txt".to_string()),
                 conflict_policy: ConflictPolicy::Fail,
+                batch_renames: Vec::new(),
             };
             let item = FileOperationItem {
                 source: request.sources.first().cloned(),
@@ -1275,6 +1347,15 @@ mod tests {
 
         assert_eq!(error.code(), "timeout");
         assert!(error.user_message().contains("timed out"));
+    }
+
+    #[test]
+    fn maps_vfs_destination_conflict_to_stable_operation_error() {
+        let uri = ResourceUri::parse("local:///tmp/existing.txt").unwrap();
+        let error = FileOperationError::from(VfsError::destination_conflict(&uri));
+
+        assert_eq!(error.code(), "destination_conflict");
+        assert!(error.user_message().contains("existing.txt"));
     }
 
     #[test]

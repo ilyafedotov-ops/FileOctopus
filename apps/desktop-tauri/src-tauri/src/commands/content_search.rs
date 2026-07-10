@@ -115,13 +115,15 @@ pub async fn fs_content_search_start(
         match result {
             Ok(result) => {
                 let dto = content_search_result_to_dto(result);
-                set_metadata_job_status(
+                if !set_metadata_job_status(
                     &jobs,
                     thread_job_id.as_str(),
                     JobStatus::Completed,
                     None,
                     None,
-                );
+                ) {
+                    return;
+                }
                 emit_event(
                     &app,
                     CONTENT_SEARCH_COMPLETED_EVENT,
@@ -144,13 +146,15 @@ pub async fn fs_content_search_start(
                 );
             }
             Err(FileOperationError::Cancelled { .. }) => {
-                set_metadata_job_status(
+                if !set_metadata_job_status(
                     &jobs,
                     thread_job_id.as_str(),
                     JobStatus::Cancelled,
                     None,
                     None,
-                );
+                ) {
+                    return;
+                }
                 emit_job(
                     &app,
                     JobEvent::Cancelled(JobCancelledEvent {
@@ -163,13 +167,15 @@ pub async fn fs_content_search_start(
             Err(error) => {
                 let code = error.code().to_string();
                 let message = error.user_message();
-                set_metadata_job_status(
+                if !set_metadata_job_status(
                     &jobs,
                     thread_job_id.as_str(),
                     JobStatus::Failed,
                     Some(code.clone()),
                     Some(message.clone()),
-                );
+                ) {
+                    return;
+                }
                 emit_job(
                     &app,
                     JobEvent::Failed(JobFailedEvent {

@@ -1,6 +1,7 @@
 use std::io::{Read, Write};
 use std::path::Path;
 
+use ssh2::{OpenFlags, OpenType, RenameFlags};
 use vfs::VfsError;
 
 use crate::connector::{map_ssh_error, map_stat_error, SftpSession};
@@ -51,8 +52,12 @@ pub fn rename_blocking(
 ) -> Result<(), VfsError> {
     let guard = session.lock_session().map_err(VfsError::from)?;
     let sftp = guard.sftp().map_err(map_ssh_error)?;
-    sftp.rename(Path::new(from_path), Path::new(to_path), None)
-        .map_err(|error| map_stat_error(from_uri, error))?;
+    sftp.rename(
+        Path::new(from_path),
+        Path::new(to_path),
+        Some(RenameFlags::empty()),
+    )
+    .map_err(|error| map_stat_error(from_uri, error))?;
     Ok(())
 }
 
@@ -64,7 +69,12 @@ pub fn create_empty_file_blocking(
     let guard = session.lock_session().map_err(VfsError::from)?;
     let sftp = guard.sftp().map_err(map_ssh_error)?;
     let mut file = sftp
-        .create(Path::new(remote_path))
+        .open_mode(
+            Path::new(remote_path),
+            OpenFlags::WRITE | OpenFlags::EXCLUSIVE,
+            0o644,
+            OpenType::File,
+        )
         .map_err(|error| map_stat_error(uri, error))?;
     file.flush()
         .map_err(|error| VfsError::internal(&error.to_string()))?;
@@ -80,28 +90,63 @@ pub fn upload_file_blocking(
 ) -> Result<u64, VfsError> {
     let guard = session.lock_session().map_err(VfsError::from)?;
     let sftp = guard.sftp().map_err(map_ssh_error)?;
+    let staging_path = remote_staging_path(dest_path);
     let mut dest = sftp
-        .create(Path::new(dest_path))
+        .open_mode(
+            Path::new(&staging_path),
+            OpenFlags::WRITE | OpenFlags::EXCLUSIVE,
+            0o600,
+            OpenType::File,
+        )
         .map_err(|error| map_stat_error(dest_uri, error))?;
     let mut buffer = vec![0_u8; TRANSFER_CHUNK_SIZE];
     let mut total = 0_u64;
 
-    loop {
-        let read = source
-            .read(&mut buffer)
-            .map_err(|error| VfsError::internal(&error.to_string()))?;
-        if read == 0 {
-            break;
+    let transfer = (|| {
+        loop {
+            let read = source
+                .read(&mut buffer)
+                .map_err(|error| VfsError::internal(&error.to_string()))?;
+            if read == 0 {
+                break;
+            }
+            dest.write_all(&buffer[..read])
+                .map_err(|error| VfsError::internal(&error.to_string()))?;
+            total += read as u64;
+            on_chunk(total);
         }
-        dest.write_all(&buffer[..read])
-            .map_err(|error| VfsError::internal(&error.to_string()))?;
-        total += read as u64;
-        on_chunk(total);
-    }
 
-    dest.flush()
-        .map_err(|error| VfsError::internal(&error.to_string()))?;
-    Ok(total)
+        dest.flush()
+            .map_err(|error| VfsError::internal(&error.to_string()))?;
+        drop(dest);
+        sftp.rename(
+            Path::new(&staging_path),
+            Path::new(dest_path),
+            Some(RenameFlags::empty()),
+        )
+        .map_err(|error| map_stat_error(dest_uri, error))?;
+        Ok(total)
+    })();
+
+    if transfer.is_err() {
+        let _ = sftp.unlink(Path::new(&staging_path));
+    }
+    transfer
+}
+
+pub(crate) fn remote_staging_path(destination: &str) -> String {
+    let parent = destination
+        .rsplit_once('/')
+        .map(|(parent, _)| parent)
+        .unwrap_or("");
+    let name = format!(".fileoctopus-upload-{}.tmp", uuid::Uuid::new_v4());
+    if parent.is_empty() {
+        format!("/{name}")
+    } else if parent.ends_with('/') {
+        format!("{parent}{name}")
+    } else {
+        format!("{parent}/{name}")
+    }
 }
 
 pub fn download_file_blocking(
@@ -195,5 +240,21 @@ pub fn capabilities_from_perm(perm: Option<u32>, kind: vfs::FileKind) -> vfs::En
                 vfs::EntryCapabilities::read_only_file()
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn staging_upload_stays_in_destination_directory() {
+        let nested = remote_staging_path("/home/user/file.txt");
+        assert!(nested.starts_with("/home/user/.fileoctopus-upload-"));
+        assert!(nested.ends_with(".tmp"));
+
+        let root = remote_staging_path("/file.txt");
+        assert!(root.starts_with("/.fileoctopus-upload-"));
+        assert!(root.ends_with(".tmp"));
     }
 }

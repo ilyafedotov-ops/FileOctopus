@@ -33,6 +33,7 @@ impl LocalFsProvider {
         match error.kind() {
             io::ErrorKind::NotFound => VfsError::not_found(uri),
             io::ErrorKind::PermissionDenied => VfsError::permission_denied(uri),
+            io::ErrorKind::AlreadyExists => VfsError::destination_conflict(uri),
             io::ErrorKind::TimedOut => {
                 let is_placeholder = uri
                     .to_local_path()

@@ -21,7 +21,6 @@ pub struct PluginManifestDto {
 #[serde(rename_all = "camelCase")]
 pub struct InstalledPluginDto {
     pub manifest: PluginManifestDto,
-    pub install_path: String,
     pub enabled: bool,
 }
 

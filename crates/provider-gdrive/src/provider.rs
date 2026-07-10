@@ -54,7 +54,7 @@ impl VfsProvider for GDriveProvider {
     }
 
     async fn stat(&self, uri: &ResourceUri) -> Result<vfs::FileEntry, VfsError> {
-        let (_, session) = self.session_for(uri).await?;
+        let (profile_id, session) = self.session_for(uri).await?;
         let remote_path = uri.remote_path().unwrap_or_default();
         let path = remote_path.trim_start_matches('/');
         let file_id = if path.is_empty() { "root" } else { path };
@@ -85,7 +85,7 @@ impl VfsProvider for GDriveProvider {
             .await
             .map_err(|e| VfsError::internal(&format!("gdrive stat parse failed: {e}")))?;
 
-        crate::ops::gdrive_file_to_entry(&json)
+        crate::ops::gdrive_file_to_entry(&profile_id, &json)
             .ok_or_else(|| VfsError::internal("failed to parse gdrive file entry"))
     }
 
@@ -96,7 +96,6 @@ impl VfsProvider for GDriveProvider {
         sink: DirectorySink,
     ) -> Result<(), VfsError> {
         let (profile_id, session) = self.session_for(uri).await?;
-        let _ = profile_id;
 
         let remote_path = uri.remote_path().unwrap_or_default();
         let path = remote_path.trim_start_matches('/');
@@ -141,7 +140,7 @@ impl VfsProvider for GDriveProvider {
 
         let entries: Vec<vfs::FileEntry> = files
             .iter()
-            .filter_map(crate::ops::gdrive_file_to_entry)
+            .filter_map(|item| crate::ops::gdrive_file_to_entry(&profile_id, item))
             .collect();
 
         let is_complete = json.get("nextPageToken").and_then(|t| t.as_str()).is_none();

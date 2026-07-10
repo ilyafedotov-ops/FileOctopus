@@ -39,13 +39,26 @@ impl RemoteSession for StubSession {
     }
 }
 
-#[derive(Default)]
 struct StubConnector {
     connects: AtomicUsize,
+    observations: AtomicUsize,
     disconnects: AtomicUsize,
     next_failure: Mutex<Vec<Arc<Mutex<bool>>>>,
     connect_delay: Mutex<Option<Duration>>,
     observed_fingerprint: Mutex<Option<String>>,
+}
+
+impl Default for StubConnector {
+    fn default() -> Self {
+        Self {
+            connects: AtomicUsize::new(0),
+            observations: AtomicUsize::new(0),
+            disconnects: AtomicUsize::new(0),
+            next_failure: Mutex::new(Vec::new()),
+            connect_delay: Mutex::new(None),
+            observed_fingerprint: Mutex::new(Some("SHA256:trusted".to_string())),
+        }
+    }
 }
 
 impl StubConnector {
@@ -68,6 +81,14 @@ impl StubConnector {
 impl RemoteConnector for StubConnector {
     fn scheme(&self) -> &'static str {
         "sftp"
+    }
+
+    async fn observe_host_key(
+        &self,
+        _profile: &config::NetworkProfile,
+    ) -> Result<Option<String>, RemoteError> {
+        self.observations.fetch_add(1, Ordering::SeqCst);
+        Ok(self.observed_fingerprint.lock().unwrap().clone())
     }
 
     async fn connect(
@@ -138,7 +159,8 @@ impl Fixture {
                 options: NetworkProtocolOptions::default(),
             })
             .unwrap();
-        self.profiles
+        let profile_id = self
+            .profiles
             .update(
                 &created.id,
                 config::UpdateNetworkProfile {
@@ -152,6 +174,27 @@ impl Fixture {
                     options: NetworkProtocolOptions::default(),
                 },
             )
+            .unwrap()
+            .id;
+        self.profiles
+            .set_host_key_fingerprint(&profile_id, "SHA256:trusted")
+            .unwrap();
+        profile_id
+    }
+
+    fn add_unpinned_password_profile(&self) -> String {
+        self.profiles
+            .add(NewNetworkProfile {
+                label: "password-stub".into(),
+                scheme: "sftp".into(),
+                host: "example.invalid".into(),
+                port: 22,
+                username: "u".into(),
+                auth_kind: AuthKind::Password,
+                private_key_path: None,
+                default_path: "/".into(),
+                options: NetworkProtocolOptions::default(),
+            })
             .unwrap()
             .id
     }
@@ -258,14 +301,17 @@ async fn connect_emits_status_event() {
 }
 
 #[tokio::test]
-async fn connect_does_not_auto_trust_observed_fingerprint() {
+async fn unpinned_connect_observes_host_key_without_starting_credentialed_connect() {
     let fixture = Fixture::new();
-    let profile_id = fixture.add_profile();
+    let profile_id = fixture.add_unpinned_password_profile();
     fixture.connector.observe_fingerprint("SHA256:observed");
     let manager = fixture.manager();
 
-    manager.connect(&profile_id).await.unwrap();
+    let error = manager.connect(&profile_id).await.unwrap_err();
 
+    assert!(matches!(error, RemoteError::HostKeyUntrusted { .. }));
+    assert_eq!(fixture.connector.connects.load(Ordering::SeqCst), 0);
+    assert_eq!(fixture.connector.observations.load(Ordering::SeqCst), 1);
     let profile = fixture.profiles.get(&profile_id).unwrap();
     assert_eq!(
         profile.host_key_fingerprint, None,
@@ -274,18 +320,132 @@ async fn connect_does_not_auto_trust_observed_fingerprint() {
 }
 
 #[tokio::test]
-async fn connect_exposes_observed_fingerprint_for_confirmation() {
+async fn explicit_observed_host_key_confirmation_allows_pinned_reconnect() {
     let fixture = Fixture::new();
     let profile_id = fixture.add_profile();
+    fixture
+        .profiles
+        .clear_host_key_fingerprint(&profile_id)
+        .unwrap();
     fixture.connector.observe_fingerprint("SHA256:observed");
     let manager = fixture.manager();
 
-    manager.connect(&profile_id).await.unwrap();
+    let error = manager.connect(&profile_id).await.unwrap_err();
+    assert!(matches!(error, RemoteError::HostKeyUntrusted { .. }));
 
     assert_eq!(
         manager.observed_host_key_fingerprint(&profile_id).await,
         Some("SHA256:observed".to_string())
     );
+    manager
+        .trust_observed_host_key(&profile_id, "SHA256:observed")
+        .await
+        .unwrap();
+    manager.connect(&profile_id).await.unwrap();
+
+    assert_eq!(fixture.connector.connects.load(Ordering::SeqCst), 1);
+    assert_eq!(
+        fixture
+            .profiles
+            .get(&profile_id)
+            .unwrap()
+            .host_key_fingerprint
+            .as_deref(),
+        Some("SHA256:observed")
+    );
+}
+
+#[tokio::test]
+async fn arbitrary_or_stale_host_key_confirmation_is_rejected() {
+    let fixture = Fixture::new();
+    let profile_id = fixture.add_profile();
+    fixture
+        .profiles
+        .clear_host_key_fingerprint(&profile_id)
+        .unwrap();
+    fixture.connector.observe_fingerprint("SHA256:observed");
+    let manager = fixture.manager();
+
+    let _ = manager.connect(&profile_id).await.unwrap_err();
+    let error = manager
+        .trust_observed_host_key(&profile_id, "SHA256:attacker-supplied")
+        .await
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        RemoteError::HostKeyConfirmationRequired { .. }
+    ));
+    assert_eq!(
+        fixture
+            .profiles
+            .get(&profile_id)
+            .unwrap()
+            .host_key_fingerprint,
+        None
+    );
+}
+
+#[tokio::test]
+async fn host_key_confirmation_is_bound_to_the_observed_endpoint() {
+    let fixture = Fixture::new();
+    let profile_id = fixture.add_profile();
+    fixture
+        .profiles
+        .clear_host_key_fingerprint(&profile_id)
+        .unwrap();
+    fixture.connector.observe_fingerprint("SHA256:observed");
+    let manager = fixture.manager();
+
+    let _ = manager.connect(&profile_id).await.unwrap_err();
+    let profile = fixture.profiles.get(&profile_id).unwrap();
+    fixture
+        .profiles
+        .update(
+            &profile_id,
+            config::UpdateNetworkProfile {
+                label: profile.label,
+                host: "changed.example.invalid".to_string(),
+                port: profile.port,
+                username: profile.username,
+                auth_kind: profile.auth_kind,
+                private_key_path: profile.private_key_path,
+                default_path: profile.default_path,
+                options: profile.options,
+            },
+        )
+        .unwrap();
+
+    let error = manager
+        .trust_observed_host_key(&profile_id, "SHA256:observed")
+        .await
+        .unwrap_err();
+
+    assert!(matches!(
+        error,
+        RemoteError::HostKeyConfirmationRequired { .. }
+    ));
+    assert_eq!(
+        fixture
+            .profiles
+            .get(&profile_id)
+            .unwrap()
+            .host_key_fingerprint,
+        None
+    );
+}
+
+#[tokio::test]
+async fn pinned_host_key_mismatch_stops_before_credentialed_connect() {
+    let fixture = Fixture::new();
+    let profile_id = fixture.add_profile();
+    fixture.connector.observe_fingerprint("SHA256:unexpected");
+    let manager = fixture.manager();
+
+    let error = manager.connect(&profile_id).await.unwrap_err();
+
+    assert!(matches!(error, RemoteError::HostKeyMismatch { .. }));
+    assert_eq!(fixture.connector.connects.load(Ordering::SeqCst), 0);
 }
 
 #[tokio::test]

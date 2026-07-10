@@ -79,13 +79,15 @@ pub async fn fs_folder_size_start(
         match result {
             Ok(summary) => {
                 let dto = folder_summary_to_dto(summary);
-                set_metadata_job_status(
+                if !set_metadata_job_status(
                     &jobs,
                     thread_job_id.as_str(),
                     JobStatus::Completed,
                     None,
                     None,
-                );
+                ) {
+                    return;
+                }
                 let completed_at = Utc::now();
                 emit_event(
                     &app,
@@ -108,13 +110,15 @@ pub async fn fs_folder_size_start(
                 );
             }
             Err(FileOperationError::Cancelled { .. }) => {
-                set_metadata_job_status(
+                if !set_metadata_job_status(
                     &jobs,
                     thread_job_id.as_str(),
                     JobStatus::Cancelled,
                     None,
                     None,
-                );
+                ) {
+                    return;
+                }
                 emit_job(
                     &app,
                     JobEvent::Cancelled(JobCancelledEvent {
@@ -127,13 +131,15 @@ pub async fn fs_folder_size_start(
             Err(error) => {
                 let code = error.code().to_string();
                 let message = error.user_message();
-                set_metadata_job_status(
+                if !set_metadata_job_status(
                     &jobs,
                     thread_job_id.as_str(),
                     JobStatus::Failed,
                     Some(code.clone()),
                     Some(message.clone()),
-                );
+                ) {
+                    return;
+                }
                 emit_job(
                     &app,
                     JobEvent::Failed(JobFailedEvent {

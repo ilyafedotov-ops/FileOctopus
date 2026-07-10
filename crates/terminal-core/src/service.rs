@@ -77,7 +77,7 @@ pub struct SpawnRemoteTerminalRequest {
     pub port: u16,
     pub username: String,
     pub auth: RemoteTerminalAuth,
-    pub expected_host_key_fingerprint: Option<String>,
+    pub expected_host_key_fingerprint: String,
     pub cols: u16,
     pub rows: u16,
     pub cwd_uri: Option<String>,
@@ -569,13 +569,19 @@ impl TerminalService {
     }
 
     pub fn kill(&self, id: TerminalId, owner: &str) -> Result<(), TerminalError> {
+        {
+            let session = self
+                .sessions
+                .get(&id)
+                .ok_or_else(TerminalError::not_found)?;
+            if session.owner != owner {
+                return Err(TerminalError::not_found());
+            }
+        }
         let (_, session) = self
             .sessions
             .remove(&id)
             .ok_or_else(TerminalError::not_found)?;
-        if session.owner != owner {
-            return Err(TerminalError::not_found());
-        }
         let metadata = session.metadata.clone();
         match session.backend {
             SessionBackend::Local { child, .. } => {
@@ -615,29 +621,8 @@ impl TerminalService {
 fn connect_ssh_session(
     request: &SpawnRemoteTerminalRequest,
 ) -> Result<(Session, Option<String>), TerminalError> {
-    let address = format!("{}:{}", request.host, request.port);
-    let tcp = TcpStream::connect(&address)
-        .map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
-    let mut session =
-        Session::new().map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
-    session.set_tcp_stream(tcp);
-    session
-        .handshake()
-        .map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
-
-    let fingerprint = session
-        .host_key()
-        .map(|(key, _)| sha256_base64_fingerprint(key));
-    if let (Some(expected), Some(observed)) = (
-        request.expected_host_key_fingerprint.as_deref(),
-        fingerprint.as_deref(),
-    ) {
-        if expected != observed {
-            return Err(TerminalError::spawn_failed(format!(
-                "host key fingerprint mismatch (expected {expected}, got {observed})"
-            )));
-        }
-    }
+    let (session, fingerprint) = handshake_ssh_session(&request.host, request.port)?;
+    verify_observed_host_key(&request.expected_host_key_fingerprint, &fingerprint)?;
 
     match &request.auth {
         RemoteTerminalAuth::Password { password } => {
@@ -676,7 +661,42 @@ fn connect_ssh_session(
         }
     }
 
+    Ok((session, Some(fingerprint)))
+}
+
+fn handshake_ssh_session(host: &str, port: u16) -> Result<(Session, String), TerminalError> {
+    let address = format!("{host}:{port}");
+    let tcp = TcpStream::connect(&address)
+        .map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
+    let mut session =
+        Session::new().map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
+    session.set_tcp_stream(tcp);
+    session
+        .handshake()
+        .map_err(|error| TerminalError::spawn_failed(error.to_string()))?;
+
+    let fingerprint = session
+        .host_key()
+        .map(|(key, _)| sha256_base64_fingerprint(key))
+        .ok_or_else(|| {
+            TerminalError::host_key_untrusted("SSH server did not present a host key")
+        })?;
+
     Ok((session, fingerprint))
+}
+
+pub fn observe_ssh_host_key(host: &str, port: u16) -> Result<String, TerminalError> {
+    handshake_ssh_session(host, port).map(|(_, fingerprint)| fingerprint)
+}
+
+fn verify_observed_host_key(expected: &str, observed: &str) -> Result<(), TerminalError> {
+    if expected != observed {
+        return Err(TerminalError::host_key_mismatch(format!(
+            "SSH host key mismatch (expected {expected}, observed {observed})"
+        )));
+    }
+
+    Ok(())
 }
 
 struct PasswordPrompter<'a>(&'a str);
@@ -764,4 +784,17 @@ fn sha256_base64_fingerprint(bytes: &[u8]) -> String {
     let digest = Sha256::digest(bytes);
     let encoded = data_encoding::BASE64_NOPAD.encode(&digest);
     format!("SHA256:{encoded}")
+}
+
+#[cfg(test)]
+mod host_key_tests {
+    use super::*;
+
+    #[test]
+    fn terminal_host_key_policy_accepts_only_the_exact_pin() {
+        verify_observed_host_key("SHA256:trusted", "SHA256:trusted").unwrap();
+
+        let error = verify_observed_host_key("SHA256:trusted", "SHA256:unexpected").unwrap_err();
+        assert_eq!(error.code, crate::TerminalErrorCode::HostKeyMismatch);
+    }
 }

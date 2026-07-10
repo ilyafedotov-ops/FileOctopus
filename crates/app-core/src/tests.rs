@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use chrono::Utc;
 use fs_core::LocalFsProvider;
-use jobs::JobEvent;
+use jobs::{JobEvent, JobStatus};
 use rusqlite::params;
 use vfs::{ResourceUri, VfsRegistry};
 
@@ -82,6 +82,193 @@ fn concurrency_is_bounded_by_worker_count() {
 
     let peak = max_seen.load(Ordering::SeqCst);
     assert!(peak <= 2, "peak concurrency {peak} exceeded worker cap 2");
+}
+
+#[test]
+fn operation_admission_rejects_work_above_the_runtime_limit() {
+    let dir = tempfile::tempdir().unwrap();
+    let runtime = OperationRuntime::with_settings(
+        local_vfs(),
+        OperationHistoryRepository::new(dir.path().join("history.sqlite")).unwrap(),
+        RuntimeSettings {
+            worker_count: 1,
+            idle_timeout: None,
+        },
+    );
+    let release = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let (sender, receiver) = mpsc::channel();
+
+    for _ in 0..crate::runtime::ACTIVE_OPERATION_LIMIT {
+        let release = release.clone();
+        let sender = sender.clone();
+        runtime
+            .start_with_executor(
+                noop_plan(),
+                Arc::new(move |event| {
+                    let _ = sender.send(event);
+                }),
+                move |_vfs, _plan, _job, _cancel, _pause, _progress| {
+                    while !release.load(Ordering::SeqCst) {
+                        std::thread::sleep(Duration::from_millis(5));
+                    }
+                    Ok(())
+                },
+            )
+            .unwrap();
+    }
+
+    let error = runtime
+        .start_with_executor(
+            noop_plan(),
+            Arc::new(|_| {}),
+            |_vfs, _plan, _job, _cancel, _pause, _progress| Ok(()),
+        )
+        .unwrap_err();
+    assert_eq!(error.code(), "resource_limit_exceeded");
+
+    release.store(true, Ordering::SeqCst);
+    let mut completed = 0;
+    while completed < crate::runtime::ACTIVE_OPERATION_LIMIT {
+        if matches!(
+            receiver.recv_timeout(Duration::from_secs(10)).unwrap(),
+            JobEvent::Completed(_)
+        ) {
+            completed += 1;
+        }
+    }
+}
+
+#[test]
+fn pause_and_resume_are_lock_safe_idempotent_and_emit_transitions() {
+    let dir = tempfile::tempdir().unwrap();
+    let runtime = OperationRuntime::with_settings(
+        local_vfs(),
+        OperationHistoryRepository::new(dir.path().join("history.sqlite")).unwrap(),
+        RuntimeSettings {
+            worker_count: 1,
+            idle_timeout: None,
+        },
+    );
+    let (event_sender, event_receiver) = mpsc::channel();
+    let (ready_sender, ready_receiver) = mpsc::channel();
+    let (wait_sender, wait_receiver) = mpsc::channel();
+    let (passed_sender, passed_receiver) = mpsc::channel();
+    let (finish_sender, finish_receiver) = mpsc::channel();
+
+    let job = runtime
+        .start_with_executor(
+            noop_plan(),
+            Arc::new(move |event| {
+                let _ = event_sender.send(event);
+            }),
+            move |_vfs, _plan, _job, cancel, pause, _progress| {
+                ready_sender.send(()).unwrap();
+                wait_receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+                pause.wait_while_paused(cancel);
+                passed_sender.send(()).unwrap();
+                finish_receiver
+                    .recv_timeout(Duration::from_secs(5))
+                    .unwrap();
+                Ok(())
+            },
+        )
+        .unwrap();
+
+    ready_receiver.recv_timeout(Duration::from_secs(5)).unwrap();
+    assert!(matches!(
+        event_receiver.recv_timeout(Duration::from_secs(1)).unwrap(),
+        JobEvent::Started(_)
+    ));
+
+    let unchanged = runtime.resume_job(job.job_id.as_str()).unwrap();
+    assert_eq!(unchanged.status, JobStatus::Running);
+    assert!(event_receiver
+        .recv_timeout(Duration::from_millis(100))
+        .is_err());
+
+    let runtime_for_pause = runtime.clone();
+    let pause_job_id = job.job_id.as_str().to_string();
+    let (pause_sender, pause_receiver) = mpsc::channel();
+    let pause_thread = std::thread::spawn(move || {
+        pause_sender
+            .send(runtime_for_pause.pause_job(&pause_job_id))
+            .unwrap();
+    });
+    let paused = pause_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("pause transition deadlocked")
+        .unwrap();
+    pause_thread.join().unwrap();
+
+    assert_eq!(paused.status, JobStatus::Paused);
+    assert_eq!(
+        runtime.status(job.job_id.as_str()).unwrap().status,
+        JobStatus::Paused
+    );
+    match event_receiver.recv_timeout(Duration::from_secs(1)).unwrap() {
+        JobEvent::Paused(event) => {
+            assert_eq!(event.job_id, job.job_id);
+            assert_eq!(event.paused_at, paused.updated_at);
+        }
+        other => panic!("expected Paused event, got {other:?}"),
+    }
+
+    let paused_again = runtime.pause_job(job.job_id.as_str()).unwrap();
+    assert_eq!(paused_again.updated_at, paused.updated_at);
+    assert!(event_receiver
+        .recv_timeout(Duration::from_millis(100))
+        .is_err());
+
+    wait_sender.send(()).unwrap();
+    assert!(passed_receiver
+        .recv_timeout(Duration::from_millis(150))
+        .is_err());
+
+    let runtime_for_resume = runtime.clone();
+    let resume_job_id = job.job_id.as_str().to_string();
+    let (resume_sender, resume_receiver) = mpsc::channel();
+    let resume_thread = std::thread::spawn(move || {
+        resume_sender
+            .send(runtime_for_resume.resume_job(&resume_job_id))
+            .unwrap();
+    });
+    let resumed = resume_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .expect("resume transition deadlocked")
+        .unwrap();
+    resume_thread.join().unwrap();
+
+    assert_eq!(resumed.status, JobStatus::Running);
+    match event_receiver.recv_timeout(Duration::from_secs(1)).unwrap() {
+        JobEvent::Resumed(event) => {
+            assert_eq!(event.job_id, job.job_id);
+            assert_eq!(event.resumed_at, resumed.updated_at);
+        }
+        other => panic!("expected Resumed event, got {other:?}"),
+    }
+    passed_receiver
+        .recv_timeout(Duration::from_secs(1))
+        .unwrap();
+
+    let resumed_again = runtime.resume_job(job.job_id.as_str()).unwrap();
+    assert_eq!(resumed_again.updated_at, resumed.updated_at);
+    assert!(event_receiver
+        .recv_timeout(Duration::from_millis(100))
+        .is_err());
+
+    finish_sender.send(()).unwrap();
+    assert!(matches!(
+        event_receiver.recv_timeout(Duration::from_secs(1)).unwrap(),
+        JobEvent::Completed(_)
+    ));
+    assert_eq!(
+        runtime.pause_job(job.job_id.as_str()).unwrap_err().code(),
+        "invalid_request"
+    );
+    assert_eq!(
+        runtime.resume_job(job.job_id.as_str()).unwrap_err().code(),
+        "invalid_request"
+    );
 }
 
 #[test]
@@ -378,7 +565,7 @@ fn boot_configures_operation_idle_timeout_from_preferences() {
 }
 
 #[test]
-fn boot_registers_smb_provider_when_network_is_enabled() {
+fn boot_does_not_register_smb_provider_when_network_is_enabled() {
     let _env_guard = crate::ENV_LOCK.lock().unwrap();
     let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();
     std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", "1");
@@ -395,7 +582,10 @@ fn boot_registers_smb_provider_when_network_is_enabled() {
     };
     let state = AppCore::boot_with_paths(paths).unwrap();
     let uri = ResourceUri::parse("smb://550e8400-e29b-41d4-a716-446655440000/share").unwrap();
-    let provider = state.vfs().provider_for(&uri).unwrap();
+    let error = match state.vfs().provider_for(&uri) {
+        Ok(_) => panic!("expected unsafe smb provider to remain unavailable"),
+        Err(error) => error,
+    };
 
     if let Some(value) = previous {
         std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", value);
@@ -403,7 +593,7 @@ fn boot_registers_smb_provider_when_network_is_enabled() {
         std::env::remove_var("FILEOCTOPUS_ENABLE_NETWORK");
     }
 
-    assert_eq!(provider.id().as_str(), "smb");
+    assert_eq!(error.code(), "unsupported_provider");
 }
 
 #[test]
@@ -669,6 +859,7 @@ fn successful_operation_is_persisted_as_completed() {
             destination: Some(ResourceUri::from_local_path(&destination).unwrap()),
             new_name: None,
             conflict_policy: vfs::ConflictPolicy::Fail,
+            batch_renames: Vec::new(),
         })
         .unwrap();
     runtime
@@ -736,6 +927,7 @@ fn cancelled_operation_is_persisted_as_cancelled() {
             destination: Some(ResourceUri::from_local_path(&destination).unwrap()),
             new_name: None,
             conflict_policy: vfs::ConflictPolicy::Fail,
+            batch_renames: Vec::new(),
         })
         .unwrap();
     let runtime_for_sink = runtime.clone();
@@ -848,6 +1040,7 @@ fn planned_operation_is_removed_after_start() {
             destination: Some(ResourceUri::from_local_path(&destination).unwrap()),
             new_name: None,
             conflict_policy: vfs::ConflictPolicy::Fail,
+            batch_renames: Vec::new(),
         })
         .unwrap();
 

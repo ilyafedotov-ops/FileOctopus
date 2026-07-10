@@ -13,6 +13,7 @@ members = [
   "crates/provider-sftp",
   "crates/provider-smb",
   "crates/provider-s3",
+  "crates/provider-webdav",
   "crates/provider-gdrive",
   "crates/provider-dropbox",
   "crates/provider-onedrive",
@@ -26,6 +27,7 @@ members = [
 
 [workspace.package]
 edition = "2021"
+rust-version = "1.96.1"
 version = "0.1.5"
 license = "MIT"
 repository = "https://github.com/ilyafedotov-ops/FileOctopus"

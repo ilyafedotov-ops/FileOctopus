@@ -9,12 +9,9 @@ use config::{
 use fs_core::{vfs_io::VfsFilesystem, LocalFsProvider};
 use git_intel::GitService;
 use platform::SecretStore;
-use provider_dropbox::{DropboxConnector, DropboxProvider};
-use provider_gdrive::{GDriveConnector, GDriveProvider};
-use provider_onedrive::{OneDriveConnector, OneDriveProvider};
 use provider_s3::{S3Connector, S3Provider};
 use provider_sftp::{SftpConnector, SftpProvider};
-use provider_smb::{SmbConnector, SmbProvider};
+use provider_webdav::{WebDavConnector, WebDavProvider};
 use remote_core::{ConnectionSessionManager, RemoteConnectorRegistry};
 use terminal_core::TerminalService;
 use thiserror::Error;
@@ -146,20 +143,14 @@ pub struct AppCore;
 #[derive(Clone, Copy)]
 enum NetworkProviderKind {
     Sftp,
-    Smb,
     S3,
-    GDrive,
-    Dropbox,
-    OneDrive,
+    WebDav,
 }
 
 const NETWORK_PROVIDERS: &[NetworkProviderKind] = &[
     NetworkProviderKind::Sftp,
-    NetworkProviderKind::Smb,
     NetworkProviderKind::S3,
-    NetworkProviderKind::GDrive,
-    NetworkProviderKind::Dropbox,
-    NetworkProviderKind::OneDrive,
+    NetworkProviderKind::WebDav,
 ];
 
 #[cfg(test)]
@@ -172,22 +163,20 @@ impl NetworkProviderKind {
     fn scheme(&self) -> &'static str {
         match self {
             Self::Sftp => "sftp",
-            Self::Smb => "smb",
             Self::S3 => "s3",
-            Self::GDrive => "gdrive",
-            Self::Dropbox => "dropbox",
-            Self::OneDrive => "onedrive",
+            Self::WebDav => "webdav",
         }
     }
 
     fn register_connector(&self, registry: &mut RemoteConnectorRegistry) {
         match self {
-            Self::Sftp => registry.register(Arc::new(SftpConnector::new())),
-            Self::Smb => registry.register(Arc::new(SmbConnector::new())),
+            Self::Sftp => {
+                let connector = Arc::new(SftpConnector::new());
+                registry.register(connector.clone());
+                registry.register_alias("ssh", connector);
+            }
             Self::S3 => registry.register(Arc::new(S3Connector::new())),
-            Self::GDrive => registry.register(Arc::new(GDriveConnector::new())),
-            Self::Dropbox => registry.register(Arc::new(DropboxConnector::new())),
-            Self::OneDrive => registry.register(Arc::new(OneDriveConnector::new())),
+            Self::WebDav => registry.register(Arc::new(WebDavConnector::new())),
         }
     }
 
@@ -198,11 +187,8 @@ impl NetworkProviderKind {
     ) -> Result<(), AppCoreError> {
         let result = match self {
             Self::Sftp => vfs.register(Arc::new(SftpProvider::new(sessions))),
-            Self::Smb => vfs.register(Arc::new(SmbProvider::new(sessions))),
             Self::S3 => vfs.register(Arc::new(S3Provider::new(sessions))),
-            Self::GDrive => vfs.register(Arc::new(GDriveProvider::new(sessions))),
-            Self::Dropbox => vfs.register(Arc::new(DropboxProvider::new(sessions))),
-            Self::OneDrive => vfs.register(Arc::new(OneDriveProvider::new(sessions))),
+            Self::WebDav => vfs.register(Arc::new(WebDavProvider::new(sessions))),
         };
 
         result.map_err(|error| AppCoreError::Vfs(error.to_string()))
@@ -243,7 +229,8 @@ impl AppCore {
     }
 
     pub fn boot_with_paths(paths: AppPaths) -> Result<Arc<AppState>, AppCoreError> {
-        telemetry::init().map_err(|error| AppCoreError::Telemetry(error.to_string()))?;
+        telemetry::init_at(paths.log_dir.clone())
+            .map_err(|error| AppCoreError::Telemetry(error.to_string()))?;
         paths
             .ensure_directories()
             .map_err(|error| AppCoreError::History(error.to_string()))?;
@@ -295,6 +282,9 @@ impl AppCore {
             },
         ));
         let navigation = NavigationRepository::new(paths.navigation_db.clone())
+            .map_err(|error| AppCoreError::History(error.to_string()))?;
+        paths
+            .secure_database_files()
             .map_err(|error| AppCoreError::History(error.to_string()))?;
 
         let terminals = Arc::new(TerminalService::new());

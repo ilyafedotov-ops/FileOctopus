@@ -73,11 +73,10 @@ impl SftpConnector {
         Self
     }
 
-    fn connect_blocking(
+    fn handshake_blocking(
         profile: &NetworkProfile,
-        secrets: &AuthSecrets,
         uri: &str,
-    ) -> Result<(Session, Option<String>), RemoteError> {
+    ) -> Result<(Session, String), RemoteError> {
         let address = format!("{}:{}", profile.host, profile.port);
         let tcp = TcpStream::connect(&address).map_err(|error| RemoteError::ConnectionFailed {
             uri: uri.to_string(),
@@ -97,22 +96,23 @@ impl SftpConnector {
 
         let fingerprint = session
             .host_key()
-            .map(|(key, _)| sha256_base64_fingerprint(key));
+            .map(|(key, _)| sha256_base64_fingerprint(key))
+            .ok_or_else(|| RemoteError::ConnectionFailed {
+                uri: uri.to_string(),
+                message: "SSH server did not present a host key".to_string(),
+            })?;
 
-        match (
-            profile.host_key_fingerprint.as_deref(),
-            fingerprint.as_deref(),
-        ) {
-            (Some(expected), Some(observed)) if expected != observed => {
-                return Err(RemoteError::AuthenticationFailed {
-                    uri: uri.to_string(),
-                    message: format!(
-                        "host key fingerprint mismatch (expected {expected}, got {observed})"
-                    ),
-                });
-            }
-            _ => {}
-        }
+        Ok((session, fingerprint))
+    }
+
+    fn connect_blocking(
+        profile: &NetworkProfile,
+        secrets: &AuthSecrets,
+        uri: &str,
+    ) -> Result<(Session, String), RemoteError> {
+        let (session, fingerprint) = Self::handshake_blocking(profile, uri)?;
+
+        verify_expected_host_key(profile.host_key_fingerprint.as_deref(), &fingerprint, uri)?;
 
         match profile.auth_kind {
             AuthKind::Password => {
@@ -196,6 +196,25 @@ impl SftpConnector {
     }
 }
 
+fn verify_expected_host_key(
+    expected: Option<&str>,
+    observed: &str,
+    uri: &str,
+) -> Result<(), RemoteError> {
+    match expected {
+        None => Err(RemoteError::HostKeyUntrusted {
+            uri: uri.to_string(),
+            fingerprint: observed.to_string(),
+        }),
+        Some(expected) if expected != observed => Err(RemoteError::HostKeyMismatch {
+            uri: uri.to_string(),
+            expected: expected.to_string(),
+            observed: observed.to_string(),
+        }),
+        Some(_) => Ok(()),
+    }
+}
+
 /// Prompter that answers every keyboard-interactive challenge with the saved
 /// password. This is the standard way to proxy plain password auth through
 /// servers that only advertise `keyboard-interactive`.
@@ -237,6 +256,19 @@ impl RemoteConnector for SftpConnector {
         "sftp"
     }
 
+    async fn observe_host_key(
+        &self,
+        profile: &NetworkProfile,
+    ) -> Result<Option<String>, RemoteError> {
+        let profile = profile.clone();
+        let uri = format!("sftp://{}", profile.id);
+        let (_, fingerprint) =
+            tokio::task::spawn_blocking(move || Self::handshake_blocking(&profile, &uri))
+                .await
+                .map_err(|error| RemoteError::Internal(error.to_string()))??;
+        Ok(Some(fingerprint))
+    }
+
     async fn connect(
         &self,
         profile: &NetworkProfile,
@@ -249,7 +281,10 @@ impl RemoteConnector for SftpConnector {
             tokio::task::spawn_blocking(move || Self::connect_blocking(&profile, &secrets, &uri))
                 .await
                 .map_err(|error| RemoteError::Internal(error.to_string()))??;
-        Ok(Arc::new(SftpSession::with_session(session, fingerprint)))
+        Ok(Arc::new(SftpSession::with_session(
+            session,
+            Some(fingerprint),
+        )))
     }
 
     async fn disconnect(&self, _session: Arc<dyn RemoteSession>) -> Result<(), RemoteError> {
@@ -415,12 +450,13 @@ pub(crate) fn map_ssh_error(error: ssh2::Error) -> VfsError {
 }
 
 pub(crate) fn map_stat_error(uri: &ResourceUri, error: ssh2::Error) -> VfsError {
-    if error.code() == ssh2::ErrorCode::SFTP(2) {
-        VfsError::not_found(uri)
-    } else {
-        VfsError::Internal {
+    match error.code() {
+        ssh2::ErrorCode::SFTP(2) => VfsError::not_found(uri),
+        ssh2::ErrorCode::SFTP(3) => VfsError::permission_denied(uri),
+        ssh2::ErrorCode::SFTP(11) => VfsError::destination_conflict(uri),
+        _ => VfsError::Internal {
             message: error.to_string(),
-        }
+        },
     }
 }
 
@@ -457,5 +493,43 @@ mod tests {
         let mut prompter = PasswordPrompter("anything");
         let answers = prompter.prompt("user", "", &[]);
         assert!(answers.is_empty());
+    }
+
+    #[test]
+    fn direct_connect_policy_rejects_an_unpinned_host_key() {
+        let error =
+            verify_expected_host_key(None, "SHA256:observed", "sftp://profile").unwrap_err();
+
+        assert!(matches!(error, RemoteError::HostKeyUntrusted { .. }));
+    }
+
+    #[test]
+    fn direct_connect_policy_rejects_a_changed_host_key() {
+        let error =
+            verify_expected_host_key(Some("SHA256:trusted"), "SHA256:observed", "sftp://profile")
+                .unwrap_err();
+
+        assert!(matches!(error, RemoteError::HostKeyMismatch { .. }));
+    }
+
+    #[test]
+    fn direct_connect_policy_accepts_the_exact_pinned_host_key() {
+        verify_expected_host_key(Some("SHA256:trusted"), "SHA256:trusted", "sftp://profile")
+            .unwrap();
+    }
+
+    #[test]
+    fn sftp_status_codes_map_to_stable_vfs_errors() {
+        let uri = ResourceUri::from_remote_profile(
+            "sftp",
+            "550e8400-e29b-41d4-a716-446655440000",
+            "/file.txt",
+        )
+        .unwrap();
+        let denied = map_stat_error(&uri, ssh2::Error::from_errno(ssh2::ErrorCode::SFTP(3)));
+        let conflict = map_stat_error(&uri, ssh2::Error::from_errno(ssh2::ErrorCode::SFTP(11)));
+
+        assert_eq!(denied.code(), "permission_denied");
+        assert_eq!(conflict.code(), "destination_conflict");
     }
 }

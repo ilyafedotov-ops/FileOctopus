@@ -4,6 +4,8 @@ use thiserror::Error;
 pub enum TerminalErrorCode {
     SpawnFailed,
     AuthenticationFailed,
+    HostKeyUntrusted,
+    HostKeyMismatch,
     NotFound,
     InvalidSize,
     Io,
@@ -15,6 +17,8 @@ impl TerminalErrorCode {
         match self {
             Self::SpawnFailed => "terminal_spawn_failed",
             Self::AuthenticationFailed => "authentication_failed",
+            Self::HostKeyUntrusted => "host_key_untrusted",
+            Self::HostKeyMismatch => "host_key_mismatch",
             Self::NotFound => "terminal_not_found",
             Self::InvalidSize => "invalid_terminal_size",
             Self::Io => "io_error",
@@ -41,6 +45,20 @@ impl TerminalError {
     pub fn authentication_failed(message: impl Into<String>) -> Self {
         Self {
             code: TerminalErrorCode::AuthenticationFailed,
+            message: message.into(),
+        }
+    }
+
+    pub fn host_key_untrusted(message: impl Into<String>) -> Self {
+        Self {
+            code: TerminalErrorCode::HostKeyUntrusted,
+            message: message.into(),
+        }
+    }
+
+    pub fn host_key_mismatch(message: impl Into<String>) -> Self {
+        Self {
+            code: TerminalErrorCode::HostKeyMismatch,
             message: message.into(),
         }
     }

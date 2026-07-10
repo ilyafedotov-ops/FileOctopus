@@ -10,9 +10,9 @@ use git_intel::{
 use jobs::{JobEvent, JobSnapshot};
 use serde::{Deserialize, Serialize};
 use vfs::{
-    ConflictPolicy, DirectoryBatch, FileEntry, FileKind, FileOperationConflict, FileOperationError,
-    FileOperationItem, FileOperationKind, FileOperationPlan, FileOperationRequest,
-    FileOperationWarning, ResourceUri, VfsError,
+    BatchRenameItem, ConflictPolicy, DirectoryBatch, FileEntry, FileKind, FileOperationConflict,
+    FileOperationError, FileOperationItem, FileOperationKind, FileOperationPlan,
+    FileOperationRequest, FileOperationWarning, ResourceUri, VfsError,
 };
 
 pub const DIRECTORY_BATCH_EVENT: &str = "directory:batch";
@@ -112,6 +112,9 @@ pub mod error_codes {
     pub const DEVICE_UNAVAILABLE: &str = "device_unavailable";
     pub const CLOUD_UNAVAILABLE: &str = "cloud_unavailable";
     pub const TIMEOUT: &str = "timeout";
+    pub const RUNTIME_BUSY: &str = "runtime_busy";
+    pub const RESOURCE_LIMIT_EXCEEDED: &str = "resource_limit_exceeded";
+    pub const PLAN_EXPIRED: &str = "plan_expired";
     pub const CANCELLED: &str = "cancelled";
     pub const PREFERENCES_ERROR: &str = "preferences_error";
     pub const INVALID_REQUEST: &str = "invalid_request";
@@ -122,6 +125,7 @@ pub mod error_codes {
     pub const RECURSIVE_OPERATION: &str = "recursive_operation";
     pub const UNSUPPORTED_SYMLINK: &str = "unsupported_symlink";
     pub const UNSUPPORTED_TRASH: &str = "unsupported_trash";
+    pub const UNSUPPORTED_OPERATION: &str = "unsupported_operation";
     pub const IO_ERROR: &str = "io_error";
     pub const INTERNAL: &str = "internal";
     pub const IS_DIRECTORY: &str = "is_directory";
@@ -139,6 +143,8 @@ pub mod error_codes {
     pub const NETWORK_ERROR: &str = "network_error";
     pub const CONNECTION_REQUIRED: &str = "connection_required";
     pub const AUTHENTICATION_FAILED: &str = "authentication_failed";
+    pub const HOST_KEY_UNTRUSTED: &str = "host_key_untrusted";
+    pub const HOST_KEY_MISMATCH: &str = "host_key_mismatch";
     pub const CONNECTION_LOST: &str = "connection_lost";
     pub const FOLDER_NOT_FOUND: &str = "folder_not_found";
     pub const GIT_COMMAND_FAILED: &str = "git_command_failed";
@@ -155,6 +161,9 @@ pub mod error_codes {
         DEVICE_UNAVAILABLE,
         CLOUD_UNAVAILABLE,
         TIMEOUT,
+        RUNTIME_BUSY,
+        RESOURCE_LIMIT_EXCEEDED,
+        PLAN_EXPIRED,
         CANCELLED,
         PREFERENCES_ERROR,
         INVALID_REQUEST,
@@ -165,6 +174,7 @@ pub mod error_codes {
         RECURSIVE_OPERATION,
         UNSUPPORTED_SYMLINK,
         UNSUPPORTED_TRASH,
+        UNSUPPORTED_OPERATION,
         IO_ERROR,
         INTERNAL,
         IS_DIRECTORY,
@@ -182,6 +192,8 @@ pub mod error_codes {
         NETWORK_ERROR,
         CONNECTION_REQUIRED,
         AUTHENTICATION_FAILED,
+        HOST_KEY_UNTRUSTED,
+        HOST_KEY_MISMATCH,
         CONNECTION_LOST,
         FOLDER_NOT_FOUND,
         GIT_COMMAND_FAILED,
@@ -696,6 +708,16 @@ impl TryFrom<FileOperationRequestDto> for FileOperationRequest {
                 .map_err(IpcError::from)?,
             new_name: value.new_name,
             conflict_policy: value.conflict_policy.unwrap_or(ConflictPolicy::Fail),
+            batch_renames: value
+                .batch_renames
+                .into_iter()
+                .map(|rename| {
+                    Ok(BatchRenameItem {
+                        source: ResourceUri::parse(&rename.source).map_err(IpcError::from)?,
+                        new_name: rename.new_name,
+                    })
+                })
+                .collect::<Result<Vec<_>, IpcError>>()?,
         })
     }
 }
@@ -1029,7 +1051,6 @@ impl From<plugin_core::InstalledPlugin> for InstalledPluginDto {
     fn from(p: plugin_core::InstalledPlugin) -> Self {
         Self {
             manifest: p.manifest.into(),
-            install_path: p.install_path.to_string_lossy().to_string(),
             enabled: p.enabled,
         }
     }
@@ -1076,6 +1097,45 @@ mod tests {
 
         assert_eq!(decoded.entry.uri, "local:///tmp/file.txt");
         assert_eq!(decoded.entry.kind, FileKind::File);
+    }
+
+    #[test]
+    fn file_operation_request_defaults_legacy_batch_renames_to_empty() {
+        let request: FileOperationRequestDto = serde_json::from_value(serde_json::json!({
+            "kind": "rename",
+            "sources": ["local:///tmp/source.txt"],
+            "destination": null,
+            "newName": "renamed.txt",
+            "conflictPolicy": "fail"
+        }))
+        .unwrap();
+
+        assert!(request.batch_renames.is_empty());
+    }
+
+    #[test]
+    fn file_operation_request_maps_batch_rename_entries() {
+        let request: FileOperationRequestDto = serde_json::from_value(serde_json::json!({
+            "kind": "batchRename",
+            "sources": ["local:///tmp/a.txt", "local:///tmp/b.txt"],
+            "destination": null,
+            "newName": null,
+            "conflictPolicy": "fail",
+            "batchRenames": [
+                { "source": "local:///tmp/a.txt", "newName": "b.txt" },
+                { "source": "local:///tmp/b.txt", "newName": "a.txt" }
+            ]
+        }))
+        .unwrap();
+        let request = FileOperationRequest::try_from(request).unwrap();
+
+        assert_eq!(request.kind, FileOperationKind::BatchRename);
+        assert_eq!(request.batch_renames.len(), 2);
+        assert_eq!(request.batch_renames[0].new_name, "b.txt");
+        assert_eq!(
+            request.batch_renames[1].source.as_str(),
+            "local:///tmp/b.txt"
+        );
     }
 
     #[test]

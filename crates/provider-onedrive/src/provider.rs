@@ -54,7 +54,7 @@ impl VfsProvider for OneDriveProvider {
     }
 
     async fn stat(&self, uri: &ResourceUri) -> Result<vfs::FileEntry, VfsError> {
-        let (_, session) = self.session_for(uri).await?;
+        let (profile_id, session) = self.session_for(uri).await?;
         let remote_path = uri.remote_path().unwrap_or_default();
         let path = remote_path.trim_start_matches('/');
         let endpoint = if path.is_empty() || path == "root" {
@@ -80,7 +80,7 @@ impl VfsProvider for OneDriveProvider {
             .await
             .map_err(|e| VfsError::internal(&format!("onedrive stat parse failed: {e}")))?;
 
-        crate::ops::onedrive_item_to_entry(&json)
+        crate::ops::onedrive_item_to_entry(&profile_id, &json)
             .ok_or_else(|| VfsError::internal("failed to parse onedrive file entry"))
     }
 
@@ -90,7 +90,7 @@ impl VfsProvider for OneDriveProvider {
         options: ListOptions,
         sink: DirectorySink,
     ) -> Result<(), VfsError> {
-        let (_, session) = self.session_for(uri).await?;
+        let (profile_id, session) = self.session_for(uri).await?;
         let remote_path = uri.remote_path().unwrap_or_default();
         let path = remote_path.trim_start_matches('/');
         let endpoint = if path.is_empty() || path == "root" {
@@ -125,7 +125,7 @@ impl VfsProvider for OneDriveProvider {
             .cloned()
             .unwrap_or_default()
             .iter()
-            .filter_map(crate::ops::onedrive_item_to_entry)
+            .filter_map(|item| crate::ops::onedrive_item_to_entry(&profile_id, item))
             .collect();
 
         let is_complete = json

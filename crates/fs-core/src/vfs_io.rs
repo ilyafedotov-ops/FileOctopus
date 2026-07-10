@@ -381,10 +381,16 @@ impl VfsFilesystem {
             }
             CrossSchemeTransfer::RemoteToLocal => {
                 let to = destination.to_local_path()?;
-                if let Some(parent) = to.parent() {
-                    fs::create_dir_all(parent).map_err(|error| map_local_io(destination, error))?;
-                }
-                let file = File::create(&to).map_err(|error| map_local_io(destination, error))?;
+                let parent = to.parent().ok_or_else(|| FileOperationError::InvalidPath {
+                    uri: destination.as_str().to_string(),
+                    message: "destination has no parent directory".to_string(),
+                })?;
+                fs::create_dir_all(parent).map_err(|error| map_local_io(destination, error))?;
+                let staging = tempfile::NamedTempFile::new_in(parent)
+                    .map_err(|error| map_local_io(destination, error))?;
+                let file = staging
+                    .reopen()
+                    .map_err(|error| map_local_io(destination, error))?;
                 let provider = self
                     .registry
                     .provider_for(source)
@@ -406,9 +412,17 @@ impl VfsFilesystem {
                     on_progress(bytes);
                 }
 
-                worker.join().map_err(|_| FileOperationError::Internal {
+                let total = worker.join().map_err(|_| FileOperationError::Internal {
                     message: "cross-scheme copy worker thread panicked".to_string(),
-                })?
+                })??;
+                staging
+                    .as_file()
+                    .sync_all()
+                    .map_err(|error| map_local_io(destination, error))?;
+                staging
+                    .persist_noclobber(&to)
+                    .map_err(|error| map_local_io(destination, error.error))?;
+                Ok(total)
             }
         }
     }

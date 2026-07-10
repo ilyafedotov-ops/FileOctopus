@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use vfs::{EntryCapabilities, FileEntry, FileKind, ProviderId, ResourceUri};
 
-pub fn dropbox_metadata_to_entry(item: &serde_json::Value) -> Option<FileEntry> {
+pub fn dropbox_metadata_to_entry(profile_id: &str, item: &serde_json::Value) -> Option<FileEntry> {
     let name = item.get("name")?.as_str()?.to_string();
     let tag = item.get(".tag").and_then(|v| v.as_str()).unwrap_or("file");
     let kind = if tag == "folder" {
@@ -24,7 +24,7 @@ pub fn dropbox_metadata_to_entry(item: &serde_json::Value) -> Option<FileEntry> 
         .unwrap_or("");
 
     Some(FileEntry {
-        uri: ResourceUri::parse(&format!("dropbox://profile{}", path_lower)).ok()?,
+        uri: ResourceUri::from_remote_profile("dropbox", profile_id, path_lower).ok()?,
         name,
         extension: None,
         kind,
@@ -55,6 +55,8 @@ pub fn dropbox_metadata_to_entry(item: &serde_json::Value) -> Option<FileEntry> 
 mod tests {
     use super::*;
 
+    const PROFILE_ID: &str = "550e8400-e29b-41d4-a716-446655440000";
+
     #[test]
     fn dropbox_metadata_to_entry_parses_file() {
         let json = serde_json::json!({
@@ -64,7 +66,7 @@ mod tests {
             "size": 2048,
             "client_modified": "2025-03-20T14:00:00Z"
         });
-        let entry = dropbox_metadata_to_entry(&json).unwrap();
+        let entry = dropbox_metadata_to_entry(PROFILE_ID, &json).unwrap();
         assert_eq!(entry.name, "photo.jpg");
         assert_eq!(entry.kind, FileKind::File);
         assert_eq!(entry.size, Some(2048));
@@ -78,7 +80,7 @@ mod tests {
             "name": "Photos",
             "path_lower": "/photos"
         });
-        let entry = dropbox_metadata_to_entry(&json).unwrap();
+        let entry = dropbox_metadata_to_entry(PROFILE_ID, &json).unwrap();
         assert_eq!(entry.name, "Photos");
         assert_eq!(entry.kind, FileKind::Directory);
         assert_eq!(entry.size, None);

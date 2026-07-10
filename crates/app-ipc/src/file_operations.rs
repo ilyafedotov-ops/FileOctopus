@@ -2,6 +2,15 @@ use super::*;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "ipc/BatchRenameItemDto.ts"))]
+#[serde(rename_all = "camelCase")]
+pub struct BatchRenameItemDto {
+    pub source: String,
+    pub new_name: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
 #[cfg_attr(
     feature = "ts",
     ts(export, export_to = "ipc/ClearOperationHistoryResponse.ts")
@@ -25,6 +34,8 @@ pub struct FileOperationRequestDto {
     pub destination: Option<String>,
     pub new_name: Option<String>,
     pub conflict_policy: Option<ConflictPolicy>,
+    #[serde(default)]
+    pub batch_renames: Vec<BatchRenameItemDto>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

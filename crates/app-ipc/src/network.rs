@@ -240,6 +240,7 @@ pub struct NetworkProfileTestResponse {
     pub ok: bool,
     pub status: String,
     pub message: String,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub duration_ms: u128,
     pub resolved_uri: Option<String>,
     pub observed_fingerprint: Option<String>,

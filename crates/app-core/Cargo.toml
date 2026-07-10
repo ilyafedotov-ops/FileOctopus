@@ -11,11 +11,8 @@ git-intel = { path = "../git-intel" }
 jobs = { path = "../jobs" }
 platform = { path = "../platform" }
 provider-sftp = { path = "../provider-sftp" }
-provider-smb = { path = "../provider-smb" }
 provider-s3 = { path = "../provider-s3" }
-provider-gdrive = { path = "../provider-gdrive" }
-provider-dropbox = { path = "../provider-dropbox" }
-provider-onedrive = { path = "../provider-onedrive" }
+provider-webdav = { path = "../provider-webdav" }
 remote-core = { path = "../remote-core" }
 rusqlite = { version = "0.40.1", features = ["bundled"] }
 telemetry = { path = "../telemetry" }

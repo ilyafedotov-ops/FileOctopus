@@ -26,6 +26,13 @@ impl AuthSecrets {
         store: &SecretStore,
         profile: &NetworkProfile,
     ) -> Result<Self, platform::SecretStoreError> {
+        if matches!(
+            profile.auth_kind,
+            AuthKind::Password | AuthKind::AccessKey | AuthKind::OAuth
+        ) && !profile.has_stored_secret
+        {
+            return Err(platform::SecretStoreError::NotFound);
+        }
         match profile.auth_kind {
             AuthKind::Password | AuthKind::AccessKey => Ok(Self {
                 password: Some(store.get(&SecretStore::network_password_key(&profile.id))?),

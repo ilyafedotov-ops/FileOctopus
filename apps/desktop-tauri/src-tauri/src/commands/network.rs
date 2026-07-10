@@ -1,3 +1,4 @@
+use std::net::IpAddr;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -176,10 +177,10 @@ fn network_provider_catalog() -> Vec<NetworkProviderCapabilityDto> {
             "SMB / CIFS",
             Some(445),
             &["password"],
-            network_enabled,
             false,
-            enabled_status,
-            disabled_reason,
+            false,
+            "unavailable",
+            Some("SMB is disabled until the subprocess implementation is replaced."),
             &["workgroup", "minProtocol", "signingMode", "sharePath"],
         ),
         provider_capability(
@@ -189,8 +190,16 @@ fn network_provider_catalog() -> Vec<NetworkProviderCapabilityDto> {
             &["accessKey"],
             network_enabled,
             false,
-            enabled_status,
-            disabled_reason,
+            if network_enabled {
+                "preview"
+            } else {
+                "unavailable"
+            },
+            if network_enabled {
+                Some("S3 support is preview until multipart and interoperability gates pass.")
+            } else {
+                disabled_reason
+            },
             &["region", "useTls", "pathStyle", "rootPrefix"],
         ),
         provider_capability(
@@ -198,10 +207,10 @@ fn network_provider_catalog() -> Vec<NetworkProviderCapabilityDto> {
             "WebDAV",
             Some(443),
             &["password"],
+            network_enabled,
             false,
-            false,
-            "unavailable",
-            Some("WebDAV provider is not registered yet."),
+            enabled_status,
+            disabled_reason,
             &[],
         ),
     ]
@@ -304,9 +313,13 @@ pub fn network_providers_list() -> Result<NetworkProvidersListResponse, IpcError
 
 fn draft_resolved_uri(draft: &NetworkProfileDraftDto) -> Option<String> {
     if matches!(draft.scheme.as_str(), "sftp" | "smb" | "s3" | "webdav") {
-        return ResourceUri::from_remote_profile(&draft.scheme, "preview", &draft.default_path)
-            .ok()
-            .map(|uri| uri.as_str().to_string());
+        return ResourceUri::from_remote_profile(
+            &draft.scheme,
+            "00000000-0000-0000-0000-000000000000",
+            &draft.default_path,
+        )
+        .ok()
+        .map(|uri| uri.as_str().to_string());
     }
     None
 }
@@ -319,12 +332,6 @@ fn validate_profile_draft(draft: &NetworkProfileDraftDto) -> Result<(), IpcError
         return Err(IpcError::new(
             app_ipc::error_codes::INVALID_REQUEST,
             format!("unsupported scheme `{}`", draft.scheme),
-        ));
-    }
-    if draft.scheme == "webdav" {
-        return Err(IpcError::new(
-            app_ipc::error_codes::UNSUPPORTED_PROVIDER,
-            "WebDAV provider is not registered yet.",
         ));
     }
     if draft.host.trim().is_empty()
@@ -352,6 +359,32 @@ fn validate_profile_draft(draft: &NetworkProfileDraftDto) -> Result<(), IpcError
         ));
     }
     AuthKind::parse(&draft.auth_kind).map_err(network_error)?;
+    if draft.scheme == "webdav" {
+        if draft.auth_kind != "password" {
+            return Err(IpcError::new(
+                app_ipc::error_codes::INVALID_REQUEST,
+                "WebDAV supports password authentication only",
+            ));
+        }
+        if !is_valid_webdav_host(&draft.host) {
+            return Err(IpcError::new(
+                app_ipc::error_codes::INVALID_REQUEST,
+                "WebDAV host must be a hostname or IP address without a URL scheme or path",
+            ));
+        }
+        if !draft.default_path.starts_with('/')
+            || draft.default_path.contains('\0')
+            || draft
+                .default_path
+                .split('/')
+                .any(is_webdav_path_traversal_segment)
+        {
+            return Err(IpcError::new(
+                app_ipc::error_codes::INVALID_REQUEST,
+                "WebDAV default path must be absolute and must not contain traversal segments",
+            ));
+        }
+    }
     if draft.auth_kind == "privateKey" && draft.private_key_path.as_deref().unwrap_or("").is_empty()
     {
         return Err(IpcError::new(
@@ -360,6 +393,29 @@ fn validate_profile_draft(draft: &NetworkProfileDraftDto) -> Result<(), IpcError
         ));
     }
     Ok(())
+}
+
+fn is_webdav_path_traversal_segment(segment: &str) -> bool {
+    segment.to_ascii_lowercase().replace("%2e", ".") == ".."
+}
+
+fn is_valid_webdav_host(host: &str) -> bool {
+    if host.contains("//")
+        || host.contains('/')
+        || host.contains('@')
+        || host.contains('?')
+        || host.contains('#')
+    {
+        return false;
+    }
+    if host.starts_with('[') || host.ends_with(']') {
+        return host
+            .strip_prefix('[')
+            .and_then(|value| value.strip_suffix(']'))
+            .and_then(|value| value.parse::<IpAddr>().ok())
+            .is_some_and(|address| address.is_ipv6());
+    }
+    host.parse::<IpAddr>().is_ok() || !host.contains(':')
 }
 
 #[tauri::command]
@@ -379,11 +435,41 @@ pub async fn network_profile_test(
 
     if let Some(id) = request.id {
         ensure_network_enabled()?;
-        state.sessions().connect(&id).await.map_err(remote_error)?;
         let profile = state.network().get(&id).map_err(network_error)?;
         let fingerprint = profile.host_key_fingerprint.clone();
-        let observed_fingerprint = state.sessions().observed_host_key_fingerprint(&id).await;
         let resolved_uri = profile_to_dto(profile.clone()).default_uri;
+        match state.sessions().connect(&id).await {
+            Ok(()) => {}
+            Err(remote_core::RemoteError::HostKeyUntrusted {
+                fingerprint: observed,
+                ..
+            }) => {
+                return Ok(NetworkProfileTestResponse {
+                    ok: false,
+                    status: "warning".to_string(),
+                    message: "Confirm this SSH host key before authentication.".to_string(),
+                    duration_ms: started.elapsed().as_millis(),
+                    resolved_uri: (!resolved_uri.is_empty()).then_some(resolved_uri),
+                    observed_fingerprint: Some(observed),
+                    trust_state: "untrusted".to_string(),
+                    warnings: vec!["No credentials were loaded or sent.".to_string()],
+                });
+            }
+            Err(remote_core::RemoteError::HostKeyMismatch { observed, .. }) => {
+                return Ok(NetworkProfileTestResponse {
+                    ok: false,
+                    status: "warning".to_string(),
+                    message: "The SSH host key differs from the trusted key.".to_string(),
+                    duration_ms: started.elapsed().as_millis(),
+                    resolved_uri: (!resolved_uri.is_empty()).then_some(resolved_uri),
+                    observed_fingerprint: Some(observed),
+                    trust_state: "mismatch".to_string(),
+                    warnings: vec!["No credentials were loaded or sent.".to_string()],
+                });
+            }
+            Err(error) => return Err(remote_error(error)),
+        }
+        let observed_fingerprint = state.sessions().observed_host_key_fingerprint(&id).await;
         let ssh_like = matches!(profile.scheme.as_str(), "sftp" | "ssh");
         return Ok(NetworkProfileTestResponse {
             ok: true,
@@ -454,11 +540,43 @@ pub fn network_profile_add(
 }
 
 #[tauri::command]
-pub fn network_profile_update(
+pub async fn network_profile_update(
     request: NetworkProfileUpdateRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<NetworkProfileResponse, IpcError> {
     ensure_network_enabled()?;
+    let existing = state.network().get(&request.id).map_err(network_error)?;
+    let auth_kind = AuthKind::parse(&request.auth_kind).map_err(network_error)?;
+    let options: config::NetworkProtocolOptions = request.options.clone().into();
+    let identity_changed = existing.host != request.host
+        || existing.port != request.port
+        || existing.username != request.username
+        || existing.auth_kind != auth_kind
+        || existing.private_key_path != request.private_key_path
+        || existing.options.ssh.proxy_jump != options.ssh.proxy_jump
+        || existing.options.ssh.proxy_command != options.ssh.proxy_command;
+
+    if identity_changed {
+        let _ = state.sessions().disconnect(&request.id).await;
+        state.sessions().clear_observed_host_key(&request.id).await;
+        state
+            .network()
+            .clear_host_key_fingerprint(&request.id)
+            .map_err(network_error)?;
+        state
+            .network()
+            .set_has_stored_secret(&request.id, false)
+            .map_err(network_error)?;
+        state
+            .secrets()
+            .delete(&SecretStore::network_password_key(&request.id))
+            .map_err(secret_error)?;
+        state
+            .secrets()
+            .delete(&SecretStore::network_passphrase_key(&request.id))
+            .map_err(secret_error)?;
+    }
+
     let profile = state
         .network()
         .update(
@@ -468,10 +586,10 @@ pub fn network_profile_update(
                 host: request.host,
                 port: request.port,
                 username: request.username,
-                auth_kind: AuthKind::parse(&request.auth_kind).map_err(network_error)?,
+                auth_kind,
                 private_key_path: request.private_key_path,
                 default_path: request.default_path,
-                options: request.options.into(),
+                options,
             },
         )
         .map_err(network_error)?;
@@ -488,6 +606,7 @@ pub async fn network_profile_delete(
 ) -> Result<OkResponse, IpcError> {
     ensure_network_enabled()?;
     let _ = state.sessions().disconnect(&request.id).await;
+    state.sessions().clear_observed_host_key(&request.id).await;
 
     state.network().delete(&request.id).map_err(network_error)?;
     let _ = state
@@ -628,11 +747,17 @@ pub async fn network_discover_neighborhood(
 }
 
 #[tauri::command]
-pub fn network_profile_forget_fingerprint(
+pub async fn network_profile_forget_fingerprint(
     request: NetworkProfileActionRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<OkResponse, IpcError> {
     ensure_network_enabled()?;
+    state
+        .sessions()
+        .disconnect(&request.id)
+        .await
+        .map_err(remote_error)?;
+    state.sessions().clear_observed_host_key(&request.id).await;
     state
         .network()
         .clear_host_key_fingerprint(&request.id)
@@ -641,7 +766,7 @@ pub fn network_profile_forget_fingerprint(
 }
 
 #[tauri::command]
-pub fn network_profile_trust_fingerprint(
+pub async fn network_profile_trust_fingerprint(
     request: NetworkProfileTrustFingerprintRequest,
     state: State<'_, Arc<AppState>>,
 ) -> Result<OkResponse, IpcError> {
@@ -654,9 +779,10 @@ pub fn network_profile_trust_fingerprint(
         ));
     }
     state
-        .network()
-        .set_host_key_fingerprint(&request.id, fingerprint)
-        .map_err(network_error)?;
+        .sessions()
+        .trust_observed_host_key(&request.id, fingerprint)
+        .await
+        .map_err(remote_error)?;
     Ok(OkResponse { ok: true })
 }
 
@@ -673,6 +799,8 @@ mod tests {
     use app_core::AppPaths;
     use tempfile::tempdir;
 
+    static NETWORK_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
     fn isolated_app_state(root: &std::path::Path) -> Arc<AppState> {
         let paths = AppPaths {
             config_dir: root.join("config"),
@@ -685,6 +813,90 @@ mod tests {
             terminal_db: root.join("terminal.sqlite"),
         };
         app_core::AppCore::boot_with_paths(paths).expect("boot AppCore for test")
+    }
+
+    fn webdav_draft() -> NetworkProfileDraftDto {
+        NetworkProfileDraftDto {
+            label: "WebDAV".to_string(),
+            scheme: "webdav".to_string(),
+            host: "dav.example.com".to_string(),
+            port: 443,
+            username: "user".to_string(),
+            auth_kind: "password".to_string(),
+            private_key_path: None,
+            default_path: "/remote.php/dav/files/user".to_string(),
+            options: Default::default(),
+        }
+    }
+
+    #[test]
+    fn webdav_catalog_is_available_when_network_is_enabled() {
+        let _guard = NETWORK_ENV_LOCK.lock().unwrap();
+        let previous = std::env::var("FILEOCTOPUS_ENABLE_NETWORK").ok();
+        std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", "1");
+
+        let provider = network_provider_catalog()
+            .into_iter()
+            .find(|provider| provider.scheme == "webdav")
+            .unwrap();
+
+        if let Some(value) = previous {
+            std::env::set_var("FILEOCTOPUS_ENABLE_NETWORK", value);
+        } else {
+            std::env::remove_var("FILEOCTOPUS_ENABLE_NETWORK");
+        }
+
+        assert!(provider.file_capable);
+        assert!(!provider.terminal_capable);
+        assert_eq!(provider.status, "available");
+        assert_eq!(provider.default_port, Some(443));
+        assert_eq!(provider.auth_kinds, vec!["password"]);
+        assert!(provider.missing_dependency.is_none());
+    }
+
+    #[test]
+    fn webdav_draft_resolves_with_valid_preview_authority() {
+        assert_eq!(
+            draft_resolved_uri(&webdav_draft()).as_deref(),
+            Some("webdav://00000000-0000-0000-0000-000000000000/remote.php/dav/files/user")
+        );
+    }
+
+    #[test]
+    fn webdav_profile_draft_validation_accepts_secure_profile_shape() {
+        validate_profile_draft(&webdav_draft()).unwrap();
+    }
+
+    #[test]
+    fn webdav_profile_draft_validation_rejects_incompatible_auth_and_host_urls() {
+        let mut incompatible_auth = webdav_draft();
+        incompatible_auth.auth_kind = "privateKey".to_string();
+        incompatible_auth.private_key_path = Some("/tmp/key".to_string());
+        assert_eq!(
+            validate_profile_draft(&incompatible_auth).unwrap_err().code,
+            app_ipc::error_codes::INVALID_REQUEST
+        );
+
+        let mut host_url = webdav_draft();
+        host_url.host = "https://dav.example.com/path".to_string();
+        assert_eq!(
+            validate_profile_draft(&host_url).unwrap_err().code,
+            app_ipc::error_codes::INVALID_REQUEST
+        );
+
+        let mut host_with_port = webdav_draft();
+        host_with_port.host = "dav.example.com:443".to_string();
+        assert_eq!(
+            validate_profile_draft(&host_with_port).unwrap_err().code,
+            app_ipc::error_codes::INVALID_REQUEST
+        );
+
+        let mut relative_path = webdav_draft();
+        relative_path.default_path = "dav/root".to_string();
+        assert_eq!(
+            validate_profile_draft(&relative_path).unwrap_err().code,
+            app_ipc::error_codes::INVALID_REQUEST
+        );
     }
 
     #[test]

@@ -4,6 +4,7 @@ mod terminal;
 
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
@@ -23,6 +24,17 @@ pub use terminal::{
 };
 
 pub const SCHEMA_VERSION: u32 = 15;
+
+pub(crate) fn open_database(path: &Path) -> rusqlite::Result<Connection> {
+    let connection = Connection::open(path)?;
+    connection.busy_timeout(Duration::from_secs(5))?;
+    connection.pragma_update(None, "journal_mode", "WAL")?;
+    connection.pragma_update(None, "synchronous", "NORMAL")?;
+    connection.pragma_update(None, "foreign_keys", true)?;
+    connection.pragma_update(None, "trusted_schema", false)?;
+    connection.pragma_update(None, "journal_size_limit", 64 * 1024 * 1024_i64)?;
+    Ok(connection)
+}
 
 pub fn default_diagnostics_export_path() -> String {
     std::env::temp_dir()
@@ -633,16 +645,18 @@ impl PreferencesRepository {
     }
 
     fn persist(&self, preferences: &UserPreferences) -> Result<(), PreferencesError> {
-        let connection = self.connect()?;
+        let mut connection = self.connect()?;
+        let transaction = connection.transaction()?;
         let now = chrono_lite_now();
 
         for (key, value) in preferences.as_rows() {
-            connection.execute(
+            transaction.execute(
                 "insert into preferences (key, value, updated_at) values (?1, ?2, ?3)
                  on conflict(key) do update set value = excluded.value, updated_at = excluded.updated_at",
                 params![key, value, now],
             )?;
         }
+        transaction.commit()?;
 
         *self
             .cache
@@ -656,7 +670,7 @@ impl PreferencesRepository {
     }
 
     fn connect(&self) -> Result<Connection, PreferencesError> {
-        Connection::open(&*self.path).map_err(PreferencesError::from)
+        open_database(&self.path).map_err(PreferencesError::from)
     }
 }
 

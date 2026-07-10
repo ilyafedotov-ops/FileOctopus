@@ -26,6 +26,8 @@ fn terminal_ipc_error(error: TerminalError) -> IpcError {
         terminal_core::TerminalErrorCode::AuthenticationFailed => {
             error_codes::AUTHENTICATION_FAILED
         }
+        terminal_core::TerminalErrorCode::HostKeyUntrusted => error_codes::HOST_KEY_UNTRUSTED,
+        terminal_core::TerminalErrorCode::HostKeyMismatch => error_codes::HOST_KEY_MISMATCH,
         terminal_core::TerminalErrorCode::NotFound => error_codes::TERMINAL_NOT_FOUND,
         terminal_core::TerminalErrorCode::InvalidSize => error_codes::INVALID_TERMINAL_SIZE,
         terminal_core::TerminalErrorCode::Io => error_codes::IO_ERROR,
@@ -277,6 +279,18 @@ async fn terminal_spawn_ssh(
         ));
     }
 
+    state
+        .sessions()
+        .verify_profile_host_key(profile_id)
+        .await
+        .map_err(|error| IpcError::new(error.code(), error.to_string()))?;
+    let expected_host_key_fingerprint = profile.host_key_fingerprint.clone().ok_or_else(|| {
+        IpcError::new(
+            error_codes::HOST_KEY_UNTRUSTED,
+            "SSH host key must be confirmed before starting a terminal",
+        )
+    })?;
+
     let secrets =
         remote_core::AuthSecrets::load(state.secrets(), &profile).map_err(|error| match error {
             platform::SecretStoreError::NotFound => IpcError::new(
@@ -325,7 +339,7 @@ async fn terminal_spawn_ssh(
         port: profile.port,
         username: profile.username.clone(),
         auth,
-        expected_host_key_fingerprint: profile.host_key_fingerprint.clone(),
+        expected_host_key_fingerprint,
         cols: request.cols,
         rows: request.rows,
         cwd_uri: request.uri.clone(),

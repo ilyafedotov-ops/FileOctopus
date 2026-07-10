@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use vfs::{EntryCapabilities, FileEntry, FileKind, ProviderId, ResourceUri};
 
-pub fn gdrive_file_to_entry(item: &serde_json::Value) -> Option<FileEntry> {
+pub fn gdrive_file_to_entry(profile_id: &str, item: &serde_json::Value) -> Option<FileEntry> {
     let name = item.get("name")?.as_str()?.to_string();
     let id = item.get("id")?.as_str()?.to_string();
     let mime_type = item.get("mimeType").and_then(|v| v.as_str()).unwrap_or("");
@@ -31,7 +31,7 @@ pub fn gdrive_file_to_entry(item: &serde_json::Value) -> Option<FileEntry> {
         .map(|s| s.to_string());
 
     Some(FileEntry {
-        uri: ResourceUri::parse(&format!("gdrive://profile/{}", id)).ok()?,
+        uri: ResourceUri::from_remote_profile("gdrive", profile_id, &format!("/item/{id}")).ok()?,
         name,
         extension: None,
         kind,
@@ -62,6 +62,8 @@ pub fn gdrive_file_to_entry(item: &serde_json::Value) -> Option<FileEntry> {
 mod tests {
     use super::*;
 
+    const PROFILE_ID: &str = "550e8400-e29b-41d4-a716-446655440000";
+
     #[test]
     fn gdrive_file_to_entry_parses_file() {
         let json = serde_json::json!({
@@ -71,7 +73,7 @@ mod tests {
             "size": "1024",
             "modifiedTime": "2025-01-15T10:30:00.000Z"
         });
-        let entry = gdrive_file_to_entry(&json).unwrap();
+        let entry = gdrive_file_to_entry(PROFILE_ID, &json).unwrap();
         assert_eq!(entry.name, "document.txt");
         assert_eq!(entry.kind, FileKind::File);
         assert_eq!(entry.size, Some(1024));
@@ -85,7 +87,7 @@ mod tests {
             "id": "folder123",
             "mimeType": "application/vnd.google-apps.folder"
         });
-        let entry = gdrive_file_to_entry(&json).unwrap();
+        let entry = gdrive_file_to_entry(PROFILE_ID, &json).unwrap();
         assert_eq!(entry.name, "My Folder");
         assert_eq!(entry.kind, FileKind::Directory);
         assert_eq!(entry.size, None);
@@ -96,6 +98,6 @@ mod tests {
         let json = serde_json::json!({
             "id": "1abc123"
         });
-        assert!(gdrive_file_to_entry(&json).is_none());
+        assert!(gdrive_file_to_entry(PROFILE_ID, &json).is_none());
     }
 }

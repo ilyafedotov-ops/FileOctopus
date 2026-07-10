@@ -1,7 +1,12 @@
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
+
+#[cfg(unix)]
+use std::path::Path;
 
 use app_core::AppState;
-use app_ipc::{AclEntry, GetAclRequest, GetAclResponse, IpcError, SetAclRequest, SetAclResponse};
+#[cfg(unix)]
+use app_ipc::AclEntry;
+use app_ipc::{GetAclRequest, GetAclResponse, IpcError, SetAclRequest, SetAclResponse};
 use tauri::State;
 use vfs::ResourceUri;
 
@@ -28,7 +33,12 @@ pub async fn fs_get_acl(
         .map_err(|e| IpcError::invalid_request(format!("not a local path: {e}")))?;
 
     let metadata =
-        std::fs::metadata(&path).map_err(|e| IpcError::io(format!("cannot stat: {e}")))?;
+        std::fs::symlink_metadata(&path).map_err(|e| IpcError::io(format!("cannot stat: {e}")))?;
+    if metadata.file_type().is_symlink() {
+        return Err(IpcError::invalid_request(
+            "permissions cannot be read through a symlink",
+        ));
+    }
 
     #[cfg(unix)]
     {
@@ -44,26 +54,9 @@ pub async fn fs_get_acl(
         let uid = metadata.uid();
         let gid = metadata.gid();
 
-        let owner_name = std::process::Command::new("id")
-            .args(["-nu", &uid.to_string()])
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|s| s.trim().to_string());
-
-        let group_name = std::process::Command::new("getent")
-            .args(["group", &gid.to_string()])
-            .output()
-            .ok()
-            .and_then(|o| String::from_utf8(o.stdout).ok())
-            .map(|s| {
-                let parts: Vec<&str> = s.trim().split(':').collect();
-                parts.first().map(|p| p.to_string()).unwrap_or_default()
-            });
-
         Ok(GetAclResponse {
-            owner: owner_name,
-            group: group_name,
+            owner: Some(uid.to_string()),
+            group: Some(gid.to_string()),
             entries: vec![
                 AclEntry {
                     principal: "owner".to_string(),
@@ -90,17 +83,10 @@ pub async fn fs_get_acl(
 
     #[cfg(not(unix))]
     {
-        Ok(GetAclResponse {
-            owner: None,
-            group: None,
-            entries: vec![AclEntry {
-                principal: "owner".to_string(),
-                read: metadata.permissions().readonly(),
-                write: !metadata.permissions().readonly(),
-                execute: false,
-            }],
-            octal: "000".to_string(),
-        })
+        Err(IpcError::new(
+            app_ipc::error_codes::UNSUPPORTED_OPERATION,
+            "ACL inspection is unavailable on this platform",
+        ))
     }
 }
 
@@ -114,6 +100,13 @@ pub async fn fs_set_acl(
     let path = uri
         .to_local_path()
         .map_err(|e| IpcError::invalid_request(format!("not a local path: {e}")))?;
+    let metadata =
+        std::fs::symlink_metadata(&path).map_err(|e| IpcError::io(format!("cannot stat: {e}")))?;
+    if metadata.file_type().is_symlink() {
+        return Err(IpcError::invalid_request(
+            "permissions cannot be changed through a symlink",
+        ));
+    }
 
     let mode = u32::from_str_radix(&request.octal, 8)
         .map_err(|e| IpcError::invalid_request(format!("invalid octal mode: {e}")))?;
@@ -126,37 +119,117 @@ pub async fn fs_set_acl(
 
     #[cfg(unix)]
     {
-        use std::os::unix::fs::PermissionsExt;
-
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode))
-            .map_err(|e| IpcError::io(format!("cannot set permissions: {e}")))?;
-
-        if request.recursive && path.is_dir() {
+        if request.recursive && metadata.is_dir() {
             apply_recursive(&path, mode)?;
+        } else {
+            set_permissions_nofollow(&path, mode)?;
         }
+    }
+
+    #[cfg(not(unix))]
+    {
+        return Err(IpcError::new(
+            app_ipc::error_codes::UNSUPPORTED_OPERATION,
+            "ACL changes are unavailable on this platform",
+        ));
     }
 
     Ok(SetAclResponse { success: true })
 }
 
 #[cfg(unix)]
-fn apply_recursive(path: &PathBuf, mode: u32) -> Result<(), IpcError> {
+fn set_permissions_nofollow(path: &Path, mode: u32) -> Result<(), IpcError> {
     use std::os::unix::fs::PermissionsExt;
 
-    let entries =
-        std::fs::read_dir(path).map_err(|e| IpcError::io(format!("cannot read directory: {e}")))?;
+    let permissions = cap_std::fs::Permissions::from_std(std::fs::Permissions::from_mode(mode));
+    if let (Some(parent), Some(name)) = (path.parent(), path.file_name()) {
+        let parent = parent
+            .canonicalize()
+            .map_err(|error| IpcError::io(format!("cannot resolve parent directory: {error}")))?;
+        let directory = cap_std::fs::Dir::open_ambient_dir(parent, cap_std::ambient_authority())
+            .map_err(|error| IpcError::io(format!("cannot open parent directory: {error}")))?;
+        let metadata = directory
+            .symlink_metadata(name)
+            .map_err(|error| IpcError::io(format!("cannot inspect permissions target: {error}")))?;
+        if metadata.file_type().is_symlink() {
+            return Err(IpcError::invalid_request(
+                "permissions cannot be changed through a symlink",
+            ));
+        }
+        directory
+            .set_permissions(name, permissions)
+            .map_err(|error| IpcError::io(format!("cannot set permissions: {error}")))?;
+        return Ok(());
+    }
+
+    let directory = cap_std::fs::Dir::open_ambient_dir(path, cap_std::ambient_authority())
+        .map_err(|error| IpcError::io(format!("cannot open permissions target: {error}")))?;
+    directory
+        .set_permissions(Path::new("."), permissions)
+        .map_err(|error| IpcError::io(format!("cannot set permissions: {error}")))
+}
+
+#[cfg(unix)]
+fn apply_recursive(path: &Path, mode: u32) -> Result<(), IpcError> {
+    use cap_fs_ext::DirExt;
+
+    let directory = if let (Some(parent), Some(name)) = (path.parent(), path.file_name()) {
+        let parent = parent
+            .canonicalize()
+            .map_err(|error| IpcError::io(format!("cannot resolve parent directory: {error}")))?;
+        let parent = cap_std::fs::Dir::open_ambient_dir(parent, cap_std::ambient_authority())
+            .map_err(|error| IpcError::io(format!("cannot open parent directory: {error}")))?;
+        parent.open_dir_nofollow(name).map_err(|error| {
+            IpcError::io(format!("cannot safely open permissions target: {error}"))
+        })?
+    } else {
+        cap_std::fs::Dir::open_ambient_dir(path, cap_std::ambient_authority())
+            .map_err(|error| IpcError::io(format!("cannot open permissions target: {error}")))?
+    };
+
+    apply_recursive_directory(&directory, mode)
+}
+
+#[cfg(unix)]
+fn apply_recursive_directory(directory: &cap_std::fs::Dir, mode: u32) -> Result<(), IpcError> {
+    use cap_fs_ext::DirExt;
+    use std::os::unix::fs::PermissionsExt;
+
+    let entries = directory
+        .entries()
+        .map_err(|error| IpcError::io(format!("cannot read directory: {error}")))?;
 
     for entry in entries {
-        let entry = entry.map_err(|e| IpcError::io(format!("cannot read entry: {e}")))?;
-        let entry_path = entry.path();
+        let entry = entry.map_err(|error| IpcError::io(format!("cannot read entry: {error}")))?;
+        let name = entry.file_name();
+        let metadata = directory
+            .symlink_metadata(&name)
+            .map_err(|error| IpcError::io(format!("cannot inspect entry: {error}")))?;
 
-        std::fs::set_permissions(&entry_path, std::fs::Permissions::from_mode(mode))
-            .map_err(|e| IpcError::io(format!("cannot set permissions: {e}")))?;
-
-        if entry_path.is_dir() {
-            apply_recursive(&entry_path, mode)?;
+        if metadata.file_type().is_symlink() {
+            continue;
+        }
+        if metadata.is_dir() {
+            let child = directory.open_dir_nofollow(&name).map_err(|error| {
+                IpcError::io(format!("cannot safely open child directory: {error}"))
+            })?;
+            apply_recursive_directory(&child, mode)?;
+        } else {
+            directory
+                .set_permissions(
+                    &name,
+                    cap_std::fs::Permissions::from_std(std::fs::Permissions::from_mode(mode)),
+                )
+                .map_err(|error| IpcError::io(format!("cannot set permissions: {error}")))?;
         }
     }
+
+    directory
+        .set_permissions(
+            Path::new("."),
+            cap_std::fs::Permissions::from_std(std::fs::Permissions::from_mode(mode)),
+        )
+        .map_err(|error| IpcError::io(format!("cannot set permissions: {error}")))?;
 
     Ok(())
 }
@@ -211,5 +284,40 @@ mod tests {
         assert_eq!(mode_to_octal(0o644), "644");
         assert_eq!(mode_to_octal(0o777), "777");
         assert_eq!(mode_to_octal(0o600), "600");
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn recursive_permissions_skip_symlinks_and_apply_directories_post_order() {
+        use std::os::unix::fs::{symlink, PermissionsExt};
+
+        let dir = tempfile::tempdir().unwrap();
+        let root = dir.path().join("root");
+        let child = root.join("child");
+        let outside = dir.path().join("outside.txt");
+        std::fs::create_dir_all(&child).unwrap();
+        std::fs::write(child.join("inside.txt"), b"inside").unwrap();
+        std::fs::write(&outside, b"outside").unwrap();
+        std::fs::set_permissions(&outside, std::fs::Permissions::from_mode(0o600)).unwrap();
+        symlink(&outside, child.join("outside-link")).unwrap();
+
+        apply_recursive(&root, 0o700).unwrap();
+
+        assert_eq!(
+            std::fs::symlink_metadata(&outside)
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o600
+        );
+        assert_eq!(
+            std::fs::symlink_metadata(&root)
+                .unwrap()
+                .permissions()
+                .mode()
+                & 0o777,
+            0o700
+        );
     }
 }

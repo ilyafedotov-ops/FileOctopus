@@ -4,7 +4,7 @@ This document is the authoritative description of FileOctopus's runtime API surf
 
 > **Doc freshness (2026-06-12):** Command registry aligned with `generate_handler!` in `lib.rs` and `commandMap.ts` (99 handlers). Event channels aligned with `crates/app-ipc/src/lib.rs` and `packages/ts-api/src/events.ts` (19 channels). `packages/ts-api/tests/catalogs.test.ts` guards the command count, command map, error codes, warning codes, and event constants.
 
-- Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/remote-core/src/lib.rs`, `crates/provider-sftp/src/lib.rs`, `crates/config/src/network.rs`, `crates/platform/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
+- Source of truth (Rust): `apps/desktop-tauri/src-tauri/src/lib.rs` (handler registration), `apps/desktop-tauri/src-tauri/src/commands/*.rs`, `crates/app-ipc/src/lib.rs`, `crates/app-core/src/{lib,runtime,history,paths}.rs`, `crates/vfs/src/lib.rs`, `crates/jobs/src/lib.rs`, `crates/remote-core/src/lib.rs`, `crates/provider-{sftp,s3,webdav}/src/lib.rs`, `crates/config/src/network.rs`, `crates/platform/src/lib.rs`, `crates/fs-core/src/file_ops/mod.rs` (and `metadata`, `search`, `locations`, `external_open`, `direct_ops` for non-job FS helpers).
 - Source of truth (TypeScript): `packages/ts-api/src/{client,types,commandMap,events,normalizeError,uri}.ts`, `packages/ts-api/src/clients/*.ts`, `packages/ts-api/src/transports/{tauri,preview}.ts`.
 
 When you change any of the above, update the rest as a unit (see [Maintenance](#maintenance)).
@@ -349,11 +349,11 @@ Navigation commands persist UI navigation state in `navigation.sqlite` under the
 
 ### Network profiles and connections
 
-Network commands manage saved SFTP server profiles in `network.sqlite` under the app data directory. Passwords and key passphrases are stored in the OS keychain via `platform::SecretStore` (`network/{profileId}/password` or `passphrase`); they never cross IPC back to the frontend.
+Network commands manage saved remote profiles in `network.sqlite` under the app data directory. Passwords, access keys, and key passphrases are stored in the OS keychain via `platform::SecretStore` (`network/{profileId}/password` or `passphrase`); they never cross IPC back to the frontend. Network providers are enabled by default and can be disabled at boot through `FILEOCTOPUS_ENABLE_NETWORK=0`.
 
 | Command                              | TS dotted name                     | Purpose                                                                                                   |
 | ------------------------------------ | ---------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `network_profiles_list`              | `network.profilesList`             | List saved profiles with metadata and `defaultUri` (`sftp://{profileId}{defaultPath}`).                   |
+| `network_profiles_list`              | `network.profilesList`             | List saved profiles with metadata and a provider-specific `defaultUri` when the profile is file-capable.  |
 | `network_providers_list`             | `network.providersList`            | List provider capabilities, supported auth kinds, and unavailable providers.                              |
 | `network_profile_add`                | `network.profileAdd`               | Create a profile row (non-secret fields only).                                                            |
 | `network_profile_update`             | `network.profileUpdate`            | Update label, host, port, username, auth kind, default path.                                              |
@@ -386,9 +386,9 @@ Persists a user-confirmed OpenSSH-style `SHA256:` host-key fingerprint for the g
 
 SFTP sessions and SSH terminal sessions compute the SHA-256 base64 (unpadded) fingerprint of the server's host key on every connect. Unknown fingerprints are not persisted automatically. A caller must explicitly confirm a fingerprint through `network_profile_trust_fingerprint`, which stores it in `network_profiles.host_key_fingerprint`. Subsequent connects compare the observed fingerprint against the pinned value and refuse the connection on mismatch. Users can clear the pin from the Edit Server dialog ("Forget pinned fingerprint"); this returns the profile to an untrusted state until a fingerprint is explicitly confirmed again.
 
-Network profiles support `sftp` and `ssh` schemes. `sftp` profiles are file-capable and can also open SSH terminals. `ssh` profiles are terminal-only: they can be used as `terminal.spawn` `profileId` targets but do not produce browsable `sftp://` `defaultUri` values.
+Available file-capable profiles are `sftp`, `webdav`, and preview `s3`; `ssh` is terminal-only. `sftp` profiles can also open SSH terminals. SMB remains unavailable until its subprocess implementation is replaced, and the cloud OAuth providers are not registered in the desktop runtime.
 
-Once connected, `fs_stat` and `fs_list_start` work for `sftp://` URIs through `SftpProvider`. `plan_file_operation` / `start_file_operation` support copy, move, rename, create, and delete for `local://` and `sftp://` sources and destinations, including cross-scheme transfers (`local` ↔ `sftp`, and `sftp` ↔ `sftp` across profiles). Remote delete uses permanent delete (`unsupported_trash` on `deleteToTrash`). Archive create/extract, watch, folder size, and recursive search remain local-only in v1.
+Once connected, `fs_stat` and `fs_list_start` dispatch through the registered SFTP, WebDAV, or S3 provider. `plan_file_operation` / `start_file_operation` dispatch supported copy, move, rename, create, and delete operations through provider capabilities, including cross-scheme file transfers. S3 is marked preview until multipart and interoperability gates pass. Remote delete is permanent (`unsupported_trash` on `deleteToTrash`). Archive create/extract, watch, folder size, and recursive search remain local-only.
 
 ## Event channels
 
@@ -399,6 +399,8 @@ Rust pushes events via `app.emit(name, payload)`. The TS client wraps them in `t
 | `directory:batch` (`DIRECTORY_BATCH_EVENT`)                         | `DirectoryBatchEventDto`           | `fs_list_start` worker                    |
 | `fileOperation:job:started` (`JOB_STARTED_EVENT`)                   | `JobStartedEvent`                  | File-operation and metadata job runtimes  |
 | `fileOperation:job:progress` (`JOB_PROGRESS_EVENT`)                 | `JobProgressEvent`                 | File-operation and metadata job runtimes  |
+| `fileOperation:job:paused` (`JOB_PAUSED_EVENT`)                     | `JobPausedEvent`                   | File-operation job runtime                |
+| `fileOperation:job:resumed` (`JOB_RESUMED_EVENT`)                   | `JobResumedEvent`                  | File-operation job runtime                |
 | `fileOperation:job:completed` (`JOB_COMPLETED_EVENT`)               | `JobCompletedEvent`                | File-operation and metadata job runtimes  |
 | `fileOperation:job:failed` (`JOB_FAILED_EVENT`)                     | `JobFailedEvent`                   | File-operation and metadata job runtimes  |
 | `fileOperation:job:cancelled` (`JOB_CANCELLED_EVENT`)               | `JobCancelledEvent`                | File-operation and metadata job runtimes  |
@@ -638,7 +640,7 @@ Implement this to plug an alternative transport (tests, mocks, an out-of-process
 
 ## Resource URIs
 
-Every filesystem resource crossing the IPC boundary is identified by a `ResourceUri` — a string `scheme://body`. Registered providers today: `local` (`LocalFsProvider`) and `sftp` (`SftpProvider`). Network profile scheme `ssh` is terminal-only and does not map to a browsable filesystem URI. Reserved schemes `smb` and `webdav` parse successfully but return `unsupported_provider` until providers are registered (ADR-0004).
+Every filesystem resource crossing the IPC boundary is identified by a `ResourceUri` — a string `scheme://body`. Registered providers are `local` (`LocalFsProvider`) plus the opt-in `sftp`, `webdav`, and preview `s3` network providers. Network profile scheme `ssh` is terminal-only and does not map to a browsable filesystem URI. The reserved `smb` scheme parses successfully but returns `unsupported_provider` because SMB is not registered (ADR-0004).
 
 ### Local URIs
 
@@ -657,16 +659,17 @@ assert_eq!(uri.scheme(), "local");
 assert_eq!(uri.display_path(), "/home/me/Documents");
 ```
 
-### Remote URIs (SFTP v1)
+### Remote URIs
 
 Remote URIs use POSIX path bodies only:
 
 ```
-sftp://{profileUuid}/{remotePath}
+{scheme}://{profileUuid}/{remotePath}
 ```
 
-Example: `sftp://550e8400-e29b-41d4-a716-446655440000/home/deploy`
+Example: `webdav://550e8400-e29b-41d4-a716-446655440000/remote.php/dav/files/user`
 
+- `{scheme}` identifies a registered remote VFS provider (`sftp`, `webdav`, or `s3`).
 - `{profileUuid}` is the saved profile id from `network.sqlite`.
 - `{remotePath}` is a POSIX absolute path (`/home/user/docs`).
 - `ResourceUri::remote_path()` returns the path segment; `to_local_path()` remains local-only.
@@ -717,6 +720,7 @@ type FileOperationKind =
   | "copy"
   | "move"
   | "rename"
+  | "batchRename"
   | "deleteToTrash"
   | "createDirectory"
   | "createFile"
@@ -734,6 +738,7 @@ Shape rules enforced by the planner (`crates/fs-core/src/file_ops/mod.rs` — `v
 | ------------------------------------------------ | --------- | --------------------- | --------- |
 | `copy`, `move`                                   | ≥1        | required directory    | ignored   |
 | `rename`                                         | exactly 1 | optional              | required  |
+| `batchRename`                                    | ≥1        | none                  | none      |
 | `createDirectory`                                | 0         | required final path   | ignored   |
 | `createFile`                                     | 0         | required final path   | ignored   |
 | `deleteToTrash`, `deletePermanently`             | ≥1        | none                  | none      |
@@ -742,6 +747,8 @@ Shape rules enforced by the planner (`crates/fs-core/src/file_ops/mod.rs` — `v
 | `folderSize`, `recursiveSearch`, `contentSearch` | n/a       | n/a                   | n/a       |
 
 `folderSize`, `recursiveSearch`, and `contentSearch` are `FileOperationKind` values because metadata jobs reuse `JobSnapshot` and job events. They are not valid `plan_file_operation` requests; start them through `fs_folder_size_start`, `fs_recursive_search_start`, and `fs_content_search_start`.
+
+`batchRename` requires a `batchRenames` entry for every source, in matching order. Each entry contains `{ source, newName }`. All sources must be local resources under the same parent, destination names must be unique, and the conflict policy must be `fail`. Destinations that are also sources are allowed so swaps and cycles can execute transactionally.
 
 ### Conflict policies
 
@@ -794,8 +801,9 @@ Each `start_file_operation` allocates a `JobId` (UUID) and registers a `JobRunti
 
 ```
 queued ──► running ──► completed
-                  └──► failed
-                  └──► cancelled
+             │    ├──► failed
+             │    └──► cancelled
+             └──► paused ──► running
 ```
 
 `JobSnapshot` carries the live state:
@@ -817,7 +825,7 @@ interface JobSnapshot {
 }
 ```
 
-`paused` is reserved; the current executor never enters it.
+`pause_job` transitions a running file-operation job to `paused`; the worker blocks at its cooperative pause gate until `resume_job`, cancellation, or a terminal transition. Repeated pause/resume calls are idempotent when the requested state is already active. Metadata jobs do not support pause/resume.
 
 Cancellation is cooperative — the worker checks `CancellationToken::is_cancelled()` between items and during byte-level copy/archive loops where applicable. The UI should treat `cancel_job` as best-effort: the job may complete or fail before the token is observed.
 
@@ -869,6 +877,9 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/dial
 | `not_found`               | `VfsError`, `FileOperationError`, Tauri shell | Resource or job id does not exist.                                |
 | `permission_denied`       | `VfsError`, `FileOperationError`              | OS denied the read/write/delete.                                  |
 | `timeout`                 | `VfsError`                                    | Directory listing exceeded the server timeout (30s).              |
+| `runtime_busy`            | `FileOperationError`                          | The bounded runtime cannot admit more work yet.                   |
+| `resource_limit_exceeded` | `FileOperationError`                          | A server-owned queue or registry limit was reached.               |
+| `plan_expired`            | `FileOperationError`                          | A retained operation plan exceeded its lifetime.                  |
 | `cancelled`               | `VfsError`, `FileOperationError`              | Directory listing or operation cancellation token was observed.   |
 | `preferences_error`       | Preferences repository                        | Invalid preference key/value or database failure.                 |
 | `is_directory`            | Tauri shell                                   | File-only command was pointed at a directory.                     |
@@ -885,6 +896,8 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/dial
 | `network_error`           | `RemoteError`, network handlers               | Generic remote/network failure.                                   |
 | `connection_required`     | `VfsError`, `RemoteError`                     | Remote URI used before session connect.                           |
 | `authentication_failed`   | `VfsError`, `RemoteError`, `terminal-core`    | SFTP or SSH terminal login/key auth rejected.                     |
+| `host_key_untrusted`      | `RemoteError`, `terminal-core`                | SSH host key must be explicitly confirmed before authentication.  |
+| `host_key_mismatch`       | `RemoteError`, `terminal-core`                | Observed SSH host key differs from the pinned key.                |
 | `connection_lost`         | `VfsError`, `RemoteError`                     | Active session dropped mid-operation.                             |
 | `folder_not_found`        | Tauri shell                                   | Watch start requires an existing directory.                       |
 | `git_command_failed`      | `git-intel`, Tauri shell                      | Local `git` command failed for a repository query.                |
@@ -896,6 +909,7 @@ The `code` is stable and is what the UI branches on (`packages/frontend/src/dial
 | `recursive_operation`     | `FileOperationError`                          | Source contains destination (move/copy into itself).              |
 | `unsupported_symlink`     | `FileOperationError`                          | Symlink object copy is unsupported for the current provider pair. |
 | `unsupported_trash`       | `FileOperationError`                          | Platform trash unavailable.                                       |
+| `unsupported_operation`   | IPC handlers                                  | The platform lacks a safe implementation for this operation.      |
 | `io_error`                | `FileOperationError`, Tauri shell             | Unclassified `std::io::Error`.                                    |
 | `internal`                | `VfsError`, `FileOperationError`, Tauri shell | Bug or invariant violation — file an issue.                       |
 | `unknown`                 | TS client                                     | A non-IPC error was caught and wrapped.                           |
@@ -934,7 +948,9 @@ The frontend never imports these directly, but internal callers and tests do.
 ### `fs-core`
 
 - `LocalFsProvider` — local stat + streamed list.
-- `provider-sftp::SftpProvider` — SFTP stat + streamed list (read-only v1); registered alongside local at boot.
+- `provider-sftp::SftpProvider` — SFTP filesystem provider with pinned-host-key session establishment and staged remote writes.
+- `provider-webdav::WebDavProvider` — HTTPS WebDAV filesystem provider with bounded response parsing and staged uploads.
+- `provider-s3::S3Provider` — preview S3 filesystem provider with bounded paginated listings and request limits.
 - `remote-core::ConnectionSessionManager` — profile session lifecycle shared by remote providers.
 - `config::NetworkProfileRepository` — persisted server profiles in `network.sqlite`.
 - `platform::SecretStore` — OS keychain wrapper for network credentials.
@@ -950,7 +966,7 @@ The frontend never imports these directly, but internal callers and tests do.
 ### `jobs`
 
 - `JobId`, `JobStatus`, `JobSnapshot`.
-- `JobEvent::{Started, Progress, Completed, Failed, Cancelled}` and the corresponding event structs.
+- `JobEvent::{Started, Progress, Paused, Resumed, Completed, Failed, Cancelled}` and the corresponding event structs.
 - `CancellationToken { new(), cancel(), is_cancelled() }` — internally a single `AtomicBool` shared via `Arc`.
 
 ### `app-core`

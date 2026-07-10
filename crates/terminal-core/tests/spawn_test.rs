@@ -137,6 +137,33 @@ fn write_rejects_wrong_owner() {
 }
 
 #[test]
+fn kill_rejects_wrong_owner_without_removing_session() {
+    let service = TerminalService::new();
+    let _rx = service.take_event_receiver();
+    let cwd = std::env::temp_dir();
+    let id = service
+        .spawn(SpawnTerminalRequest {
+            cwd,
+            cwd_uri: None,
+            cols: 80,
+            rows: 24,
+            shell: None,
+            args: None,
+            env: Vec::new(),
+            terminal_profile_id: None,
+            title: None,
+            owner: TEST_OWNER.to_string(),
+        })
+        .expect("spawn");
+
+    let result = service.kill(id, "other-window");
+
+    assert!(result.is_err());
+    assert!(service.contains(id));
+    service.kill(id, TEST_OWNER).expect("owner can still kill");
+}
+
+#[test]
 fn authentication_failed_has_distinct_error_code() {
     let error = TerminalError::authentication_failed("bad credentials");
     assert_eq!(error.code, TerminalErrorCode::AuthenticationFailed);

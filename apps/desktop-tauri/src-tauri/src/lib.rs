@@ -1,4 +1,4 @@
-use app_core::AppCore;
+use app_core::{AppCore, AppPaths};
 
 mod commands;
 mod emit;
@@ -11,33 +11,47 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let app_state = AppCore::boot().expect("failed to boot FileOctopus app core");
-    let plugin_state = PluginState::new(app_state.paths());
-
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .manage(app_state)
         .manage(WatchState::default())
         .manage(MetadataJobState::default())
         .manage(ListingRegistry::default())
         .manage(LogStreamState::default())
-        .manage(plugin_state)
         .on_menu_event(|app, event| {
             menu::handle_native_menu_event(app, event.id().as_ref());
         })
         .setup(|app| {
+            let paths = if std::env::var("FILEOCTOPUS_DATA_DIR")
+                .ok()
+                .is_some_and(|value| !value.trim().is_empty())
+            {
+                AppPaths::default()
+            } else {
+                let config_dir = app.path().app_config_dir()?;
+                let data_dir = app.path().app_data_dir()?;
+                let log_dir = app.path().app_log_dir()?;
+                AppPaths {
+                    config_dir: config_dir.clone(),
+                    data_dir: data_dir.clone(),
+                    log_dir,
+                    history_db: data_dir.join("operation-history.sqlite"),
+                    preferences_db: config_dir.join("preferences.sqlite"),
+                    navigation_db: data_dir.join("navigation.sqlite"),
+                    network_db: config_dir.join("network.sqlite"),
+                    terminal_db: config_dir.join("terminal.sqlite"),
+                }
+            };
+            let state = AppCore::boot_with_paths(paths)?;
+            app.manage(state.clone());
+            app.manage(PluginState::new(state.paths()));
             telemetry::info("FileOctopus Tauri shell started");
             app.set_menu(menu::build_native_menu(app.handle())?)?;
 
             let app_handle = app.handle().clone();
-            let state = app_handle
-                .state::<std::sync::Arc<app_core::AppState>>()
-                .inner()
-                .clone();
 
             commands::terminal::start_terminal_event_bridge(app_handle.clone(), state.clone());
 

@@ -10,6 +10,8 @@ use vfs::{FileOperationError, FileOperationKind, ListCancellation};
 use crate::emit::emit_job;
 
 const METADATA_JOB_TERMINAL_RETENTION_MAX: usize = 64;
+const ACTIVE_METADATA_JOB_LIMIT: usize = 16;
+const ACTIVE_LISTING_LIMIT: usize = 16;
 
 #[derive(Default)]
 pub(crate) struct WatchState {
@@ -41,25 +43,62 @@ pub(crate) struct MetadataJobRuntime {
 
 #[derive(Clone, Default)]
 pub(crate) struct ListingRegistry {
-    pub(crate) tokens: Arc<Mutex<HashMap<String, ListCancellation>>>,
+    tokens: Arc<Mutex<HashMap<String, ActiveListing>>>,
+}
+
+struct ActiveListing {
+    request_id: String,
+    token: ListCancellation,
 }
 
 impl ListingRegistry {
-    pub(crate) fn register(&self, panel_key: &str) -> ListCancellation {
+    pub(crate) fn register(
+        &self,
+        panel_key: &str,
+        request_id: &str,
+    ) -> Result<ListCancellation, IpcError> {
         let token = ListCancellation::new();
-        let mut tokens = self.tokens.lock().expect("listing registry lock poisoned");
+        let mut tokens = self
+            .tokens
+            .lock()
+            .map_err(|_| IpcError::internal("listing registry lock poisoned"))?;
 
+        if tokens
+            .values()
+            .any(|listing| listing.request_id == request_id)
+        {
+            return Err(IpcError::invalid_request(
+                "directory listing request id is already active",
+            ));
+        }
+        if !tokens.contains_key(panel_key) && tokens.len() >= ACTIVE_LISTING_LIMIT {
+            return Err(IpcError::from(FileOperationError::ResourceLimitExceeded {
+                resource: "active directory listings".to_string(),
+                limit: ACTIVE_LISTING_LIMIT,
+            }));
+        }
         if let Some(previous) = tokens.remove(panel_key) {
-            previous.cancel();
+            previous.token.cancel();
         }
 
-        tokens.insert(panel_key.to_string(), token.clone());
-        token
+        tokens.insert(
+            panel_key.to_string(),
+            ActiveListing {
+                request_id: request_id.to_string(),
+                token: token.clone(),
+            },
+        );
+        Ok(token)
     }
 
-    pub(crate) fn remove(&self, panel_key: &str) {
+    pub(crate) fn remove(&self, panel_key: &str, request_id: &str) {
         if let Ok(mut tokens) = self.tokens.lock() {
-            tokens.remove(panel_key);
+            if tokens
+                .get(panel_key)
+                .is_some_and(|listing| listing.request_id == request_id)
+            {
+                tokens.remove(panel_key);
+            }
         }
     }
 }
@@ -89,11 +128,24 @@ pub(crate) fn start_metadata_job(
         cancel: CancellationToken::new(),
     };
 
-    state
+    let mut jobs = state
         .jobs
         .lock()
-        .map_err(|_| IpcError::internal("metadata job state lock poisoned"))?
-        .insert(job_id.as_str().to_string(), runtime);
+        .map_err(|_| IpcError::internal("metadata job state lock poisoned"))?;
+    prune_terminal_metadata_jobs(&mut jobs);
+    if jobs
+        .values()
+        .filter(|runtime| !is_terminal_status(runtime.snapshot.status))
+        .count()
+        >= ACTIVE_METADATA_JOB_LIMIT
+    {
+        return Err(IpcError::from(FileOperationError::ResourceLimitExceeded {
+            resource: "active metadata jobs".to_string(),
+            limit: ACTIVE_METADATA_JOB_LIMIT,
+        }));
+    }
+    jobs.insert(job_id.as_str().to_string(), runtime);
+    drop(jobs);
 
     Ok(snapshot)
 }
@@ -154,16 +206,23 @@ pub(crate) fn set_metadata_job_status(
     status: JobStatus,
     code: Option<String>,
     message: Option<String>,
-) {
+) -> bool {
     if let Ok(mut jobs) = jobs.lock() {
         if let Some(runtime) = jobs.get_mut(job_id) {
+            if is_terminal_status(runtime.snapshot.status) && runtime.snapshot.status != status {
+                return false;
+            }
             runtime.snapshot.status = status;
             runtime.snapshot.error_code = code;
             runtime.snapshot.message = message;
             runtime.snapshot.updated_at = Utc::now();
+        } else {
+            return false;
         }
         prune_terminal_metadata_jobs(&mut jobs);
+        return true;
     }
+    false
 }
 
 fn prune_terminal_metadata_jobs(jobs: &mut HashMap<String, MetadataJobRuntime>) {
@@ -205,14 +264,23 @@ pub(crate) fn update_metadata_job_progress(
     completed_bytes: u64,
 ) {
     let updated_at = Utc::now();
+    let mut should_emit = false;
 
     if let Ok(mut jobs) = jobs.lock() {
         if let Some(runtime) = jobs.get_mut(job_id.as_str()) {
+            if runtime.snapshot.status != JobStatus::Running {
+                return;
+            }
             runtime.snapshot.current_item = Some(current_item.clone());
             runtime.snapshot.completed_items = completed_items;
             runtime.snapshot.completed_bytes = completed_bytes;
             runtime.snapshot.updated_at = updated_at;
+            should_emit = true;
         }
+    }
+
+    if !should_emit {
+        return;
     }
 
     emit_job(
@@ -254,5 +322,87 @@ mod tests {
             job_count <= 64,
             "metadata jobs should retain a bounded number of terminal snapshots, got {job_count}"
         );
+    }
+
+    #[test]
+    fn metadata_jobs_bound_active_work() {
+        let state = MetadataJobState::default();
+        for _ in 0..ACTIVE_METADATA_JOB_LIMIT {
+            start_metadata_job(&state, FileOperationKind::FolderSize).unwrap();
+        }
+
+        let error = start_metadata_job(&state, FileOperationKind::FolderSize)
+            .err()
+            .unwrap();
+        assert_eq!(error.code, "resource_limit_exceeded");
+        assert_eq!(state.jobs.lock().unwrap().len(), ACTIVE_METADATA_JOB_LIMIT);
+    }
+
+    #[test]
+    fn metadata_job_terminal_status_is_absorbing() {
+        let state = MetadataJobState::default();
+        let job = start_metadata_job(&state, FileOperationKind::FolderSize).unwrap();
+        assert!(set_metadata_job_status(
+            &state.jobs,
+            job.job_id.as_str(),
+            JobStatus::Running,
+            None,
+            None,
+        ));
+        cancel_metadata_job(&state, job.job_id.as_str()).unwrap();
+        assert!(!set_metadata_job_status(
+            &state.jobs,
+            job.job_id.as_str(),
+            JobStatus::Completed,
+            None,
+            None,
+        ));
+        assert_eq!(
+            metadata_job_snapshot(&state, job.job_id.as_str())
+                .unwrap()
+                .unwrap()
+                .status,
+            JobStatus::Cancelled
+        );
+    }
+
+    #[test]
+    fn listing_registry_stale_cleanup_preserves_new_request() {
+        let registry = ListingRegistry::default();
+        let first = registry.register("left", "request-1").unwrap();
+        registry.register("left", "request-2").unwrap();
+        assert!(first.is_cancelled());
+
+        registry.remove("left", "request-1");
+        let tokens = registry.tokens.lock().unwrap();
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens["left"].request_id, "request-2");
+    }
+
+    #[test]
+    fn listing_registry_rejects_duplicate_request_ids() {
+        let registry = ListingRegistry::default();
+        registry.register("left", "request-1").unwrap();
+
+        let error = registry.register("right", "request-1").err().unwrap();
+        assert_eq!(error.code, "invalid_request");
+        assert_eq!(registry.tokens.lock().unwrap().len(), 1);
+    }
+
+    #[test]
+    fn listing_registry_bounds_active_requests() {
+        let registry = ListingRegistry::default();
+        for index in 0..ACTIVE_LISTING_LIMIT {
+            registry
+                .register(&format!("panel-{index}"), &format!("request-{index}"))
+                .unwrap();
+        }
+
+        let error = registry
+            .register("overflow", "request-overflow")
+            .err()
+            .unwrap();
+        assert_eq!(error.code, "resource_limit_exceeded");
+        assert_eq!(registry.tokens.lock().unwrap().len(), ACTIVE_LISTING_LIMIT);
     }
 }

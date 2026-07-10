@@ -95,3 +95,39 @@ async fn s3_connect_rejects_missing_secret_key() {
         Ok(_) => panic!("expected error for missing secret key"),
     }
 }
+
+#[tokio::test]
+async fn s3_connect_rejects_insecure_endpoint() {
+    let connector = S3Connector::new();
+    let profile = make_profile(
+        "http://minio.example.test:9000",
+        9000,
+        "/my-bucket",
+        AuthKind::AccessKey,
+    );
+    let secrets = remote_core::AuthSecrets {
+        password: Some("secret".to_string()),
+        passphrase: None,
+    };
+
+    let error = connector.connect(&profile, &secrets).await.err().unwrap();
+    assert!(format!("{error}").contains("insecure S3 endpoint"));
+}
+
+#[tokio::test]
+async fn s3_connect_rejects_endpoint_credentials() {
+    let connector = S3Connector::new();
+    let profile = make_profile(
+        "https://user:password@s3.example.test",
+        443,
+        "/my-bucket",
+        AuthKind::AccessKey,
+    );
+    let secrets = remote_core::AuthSecrets {
+        password: Some("secret".to_string()),
+        passphrase: None,
+    };
+
+    let error = connector.connect(&profile, &secrets).await.err().unwrap();
+    assert!(format!("{error}").contains("without credentials"));
+}

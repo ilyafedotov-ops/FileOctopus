@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use std::sync::Arc;
+use std::time::Duration;
 
 use chrono::Utc;
 use jobs::{JobSnapshot, JobStatus};
@@ -225,7 +226,14 @@ impl OperationHistoryRepository {
     }
 
     pub(crate) fn connect(&self) -> rusqlite::Result<Connection> {
-        Connection::open(&*self.path)
+        let connection = Connection::open(&*self.path)?;
+        connection.busy_timeout(Duration::from_secs(5))?;
+        connection.pragma_update(None, "journal_mode", "WAL")?;
+        connection.pragma_update(None, "synchronous", "NORMAL")?;
+        connection.pragma_update(None, "foreign_keys", true)?;
+        connection.pragma_update(None, "trusted_schema", false)?;
+        connection.pragma_update(None, "journal_size_limit", 64 * 1024 * 1024_i64)?;
+        Ok(connection)
     }
 }
 

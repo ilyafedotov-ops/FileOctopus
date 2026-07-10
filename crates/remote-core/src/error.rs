@@ -9,6 +9,16 @@ pub enum RemoteError {
     UnsupportedScheme { scheme: String },
     #[error("authentication failed for `{uri}`: {message}")]
     AuthenticationFailed { uri: String, message: String },
+    #[error("SSH host key for `{uri}` is not trusted: {fingerprint}")]
+    HostKeyUntrusted { uri: String, fingerprint: String },
+    #[error("SSH host key mismatch for `{uri}` (expected {expected}, observed {observed})")]
+    HostKeyMismatch {
+        uri: String,
+        expected: String,
+        observed: String,
+    },
+    #[error("SSH host key confirmation is missing or stale for `{uri}`")]
+    HostKeyConfirmationRequired { uri: String },
     #[error("connection failed for `{uri}`: {message}")]
     ConnectionFailed { uri: String, message: String },
     #[error("connection not established for `{uri}`")]
@@ -27,6 +37,10 @@ impl RemoteError {
             Self::ProfileNotFound => "not_found",
             Self::UnsupportedScheme { .. } => "unsupported_provider",
             Self::AuthenticationFailed { .. } => "authentication_failed",
+            Self::HostKeyUntrusted { .. } | Self::HostKeyConfirmationRequired { .. } => {
+                "host_key_untrusted"
+            }
+            Self::HostKeyMismatch { .. } => "host_key_mismatch",
             Self::ConnectionFailed { .. } => "connection_lost",
             Self::NotConnected { .. } => "connection_required",
             Self::SecretStore(error) => match error {
@@ -53,6 +67,24 @@ impl From<RemoteError> for VfsError {
             RemoteError::AuthenticationFailed { uri, message } => {
                 Self::AuthenticationFailed { uri, message }
             }
+            RemoteError::HostKeyUntrusted { uri, fingerprint } => Self::AuthenticationFailed {
+                uri,
+                message: format!("SSH host key is not trusted: {fingerprint}"),
+            },
+            RemoteError::HostKeyMismatch {
+                uri,
+                expected,
+                observed,
+            } => Self::AuthenticationFailed {
+                uri,
+                message: format!(
+                    "SSH host key mismatch (expected {expected}, observed {observed})"
+                ),
+            },
+            RemoteError::HostKeyConfirmationRequired { uri } => Self::AuthenticationFailed {
+                uri,
+                message: "SSH host key confirmation is missing or stale".to_string(),
+            },
             RemoteError::ConnectionFailed { uri, message } => Self::ConnectionLost { uri, message },
             RemoteError::NotConnected { uri } => Self::ConnectionRequired { uri },
             RemoteError::SecretStore(platform::SecretStoreError::NotFound) => {

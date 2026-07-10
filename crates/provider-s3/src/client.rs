@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::time::Duration;
 
 use chrono::Utc;
 use hmac::{Hmac, Mac};
@@ -24,6 +25,7 @@ const S3_ENCODE_SET: &AsciiSet = &CONTROLS
     .add(b'}');
 
 type HmacSha256 = Hmac<Sha256>;
+const MAX_CONTROL_RESPONSE_BYTES: u64 = 16 * 1024 * 1024;
 
 #[derive(Clone)]
 pub struct S3Client {
@@ -123,15 +125,22 @@ impl S3Client {
         bucket: String,
         access_key: String,
         secret_key: String,
-    ) -> Self {
-        Self {
-            http: Client::new(),
+    ) -> Result<Self, String> {
+        let http = Client::builder()
+            .connect_timeout(Duration::from_secs(10))
+            .timeout(Duration::from_secs(60))
+            .redirect(reqwest::redirect::Policy::none())
+            .https_only(true)
+            .build()
+            .map_err(|error| format!("failed to build S3 HTTP client: {error}"))?;
+        Ok(Self {
+            http,
             endpoint: endpoint.trim_end_matches('/').to_string(),
             region,
             bucket,
             access_key,
             secret_key,
-        }
+        })
     }
 
     pub fn bucket_name(&self) -> &str {
@@ -180,10 +189,7 @@ impl S3Client {
             .await
             .map_err(|e| VfsError::internal(&format!("s3 list failed: {e}")))?;
         let status = response.status();
-        let body = response
-            .bytes()
-            .await
-            .map_err(|e| VfsError::internal(&format!("s3 list read failed: {e}")))?;
+        let body = read_response_limited(response, MAX_CONTROL_RESPONSE_BYTES, "s3 list").await?;
         if !status.is_success() {
             return Err(VfsError::internal(&format!("s3 list failed: {status}")));
         }
@@ -291,11 +297,10 @@ impl S3Client {
                 response.status()
             )));
         }
-        response
-            .bytes()
-            .await
-            .map(|bytes| bytes.to_vec())
-            .map_err(|e| VfsError::internal(&format!("s3 get_object_range read failed: {e}")))
+        let requested_bytes = end
+            .map(|end| end.saturating_sub(start).saturating_add(1))
+            .ok_or_else(|| VfsError::internal("unbounded S3 range reads are not supported"))?;
+        read_response_limited(response, requested_bytes, "s3 get_object_range").await
     }
 
     async fn send(
@@ -334,6 +339,40 @@ impl S3Client {
         }
         request.send().await.map_err(|e| e.to_string())
     }
+}
+
+async fn read_response_limited(
+    mut response: reqwest::Response,
+    limit: u64,
+    operation: &str,
+) -> Result<Vec<u8>, VfsError> {
+    if response
+        .content_length()
+        .is_some_and(|length| length > limit)
+    {
+        return Err(VfsError::internal(&format!(
+            "{operation} response exceeded the {limit}-byte limit"
+        )));
+    }
+    let capacity = usize::try_from(limit.min(64 * 1024)).unwrap_or(64 * 1024);
+    let mut bytes = Vec::with_capacity(capacity);
+    let mut total = 0_u64;
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|error| VfsError::internal(&format!("{operation} read failed: {error}")))?
+    {
+        total = total
+            .checked_add(chunk.len() as u64)
+            .ok_or_else(|| VfsError::internal(&format!("{operation} response size overflowed")))?;
+        if total > limit {
+            return Err(VfsError::internal(&format!(
+                "{operation} response exceeded the {limit}-byte limit"
+            )));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
 }
 
 pub fn parse_list_bucket_response(xml: &str) -> Result<S3ListPage, quick_xml::DeError> {

@@ -14,32 +14,67 @@ pub struct AppPaths {
 
 impl AppPaths {
     pub fn ensure_directories(&self) -> std::io::Result<()> {
-        std::fs::create_dir_all(&self.config_dir)?;
-        std::fs::create_dir_all(&self.data_dir)?;
-        std::fs::create_dir_all(&self.log_dir)?;
+        create_private_directory(&self.config_dir)?;
+        create_private_directory(&self.data_dir)?;
+        create_private_directory(&self.log_dir)?;
 
         if let Some(parent) = self.history_db.parent() {
-            std::fs::create_dir_all(parent)?;
+            create_private_directory(parent)?;
         }
 
         if let Some(parent) = self.preferences_db.parent() {
-            std::fs::create_dir_all(parent)?;
+            create_private_directory(parent)?;
         }
 
         if let Some(parent) = self.navigation_db.parent() {
-            std::fs::create_dir_all(parent)?;
+            create_private_directory(parent)?;
         }
 
         if let Some(parent) = self.network_db.parent() {
-            std::fs::create_dir_all(parent)?;
+            create_private_directory(parent)?;
         }
 
         if let Some(parent) = self.terminal_db.parent() {
-            std::fs::create_dir_all(parent)?;
+            create_private_directory(parent)?;
         }
 
         Ok(())
     }
+
+    pub fn secure_database_files(&self) -> std::io::Result<()> {
+        for path in [
+            &self.history_db,
+            &self.preferences_db,
+            &self.navigation_db,
+            &self.network_db,
+            &self.terminal_db,
+        ] {
+            secure_private_file(path)?;
+        }
+        Ok(())
+    }
+}
+
+fn create_private_directory(path: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(path)?;
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o700))?;
+    }
+    Ok(())
+}
+
+fn secure_private_file(path: &std::path::Path) -> std::io::Result<()> {
+    if !path.exists() {
+        return Ok(());
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))?;
+    }
+    Ok(())
 }
 
 impl Default for AppPaths {

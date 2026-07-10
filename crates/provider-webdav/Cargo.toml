@@ -1,0 +1,20 @@
+[package]
+name = "provider-webdav"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+async-trait = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+config = { path = "../config" }
+percent-encoding = "2"
+quick-xml = "0.41"
+remote-core = { path = "../remote-core" }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "stream"] }
+tempfile = "3"
+thiserror = "2"
+tokio = { version = "1", features = ["fs"] }
+vfs = { path = "../vfs" }
+
+[dev-dependencies]
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt-multi-thread", "sync", "time"] }

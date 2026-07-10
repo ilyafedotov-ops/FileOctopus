@@ -15,7 +15,7 @@ use tokio::sync::broadcast::error::RecvError;
 use vfs::ResourceUri;
 use zip::write::SimpleFileOptions;
 
-use crate::commands::app_info::app_get_info;
+use crate::commands::app_info::app_info_for_paths;
 use crate::emit::emit_event;
 use crate::state::LogStreamState;
 
@@ -198,7 +198,7 @@ pub(crate) fn write_diagnostics_bundle(
     let mut archive = zip::ZipWriter::new(file);
     let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
     let mut files = Vec::new();
-    let app_info = serde_json::to_vec_pretty(&app_get_info())
+    let app_info = serde_json::to_vec_pretty(&app_info_for_paths(state.paths()))
         .map_err(|error| IpcError::internal(&format!("failed to serialize app info: {error}")))?;
     let health = state.app_data_health();
     let health = serde_json::json!({

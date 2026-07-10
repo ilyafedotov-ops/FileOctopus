@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use vfs::{EntryCapabilities, FileEntry, FileKind, ProviderId, ResourceUri};
 
-pub fn onedrive_item_to_entry(item: &serde_json::Value) -> Option<FileEntry> {
+pub fn onedrive_item_to_entry(profile_id: &str, item: &serde_json::Value) -> Option<FileEntry> {
     let name = item.get("name")?.as_str()?.to_string();
     let folder = item.get("folder").is_some();
     let kind = if folder {
@@ -34,7 +34,8 @@ pub fn onedrive_item_to_entry(item: &serde_json::Value) -> Option<FileEntry> {
         .map(|s| s.to_string());
 
     Some(FileEntry {
-        uri: ResourceUri::parse(&format!("onedrive://profile/{}", id)).ok()?,
+        uri: ResourceUri::from_remote_profile("onedrive", profile_id, &format!("/item/{id}"))
+            .ok()?,
         name,
         extension: None,
         kind,
@@ -61,6 +62,8 @@ pub fn onedrive_item_to_entry(item: &serde_json::Value) -> Option<FileEntry> {
 mod tests {
     use super::*;
 
+    const PROFILE_ID: &str = "550e8400-e29b-41d4-a716-446655440000";
+
     #[test]
     fn onedrive_item_to_entry_parses_file() {
         let json = serde_json::json!({
@@ -70,7 +73,7 @@ mod tests {
             "lastModifiedDateTime": "2025-06-10T08:00:00Z",
             "createdDateTime": "2025-06-01T12:00:00Z"
         });
-        let entry = onedrive_item_to_entry(&json).unwrap();
+        let entry = onedrive_item_to_entry(PROFILE_ID, &json).unwrap();
         assert_eq!(entry.name, "report.docx");
         assert_eq!(entry.kind, FileKind::File);
         assert_eq!(entry.size, Some(4096));
@@ -85,7 +88,7 @@ mod tests {
             "name": "Documents",
             "folder": { "childCount": 5 }
         });
-        let entry = onedrive_item_to_entry(&json).unwrap();
+        let entry = onedrive_item_to_entry(PROFILE_ID, &json).unwrap();
         assert_eq!(entry.name, "Documents");
         assert_eq!(entry.kind, FileKind::Directory);
         assert_eq!(entry.size, None);

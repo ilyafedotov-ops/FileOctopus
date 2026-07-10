@@ -138,7 +138,10 @@ mod tests {
 
     #[test]
     fn gdrive_connector_requires_oauth_auth_kind() {
-        let rt = tokio::runtime::Runtime::new().unwrap();
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
         let connector = GDriveConnector::new();
         let profile = make_profile(AuthKind::Password);
         let secrets = AuthSecrets {

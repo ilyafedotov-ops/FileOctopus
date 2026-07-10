@@ -301,7 +301,7 @@ impl NavigationRepository {
     }
 
     fn connect(&self) -> Result<Connection, NavigationError> {
-        Connection::open(&*self.path).map_err(NavigationError::from)
+        crate::open_database(&self.path).map_err(NavigationError::from)
     }
 }
 

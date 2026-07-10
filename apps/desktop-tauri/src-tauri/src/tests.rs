@@ -6,7 +6,7 @@ use config::RecentBucket;
 use fs_core::{direct_ops, metadata};
 use vfs::{FileKind, ResourceUri};
 
-use crate::commands::app_info::app_get_info;
+use crate::commands::app_info::app_info_for_paths;
 use crate::commands::diagnostics::{
     redact_diagnostics_history_path, resolve_diagnostics_destination, write_diagnostics_bundle,
 };
@@ -23,7 +23,7 @@ fn local_uri(path: &std::path::Path) -> String {
 
 #[test]
 fn app_info_response_has_stable_metadata_fields() {
-    let info = app_get_info();
+    let info = app_info_for_paths(&app_core::AppPaths::default());
 
     assert_eq!(info.name, "FileOctopus");
     assert!(!info.version.is_empty());

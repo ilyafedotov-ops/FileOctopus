@@ -54,7 +54,7 @@ impl VfsProvider for DropboxProvider {
     }
 
     async fn stat(&self, uri: &ResourceUri) -> Result<vfs::FileEntry, VfsError> {
-        let (_, session) = self.session_for(uri).await?;
+        let (profile_id, session) = self.session_for(uri).await?;
         let path = uri.remote_path().unwrap_or_default();
 
         let response = session
@@ -75,7 +75,7 @@ impl VfsProvider for DropboxProvider {
             .await
             .map_err(|e| VfsError::internal(&format!("dropbox stat parse failed: {e}")))?;
 
-        crate::ops::dropbox_metadata_to_entry(&json)
+        crate::ops::dropbox_metadata_to_entry(&profile_id, &json)
             .ok_or_else(|| VfsError::internal("failed to parse dropbox file entry"))
     }
 
@@ -85,7 +85,7 @@ impl VfsProvider for DropboxProvider {
         options: ListOptions,
         sink: DirectorySink,
     ) -> Result<(), VfsError> {
-        let (_, session) = self.session_for(uri).await?;
+        let (profile_id, session) = self.session_for(uri).await?;
         let remote_path = uri.remote_path().unwrap_or_default();
         let path = if remote_path.is_empty() {
             "".to_string()
@@ -118,7 +118,7 @@ impl VfsProvider for DropboxProvider {
         let entries: Vec<vfs::FileEntry> = entries_val
             .unwrap_or_default()
             .iter()
-            .filter_map(crate::ops::dropbox_metadata_to_entry)
+            .filter_map(|item| crate::ops::dropbox_metadata_to_entry(&profile_id, item))
             .collect();
 
         let is_complete = !json

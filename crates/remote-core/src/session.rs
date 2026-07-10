@@ -11,6 +11,7 @@ use crate::error::RemoteError;
 use crate::secrets::AuthSecrets;
 
 const SESSION_IDLE_TIMEOUT: Duration = Duration::from_secs(15 * 60);
+const HOST_KEY_CHALLENGE_TTL: Duration = Duration::from_secs(5 * 60);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnectionStatus {
@@ -48,6 +49,13 @@ pub trait RemoteSession: Send + Sync {
 pub trait RemoteConnector: Send + Sync {
     fn scheme(&self) -> &'static str;
 
+    async fn observe_host_key(
+        &self,
+        _profile: &NetworkProfile,
+    ) -> Result<Option<String>, RemoteError> {
+        Ok(None)
+    }
+
     async fn connect(
         &self,
         profile: &NetworkProfile,
@@ -55,6 +63,14 @@ pub trait RemoteConnector: Send + Sync {
     ) -> Result<Arc<dyn RemoteSession>, RemoteError>;
 
     async fn disconnect(&self, session: Arc<dyn RemoteSession>) -> Result<(), RemoteError>;
+}
+
+#[derive(Clone)]
+struct HostKeyChallenge {
+    host: String,
+    port: u16,
+    fingerprint: String,
+    observed_at: Instant,
 }
 
 pub struct RemoteConnectorRegistry {
@@ -71,6 +87,10 @@ impl RemoteConnectorRegistry {
     pub fn register(&mut self, connector: Arc<dyn RemoteConnector>) {
         self.connectors
             .insert(connector.scheme().to_string(), connector);
+    }
+
+    pub fn register_alias(&mut self, scheme: &str, connector: Arc<dyn RemoteConnector>) {
+        self.connectors.insert(scheme.to_string(), connector);
     }
 
     pub fn get(&self, scheme: &str) -> Option<Arc<dyn RemoteConnector>> {
@@ -91,6 +111,7 @@ pub struct ConnectionSessionManager {
     sessions: RwLock<HashMap<String, RemoteSessionHandle>>,
     statuses: RwLock<HashMap<String, ConnectionStatus>>,
     connect_locks: RwLock<HashMap<String, Arc<tokio::sync::Mutex<()>>>>,
+    host_key_challenges: RwLock<HashMap<String, HostKeyChallenge>>,
     status_tx: broadcast::Sender<NetworkStatusEvent>,
 }
 
@@ -108,6 +129,7 @@ impl ConnectionSessionManager {
             sessions: RwLock::new(HashMap::new()),
             statuses: RwLock::new(HashMap::new()),
             connect_locks: RwLock::new(HashMap::new()),
+            host_key_challenges: RwLock::new(HashMap::new()),
             status_tx,
         }
     }
@@ -159,6 +181,22 @@ impl ConnectionSessionManager {
     }
 
     pub async fn observed_host_key_fingerprint(&self, profile_id: &str) -> Option<String> {
+        let challenge = self
+            .host_key_challenges
+            .read()
+            .await
+            .get(profile_id)
+            .cloned();
+        if let Some(challenge) = challenge {
+            let profile = self.profiles.get(profile_id).ok()?;
+            if challenge.observed_at.elapsed() < HOST_KEY_CHALLENGE_TTL
+                && challenge.host == profile.host
+                && challenge.port == profile.port
+            {
+                return Some(challenge.fingerprint);
+            }
+        }
+
         self.sessions
             .read()
             .await
@@ -204,6 +242,10 @@ impl ConnectionSessionManager {
             .ok_or_else(|| RemoteError::UnsupportedScheme {
                 scheme: profile.scheme.clone(),
             })?;
+        if let Err(error) = self.verify_host_key(&profile, &connector).await {
+            self.mark_error(profile_id, &error.to_string()).await;
+            return Err(error);
+        }
         let secrets = match AuthSecrets::load(&self.secrets, &profile) {
             Ok(secrets) => secrets,
             Err(platform::SecretStoreError::NotFound) => {
@@ -258,6 +300,100 @@ impl ConnectionSessionManager {
                 Err(error)
             }
         }
+    }
+
+    pub async fn verify_profile_host_key(&self, profile_id: &str) -> Result<(), RemoteError> {
+        let profile = self.profiles.get(profile_id)?;
+        let connector = self
+            .connectors
+            .read()
+            .await
+            .get(&profile.scheme)
+            .ok_or_else(|| RemoteError::UnsupportedScheme {
+                scheme: profile.scheme.clone(),
+            })?;
+        self.verify_host_key(&profile, &connector).await
+    }
+
+    async fn verify_host_key(
+        &self,
+        profile: &NetworkProfile,
+        connector: &Arc<dyn RemoteConnector>,
+    ) -> Result<(), RemoteError> {
+        let Some(observed) = connector.observe_host_key(profile).await? else {
+            self.host_key_challenges.write().await.remove(&profile.id);
+            return Ok(());
+        };
+        let uri = format!("{}://{}:{}", profile.scheme, profile.host, profile.port);
+        let challenge = HostKeyChallenge {
+            host: profile.host.clone(),
+            port: profile.port,
+            fingerprint: observed.clone(),
+            observed_at: Instant::now(),
+        };
+
+        match profile.host_key_fingerprint.as_deref() {
+            None => {
+                self.host_key_challenges
+                    .write()
+                    .await
+                    .insert(profile.id.clone(), challenge);
+                Err(RemoteError::HostKeyUntrusted {
+                    uri,
+                    fingerprint: observed,
+                })
+            }
+            Some(expected) if expected != observed => {
+                self.host_key_challenges
+                    .write()
+                    .await
+                    .insert(profile.id.clone(), challenge);
+                Err(RemoteError::HostKeyMismatch {
+                    uri,
+                    expected: expected.to_string(),
+                    observed,
+                })
+            }
+            Some(_) => {
+                self.host_key_challenges.write().await.remove(&profile.id);
+                Ok(())
+            }
+        }
+    }
+
+    pub async fn trust_observed_host_key(
+        &self,
+        profile_id: &str,
+        fingerprint: &str,
+    ) -> Result<(), RemoteError> {
+        let profile = self.profiles.get(profile_id)?;
+        let challenge = self
+            .host_key_challenges
+            .read()
+            .await
+            .get(profile_id)
+            .cloned()
+            .ok_or_else(|| RemoteError::HostKeyConfirmationRequired {
+                uri: format!("{}://{}:{}", profile.scheme, profile.host, profile.port),
+            })?;
+        if challenge.observed_at.elapsed() >= HOST_KEY_CHALLENGE_TTL
+            || challenge.host != profile.host
+            || challenge.port != profile.port
+            || challenge.fingerprint != fingerprint
+        {
+            return Err(RemoteError::HostKeyConfirmationRequired {
+                uri: format!("{}://{}:{}", profile.scheme, profile.host, profile.port),
+            });
+        }
+
+        self.profiles
+            .set_host_key_fingerprint(profile_id, &challenge.fingerprint)?;
+        self.host_key_challenges.write().await.remove(profile_id);
+        Ok(())
+    }
+
+    pub async fn clear_observed_host_key(&self, profile_id: &str) {
+        self.host_key_challenges.write().await.remove(profile_id);
     }
 
     pub async fn disconnect(&self, profile_id: &str) -> Result<(), RemoteError> {

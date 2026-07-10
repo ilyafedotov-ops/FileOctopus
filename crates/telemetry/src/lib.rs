@@ -54,10 +54,13 @@ pub fn streaming_enabled() -> bool {
 }
 
 pub fn init() -> Result<(), Box<dyn Error + Send + Sync>> {
+    init_at(default_log_dir())
+}
+
+pub fn init_at(log_dir: PathBuf) -> Result<(), Box<dyn Error + Send + Sync>> {
     INIT.get_or_init(|| {
         let filter = EnvFilter::try_from_default_env()
             .unwrap_or_else(|_| EnvFilter::new(default_filter_directives()));
-        let log_dir = default_log_dir();
 
         std::fs::create_dir_all(&log_dir).map_err(|error| error.to_string())?;
 
@@ -149,7 +152,11 @@ fn now_ms() -> u64 {
 }
 
 pub fn default_filter_directives() -> &'static str {
-    "app_core=debug,fileoctopus_desktop_lib=debug,fs_core=debug,remote_core=debug,terminal_core=debug,info"
+    if cfg!(debug_assertions) {
+        "app_core=debug,fileoctopus_desktop_lib=debug,fs_core=debug,remote_core=debug,terminal_core=debug,info"
+    } else {
+        "app_core=info,fileoctopus_desktop_lib=info,fs_core=info,remote_core=info,terminal_core=info"
+    }
 }
 
 pub fn default_log_dir() -> PathBuf {

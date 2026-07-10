@@ -43,15 +43,32 @@ fn remove_s3_tree_blocking(
     let bucket = session.client();
     let rt = tokio::runtime::Handle::current();
 
-    // List all objects with this prefix
-    let list_result = rt
-        .block_on(bucket.list_page(prefix.to_string(), None, None, None, Some(1000)))
-        .map_err(|e| VfsError::internal(&format!("s3 list failed: {e}")))?;
+    let mut continuation_token = None;
+    loop {
+        let list_result = rt
+            .block_on(bucket.list_page(
+                prefix.to_string(),
+                None,
+                continuation_token,
+                None,
+                Some(1000),
+            ))
+            .map_err(|e| VfsError::internal(&format!("s3 list failed: {e}")))?;
 
-    for obj in &list_result.contents {
-        let key = &obj.key;
-        rt.block_on(bucket.delete_object(key))
-            .map_err(|e| VfsError::internal(&format!("s3 delete failed: {e}")))?;
+        for obj in &list_result.contents {
+            rt.block_on(bucket.delete_object(&obj.key))
+                .map_err(|e| VfsError::internal(&format!("s3 delete failed: {e}")))?;
+        }
+
+        if !list_result.is_truncated {
+            break;
+        }
+        continuation_token = list_result.next_continuation_token;
+        if continuation_token.is_none() {
+            return Err(VfsError::internal(
+                "s3 list response was truncated without a continuation token",
+            ));
+        }
     }
 
     Ok(())
@@ -204,9 +221,8 @@ impl VfsProvider for S3Provider {
         let batch_size = options.batch_size.max(1);
         let cancel = options.cancel.clone();
 
-        // Collect all entries then batch them
-        let mut all_entries: Vec<vfs::FileEntry> = Vec::new();
         let mut continuation_token: Option<String> = None;
+        let mut batch_index = 0_u64;
 
         loop {
             if cancel.is_cancelled() {
@@ -225,7 +241,7 @@ impl VfsProvider for S3Provider {
                 .await
                 .map_err(|e| VfsError::internal(&format!("s3 list_page failed: {e}")))?;
 
-            // Common prefixes = "directories"
+            let mut entries = Vec::with_capacity(batch_size);
             for cp in &result.common_prefixes {
                 let dir_name = cp
                     .prefix
@@ -242,13 +258,11 @@ impl VfsProvider for S3Provider {
                     &profile_id,
                     &format!("/{}/{}", s3_bucket_from_uri_path(&uri_path), cp.prefix),
                 )?;
-                all_entries.push(dir_entry(&child_uri, &profile_id, &cp.prefix)?);
+                entries.push(dir_entry(&child_uri, &profile_id, &cp.prefix)?);
             }
 
-            // Objects = files
             for obj in &result.contents {
                 let obj_key = &obj.key;
-                // Skip "directory marker" objects (same as prefix)
                 if obj_key == &prefix
                     || obj_key.ends_with('/')
                         && obj_key.trim_end_matches('/') == prefix.trim_end_matches('/')
@@ -269,7 +283,7 @@ impl VfsProvider for S3Provider {
                     &profile_id,
                     &format!("/{}/{}", s3_bucket_from_uri_path(&uri_path), obj_key),
                 )?;
-                all_entries.push(object_entry(
+                entries.push(object_entry(
                     &child_uri,
                     &profile_id,
                     obj_key,
@@ -278,31 +292,54 @@ impl VfsProvider for S3Provider {
                 )?);
             }
 
-            if result.is_truncated {
-                continuation_token = result.next_continuation_token;
+            let next_continuation_token = if result.is_truncated {
+                Some(result.next_continuation_token.ok_or_else(|| {
+                    VfsError::internal(
+                        "s3 list response was truncated without a continuation token",
+                    )
+                })?)
             } else {
-                break;
-            }
-        }
+                None
+            };
 
-        // Sort and batch
-        all_entries.sort_by_key(|e| e.name.to_lowercase());
-        for (batch_index, chunk) in (0_u64..).zip(all_entries.chunks(batch_size)) {
-            if cancel.is_cancelled() {
-                return Err(VfsError::cancelled(uri));
+            entries.sort_by_key(|entry| entry.name.to_lowercase());
+            if entries.is_empty() && !result.is_truncated {
+                sink.send(DirectoryBatch {
+                    session_id: options.session_id.clone(),
+                    request_id: options.request_id.clone(),
+                    uri: uri.clone(),
+                    entries,
+                    batch_index,
+                    is_complete: true,
+                    total_hint: None,
+                })
+                .await
+                .map_err(|_| VfsError::internal("directory sink closed"))?;
+            } else {
+                let chunk_count = entries.len().div_ceil(batch_size);
+                for (chunk_index, chunk) in entries.chunks(batch_size).enumerate() {
+                    if cancel.is_cancelled() {
+                        return Err(VfsError::cancelled(uri));
+                    }
+                    sink.send(DirectoryBatch {
+                        session_id: options.session_id.clone(),
+                        request_id: options.request_id.clone(),
+                        uri: uri.clone(),
+                        entries: chunk.to_vec(),
+                        batch_index,
+                        is_complete: !result.is_truncated && chunk_index + 1 == chunk_count,
+                        total_hint: None,
+                    })
+                    .await
+                    .map_err(|_| VfsError::internal("directory sink closed"))?;
+                    batch_index += 1;
+                }
             }
-            let is_complete = (batch_index as usize + 1) * batch_size >= all_entries.len();
-            sink.send(DirectoryBatch {
-                session_id: options.session_id.clone(),
-                request_id: options.request_id.clone(),
-                uri: uri.clone(),
-                entries: chunk.to_vec(),
-                batch_index,
-                is_complete,
-                total_hint: None,
-            })
-            .await
-            .map_err(|_| VfsError::internal("directory sink closed"))?;
+
+            match next_continuation_token {
+                Some(token) => continuation_token = Some(token),
+                None => break,
+            }
         }
 
         self.sessions.touch_session(&profile_id).await;
@@ -451,6 +488,9 @@ impl VfsProvider for S3Provider {
         uri: &ResourceUri,
         max_bytes: u64,
     ) -> Result<Vec<u8>, VfsError> {
+        if max_bytes == 0 {
+            return Ok(Vec::new());
+        }
         let (profile_id, session) = self.session_for(uri).await?;
         let uri_path = uri.remote_path().unwrap_or_default();
         let (_, key) = parse_bucket_key(&uri_path);

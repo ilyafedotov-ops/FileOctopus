@@ -60,41 +60,61 @@ pub struct JobSnapshot {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "jobs/JobStartedEvent.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct JobStartedEvent {
+    #[cfg_attr(feature = "ts", ts(as = "String"))]
     pub job_id: JobId,
     pub operation_kind: FileOperationKind,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub total_items: u64,
+    #[cfg_attr(feature = "ts", ts(as = "Option<i32>"))]
     pub total_bytes: Option<u64>,
     pub started_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "jobs/JobProgressEvent.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct JobProgressEvent {
+    #[cfg_attr(feature = "ts", ts(as = "String"))]
     pub job_id: JobId,
     pub operation_kind: FileOperationKind,
     pub current_item: Option<String>,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub completed_items: u64,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub total_items: u64,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub completed_bytes: u64,
+    #[cfg_attr(feature = "ts", ts(as = "Option<i32>"))]
     pub total_bytes: Option<u64>,
     pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "jobs/JobCompletedEvent.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct JobCompletedEvent {
+    #[cfg_attr(feature = "ts", ts(as = "String"))]
     pub job_id: JobId,
     pub operation_kind: FileOperationKind,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub completed_items: u64,
+    #[cfg_attr(feature = "ts", ts(as = "i32"))]
     pub completed_bytes: u64,
     pub completed_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "jobs/JobFailedEvent.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct JobFailedEvent {
+    #[cfg_attr(feature = "ts", ts(as = "String"))]
     pub job_id: JobId,
     pub operation_kind: FileOperationKind,
     pub error_code: String,
@@ -103,24 +123,33 @@ pub struct JobFailedEvent {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "jobs/JobCancelledEvent.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct JobCancelledEvent {
+    #[cfg_attr(feature = "ts", ts(as = "String"))]
     pub job_id: JobId,
     pub operation_kind: FileOperationKind,
     pub cancelled_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "jobs/JobPausedEvent.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct JobPausedEvent {
+    #[cfg_attr(feature = "ts", ts(as = "String"))]
     pub job_id: JobId,
     pub operation_kind: FileOperationKind,
     pub paused_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "jobs/JobResumedEvent.ts"))]
 #[serde(rename_all = "camelCase")]
 pub struct JobResumedEvent {
+    #[cfg_attr(feature = "ts", ts(as = "String"))]
     pub job_id: JobId,
     pub operation_kind: FileOperationKind,
     pub resumed_at: DateTime<Utc>,

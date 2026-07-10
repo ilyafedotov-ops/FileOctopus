@@ -25,6 +25,8 @@ use crate::state::ListingRegistry;
 
 pub(crate) const LISTING_TIMEOUT: Duration = Duration::from_secs(30);
 const MAX_HASH_BYTES: u64 = 100 * 1024 * 1024;
+const MAX_LIST_BATCH_SIZE: usize = 4_096;
+const MAX_LIST_IDENTIFIER_BYTES: usize = 128;
 
 #[tauri::command]
 pub async fn fs_stat(
@@ -190,21 +192,26 @@ pub async fn fs_list_start(
     listings: State<'_, ListingRegistry>,
 ) -> Result<ListStartResponse, IpcError> {
     let uri = ResourceUri::parse(&request.uri).map_err(IpcError::from)?;
-    let request_id = request.request_id.clone();
+    let request_id = validate_list_identifier(&request.request_id, "requestId")?;
     let panel_key = request
         .panel_id
-        .clone()
+        .as_deref()
+        .map(|value| validate_list_identifier(value, "panelId"))
+        .transpose()?
         .unwrap_or_else(|| request_id.clone());
     let session_id = ListSessionId::new(&uuid::Uuid::new_v4().to_string());
     let response = ListStartResponse {
         session_id: session_id.as_str().to_string(),
         request_id: request_id.clone(),
     };
-    let cancel = listings.register(&panel_key);
+    let cancel = listings.register(&panel_key, &request_id)?;
     let options = ListOptions {
         session_id: session_id.clone(),
         request_id: request_id.clone(),
-        batch_size: request.batch_size.unwrap_or(256).max(1),
+        batch_size: request
+            .batch_size
+            .unwrap_or(256)
+            .clamp(1, MAX_LIST_BATCH_SIZE),
         include_hidden: request.include_hidden.unwrap_or(false),
         cancel: cancel.clone(),
     };
@@ -217,6 +224,7 @@ pub async fn fs_list_start(
     let error_session_id = response.session_id.clone();
     let listings_cleanup = listings.inner().clone();
     let cleanup_panel_key = panel_key.clone();
+    let cleanup_request_id = request_id.clone();
 
     tauri::async_runtime::spawn(async move {
         while let Some(batch) = receiver.recv().await {
@@ -233,7 +241,7 @@ pub async fn fs_list_start(
             Ok(Ok(())) => {}
             Ok(Err(error)) if error.code() == "cancelled" => {}
             Ok(Err(error)) => {
-                telemetry::error(&format!("directory listing failed: {error}"));
+                telemetry::error(&format!("directory listing failed code={}", error.code()));
                 let event = DirectoryBatchEventDto {
                     session_id: error_session_id,
                     request_id,
@@ -264,10 +272,23 @@ pub async fn fs_list_start(
             }
         }
 
-        listings_cleanup.remove(&cleanup_panel_key);
+        listings_cleanup.remove(&cleanup_panel_key, &cleanup_request_id);
     });
 
     Ok(response)
+}
+
+fn validate_list_identifier(value: &str, field: &str) -> Result<String, IpcError> {
+    if value.is_empty()
+        || value.len() > MAX_LIST_IDENTIFIER_BYTES
+        || value != value.trim()
+        || value.chars().any(char::is_control)
+    {
+        return Err(IpcError::invalid_request(format!(
+            "{field} must be 1..={MAX_LIST_IDENTIFIER_BYTES} bytes without surrounding whitespace or control characters"
+        )));
+    }
+    Ok(value.to_string())
 }
 
 #[tauri::command]
@@ -499,7 +520,10 @@ pub async fn fs_read_image_as_data_uri(
 
 #[cfg(test)]
 mod tests {
-    use super::{compute_hash_blocking, mime_for_extension};
+    use super::{
+        compute_hash_blocking, mime_for_extension, validate_list_identifier,
+        MAX_LIST_IDENTIFIER_BYTES,
+    };
     use app_ipc::error_codes;
     use vfs::ResourceUri;
 
@@ -535,6 +559,21 @@ mod tests {
         let error = compute_hash_blocking(uri, "sha1".to_string()).unwrap_err();
 
         assert_eq!(error.code, error_codes::UNSUPPORTED_ALGORITHM);
+    }
+
+    #[test]
+    fn listing_identifiers_are_bounded_and_canonical() {
+        assert_eq!(
+            validate_list_identifier("request-1", "requestId").unwrap(),
+            "request-1"
+        );
+        for invalid in ["", " request", "request ", "request\n"] {
+            assert!(validate_list_identifier(invalid, "requestId").is_err());
+        }
+        assert!(
+            validate_list_identifier(&"x".repeat(MAX_LIST_IDENTIFIER_BYTES + 1), "requestId")
+                .is_err()
+        );
     }
 }
 
@@ -673,10 +712,7 @@ pub async fn fs_eject_volume(
     request: EjectVolumeRequest,
     _state: State<'_, Arc<AppState>>,
 ) -> Result<EjectVolumeResponse, IpcError> {
-    telemetry::debug(&format!(
-        "fs.eject_volume requested: {}",
-        request.mount_point
-    ));
+    telemetry::debug("fs.eject_volume requested");
 
     let mount_point = request.mount_point;
 

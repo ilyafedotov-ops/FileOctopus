@@ -1,14 +1,15 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{mpsc, Arc, Mutex};
-use std::time::Duration;
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::{mpsc, Arc, Mutex, Weak};
+use std::time::{Duration, Instant};
 
 use chrono::Utc;
 use fs_core::file_ops::{execute_file_operation, plan_file_operation, FileOperationEventSink};
 use fs_core::vfs_io::VfsFilesystem;
 use jobs::{
     CancellationToken, JobCancelledEvent, JobCompletedEvent, JobEvent, JobFailedEvent, JobId,
-    JobProgressEvent, JobSnapshot, JobStartedEvent, JobStatus, PauseToken,
+    JobPausedEvent, JobProgressEvent, JobResumedEvent, JobSnapshot, JobStartedEvent, JobStatus,
+    PauseToken,
 };
 use vfs::{
     ConflictPolicy, FileKind, FileOperationError, FileOperationItem, FileOperationKind,
@@ -20,6 +21,12 @@ use crate::history::{OperationHistoryRecord, OperationHistoryRepository, HISTORY
 /// Bounded job runtime is queued through a fixed pool of worker threads, with a
 /// watchdog that cancels jobs that stop making progress for too long.
 type QueuedJob = Box<dyn FnOnce() + Send + 'static>;
+
+const OPERATION_QUEUE_CAPACITY: usize = 64;
+pub(crate) const ACTIVE_OPERATION_LIMIT: usize = 64;
+const PLANNED_OPERATION_LIMIT: usize = 256;
+const PLANNED_OPERATION_TTL: Duration = Duration::from_secs(10 * 60);
+const TERMINAL_JOB_RETENTION: usize = 128;
 
 #[derive(Clone, Copy, Debug)]
 pub struct RuntimeSettings {
@@ -49,9 +56,10 @@ impl Default for RuntimeSettings {
 pub struct OperationRuntime {
     vfs: VfsFilesystem,
     jobs: Arc<Mutex<HashMap<String, JobRuntimeState>>>,
-    planned_operations: Arc<Mutex<HashMap<String, FileOperationPlan>>>,
+    planned_operations: Arc<Mutex<HashMap<String, PlannedOperation>>>,
     history: OperationHistoryRepository,
-    dispatch: mpsc::Sender<QueuedJob>,
+    dispatch: mpsc::SyncSender<QueuedJob>,
+    admitted_jobs: Arc<AtomicUsize>,
     idle_timeout_ms: Arc<AtomicU64>,
 }
 
@@ -65,7 +73,7 @@ impl OperationRuntime {
         history: OperationHistoryRepository,
         settings: RuntimeSettings,
     ) -> Self {
-        let (dispatch, receiver) = mpsc::channel::<QueuedJob>();
+        let (dispatch, receiver) = mpsc::sync_channel::<QueuedJob>(OPERATION_QUEUE_CAPACITY);
         let receiver = Arc::new(Mutex::new(receiver));
         for _ in 0..settings.worker_count.max(1) {
             let receiver = receiver.clone();
@@ -91,6 +99,7 @@ impl OperationRuntime {
             planned_operations: Arc::new(Mutex::new(HashMap::new())),
             history,
             dispatch,
+            admitted_jobs: Arc::new(AtomicUsize::new(0)),
             idle_timeout_ms,
         }
     }
@@ -111,12 +120,27 @@ impl OperationRuntime {
             }
         };
 
-        self.planned_operations
-            .lock()
-            .map_err(|_| FileOperationError::Internal {
-                message: "planned operation registry lock poisoned".to_string(),
-            })?
-            .insert(plan.operation_id.clone(), plan.clone());
+        let mut planned_operations =
+            self.planned_operations
+                .lock()
+                .map_err(|_| FileOperationError::Internal {
+                    message: "planned operation registry lock poisoned".to_string(),
+                })?;
+        planned_operations
+            .retain(|_, retained| retained.created_at.elapsed() < PLANNED_OPERATION_TTL);
+        if planned_operations.len() >= PLANNED_OPERATION_LIMIT {
+            return Err(FileOperationError::ResourceLimitExceeded {
+                resource: "planned operation registry".to_string(),
+                limit: PLANNED_OPERATION_LIMIT,
+            });
+        }
+        planned_operations.insert(
+            plan.operation_id.clone(),
+            PlannedOperation {
+                plan: plan.clone(),
+                created_at: Instant::now(),
+            },
+        );
 
         Ok(plan)
     }
@@ -126,7 +150,7 @@ impl OperationRuntime {
         operation_id: &str,
         sink: Arc<FileOperationEventSink>,
     ) -> Result<JobSnapshot, FileOperationError> {
-        let plan = self
+        let planned = self
             .planned_operations
             .lock()
             .map_err(|_| FileOperationError::Internal {
@@ -137,7 +161,13 @@ impl OperationRuntime {
                 uri: operation_id.to_string(),
             })?;
 
-        self.start(plan, sink)
+        if planned.created_at.elapsed() >= PLANNED_OPERATION_TTL {
+            return Err(FileOperationError::PlanExpired {
+                operation_id: operation_id.to_string(),
+            });
+        }
+
+        self.start(planned.plan, sink)
     }
 
     fn start(
@@ -228,6 +258,7 @@ impl OperationRuntime {
             + Send
             + 'static,
     {
+        let admission = JobAdmission::acquire(self.admitted_jobs.clone())?;
         let job_id = JobId::new(uuid::Uuid::new_v4().to_string());
         let now = Utc::now();
         let operation_kind = plan.kind;
@@ -249,22 +280,25 @@ impl OperationRuntime {
         };
         let token = CancellationToken::new();
         let pause_token = PauseToken::new();
+        let event_gate = Arc::new(Mutex::new(()));
         let timed_out = Arc::new(AtomicBool::new(false));
         let user_cancelled = Arc::new(AtomicBool::new(false));
         let state = JobRuntimeState {
             snapshot: snapshot.clone(),
             cancel: token.clone(),
             pause: pause_token.clone(),
+            sink: Arc::downgrade(&sink),
+            event_gate: event_gate.clone(),
             timed_out: timed_out.clone(),
             user_cancelled: user_cancelled.clone(),
         };
 
-        self.jobs
-            .lock()
-            .map_err(|_| FileOperationError::Internal {
-                message: "job registry lock poisoned".to_string(),
-            })?
-            .insert(job_id.as_str().to_string(), state);
+        let mut jobs_guard = self.jobs.lock().map_err(|_| FileOperationError::Internal {
+            message: "job registry lock poisoned".to_string(),
+        })?;
+        prune_terminal_jobs(&mut jobs_guard);
+        jobs_guard.insert(job_id.as_str().to_string(), state);
+        drop(jobs_guard);
         self.history.insert_started(&plan, &snapshot);
         telemetry::info(&format!(
             "operation job started job_id={} kind={:?} source_count={} total_items={}",
@@ -278,6 +312,7 @@ impl OperationRuntime {
         let jobs = self.jobs.clone();
         let history = self.history.clone();
         let task_job_id = job_id.clone();
+        let dispatch_failure_sink = sink.clone();
 
         sink(JobEvent::Started(JobStartedEvent {
             job_id: job_id.clone(),
@@ -288,11 +323,18 @@ impl OperationRuntime {
         }));
 
         let task = move || {
+            let _admission = admission;
             let progress_jobs = jobs.clone();
             let progress_base = sink.clone();
+            let progress_event_gate = event_gate.clone();
             let progress_sink = move |event: JobEvent| {
+                let Ok(_event_guard) = progress_event_gate.lock() else {
+                    return;
+                };
                 if let JobEvent::Progress(progress) = &event {
-                    update_snapshot_progress(&progress_jobs, progress);
+                    if !update_snapshot_progress(&progress_jobs, progress) {
+                        return;
+                    }
                 }
 
                 progress_base(event);
@@ -318,7 +360,7 @@ impl OperationRuntime {
                     update_snapshot_status(&jobs, &task_job_id, JobStatus::Completed, None, None);
                     history.update_terminal(task_job_id.as_str(), JobStatus::Completed, None);
                     progress_sink(JobEvent::Completed(JobCompletedEvent {
-                        job_id: task_job_id,
+                        job_id: task_job_id.clone(),
                         operation_kind,
                         completed_items: total_items,
                         completed_bytes: total_bytes.unwrap_or(0),
@@ -349,7 +391,7 @@ impl OperationRuntime {
                     );
                     history.update_terminal(task_job_id.as_str(), JobStatus::Failed, Some(&code));
                     progress_sink(JobEvent::Failed(JobFailedEvent {
-                        job_id: task_job_id,
+                        job_id: task_job_id.clone(),
                         operation_kind,
                         error_code: code,
                         message,
@@ -366,7 +408,7 @@ impl OperationRuntime {
                     update_snapshot_status(&jobs, &task_job_id, JobStatus::Cancelled, None, None);
                     history.update_terminal(task_job_id.as_str(), JobStatus::Cancelled, None);
                     progress_sink(JobEvent::Cancelled(JobCancelledEvent {
-                        job_id: task_job_id,
+                        job_id: task_job_id.clone(),
                         operation_kind,
                         cancelled_at,
                     }));
@@ -390,7 +432,7 @@ impl OperationRuntime {
                     );
                     history.update_terminal(task_job_id.as_str(), JobStatus::Failed, Some(&code));
                     progress_sink(JobEvent::Failed(JobFailedEvent {
-                        job_id: task_job_id,
+                        job_id: task_job_id.clone(),
                         operation_kind,
                         error_code: code,
                         message,
@@ -398,13 +440,34 @@ impl OperationRuntime {
                     }));
                 }
             }
+            if let Err(error) = history.cleanup_terminal_history(HISTORY_RETENTION_LIMIT) {
+                telemetry::error(&format!(
+                    "failed to enforce operation history retention: {error}"
+                ));
+            }
         };
 
-        self.dispatch
-            .send(Box::new(task))
-            .map_err(|_| FileOperationError::Internal {
-                message: "operation runtime worker pool is unavailable".to_string(),
-            })?;
+        if self.dispatch.send(Box::new(task)).is_err() {
+            let code = "internal".to_string();
+            let message = "operation runtime worker pool is unavailable".to_string();
+            update_snapshot_status(
+                &self.jobs,
+                &job_id,
+                JobStatus::Failed,
+                Some(code.clone()),
+                Some(message.clone()),
+            );
+            self.history
+                .update_terminal(job_id.as_str(), JobStatus::Failed, Some(&code));
+            dispatch_failure_sink(JobEvent::Failed(JobFailedEvent {
+                job_id: job_id.clone(),
+                operation_kind,
+                error_code: code,
+                message: message.clone(),
+                failed_at: Utc::now(),
+            }));
+            return Err(FileOperationError::Internal { message });
+        }
 
         Ok(snapshot)
     }
@@ -443,49 +506,111 @@ impl OperationRuntime {
     }
 
     pub fn pause_job(&self, job_id: &str) -> Result<JobSnapshot, FileOperationError> {
-        let jobs = self.jobs.lock().map_err(|_| FileOperationError::Internal {
+        let event_gate = self.job_event_gate(job_id)?;
+        let _event_guard = event_gate
+            .lock()
+            .map_err(|_| FileOperationError::Internal {
+                message: "job event lock poisoned".to_string(),
+            })?;
+        let mut jobs = self.jobs.lock().map_err(|_| FileOperationError::Internal {
             message: "job registry lock poisoned".to_string(),
         })?;
         let state = jobs
-            .get(job_id)
+            .get_mut(job_id)
             .ok_or_else(|| FileOperationError::NotFound {
                 uri: job_id.to_string(),
             })?;
 
-        state.pause.pause();
-        update_snapshot_status(
-            &self.jobs,
-            &JobId::new(job_id.to_string()),
-            JobStatus::Paused,
-            None,
-            None,
-        );
-        telemetry::info(&format!("operation job paused job_id={job_id}"));
+        if state.snapshot.status == JobStatus::Paused {
+            return Ok(state.snapshot.clone());
+        }
+        if state.snapshot.status != JobStatus::Running {
+            return Err(invalid_job_transition(
+                "pause",
+                job_id,
+                state.snapshot.status,
+            ));
+        }
 
-        Ok(state.snapshot.clone())
+        state.pause.pause();
+        let paused_at = Utc::now();
+        state.snapshot.status = JobStatus::Paused;
+        state.snapshot.updated_at = paused_at;
+        let snapshot = state.snapshot.clone();
+        let sink = state.sink.upgrade();
+        let event = JobEvent::Paused(JobPausedEvent {
+            job_id: snapshot.job_id.clone(),
+            operation_kind: snapshot.operation_kind,
+            paused_at,
+        });
+        drop(jobs);
+
+        telemetry::info(&format!("operation job paused job_id={job_id}"));
+        if let Some(sink) = sink {
+            sink(event);
+        }
+
+        Ok(snapshot)
     }
 
     pub fn resume_job(&self, job_id: &str) -> Result<JobSnapshot, FileOperationError> {
-        let jobs = self.jobs.lock().map_err(|_| FileOperationError::Internal {
+        let event_gate = self.job_event_gate(job_id)?;
+        let _event_guard = event_gate
+            .lock()
+            .map_err(|_| FileOperationError::Internal {
+                message: "job event lock poisoned".to_string(),
+            })?;
+        let mut jobs = self.jobs.lock().map_err(|_| FileOperationError::Internal {
             message: "job registry lock poisoned".to_string(),
         })?;
         let state = jobs
-            .get(job_id)
+            .get_mut(job_id)
             .ok_or_else(|| FileOperationError::NotFound {
                 uri: job_id.to_string(),
             })?;
 
-        state.pause.resume();
-        update_snapshot_status(
-            &self.jobs,
-            &JobId::new(job_id.to_string()),
-            JobStatus::Running,
-            None,
-            None,
-        );
-        telemetry::info(&format!("operation job resumed job_id={job_id}"));
+        if state.snapshot.status == JobStatus::Running {
+            return Ok(state.snapshot.clone());
+        }
+        if state.snapshot.status != JobStatus::Paused {
+            return Err(invalid_job_transition(
+                "resume",
+                job_id,
+                state.snapshot.status,
+            ));
+        }
 
-        Ok(state.snapshot.clone())
+        state.pause.resume();
+        let resumed_at = Utc::now();
+        state.snapshot.status = JobStatus::Running;
+        state.snapshot.updated_at = resumed_at;
+        let snapshot = state.snapshot.clone();
+        let sink = state.sink.upgrade();
+        let event = JobEvent::Resumed(JobResumedEvent {
+            job_id: snapshot.job_id.clone(),
+            operation_kind: snapshot.operation_kind,
+            resumed_at,
+        });
+        drop(jobs);
+
+        telemetry::info(&format!("operation job resumed job_id={job_id}"));
+        if let Some(sink) = sink {
+            sink(event);
+        }
+
+        Ok(snapshot)
+    }
+
+    fn job_event_gate(&self, job_id: &str) -> Result<Arc<Mutex<()>>, FileOperationError> {
+        let jobs = self.jobs.lock().map_err(|_| FileOperationError::Internal {
+            message: "job registry lock poisoned".to_string(),
+        })?;
+
+        jobs.get(job_id)
+            .map(|state| state.event_gate.clone())
+            .ok_or_else(|| FileOperationError::NotFound {
+                uri: job_id.to_string(),
+            })
     }
 
     pub fn status(&self, job_id: &str) -> Result<JobSnapshot, FileOperationError> {
@@ -526,8 +651,66 @@ struct JobRuntimeState {
     snapshot: JobSnapshot,
     cancel: CancellationToken,
     pause: PauseToken,
+    sink: Weak<FileOperationEventSink>,
+    event_gate: Arc<Mutex<()>>,
     timed_out: Arc<AtomicBool>,
     user_cancelled: Arc<AtomicBool>,
+}
+
+struct PlannedOperation {
+    plan: FileOperationPlan,
+    created_at: Instant,
+}
+
+struct JobAdmission {
+    admitted_jobs: Arc<AtomicUsize>,
+}
+
+impl JobAdmission {
+    fn acquire(admitted_jobs: Arc<AtomicUsize>) -> Result<Self, FileOperationError> {
+        admitted_jobs
+            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |current| {
+                (current < ACTIVE_OPERATION_LIMIT).then_some(current + 1)
+            })
+            .map_err(|_| FileOperationError::ResourceLimitExceeded {
+                resource: "active operation jobs".to_string(),
+                limit: ACTIVE_OPERATION_LIMIT,
+            })?;
+        Ok(Self { admitted_jobs })
+    }
+}
+
+impl Drop for JobAdmission {
+    fn drop(&mut self) {
+        self.admitted_jobs.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
+fn prune_terminal_jobs(jobs: &mut HashMap<String, JobRuntimeState>) {
+    let mut terminal = jobs
+        .iter()
+        .filter(|(_, state)| {
+            matches!(
+                state.snapshot.status,
+                JobStatus::Cancelled | JobStatus::Completed | JobStatus::Failed
+            )
+        })
+        .map(|(id, state)| (id.clone(), state.snapshot.updated_at))
+        .collect::<Vec<_>>();
+    if terminal.len() <= TERMINAL_JOB_RETENTION {
+        return;
+    }
+    terminal.sort_by_key(|(_, updated_at)| *updated_at);
+    let remove_count = terminal.len() - TERMINAL_JOB_RETENTION;
+    for (id, _) in terminal.into_iter().take(remove_count) {
+        jobs.remove(&id);
+    }
+}
+
+fn invalid_job_transition(action: &str, job_id: &str, status: JobStatus) -> FileOperationError {
+    FileOperationError::InvalidRequest {
+        message: format!("cannot {action} job `{job_id}` while it is {status:?}"),
+    }
 }
 
 fn worker_loop(receiver: &Arc<Mutex<mpsc::Receiver<QueuedJob>>>) {
@@ -602,15 +785,21 @@ fn watchdog_loop(
 fn update_snapshot_progress(
     jobs: &Arc<Mutex<HashMap<String, JobRuntimeState>>>,
     progress: &jobs::JobProgressEvent,
-) {
+) -> bool {
     if let Ok(mut jobs) = jobs.lock() {
         if let Some(state) = jobs.get_mut(progress.job_id.as_str()) {
+            if state.snapshot.status != JobStatus::Running {
+                return false;
+            }
             state.snapshot.current_item = progress.current_item.clone();
             state.snapshot.completed_items = progress.completed_items;
             state.snapshot.completed_bytes = progress.completed_bytes;
             state.snapshot.updated_at = progress.updated_at;
+            return true;
         }
     }
+
+    false
 }
 
 fn update_snapshot_status(

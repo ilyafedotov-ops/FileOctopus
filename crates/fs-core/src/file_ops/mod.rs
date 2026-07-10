@@ -11,13 +11,13 @@ use vfs::{
     ResourceUri, REMOTE_SCHEMES,
 };
 
-use archive::{execute_create_archive, execute_extract_archive};
+use archive::{bind_archive_fingerprint, execute_create_archive, execute_extract_archive};
 use execution::{
-    execute_copy, execute_create_directory, execute_create_file, execute_delete_permanently,
-    execute_move, execute_rename, execute_trash,
+    execute_batch_rename, execute_copy, execute_create_directory, execute_create_file,
+    execute_delete_permanently, execute_move, execute_rename, execute_trash,
 };
 use planning::{
-    detect_conflicts, plan_copy_or_move_items, plan_create_archive_items,
+    detect_conflicts, plan_batch_rename_items, plan_copy_or_move_items, plan_create_archive_items,
     plan_create_directory_item, plan_create_file_item, plan_delete_items,
     plan_extract_archive_items, plan_rename_item,
 };
@@ -31,19 +31,25 @@ pub fn plan_file_operation(
     validate_request_shape(vfs, &request)?;
 
     let operation_id = uuid::Uuid::new_v4().to_string();
+    let mut archive_fingerprint = None;
     let mut warnings = Vec::new();
     let mut items = match request.kind {
         FileOperationKind::Copy | FileOperationKind::Move => {
             plan_copy_or_move_items(vfs, &request, &mut warnings)?
         }
         FileOperationKind::Rename => vec![plan_rename_item(vfs, &request)?],
+        FileOperationKind::BatchRename => plan_batch_rename_items(&request)?,
         FileOperationKind::CreateDirectory => vec![plan_create_directory_item(vfs, &request)?],
         FileOperationKind::CreateFile => vec![plan_create_file_item(vfs, &request)?],
         FileOperationKind::DeleteToTrash | FileOperationKind::DeletePermanently => {
             plan_delete_items(vfs, &request)?
         }
         FileOperationKind::CreateArchive => plan_create_archive_items(&request, &mut warnings)?,
-        FileOperationKind::ExtractArchive => plan_extract_archive_items(&request)?,
+        FileOperationKind::ExtractArchive => {
+            let (items, fingerprint) = plan_extract_archive_items(&request)?;
+            archive_fingerprint = Some(fingerprint);
+            items
+        }
         FileOperationKind::WriteTextFile
         | FileOperationKind::FolderSize
         | FileOperationKind::RecursiveSearch
@@ -71,11 +77,20 @@ pub fn plan_file_operation(
         left_key.cmp(right_key)
     });
 
-    let conflicts = detect_conflicts(vfs, &items);
+    let conflicts = if request.kind == FileOperationKind::BatchRename {
+        Vec::new()
+    } else {
+        detect_conflicts(vfs, &items)
+    };
     let total_items = items.len() as u64;
     let total_bytes = items
         .iter()
         .try_fold(0_u64, |total, item| item.size.map(|size| total + size));
+
+    let operation_id = archive_fingerprint
+        .as_deref()
+        .map(|fingerprint| bind_archive_fingerprint(operation_id.clone(), fingerprint))
+        .unwrap_or(operation_id);
 
     Ok(FileOperationPlan {
         operation_id,
@@ -109,6 +124,7 @@ pub fn execute_file_operation(
         FileOperationKind::Copy => execute_copy(vfs, plan, job_id, cancel, pause, sink),
         FileOperationKind::Move => execute_move(vfs, plan, job_id, cancel, pause, sink),
         FileOperationKind::Rename => execute_rename(vfs, plan),
+        FileOperationKind::BatchRename => execute_batch_rename(plan, job_id, cancel, pause, sink),
         FileOperationKind::CreateDirectory => execute_create_directory(vfs, plan),
         FileOperationKind::CreateFile => execute_create_file(vfs, plan),
         FileOperationKind::DeleteToTrash => execute_trash(vfs, plan),
@@ -136,8 +152,18 @@ fn validate_request_shape(
         vfs.validate_uri(source)?;
     }
 
+    for rename in &request.batch_renames {
+        vfs.validate_uri(&rename.source)?;
+    }
+
     if let Some(destination) = &request.destination {
         vfs.validate_uri(destination)?;
+    }
+
+    if request.kind != FileOperationKind::BatchRename && !request.batch_renames.is_empty() {
+        return Err(FileOperationError::InvalidRequest {
+            message: "batch renames are only valid for batch rename operations".to_string(),
+        });
     }
 
     if matches!(
@@ -182,6 +208,47 @@ fn validate_request_shape(
             }
 
             validate_basename(request.new_name.as_deref().unwrap_or_default())?;
+        }
+        FileOperationKind::BatchRename => {
+            if request.batch_renames.is_empty() {
+                return Err(FileOperationError::InvalidRequest {
+                    message: "batch rename requires at least one source".to_string(),
+                });
+            }
+
+            if request.sources.len() != request.batch_renames.len()
+                || request
+                    .sources
+                    .iter()
+                    .zip(&request.batch_renames)
+                    .any(|(source, rename)| source != &rename.source)
+            {
+                return Err(FileOperationError::InvalidRequest {
+                    message: "batch rename sources must match the rename entries".to_string(),
+                });
+            }
+
+            if request.destination.is_some() || request.new_name.is_some() {
+                return Err(FileOperationError::InvalidRequest {
+                    message: "batch rename does not accept a destination or single new name"
+                        .to_string(),
+                });
+            }
+
+            if request.conflict_policy != ConflictPolicy::Fail {
+                return Err(FileOperationError::InvalidRequest {
+                    message: "batch rename requires the fail conflict policy".to_string(),
+                });
+            }
+
+            for rename in &request.batch_renames {
+                if rename.source.scheme() != "local" {
+                    return Err(FileOperationError::UnsupportedProvider {
+                        scheme: rename.source.scheme().to_string(),
+                    });
+                }
+                validate_basename(&rename.new_name)?;
+            }
         }
         FileOperationKind::CreateDirectory => {
             if request.destination.is_none() {

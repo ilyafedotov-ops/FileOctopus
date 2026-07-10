@@ -1,3 +1,4 @@
+use std::net::IpAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -211,6 +212,8 @@ impl NetworkProfileRepository {
             &profile.host,
             &profile.username,
             profile.port,
+            profile.auth_kind,
+            &profile.default_path,
         )?;
         let connection = self.connect()?;
         let id = Uuid::new_v4().to_string();
@@ -263,6 +266,8 @@ impl NetworkProfileRepository {
             &profile.host,
             &profile.username,
             profile.port,
+            profile.auth_kind,
+            &profile.default_path,
         )?;
         let connection = self.connect()?;
         let now = Utc::now().to_rfc3339();
@@ -399,7 +404,7 @@ impl NetworkProfileRepository {
     }
 
     fn connect(&self) -> Result<Connection, NetworkError> {
-        Connection::open(self.path.as_path()).map_err(NetworkError::from)
+        crate::open_database(self.path.as_path()).map_err(NetworkError::from)
     }
 
     fn migrate(&self) -> Result<(), NetworkError> {
@@ -532,6 +537,8 @@ fn validate_profile_fields(
     host: &str,
     username: &str,
     port: u16,
+    auth_kind: AuthKind,
+    default_path: &str,
 ) -> Result<(), NetworkError> {
     if !matches!(scheme, "sftp" | "ssh" | "smb" | "s3" | "webdav") {
         return Err(NetworkError::InvalidValue {
@@ -568,7 +575,57 @@ fn validate_profile_fields(
         });
     }
 
+    if scheme == "webdav" {
+        if auth_kind != AuthKind::Password {
+            return Err(NetworkError::InvalidValue {
+                field: "authKind".to_string(),
+                reason: "WebDAV supports password authentication only".to_string(),
+            });
+        }
+        if !is_valid_webdav_host(host) {
+            return Err(NetworkError::InvalidValue {
+                field: "host".to_string(),
+                reason: "WebDAV host must not include a URL scheme, credentials, or path"
+                    .to_string(),
+            });
+        }
+        if !default_path.starts_with('/')
+            || default_path.contains('\0')
+            || default_path.split('/').any(is_path_traversal_segment)
+        {
+            return Err(NetworkError::InvalidValue {
+                field: "defaultPath".to_string(),
+                reason:
+                    "WebDAV default path must be absolute and must not contain traversal segments"
+                        .to_string(),
+            });
+        }
+    }
+
     Ok(())
+}
+
+fn is_path_traversal_segment(segment: &str) -> bool {
+    segment.to_ascii_lowercase().replace("%2e", ".") == ".."
+}
+
+fn is_valid_webdav_host(host: &str) -> bool {
+    if host.contains("//")
+        || host.contains('/')
+        || host.contains('@')
+        || host.contains('?')
+        || host.contains('#')
+    {
+        return false;
+    }
+    if host.starts_with('[') || host.ends_with(']') {
+        return host
+            .strip_prefix('[')
+            .and_then(|value| value.strip_suffix(']'))
+            .and_then(|value| value.parse::<IpAddr>().ok())
+            .is_some_and(|address| address.is_ipv6());
+    }
+    host.parse::<IpAddr>().is_ok() || !host.contains(':')
 }
 
 #[cfg(test)]
@@ -724,6 +781,48 @@ mod tests {
     }
 
     #[test]
+    fn rejects_insecure_webdav_profile_shapes() {
+        let dir = tempdir().unwrap();
+        let repository = NetworkProfileRepository::new(dir.path().join("network.sqlite")).unwrap();
+
+        let mut unsupported_auth = sample_profile();
+        unsupported_auth.scheme = "webdav".to_string();
+        unsupported_auth.auth_kind = AuthKind::PrivateKey;
+        unsupported_auth.private_key_path = Some("/tmp/key".to_string());
+        unsupported_auth.default_path = "/dav/root".to_string();
+        assert!(matches!(
+            repository.add(unsupported_auth).unwrap_err(),
+            NetworkError::InvalidValue { ref field, .. } if field == "authKind"
+        ));
+
+        let mut host_url = sample_profile();
+        host_url.scheme = "webdav".to_string();
+        host_url.host = "https://dav.example.com/root".to_string();
+        host_url.default_path = "/dav/root".to_string();
+        assert!(matches!(
+            repository.add(host_url).unwrap_err(),
+            NetworkError::InvalidValue { ref field, .. } if field == "host"
+        ));
+
+        let mut host_with_port = sample_profile();
+        host_with_port.scheme = "webdav".to_string();
+        host_with_port.host = "dav.example.com:443".to_string();
+        host_with_port.default_path = "/dav/root".to_string();
+        assert!(matches!(
+            repository.add(host_with_port).unwrap_err(),
+            NetworkError::InvalidValue { ref field, .. } if field == "host"
+        ));
+
+        let mut encoded_traversal = sample_profile();
+        encoded_traversal.scheme = "webdav".to_string();
+        encoded_traversal.default_path = "/dav/%2e%2E/secret".to_string();
+        assert!(matches!(
+            repository.add(encoded_traversal).unwrap_err(),
+            NetworkError::InvalidValue { ref field, .. } if field == "defaultPath"
+        ));
+    }
+
+    #[test]
     fn accepts_smb_and_s3_schemes() {
         let dir = tempdir().unwrap();
         let repository = NetworkProfileRepository::new(dir.path().join("network.sqlite")).unwrap();
@@ -758,8 +857,6 @@ mod tests {
 
     #[test]
     fn rejects_webdav_previously_unsupported_alias() {
-        // Make sure that arbitrary look-alike schemes still fail even though
-        // webdav is now allowed — guards against accidental shadowing.
         let dir = tempdir().unwrap();
         let repository = NetworkProfileRepository::new(dir.path().join("network.sqlite")).unwrap();
         let mut new = sample_profile();

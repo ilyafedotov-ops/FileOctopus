@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fs;
+use std::io::Write;
 use std::sync::Arc;
 
 use async_trait::async_trait;
@@ -18,6 +19,7 @@ const PROFILE_ID: &str = "550e8400-e29b-41d4-a716-446655440000";
 struct MemoryRemoteProvider {
     entries: Arc<HashMap<String, FileEntry>>,
     children: Arc<HashMap<String, Vec<String>>>,
+    fail_reads: bool,
 }
 
 impl MemoryRemoteProvider {
@@ -59,6 +61,14 @@ impl MemoryRemoteProvider {
         Self {
             entries: Arc::new(entries),
             children: Arc::new(children),
+            fail_reads: false,
+        }
+    }
+
+    fn failing_reads() -> Self {
+        Self {
+            fail_reads: true,
+            ..Self::new()
         }
     }
 }
@@ -121,6 +131,26 @@ impl VfsProvider for MemoryRemoteProvider {
             uri: uri.as_str().to_string(),
         })
     }
+
+    async fn read_file_to_writer(
+        &self,
+        _source: &ResourceUri,
+        mut writer: Box<dyn Write + Send>,
+        mut on_progress: Box<dyn FnMut(u64) + Send>,
+    ) -> Result<u64, VfsError> {
+        writer
+            .write_all(if self.fail_reads {
+                b"partial"
+            } else {
+                b"content"
+            })
+            .map_err(|error| VfsError::internal(&error.to_string()))?;
+        on_progress(7);
+        if self.fail_reads {
+            return Err(VfsError::internal("injected remote read failure"));
+        }
+        Ok(7)
+    }
 }
 
 impl MemoryRemoteProvider {
@@ -150,6 +180,7 @@ fn plans_same_scheme_remote_copy_through_registered_provider() {
             destination: Some(uri("/destination")),
             new_name: None,
             conflict_policy: ConflictPolicy::Fail,
+            batch_renames: Vec::new(),
         },
     )
     .unwrap();
@@ -189,6 +220,7 @@ fn plans_local_to_registered_remote_copy() {
             destination: Some(uri("/destination")),
             new_name: None,
             conflict_policy: ConflictPolicy::Fail,
+            batch_renames: Vec::new(),
         },
     )
     .unwrap();
@@ -219,6 +251,7 @@ fn plans_registered_remote_to_local_copy() {
             destination: Some(destination),
             new_name: None,
             conflict_policy: ConflictPolicy::Fail,
+            batch_renames: Vec::new(),
         },
     )
     .unwrap();
@@ -232,6 +265,37 @@ fn plans_registered_remote_to_local_copy() {
         Some(dir.path().join("file.txt").to_string_lossy().to_string())
     );
     assert_eq!(plan.items[0].size, Some(7));
+}
+
+#[test]
+fn remote_to_local_copy_never_exposes_partial_or_clobbers_destination() {
+    let dir = tempdir().unwrap();
+    let destination_path = dir.path().join("file.txt");
+    let destination = ResourceUri::from_local_path(&destination_path).unwrap();
+    fs::write(&destination_path, b"existing").unwrap();
+    let registry = Arc::new(VfsRegistry::new());
+    registry
+        .register(Arc::new(MemoryRemoteProvider::new()))
+        .unwrap();
+    let vfs = VfsFilesystem::local_only(registry);
+
+    assert!(vfs
+        .copy_file(&uri("/source/nested/file.txt"), &destination, |_| {})
+        .is_err());
+    assert_eq!(fs::read(&destination_path).unwrap(), b"existing");
+    assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 1);
+
+    fs::remove_file(&destination_path).unwrap();
+    let registry = Arc::new(VfsRegistry::new());
+    registry
+        .register(Arc::new(MemoryRemoteProvider::failing_reads()))
+        .unwrap();
+    let vfs = VfsFilesystem::local_only(registry);
+    assert!(vfs
+        .copy_file(&uri("/source/nested/file.txt"), &destination, |_| {})
+        .is_err());
+    assert!(!destination_path.exists());
+    assert_eq!(fs::read_dir(dir.path()).unwrap().count(), 0);
 }
 
 fn uri(path: &str) -> ResourceUri {
