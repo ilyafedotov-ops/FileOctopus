@@ -5,7 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-APPIMAGE="$ROOT/target/release/bundle/appimage/FileOctopus_0.1.0_amd64.AppImage"
+VERSION="$(node -p "JSON.parse(require('node:fs').readFileSync('package.json', 'utf8')).version")"
+APPIMAGE="$ROOT/target/release/bundle/appimage/FileOctopus_${VERSION}_amd64.AppImage"
 DEB_BIN="$ROOT/target/release/fileoctopus-desktop"
 
 if [ ! -d /tmp/fileoctopus-smoke/source ]; then

@@ -132,7 +132,7 @@ export async function stageReleaseArtifacts({
   await rm(releaseDirectory, { recursive: true, force: true });
   await mkdir(releaseDirectory, { recursive: true });
   const assets = [];
-  for (const [platform, allowedExtensions] of PLATFORM_EXTENSIONS) {
+  for (const [platform, expectedExtensions] of PLATFORM_EXTENSIONS) {
     const sourceDirectory = join(artifactsDirectory, `release-${platform}`);
     const files = await filesUnder(sourceDirectory);
     if (files.length === 0) {
@@ -141,7 +141,7 @@ export async function stageReleaseArtifacts({
     const extensions = new Set();
     for (const sourcePath of files) {
       const extension = extname(sourcePath);
-      if (!allowedExtensions.has(extension)) {
+      if (!expectedExtensions.has(extension)) {
         throw new Error(
           `unexpected ${platform} artifact extension: ${extension || "none"}`,
         );
@@ -166,6 +166,13 @@ export async function stageReleaseArtifacts({
         sha256: await digest(stagedPath),
         size: metadata.size,
       });
+    }
+    for (const expectedExtension of expectedExtensions) {
+      if (!extensions.has(expectedExtension)) {
+        throw new Error(
+          `missing ${platform} artifact extension: ${expectedExtension}`,
+        );
+      }
     }
   }
   assets.sort((left, right) => left.name.localeCompare(right.name));

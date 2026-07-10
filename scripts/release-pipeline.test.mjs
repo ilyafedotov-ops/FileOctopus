@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import test from "node:test";
@@ -76,6 +84,31 @@ test("Cargo version is read only from workspace.package", () => {
     ),
     "1.2.3",
   );
+});
+
+test("third-party workflow actions are pinned to commit SHAs", async () => {
+  const workflowDirectory = ".github/workflows";
+  const workflowNames = (await readdir(workflowDirectory)).filter((name) =>
+    /\.ya?ml$/u.test(name),
+  );
+  for (const workflowName of workflowNames) {
+    const source = await readFile(
+      join(workflowDirectory, workflowName),
+      "utf8",
+    );
+    for (const match of source.matchAll(/^\s*(?:-\s+)?uses:\s+(\S+)\s*$/gmu)) {
+      const action = match[1];
+      if (action.startsWith("./")) {
+        continue;
+      }
+      const separator = action.lastIndexOf("@");
+      assert.match(
+        separator === -1 ? action : action.slice(separator + 1),
+        /^[0-9a-f]{40}$/u,
+        `${workflowName}: ${action}`,
+      );
+    }
+  }
 });
 
 async function artifactFixture() {
@@ -170,6 +203,60 @@ test("unexpected and linked artifacts fail closed", async () => {
   );
 });
 
+test("every platform requires its complete installer set", async () => {
+  const requiredArtifacts = [
+    [
+      "macos-arm64",
+      "bundle/FileOctopus.dmg",
+      /release artifact set is empty: macos-arm64/u,
+    ],
+    [
+      "macos-x64",
+      "bundle/FileOctopus.dmg",
+      /release artifact set is empty: macos-x64/u,
+    ],
+    [
+      "windows-x64",
+      "msi/FileOctopus.msi",
+      /missing windows-x64 artifact extension: \.msi/u,
+    ],
+    [
+      "windows-x64",
+      "nsis/FileOctopus.exe",
+      /missing windows-x64 artifact extension: \.exe/u,
+    ],
+    [
+      "linux-x64",
+      "FileOctopus.AppImage",
+      /missing linux-x64 artifact extension: \.AppImage/u,
+    ],
+    [
+      "linux-x64",
+      "deb/FileOctopus.deb",
+      /missing linux-x64 artifact extension: \.deb/u,
+    ],
+    [
+      "linux-x64",
+      "rpm/FileOctopus.rpm",
+      /missing linux-x64 artifact extension: \.rpm/u,
+    ],
+  ];
+
+  for (const [platform, artifact, expectedError] of requiredArtifacts) {
+    const fixture = await artifactFixture();
+    await rm(join(fixture.artifacts, `release-${platform}`, artifact));
+    await assert.rejects(
+      stageReleaseArtifacts({
+        artifactsDirectory: fixture.artifacts,
+        releaseDirectory: fixture.release,
+        version: "0.1.5",
+        commitSha: SHA,
+      }),
+      expectedError,
+    );
+  }
+});
+
 test("workflow remains prerelease-only and reusable CI accepts an exact checkout ref", async () => {
   const releaseWorkflow = await readFile(
     ".github/workflows/release-assets.yml",
@@ -181,6 +268,10 @@ test("workflow remains prerelease-only and reusable CI accepts an exact checkout
   assert.match(releaseWorkflow, /--latest=false/u);
   assert.match(releaseWorkflow, /--verify-tag/u);
   assert.match(releaseWorkflow, /git\/refs/u);
+  assert.match(releaseWorkflow, /trap cleanup EXIT/u);
+  assert.match(releaseWorkflow, /gh release delete "\$RELEASE_TAG" --yes/u);
+  assert.match(releaseWorkflow, /"\$remote_tag_sha" == "\$REQUESTED_SHA"/u);
+  assert.match(releaseWorkflow, /git\/refs\/tags\/\$RELEASE_TAG/u);
   assert.doesNotMatch(releaseWorkflow, /^\s{2}release:\s*$/mu);
   assert.match(releaseWorkflow, /checkout_ref:/u);
   assert.match(ciWorkflow, /checkout_ref:/u);
