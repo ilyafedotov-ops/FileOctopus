@@ -15,7 +15,7 @@ quick-xml = { version = "0.41", features = ["serialize"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
 sha2 = "0.10"
-thiserror = "1"
+thiserror = "2"
 tokio = { version = "1", features = ["rt"] }
 vfs = { path = "../vfs" }
 

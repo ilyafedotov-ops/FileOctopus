@@ -6,7 +6,7 @@ edition.workspace = true
 [dependencies]
 serde = { version = "1", features = ["derive"] }
 similar = "3"
-thiserror = "1"
+thiserror = "2"
 tokio = { version = "1", features = ["macros", "rt"] }
 vfs = { path = "../vfs" }
 ts-rs = { version = "12", optional = true, features = ["serde-compat", "chrono-impl"] }

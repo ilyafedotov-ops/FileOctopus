@@ -7,7 +7,7 @@ edition.workspace = true
 async-trait = "0.1"
 config = { path = "../config" }
 platform = { path = "../platform" }
-thiserror = "1"
+thiserror = "2"
 tokio = { version = "1", features = ["sync", "time"] }
 vfs = { path = "../vfs" }
 

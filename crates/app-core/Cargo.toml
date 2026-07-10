@@ -17,7 +17,7 @@ remote-core = { path = "../remote-core" }
 rusqlite = { version = "0.40.1", features = ["bundled"] }
 telemetry = { path = "../telemetry" }
 terminal-core = { path = "../terminal-core" }
-thiserror = "1"
+thiserror = "2"
 tokio = { version = "1", features = ["sync"] }
 uuid = { version = "1", features = ["v4"] }
 vfs = { path = "../vfs" }
