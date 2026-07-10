@@ -5,15 +5,29 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
     ".": {
-      "types": "./src/index.tsx",
-      "import": "./src/index.tsx"
+      "development": {
+        "types": "./src/index.tsx",
+        "import": "./src/index.tsx"
+      },
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
-    "./styles/app.css": "./src/styles/app.css"
+    "./styles/app.css": {
+      "development": "./src/styles/app.css",
+      "default": "./dist/styles/app.css"
+    }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node ../../scripts/clean-package.mjs && tsc -p tsconfig.json && node ../../scripts/fix-package-esm.mjs && node ../../scripts/copy-package-assets.mjs src/styles:dist/styles",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run"
   },

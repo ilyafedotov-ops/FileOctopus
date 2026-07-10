@@ -38,7 +38,9 @@ test.describe("Visual Regression", () => {
   });
 
   test("context menu open on file row", async ({ page }) => {
-    const fileRow = page.locator('.fo-row[role="row"]').first();
+    const fileRow = page
+      .locator('.fo-row[role="row"]:not(.fo-row-parent)')
+      .first();
     const rowCount = await fileRow.count();
 
     if (rowCount > 0) {
@@ -102,8 +104,12 @@ test.describe("Visual Regression", () => {
   });
 
   test("dark theme (View menu)", async ({ page }) => {
-    await page.getByRole("menuitem", { name: /View/i }).click();
-    await page.getByRole("menuitem", { name: "Theme: Dark" }).click();
+    await page
+      .locator(".fo-menubar-trigger-inner")
+      .filter({ hasText: /^View$/ })
+      .click();
+    await page.getByRole("menuitem", { name: "Theme" }).hover();
+    await page.getByRole("menuitemcheckbox", { name: "Dark" }).click();
 
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
     await expect(page.locator(".fo-shell")).toHaveScreenshot(

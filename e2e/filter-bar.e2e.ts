@@ -104,11 +104,8 @@ test.describe("Filter bar — typing and filtering", () => {
     const count = await fileRows.count();
     test.skip(count === 0, "No file rows visible to test filtering");
 
-    // Get a filename from a row
-    const firstName = await fileRows
-      .first()
-      .locator(".fo-cell-name")
-      .textContent();
+    const rowLabel = await fileRows.first().getAttribute("aria-label");
+    const firstName = rowLabel?.split(",", 1)[0];
     test.skip(!firstName, "Could not read file name from row");
 
     // Filter with uppercase — should still match
@@ -242,7 +239,7 @@ test.describe("Filter bar — empty state", () => {
     await page.waitForSelector(".fo-panel");
   });
 
-  test("filter with no matches shows empty directory message", async ({
+  test("filter with no matches leaves only the parent row", async ({
     page,
   }) => {
     await shellPress(page, "Control+f");
@@ -250,9 +247,11 @@ test.describe("Filter bar — empty state", () => {
     await filterInput.fill("zzzzabsolutelynothingmatchesthis");
     await page.waitForTimeout(300);
 
-    const emptyMessage = activePanel(page).locator(".fo-empty-directory");
-    await expect(emptyMessage).toBeVisible();
-    await expect(emptyMessage).toContainText("No matches for");
+    await expect(
+      activePanel(page).locator(".fo-row[role='row']:not(.fo-row-parent)"),
+    ).toHaveCount(0);
+    await expect(activePanel(page).locator(".fo-row-parent")).toBeVisible();
+    await expect(activePaneStatus(page)).toContainText("0 items");
   });
 });
 

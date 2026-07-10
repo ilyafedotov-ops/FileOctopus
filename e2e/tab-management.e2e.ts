@@ -69,20 +69,14 @@ test.describe("Tab bar — initial tab state", () => {
   });
 
   test("each panel starts with exactly one tab", async ({ page }) => {
-    const leftTabs = panelTabBar(page, "left").locator(
-      ".fo-tab:not(.fo-tab--new)",
-    );
-    const rightTabs = panelTabBar(page, "right").locator(
-      ".fo-tab:not(.fo-tab--new)",
-    );
+    const leftTabs = panelTabBar(page, "left").locator(".fo-tab[role='tab']");
+    const rightTabs = panelTabBar(page, "right").locator(".fo-tab[role='tab']");
     await expect(leftTabs).toHaveCount(1);
     await expect(rightTabs).toHaveCount(1);
   });
 
   test("initial tab is active", async ({ page }) => {
-    const leftTab = panelTabBar(page, "left").locator(
-      ".fo-tab:not(.fo-tab--new)",
-    );
+    const leftTab = panelTabBar(page, "left").locator(".fo-tab[role='tab']");
     await expect(leftTab).toHaveClass(/fo-tab--active/);
     await expect(leftTab).toHaveAttribute("aria-selected", "true");
   });
@@ -124,12 +118,12 @@ test.describe("Tab bar — new tab button", () => {
 
   test("clicking new tab button adds a second tab", async ({ page }) => {
     const tabBar = panelTabBar(page, "left");
-    const tabsBefore = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabsBefore = tabBar.locator(".fo-tab[role='tab']");
     await expect(tabsBefore).toHaveCount(1);
 
     await tabBar.locator(".fo-tab--new").click();
 
-    const tabsAfter = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabsAfter = tabBar.locator(".fo-tab[role='tab']");
     await expect(tabsAfter).toHaveCount(2);
   });
 });
@@ -147,7 +141,7 @@ test.describe("Tab bar — tab switching", () => {
 
     // Create a second tab
     await tabBar.locator(".fo-tab--new").click();
-    const tabs = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabs = tabBar.locator(".fo-tab[role='tab']");
     await expect(tabs).toHaveCount(2);
 
     // New tab becomes active immediately
@@ -166,7 +160,7 @@ test.describe("Tab bar — tab switching", () => {
     const tabBar = panelTabBar(page, "left");
 
     await tabBar.locator(".fo-tab--new").click();
-    const tabs = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabs = tabBar.locator(".fo-tab[role='tab']");
     await expect(tabs).toHaveCount(2);
 
     // New tab becomes active immediately
@@ -196,7 +190,7 @@ test.describe("Tab bar — close tab button", () => {
 
     // Add a second tab
     await tabBar.locator(".fo-tab--new").click();
-    const tabs = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabs = tabBar.locator(".fo-tab[role='tab']");
     await expect(tabs).toHaveCount(2);
 
     // Now close buttons should exist (one per tab)
@@ -215,7 +209,7 @@ test.describe("Tab bar — close tab button", () => {
     const tabBar = panelTabBar(page, "left");
 
     await tabBar.locator(".fo-tab--new").click();
-    const tabs = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabs = tabBar.locator(".fo-tab[role='tab']");
     await expect(tabs).toHaveCount(2);
 
     // Close the second (inactive) tab
@@ -228,7 +222,7 @@ test.describe("Tab bar — close tab button", () => {
     const tabBar = panelTabBar(page, "left");
 
     await tabBar.locator(".fo-tab--new").click();
-    const tabs = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabs = tabBar.locator(".fo-tab[role='tab']");
     await expect(tabs).toHaveCount(2);
 
     // Switch to the second tab so it's active
@@ -247,7 +241,7 @@ test.describe("Tab bar — close tab button", () => {
     const tabBar = panelTabBar(page, "left");
 
     await tabBar.locator(".fo-tab--new").click();
-    const tabs = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabs = tabBar.locator(".fo-tab[role='tab']");
     await expect(tabs).toHaveCount(2);
 
     // Close the extra tab
@@ -273,7 +267,7 @@ test.describe("Tab bar — multiple tabs management", () => {
     await newBtn.click();
     await newBtn.click();
 
-    const tabs = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabs = tabBar.locator(".fo-tab[role='tab']");
     await expect(tabs).toHaveCount(3);
   });
 
@@ -286,15 +280,13 @@ test.describe("Tab bar — multiple tabs management", () => {
     await newBtn.click();
     await newBtn.click();
 
-    const activeTabs = tabBar.locator(
-      ".fo-tab.fo-tab--active:not(.fo-tab--new)",
-    );
+    const activeTabs = tabBar.locator(".fo-tab.fo-tab--active[role='tab']");
     await expect(activeTabs).toHaveCount(1);
   });
 
   test("tab title attribute reflects tab URI", async ({ page }) => {
     const tabBar = panelTabBar(page, "left");
-    const tab = tabBar.locator(".fo-tab:not(.fo-tab--new)").first();
+    const tab = tabBar.locator(".fo-tab[role='tab']").first();
     const title = await tab.getAttribute("title");
     // Title should be a non-empty path string
     test.skip(!title, "Tab title not available without real FS data");
@@ -310,15 +302,13 @@ test.describe("Tab bar — keyboard shortcuts for tabs", () => {
 
   test("Ctrl+T creates a new tab via keyboard", async ({ page }) => {
     const tabBar = panelTabBar(page, "left");
-    const tabsBefore = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabsBefore = tabBar.locator(".fo-tab[role='tab']");
     const countBefore = await tabsBefore.count();
 
     await shellPress(page, "Control+t");
     await page.waitForTimeout(300);
 
-    const countAfter = await tabBar
-      .locator(".fo-tab:not(.fo-tab--new)")
-      .count();
+    const countAfter = await tabBar.locator(".fo-tab[role='tab']").count();
     test.skip(
       countAfter === countBefore,
       "Ctrl+T tab creation shortcut not yet implemented",
@@ -331,7 +321,7 @@ test.describe("Tab bar — keyboard shortcuts for tabs", () => {
 
     // Open a second tab first
     await tabBar.locator(".fo-tab--new").click();
-    const tabs = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabs = tabBar.locator(".fo-tab[role='tab']");
     await expect(tabs).toHaveCount(2);
 
     const countBefore = await tabs.count();
@@ -339,9 +329,7 @@ test.describe("Tab bar — keyboard shortcuts for tabs", () => {
     await shellPress(page, "Control+w");
     await page.waitForTimeout(300);
 
-    const countAfter = await tabBar
-      .locator(".fo-tab:not(.fo-tab--new)")
-      .count();
+    const countAfter = await tabBar.locator(".fo-tab[role='tab']").count();
     test.skip(
       countAfter === countBefore,
       "Ctrl+W tab close shortcut not yet implemented",
@@ -353,7 +341,7 @@ test.describe("Tab bar — keyboard shortcuts for tabs", () => {
     const tabBar = panelTabBar(page, "left");
 
     await tabBar.locator(".fo-tab--new").click();
-    const tabs = tabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const tabs = tabBar.locator(".fo-tab[role='tab']");
     await expect(tabs).toHaveCount(2);
 
     // New tab becomes active immediately (last)
@@ -384,13 +372,11 @@ test.describe("Tab bar — panel-independent rendering", () => {
 
     // Open a new tab in the right panel
     await rightTabBar.locator(".fo-tab--new").click();
-    const rightTabs = rightTabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const rightTabs = rightTabBar.locator(".fo-tab[role='tab']");
     await expect(rightTabs).toHaveCount(2);
 
     // Left panel should still have 1 tab
-    const leftTabs = panelTabBar(page, "left").locator(
-      ".fo-tab:not(.fo-tab--new)",
-    );
+    const leftTabs = panelTabBar(page, "left").locator(".fo-tab[role='tab']");
     await expect(leftTabs).toHaveCount(1);
   });
 
@@ -400,7 +386,7 @@ test.describe("Tab bar — panel-independent rendering", () => {
     const rightTabBar = panelTabBar(page, "right");
 
     await rightTabBar.locator(".fo-tab--new").click();
-    const rightTabs = rightTabBar.locator(".fo-tab:not(.fo-tab--new)");
+    const rightTabs = rightTabBar.locator(".fo-tab[role='tab']");
     await expect(rightTabs).toHaveCount(2);
 
     // Switch to the second tab in the right panel
@@ -408,9 +394,7 @@ test.describe("Tab bar — panel-independent rendering", () => {
     await expect(rightTabs.last()).toHaveClass(/fo-tab--active/);
 
     // Left panel's first tab should still be active
-    const leftTabs = panelTabBar(page, "left").locator(
-      ".fo-tab:not(.fo-tab--new)",
-    );
+    const leftTabs = panelTabBar(page, "left").locator(".fo-tab[role='tab']");
     await expect(leftTabs.first()).toHaveClass(/fo-tab--active/);
   });
 });
