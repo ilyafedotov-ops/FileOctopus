@@ -21,7 +21,7 @@ pub fn default_shell() -> String {
                 return comspec;
             }
         }
-        return "cmd.exe".to_string();
+        "cmd.exe".to_string()
     }
 
     #[cfg(target_os = "macos")]
