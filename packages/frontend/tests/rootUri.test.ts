@@ -7,6 +7,6 @@ describe("rootUri", () => {
   });
 
   it("returns drive root on windows paths", () => {
-    expect(rootUri("local:///D:/Projects/app")).toBe("local:///D:/");
+    expect(rootUri("local:///D:/Projects/app")).toBe("local://D:/");
   });
 });

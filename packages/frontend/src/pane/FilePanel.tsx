@@ -7,7 +7,6 @@ import {
   countVisibleEntries,
   parentUri,
   selectDisplayedEntries,
-  homeUri,
   type PanelId,
   type SortField,
   type PanelTabState,
@@ -32,7 +31,7 @@ import {
   readDropData,
   useFileOctopusDragTarget,
 } from "../hooks/useFileOctopusDragTarget";
-import { localPathFromUri } from "../utils/paneUtils";
+import { localPathFromUri, rootUri } from "../utils/paneUtils";
 import { fileIconGlyph } from "./fileTableUtils";
 import {
   storedColumnWidths,
@@ -469,7 +468,7 @@ export function FilePanel({
           {tab.viewMode === "columns" ? (
             <ColumnsView
               client={client}
-              rootUri={homeUri()}
+              rootUri={rootUri(tab.uri)}
               activeUri={tab.uri}
               showHidden={tab.showHidden}
               onNavigate={onNavigate}

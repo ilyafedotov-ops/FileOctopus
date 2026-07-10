@@ -125,15 +125,38 @@ export function parentUriFromUri(uri: string): string | null {
   }
 
   const path = uri.replace(/^local:\/\//, "");
+  const uncPath = localUncPath(path);
+  if (uncPath) {
+    if (uncPath.segments.length === 0) {
+      return null;
+    }
+    if (uncPath.segments.length === 1) {
+      return uncPath.rootUri;
+    }
+    return `${uncPath.rootUri}${uncPath.segments.slice(0, -1).join("/")}`;
+  }
+  if (path.startsWith("//")) {
+    return null;
+  }
+
   const normalized =
     path.endsWith("/") && path.length > 1 ? path.slice(0, -1) : path;
   const index = normalized.lastIndexOf("/");
 
-  if (index <= 0) {
+  if (index < 0 || normalized === "/") {
     return null;
   }
+  if (index === 0) {
+    return "local:///";
+  }
 
-  return `local://${normalized.slice(0, index)}`;
+  const parentPath = normalized.slice(0, index);
+  const driveRootMatch = parentPath.match(/^\/?([A-Za-z]:)$/);
+  if (driveRootMatch) {
+    return `local://${driveRootMatch[1]}/`;
+  }
+
+  return `local://${parentPath}`;
 }
 
 export function rootUriForUri(uri: string): string {
@@ -151,10 +174,15 @@ export function rootUriForUri(uri: string): string {
   }
 
   const path = displayPathFromUri(uri);
+  const uncPath = localUncPath(path);
+  if (uncPath) {
+    return uncPath.rootUri;
+  }
+
   const driveMatch =
     path.match(/^\/([A-Za-z]:)[\\/]/) ?? path.match(/^([A-Za-z]:)[\\/]/);
   if (driveMatch) {
-    return `local:///${driveMatch[1]}/`;
+    return `local://${driveMatch[1]}/`;
   }
   return "local:///";
 }
@@ -200,6 +228,41 @@ export function breadcrumbSegmentsFromUri(uri: string): UriBreadcrumbSegment[] {
   }
 
   const path = displayPathFromUri(uri).replace(/\/+$/, "");
+  const uncPath = localUncPath(path);
+  if (uncPath) {
+    const result: UriBreadcrumbSegment[] = [
+      {
+        label: `//${uncPath.server}/${uncPath.share}`,
+        uri: uncPath.rootUri,
+      },
+    ];
+    let current = uncPath.rootUri.slice(0, -1);
+
+    for (const segment of uncPath.segments) {
+      current = `${current}/${segment}`;
+      result.push({ label: segment, uri: current });
+    }
+
+    return result;
+  }
+
+  const drivePathMatch = path.match(/^\/?([A-Za-z]:)(?:\/(.*))?$/);
+  if (drivePathMatch) {
+    const drive = drivePathMatch[1];
+    const segments = (drivePathMatch[2] ?? "").split("/").filter(Boolean);
+    const result: UriBreadcrumbSegment[] = [
+      { label: drive, uri: `local://${drive}/` },
+    ];
+    let current = drive;
+
+    for (const segment of segments) {
+      current = `${current}/${segment}`;
+      result.push({ label: segment, uri: `local://${current}` });
+    }
+
+    return result;
+  }
+
   const parts = path.split("/").filter(Boolean);
   const result: UriBreadcrumbSegment[] = [];
   let current = "";
@@ -221,6 +284,28 @@ function networkPathParts(uri: string): string[] {
     .replace(/^network:\/\//, "")
     .split("/")
     .filter(Boolean);
+}
+
+function localUncPath(path: string): {
+  server: string;
+  share: string;
+  segments: string[];
+  rootUri: string;
+} | null {
+  const normalized = path.replace(/\/+$/, "");
+  const match = normalized.match(/^\/\/([^/]+)\/([^/]+)(?:\/(.*))?$/);
+  if (!match) {
+    return null;
+  }
+
+  const server = match[1];
+  const share = match[2];
+  return {
+    server,
+    share,
+    segments: (match[3] ?? "").split("/").filter(Boolean),
+    rootUri: `local:////${server}/${share}/`,
+  };
 }
 
 function networkUriFromParts(parts: string[]): string {

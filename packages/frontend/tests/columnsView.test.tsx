@@ -151,6 +151,77 @@ describe("ColumnsView", () => {
     expect(sections.length).toBe(3);
   });
 
+  it.each([
+    ["remote", "sftp://profile-1/"],
+    ["network", "network:///"],
+  ])("renders one column when %s active URI equals root", async (_, uri) => {
+    render(
+      <ColumnsView
+        client={mockClient()}
+        rootUri={uri}
+        activeUri={uri}
+        showHidden={false}
+        onNavigate={vi.fn()}
+        onOpen={vi.fn()}
+        fileIcon={() => <span>icon</span>}
+      />,
+    );
+
+    await waitFor(() => expect(listStart).toHaveBeenCalledTimes(1));
+
+    expect(listStart.mock.calls[0][0].uri).toBe(uri);
+    expect(document.querySelectorAll(".fo-columns-column")).toHaveLength(1);
+  });
+
+  it("builds each intermediate network column", async () => {
+    render(
+      <ColumnsView
+        client={mockClient()}
+        rootUri="network:///"
+        activeUri="network:///saved/profile-1"
+        showHidden={false}
+        onNavigate={vi.fn()}
+        onOpen={vi.fn()}
+        fileIcon={() => <span>icon</span>}
+      />,
+    );
+
+    await waitFor(() => expect(listStart).toHaveBeenCalledTimes(3));
+
+    expect(
+      listStart.mock.calls.map((call: unknown[]) => call[0].uri as string),
+    ).toEqual([
+      "network:///",
+      "network:///saved",
+      "network:///saved/profile-1",
+    ]);
+  });
+
+  it("builds remote columns relative to a remote directory root", async () => {
+    render(
+      <ColumnsView
+        client={mockClient()}
+        rootUri="sftp://profile-1/home"
+        activeUri="sftp://profile-1/home/ilya/projects/app"
+        showHidden={false}
+        onNavigate={vi.fn()}
+        onOpen={vi.fn()}
+        fileIcon={() => <span>icon</span>}
+      />,
+    );
+
+    await waitFor(() => expect(listStart).toHaveBeenCalledTimes(4));
+
+    expect(
+      listStart.mock.calls.map((call: unknown[]) => call[0].uri as string),
+    ).toEqual([
+      "sftp://profile-1/home",
+      "sftp://profile-1/home/ilya",
+      "sftp://profile-1/home/ilya/projects",
+      "sftp://profile-1/home/ilya/projects/app",
+    ]);
+  });
+
   it("starts listing for each column URI", async () => {
     render(
       <ColumnsView
@@ -172,6 +243,70 @@ describe("ColumnsView", () => {
     expect(calledUris).toContain("local:///");
     expect(calledUris).toContain("local:///home");
     expect(calledUris).toContain("local:///home/user");
+  });
+
+  it("builds local columns relative to a POSIX home root", async () => {
+    render(
+      <ColumnsView
+        client={mockClient()}
+        rootUri="local:///Users/ilya"
+        activeUri="local:///Users/ilya/Documents/Projects"
+        showHidden={false}
+        onNavigate={vi.fn()}
+        onOpen={vi.fn()}
+        fileIcon={() => <span>icon</span>}
+      />,
+    );
+
+    await waitFor(() => expect(listStart).toHaveBeenCalledTimes(3));
+
+    expect(
+      listStart.mock.calls.map((call: unknown[]) => call[0].uri as string),
+    ).toEqual([
+      "local:///Users/ilya",
+      "local:///Users/ilya/Documents",
+      "local:///Users/ilya/Documents/Projects",
+    ]);
+  });
+
+  it("does not duplicate a Windows drive in the local column stack", async () => {
+    render(
+      <ColumnsView
+        client={mockClient()}
+        rootUri="local://C:/"
+        activeUri="local://C:/Users/Ilya"
+        showHidden={false}
+        onNavigate={vi.fn()}
+        onOpen={vi.fn()}
+        fileIcon={() => <span>icon</span>}
+      />,
+    );
+
+    await waitFor(() => expect(listStart).toHaveBeenCalledTimes(3));
+
+    expect(
+      listStart.mock.calls.map((call: unknown[]) => call[0].uri as string),
+    ).toEqual(["local://C:/", "local://C:/Users", "local://C:/Users/Ilya"]);
+  });
+
+  it("uses the active filesystem hierarchy when active URI is outside root", async () => {
+    render(
+      <ColumnsView
+        client={mockClient()}
+        rootUri="local:///Users/ilya"
+        activeUri="local:///tmp/project"
+        showHidden={false}
+        onNavigate={vi.fn()}
+        onOpen={vi.fn()}
+        fileIcon={() => <span>icon</span>}
+      />,
+    );
+
+    await waitFor(() => expect(listStart).toHaveBeenCalledTimes(3));
+
+    expect(
+      listStart.mock.calls.map((call: unknown[]) => call[0].uri as string),
+    ).toEqual(["local:///", "local:///tmp", "local:///tmp/project"]);
   });
 
   it("renders entries in columns when batch completes", async () => {
@@ -376,10 +511,18 @@ describe("ColumnsView", () => {
       />,
     );
 
-    await waitFor(() => expect(listStart).toHaveBeenCalled());
+    await waitFor(() => expect(listStart).toHaveBeenCalledTimes(4));
 
     const sections = document.querySelectorAll(".fo-columns-column");
-    expect(sections.length).toBeLessThanOrEqual(4);
+    expect(sections).toHaveLength(4);
+    expect(
+      listStart.mock.calls.map((call: unknown[]) => call[0].uri as string),
+    ).toEqual([
+      "local:///a/b",
+      "local:///a/b/c",
+      "local:///a/b/c/d",
+      "local:///a/b/c/d/e",
+    ]);
   });
 
   it("handles listStart rejection gracefully", async () => {
