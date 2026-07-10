@@ -1,3 +1,4 @@
+#[cfg(unix)]
 use std::collections::HashMap;
 use std::fs::{self, Metadata};
 use std::io;
@@ -138,7 +139,7 @@ impl LocalFsProvider {
         let path = uri.to_local_path()?;
         let metadata =
             fs::symlink_metadata(&path).map_err(|error| Self::map_io_error(&uri, error))?;
-        let mut owner_cache = OwnerLookupCache::default();
+        let mut owner_cache = OwnerLookupCache::new();
 
         Ok(Self::entry_for_path(&path, uri, metadata, &mut owner_cache))
     }
@@ -299,7 +300,7 @@ fn list_blocking(
     let batch_size = options.batch_size.max(1);
     let mut entries = Vec::with_capacity(batch_size);
     let mut batch_index = 0;
-    let mut owner_cache = OwnerLookupCache::default();
+    let mut owner_cache = OwnerLookupCache::new();
     let read_dir =
         fs::read_dir(&path).map_err(|error| LocalFsProvider::map_io_error(&uri, error))?;
 
@@ -415,6 +416,10 @@ struct OwnerLookupCache;
 
 #[cfg(unix)]
 impl OwnerLookupCache {
+    fn new() -> Self {
+        Self::default()
+    }
+
     fn owner_for_uid(&mut self, uid: u32) -> Option<String> {
         self.owner_for_uid_with(uid, resolve_owner_name)
     }
@@ -432,6 +437,13 @@ impl OwnerLookupCache {
             .unwrap_or_else(|| uid.to_string());
         self.names.insert(uid, Some(owner.clone()));
         Some(owner)
+    }
+}
+
+#[cfg(not(unix))]
+impl OwnerLookupCache {
+    fn new() -> Self {
+        Self
     }
 }
 
