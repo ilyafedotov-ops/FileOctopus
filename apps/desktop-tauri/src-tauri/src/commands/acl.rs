@@ -10,6 +10,7 @@ use app_ipc::{GetAclRequest, GetAclResponse, IpcError, SetAclRequest, SetAclResp
 use tauri::State;
 use vfs::ResourceUri;
 
+#[cfg(any(unix, test))]
 fn parse_rwx(triplet: u32) -> (bool, bool, bool) {
     let r = (triplet & 0o4) != 0;
     let w = (triplet & 0o2) != 0;
@@ -17,6 +18,7 @@ fn parse_rwx(triplet: u32) -> (bool, bool, bool) {
     (r, w, x)
 }
 
+#[cfg(any(unix, test))]
 fn mode_to_octal(mode: u32) -> String {
     format!("{:o}", mode & 0o777)
 }
@@ -124,17 +126,17 @@ pub async fn fs_set_acl(
         } else {
             set_permissions_nofollow(&path, mode)?;
         }
+
+        Ok(SetAclResponse { success: true })
     }
 
     #[cfg(not(unix))]
     {
-        return Err(IpcError::new(
+        Err(IpcError::new(
             app_ipc::error_codes::UNSUPPORTED_OPERATION,
             "ACL changes are unavailable on this platform",
-        ));
+        ))
     }
-
-    Ok(SetAclResponse { success: true })
 }
 
 #[cfg(unix)]
