@@ -5,16 +5,33 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
     ".": {
-      "types": "./src/index.tsx",
-      "import": "./src/index.tsx"
+      "development": {
+        "types": "./src/index.tsx",
+        "import": "./src/index.tsx"
+      },
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
-    "./components.css": "./src/components.css",
-    "./tokens.css": "./src/tokens.css"
+    "./components.css": {
+      "development": "./src/components.css",
+      "default": "./dist/components.css"
+    },
+    "./tokens.css": {
+      "development": "./src/tokens.css",
+      "default": "./dist/tokens.css"
+    }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "node ../../scripts/clean-package.mjs && tsc -p tsconfig.json && node ../../scripts/fix-package-esm.mjs && node ../../scripts/copy-package-assets.mjs src/components.css:dist/components.css src/tokens.css:dist/tokens.css",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run tests --environment jsdom"
   },

@@ -39,7 +39,7 @@ if echo "$staged" | grep -qx 'package.json'; then
     if [ -f pnpm-lock.yaml ]; then
       dep_change="$(
         git diff --cached -- package.json |
-          grep -E '^[+-].*"(dependencies|devDependencies|peerDependencies|optionalDependencies|pnpm)"\s*:' ||
+          grep -E '^[+-]  "(dependencies|devDependencies|peerDependencies|optionalDependencies|pnpm)": \{' ||
           true
       )"
       if [ -n "$dep_change" ]; then

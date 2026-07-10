@@ -2,13 +2,7 @@ import { expect, test } from "@playwright/test";
 
 const MENU_SELECTOR = ".fo-context-menu";
 const ITEM_SELECTOR = '[role="menuitem"]';
-const TOAST_SELECTOR = ".fo-toast";
-
-/**
- * In Vite-only mode, Tauri IPC is unavailable, so checksum produces an error
- * toast instead of a success toast. We detect the mode from the first toast
- * result and adapt expectations accordingly.
- */
+const NOTIFICATION_SELECTOR = ".fo-notification-item";
 
 test.describe("Checksum", () => {
   test.beforeEach(async ({ page }) => {
@@ -71,12 +65,29 @@ test.describe("Checksum", () => {
     const fileRow = await findFileRow(page);
     if (!fileRow) return;
     await fileRow.click({ button: "right" });
-    await expect(page.locator(MENU_SELECTOR)).toBeVisible();
+    const toolsMenu = await openContextToolsMenu(page);
 
-    const checksumItem = page.locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`, {
-      hasText: "Checksum…",
+    const checksumItem = toolsMenu.getByRole("menuitem", {
+      name: "Checksum…",
+      exact: true,
     });
     await checksumItem.click();
+  }
+
+  async function openContextToolsMenu(page: import("@playwright/test").Page) {
+    const menu = page.locator(`${MENU_SELECTOR}:visible`);
+    await expect(menu).toBeVisible();
+    await menu.getByRole("menuitem", { name: "Tools", exact: true }).hover();
+    const toolsMenu = menu.locator(".fo-context-submenu:visible");
+    await expect(toolsMenu).toBeVisible();
+    return toolsMenu;
+  }
+
+  async function latestNotification(page: import("@playwright/test").Page) {
+    await page.getByRole("button", { name: /^Notifications/ }).click();
+    const notification = page.locator(NOTIFICATION_SELECTOR).first();
+    await expect(notification).toBeVisible();
+    return notification;
   }
 
   // ─── Context menu ──────────────────────────────────────────────
@@ -88,11 +99,9 @@ test.describe("Checksum", () => {
     test.skip(!fileRow, "No file rows visible in active panel");
 
     await fileRow!.click({ button: "right" });
-    await expect(page.locator(MENU_SELECTOR)).toBeVisible();
+    const toolsMenu = await openContextToolsMenu(page);
 
-    const texts = await page
-      .locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`)
-      .allTextContents();
+    const texts = await toolsMenu.locator(ITEM_SELECTOR).allTextContents();
     const trimmed = texts.map((t) => t.trim());
     expect(trimmed).toContain("Checksum…");
   });
@@ -104,10 +113,11 @@ test.describe("Checksum", () => {
     test.skip(!fileRow, "No file rows visible in active panel");
 
     await fileRow!.click({ button: "right" });
-    await expect(page.locator(MENU_SELECTOR)).toBeVisible();
+    const toolsMenu = await openContextToolsMenu(page);
 
-    const checksumItem = page.locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`, {
-      hasText: "Checksum…",
+    const checksumItem = toolsMenu.getByRole("menuitem", {
+      name: "Checksum…",
+      exact: true,
     });
     await expect(checksumItem).toBeEnabled();
   });
@@ -140,9 +150,7 @@ test.describe("Checksum", () => {
     await expect(checksumItem).toBeEnabled();
   });
 
-  // ─── Toast: checksum result ────────────────────────────────────
-
-  test("triggering checksum on a file shows a toast notification", async ({
+  test("triggering checksum on a file records a notification", async ({
     page,
   }) => {
     const fileRow = await findFileRow(page);
@@ -150,15 +158,9 @@ test.describe("Checksum", () => {
 
     await triggerChecksumViaContextMenu(page);
 
-    const toast = page.locator(TOAST_SELECTOR).first();
-    await expect(toast).toBeVisible();
-    // Error toasts get role="alert", success toasts get role="status"
-    const role = await toast.getAttribute("role");
-    expect(["alert", "status"]).toContain(role);
-
-    const title = await toast.locator("strong").textContent();
+    const notification = await latestNotification(page);
+    const title = await notification.locator("strong").textContent();
     expect(title).toBeTruthy();
-    // In Vite mode: "Checksum failed: …", in Tauri mode: "SHA-256: …"
     const isIpcAvailable = !title!.startsWith("Checksum failed:");
     if (isIpcAvailable) {
       expect(title).toMatch(/^SHA-256:/);
@@ -167,7 +169,7 @@ test.describe("Checksum", () => {
     }
   });
 
-  test("checksum success toast has SHA-256: prefix when IPC is available", async ({
+  test("checksum success notification has SHA-256: prefix when IPC is available", async ({
     page,
   }) => {
     const fileRow = await findFileRow(page);
@@ -175,18 +177,15 @@ test.describe("Checksum", () => {
 
     await triggerChecksumViaContextMenu(page);
 
-    const toast = page.locator(TOAST_SELECTOR).first();
-    await expect(toast).toBeVisible();
-
-    const title = await toast.locator("strong").textContent();
-    // Skip in Vite-only mode where IPC is unavailable
+    const notification = await latestNotification(page);
+    const title = await notification.locator("strong").textContent();
     test.skip(
       title?.startsWith("Checksum failed:"),
       "Tauri IPC unavailable in browser preview — skipping success assertions",
     );
 
     expect(title).toMatch(/^SHA-256:/);
-    await expect(toast).toHaveClass(/fo-toast-success/);
+    await expect(notification).toHaveClass(/fo-notification-success/);
   });
 
   test("checksum result hash matches SHA-256 format (64 hex chars)", async ({
@@ -197,10 +196,8 @@ test.describe("Checksum", () => {
 
     await triggerChecksumViaContextMenu(page);
 
-    const toast = page.locator(TOAST_SELECTOR).first();
-    await expect(toast).toBeVisible();
-
-    const title = await toast.locator("strong").textContent();
+    const notification = await latestNotification(page);
+    const title = await notification.locator("strong").textContent();
     test.skip(
       !title?.startsWith("SHA-256:"),
       "Tauri IPC unavailable in browser preview — skipping hash format check",
@@ -212,35 +209,33 @@ test.describe("Checksum", () => {
 
   // ─── Error cases ───────────────────────────────────────────────
 
-  test("checksum on directory shows error toast about selecting a file", async ({
+  test("checksum on directory records an error notification", async ({
     page,
   }) => {
     const dirRow = await findDirectoryRow(page);
     test.skip(!dirRow, "No directory rows visible in active panel");
 
-    // Select the directory and trigger checksum via context menu
     await dirRow!.click();
     await dirRow!.click({ button: "right" });
-    await expect(page.locator(MENU_SELECTOR)).toBeVisible();
+    const toolsMenu = await openContextToolsMenu(page);
 
-    const checksumItem = page.locator(`${MENU_SELECTOR} ${ITEM_SELECTOR}`, {
-      hasText: "Checksum…",
+    const checksumItem = toolsMenu.getByRole("menuitem", {
+      name: "Checksum…",
+      exact: true,
     });
     const hasItem = (await checksumItem.count()) > 0;
     test.skip(!hasItem, "Checksum… item not found in context menu");
     await checksumItem.click();
 
-    const toast = page.locator(TOAST_SELECTOR).first();
-    await expect(toast).toBeVisible();
+    await latestNotification(page);
   });
 
-  test("checksum with no selection shows error toast", async ({ page }) => {
-    // Click empty space in the table to clear any selection
+  test("checksum with no selection records an error notification", async ({
+    page,
+  }) => {
     const tableShell = page.locator(".fo-table-shell").first();
     await tableShell.click();
 
-    // Trigger checksum via context menu on empty space won't have checksum item
-    // Use the More dropdown instead
     const toolbar = page.locator(".fo-workbench-toolbar .fo-operation-toolbar");
     await toolbar.getByRole("button", { name: "More" }).click();
     await page.waitForTimeout(500);
@@ -252,25 +247,18 @@ test.describe("Checksum", () => {
     const hasItem = (await checksumItem.count()) > 0;
     test.skip(!hasItem, "Checksum item not found in More dropdown");
     await checksumItem.click();
-
-    const toast = page.locator(TOAST_SELECTOR).first();
-    // May or may not show a toast depending on implementation
-    const toastCount = await toast.count();
-    if (toastCount > 0) {
-      await expect(toast).toBeVisible();
-    }
+    await latestNotification(page);
   });
 
-  test("toast element has role=status for accessibility", async ({ page }) => {
+  test("notification center exposes its accessible label", async ({ page }) => {
     const fileRow = await findFileRow(page);
     test.skip(!fileRow, "No file rows visible in active panel");
 
     await triggerChecksumViaContextMenu(page);
 
-    const toast = page.locator(TOAST_SELECTOR).first();
-    await expect(toast).toBeVisible();
-    // Error toasts get role="alert", success toasts get role="status"
-    const role = await toast.getAttribute("role");
-    expect(["alert", "status"]).toContain(role);
+    await latestNotification(page);
+    await expect(
+      page.getByRole("region", { name: "Notifications" }),
+    ).toBeVisible();
   });
 });

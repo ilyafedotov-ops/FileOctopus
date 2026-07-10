@@ -7,6 +7,12 @@ async function shellPress(page: import("@playwright/test").Page, key: string) {
   await page.locator(".fo-shell").press(key);
 }
 
+function operationalRows(page: import("@playwright/test").Page) {
+  return page.locator(
+    ".fo-panel.fo-panel-active .fo-row[role='row']:not(.fo-row-parent)",
+  );
+}
+
 // ---------------------------------------------------------------------------
 // Inline rename (F2 / slow double-click)
 // ---------------------------------------------------------------------------
@@ -17,7 +23,7 @@ test.describe("Inline rename", () => {
   });
 
   test("F2 on selected file shows inline rename input", async ({ page }) => {
-    const row = page.locator('.fo-row[role="row"]').first();
+    const row = operationalRows(page).first();
     const count = await row.count();
     test.skip(count === 0, "No rows in panel");
 
@@ -35,12 +41,12 @@ test.describe("Inline rename", () => {
   test("inline rename input pre-fills with current file name", async ({
     page,
   }) => {
-    const row = page.locator('.fo-row[role="row"]').first();
+    const row = operationalRows(page).first();
     const count = await row.count();
     test.skip(count === 0, "No rows in panel");
 
     await row.click();
-    const name = await row.locator(".fo-cell-name").first().textContent();
+    const name = await row.locator(".fo-row-text").textContent();
 
     await shellPress(page, "F2");
     const renameInput = page.locator(".fo-row-rename-input");
@@ -51,7 +57,7 @@ test.describe("Inline rename", () => {
   });
 
   test("Escape cancels inline rename without error", async ({ page }) => {
-    const row = page.locator('.fo-row[role="row"]').first();
+    const row = operationalRows(page).first();
     const count = await row.count();
     test.skip(count === 0, "No rows in panel");
 
@@ -66,7 +72,9 @@ test.describe("Inline rename", () => {
   });
 
   test("inline rename commits on Enter", async ({ page }) => {
-    const row = page.locator('.fo-row[role="row"][data-type="file"]').first();
+    const row = operationalRows(page)
+      .filter({ hasNotText: /Folder|DIR/i })
+      .first();
     const count = await row.count();
     test.skip(count === 0, "No file rows in panel");
 
@@ -86,8 +94,8 @@ test.describe("Inline rename", () => {
   });
 
   test("F2 on directory row triggers rename", async ({ page }) => {
-    const dirRow = page
-      .locator('.fo-row[role="row"][data-type="directory"]')
+    const dirRow = operationalRows(page)
+      .filter({ hasText: /Folder|DIR/i })
       .first();
     const count = await dirRow.count();
     test.skip(count === 0, "No directory rows in panel");
@@ -100,57 +108,58 @@ test.describe("Inline rename", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Go To Location dialog (Ctrl+G)
-// ---------------------------------------------------------------------------
-test.describe("Go To Location dialog", () => {
+test.describe("Path focus", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector(".fo-panel");
   });
 
-  test("Ctrl+G focuses breadcrumb path input in active panel header", async ({
+  test("Ctrl+L focuses breadcrumb path input in active panel header", async ({
     page,
   }) => {
-    await shellPress(page, "Control+g");
+    await shellPress(page, "Control+l");
 
-    const breadcrumbEdit = page.locator(".fo-breadcrumb-edit");
-    await expect(breadcrumbEdit).toBeVisible({ timeout: 3000 });
+    const input = page.locator(
+      '.fo-panel-active input.fo-path[aria-label="Current path"]',
+    );
+    await expect(input).toBeVisible({ timeout: 3000 });
+    await expect(
+      page.locator(
+        '.fo-panel:not(.fo-panel-active) input.fo-path[aria-label="Current path"]',
+      ),
+    ).toHaveCount(0);
   });
 
-  test("breadcrumb input is auto-focused when Ctrl+G is pressed", async ({
+  test("breadcrumb input is auto-focused when Ctrl+L is pressed", async ({
     page,
   }) => {
-    await shellPress(page, "Control+g");
+    await shellPress(page, "Control+l");
 
-    const breadcrumbEdit = page.locator(".fo-breadcrumb-edit");
-    await expect(breadcrumbEdit).toBeVisible({ timeout: 3000 });
-
-    const input = breadcrumbEdit.locator("input, textarea").first();
+    const input = page.locator(
+      '.fo-panel-active input.fo-path[aria-label="Current path"]',
+    );
     await expect(input).toBeFocused();
   });
 
   test("breadcrumb edit area contains a text input", async ({ page }) => {
-    await shellPress(page, "Control+g");
+    await shellPress(page, "Control+l");
 
-    const breadcrumbEdit = page.locator(".fo-breadcrumb-edit");
-    await expect(breadcrumbEdit).toBeVisible({ timeout: 3000 });
-
-    const input = breadcrumbEdit.locator("input, textarea");
-    await expect(input.first()).toBeVisible();
+    const input = page.locator(
+      '.fo-panel-active input.fo-path[aria-label="Current path"]',
+    );
+    await expect(input).toBeVisible({ timeout: 3000 });
   });
 
   test("Escape blurs the breadcrumb input", async ({ page }) => {
-    await shellPress(page, "Control+g");
+    await shellPress(page, "Control+l");
 
-    const breadcrumbEdit = page.locator(".fo-breadcrumb-edit");
-    await expect(breadcrumbEdit).toBeVisible({ timeout: 3000 });
-
-    const input = breadcrumbEdit.locator("input, textarea").first();
+    const input = page.locator(
+      '.fo-panel-active input.fo-path[aria-label="Current path"]',
+    );
     await expect(input).toBeFocused();
 
     await page.keyboard.press("Escape");
-    await expect(input).not.toBeFocused();
+    await expect(input).not.toBeVisible();
   });
 });
 
@@ -163,56 +172,26 @@ test.describe("Content search panel", () => {
     await page.waitForSelector(".fo-panel");
   });
 
-  test("content search panel class exists when toggled open", async ({
+  test("content search input is available in the active panel", async ({
     page,
   }) => {
-    // Try Ctrl+Shift+F or menu to open content search
-    await shellPress(page, "Control+Shift+f");
-
-    // Check if search panel appears (give it time, may not be bound)
-    const searchPanel = page.locator(".fo-recursive-search");
-    const visible = await searchPanel.isVisible().catch(() => false);
-    // If shortcut not bound, try command palette
-    if (!visible) {
-      await shellPress(page, "Control+p");
-      const paletteInput = page.locator(
-        ".fo-command-palette-input, [role='dialog'] input",
-      );
-      await expect(paletteInput.first()).toBeVisible({ timeout: 3000 });
-      await paletteInput.first().fill("content search");
-      await page.waitForTimeout(500);
-      // Look for content search command in results
-      const cmdItem = page.locator(".fo-command-palette-item").first();
-      const hasItem = (await cmdItem.count()) > 0;
-      if (hasItem) {
-        await cmdItem.click();
-        await expect(searchPanel).toBeVisible({ timeout: 3000 });
-      } else {
-        test.skip(true, "Content search command not found in palette");
-      }
-    } else {
-      await expect(searchPanel).toBeVisible();
-    }
-  });
-
-  test("content search panel has search input", async ({ page }) => {
-    await shellPress(page, "Control+Shift+f");
-    const searchPanel = page.locator(".fo-recursive-search");
-    const visible = await searchPanel.isVisible().catch(() => false);
-
-    test.skip(!visible, "Content search panel not available");
-
-    const input = searchPanel.locator("input").first();
+    const input = page.locator(".fo-panel-active .fo-content-search-input");
     await expect(input).toBeVisible();
+    await input.focus();
+    await expect(input).toBeFocused();
   });
 
-  test("content search panel closes on Escape", async ({ page }) => {
-    await shellPress(page, "Control+Shift+f");
-    const searchPanel = page.locator(".fo-recursive-search");
-    const visible = await searchPanel.isVisible().catch(() => false);
-    test.skip(!visible, "Content search panel not available");
+  test("content search input has the expected prompt", async ({ page }) => {
+    const input = page.locator(".fo-panel-active .fo-content-search-input");
+    await expect(input).toHaveAttribute(
+      "placeholder",
+      "Search in file contents…",
+    );
+  });
 
-    await searchPanel.press("Escape");
-    await expect(searchPanel).not.toBeVisible();
+  test("content search input accepts a query", async ({ page }) => {
+    const input = page.locator(".fo-panel-active .fo-content-search-input");
+    await input.fill("needle");
+    await expect(input).toHaveValue("needle");
   });
 });

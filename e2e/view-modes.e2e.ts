@@ -49,7 +49,9 @@ test.describe("View modes — keyboard shortcuts", () => {
     // More dropdown contains view mode items
     const modes = ["Details view", "List view", "Icons view"];
     for (const label of modes) {
-      await expect(page.getByRole("menuitem", { name: label })).toBeVisible();
+      await expect(
+        page.getByRole("menuitemcheckbox", { name: label }),
+      ).toBeVisible();
     }
   });
 });

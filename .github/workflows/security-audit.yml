@@ -1,5 +1,8 @@
 name: Security Audit
 
+permissions:
+  contents: read
+
 on:
   workflow_dispatch:
   schedule:
@@ -30,9 +33,11 @@ jobs:
           version: 10.26.2
       - uses: actions/setup-node@v6
         with:
-          node-version: 22
+          node-version-file: .node-version
           cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: 1.96.1
       - uses: Swatinem/rust-cache@v2
       - run: pnpm install --frozen-lockfile
       - run: cargo install cargo-audit --locked
