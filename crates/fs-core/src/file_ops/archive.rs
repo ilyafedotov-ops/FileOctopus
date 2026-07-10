@@ -1180,21 +1180,25 @@ pub(super) fn archive_entry_name(
     plan: &FileOperationPlan,
     source_path: &Path,
 ) -> Result<String, FileOperationError> {
+    let canonical_source = source_path
+        .canonicalize()
+        .unwrap_or_else(|_| source_path.to_path_buf());
+
     for root_uri in &plan.sources {
         let root_path = root_uri.to_local_path()?;
         let root_path = root_path.canonicalize().unwrap_or(root_path);
 
-        if root_path.is_file() && root_path == source_path {
-            return Ok(source_path
+        if root_path.is_file() && root_path == canonical_source {
+            return Ok(canonical_source
                 .file_name()
                 .map(|name| name.to_string_lossy().to_string())
-                .unwrap_or_else(|| source_path.to_string_lossy().to_string()));
+                .unwrap_or_else(|| canonical_source.to_string_lossy().to_string()));
         }
 
-        if root_path.is_dir() && source_path.starts_with(&root_path) {
-            let relative = source_path
+        if root_path.is_dir() && canonical_source.starts_with(&root_path) {
+            let relative = canonical_source
                 .strip_prefix(&root_path)
-                .unwrap_or(source_path)
+                .unwrap_or(&canonical_source)
                 .to_string_lossy()
                 .to_string();
             return Ok(relative);
@@ -1204,7 +1208,7 @@ pub(super) fn archive_entry_name(
     Err(FileOperationError::Internal {
         message: format!(
             "archive source `{}` is not covered by the plan roots",
-            source_path.display()
+            canonical_source.display()
         ),
     })
 }

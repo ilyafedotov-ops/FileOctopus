@@ -101,11 +101,7 @@ impl ResourceUri {
     }
 
     pub fn from_local_path(path: &Path) -> Result<Self, VfsError> {
-        let normalized = if cfg!(windows) {
-            path.to_string_lossy().replace('\\', "/")
-        } else {
-            path.to_string_lossy().into_owned()
-        };
+        let normalized = normalize_local_path(path)?;
 
         if !path.is_absolute() {
             return Err(VfsError::invalid_uri(
@@ -995,6 +991,42 @@ fn has_windows_drive_prefix(value: &str) -> bool {
     bytes.len() >= 3 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' && bytes[2] == b'/'
 }
 
+#[cfg(windows)]
+fn normalize_local_path(path: &Path) -> Result<String, VfsError> {
+    let normalized = path.to_string_lossy().replace('\\', "/");
+
+    if normalized
+        .get(..8)
+        .is_some_and(|prefix| prefix.eq_ignore_ascii_case("//?/UNC/"))
+    {
+        return Ok(format!("//{}", &normalized[8..]));
+    }
+
+    if let Some(path) = normalized.strip_prefix("//?/") {
+        if has_windows_drive_prefix(path) {
+            return Ok(path.to_string());
+        }
+        return Err(VfsError::invalid_uri(
+            &normalized,
+            "unsupported Windows verbatim path",
+        ));
+    }
+
+    if normalized.starts_with("//./") {
+        return Err(VfsError::invalid_uri(
+            &normalized,
+            "Windows device paths are not filesystem resources",
+        ));
+    }
+
+    Ok(normalized)
+}
+
+#[cfg(not(windows))]
+fn normalize_local_path(path: &Path) -> Result<String, VfsError> {
+    Ok(path.to_string_lossy().into_owned())
+}
+
 fn validate_remote_uri_body(scheme: &str, body: &str, full: &str) -> Result<(), VfsError> {
     if body.is_empty() || body.contains('\0') {
         return Err(VfsError::invalid_uri(full, "missing remote URI authority"));
@@ -1103,6 +1135,22 @@ mod tests {
         let uri = ResourceUri::from_local_path(Path::new("C:\\Users\\Ilya\\Documents")).unwrap();
 
         assert_eq!(uri.as_str(), "local://C:/Users/Ilya/Documents");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn normalizes_windows_verbatim_disk_path() {
+        let uri = ResourceUri::from_local_path(Path::new(r"\\?\C:\Users\Ilya\Documents")).unwrap();
+
+        assert_eq!(uri.as_str(), "local://C:/Users/Ilya/Documents");
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn normalizes_windows_verbatim_unc_path() {
+        let uri = ResourceUri::from_local_path(Path::new(r"\\?\UNC\server\share\folder")).unwrap();
+
+        assert_eq!(uri.as_str(), "local:////server/share/folder");
     }
 
     #[cfg(windows)]

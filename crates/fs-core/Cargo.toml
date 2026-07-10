@@ -27,3 +27,6 @@ kamadak-exif = "0.6.1"
 
 [target.'cfg(any(target_os = "linux", target_os = "android", target_vendor = "apple"))'.dependencies]
 rustix = { version = "1", features = ["fs"] }
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_Foundation", "Win32_Storage_FileSystem"] }

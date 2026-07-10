@@ -3,12 +3,18 @@ use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
+#[cfg(windows)]
+use std::os::windows::ffi::OsStrExt;
+
 use chrono::Utc;
 use filetime::FileTime;
 use jobs::{CancellationToken, JobEvent, JobId, JobProgressEvent, PauseToken};
 use vfs::{
     ConflictPolicy, FileKind, FileOperationError, FileOperationItem, FileOperationPlan, ResourceUri,
 };
+
+#[cfg(windows)]
+use windows_sys::Win32::Storage::FileSystem::MoveFileExW;
 
 use crate::vfs_io::VfsFilesystem;
 
@@ -641,7 +647,27 @@ pub(super) fn rename_no_replace(source: &Path, destination: &Path) -> std::io::R
 
 #[cfg(windows)]
 pub(super) fn rename_no_replace(source: &Path, destination: &Path) -> std::io::Result<()> {
-    fs::rename(source, destination)
+    let source = windows_path(source)?;
+    let destination = windows_path(destination)?;
+    let result = unsafe { MoveFileExW(source.as_ptr(), destination.as_ptr(), 0) };
+    if result == 0 {
+        Err(std::io::Error::last_os_error())
+    } else {
+        Ok(())
+    }
+}
+
+#[cfg(windows)]
+fn windows_path(path: &Path) -> std::io::Result<Vec<u16>> {
+    let mut encoded = path.as_os_str().encode_wide().collect::<Vec<_>>();
+    if encoded.contains(&0) {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            "path contains a null character",
+        ));
+    }
+    encoded.push(0);
+    Ok(encoded)
 }
 
 #[cfg(all(
