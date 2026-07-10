@@ -132,7 +132,7 @@ dependencies = [
  "telemetry",
  "tempfile",
  "terminal-core",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "uuid",
  "vfs",
@@ -611,7 +611,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "uuid",
 ]
 
@@ -1641,7 +1641,7 @@ dependencies = [
  "serde",
  "similar",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "ts-rs",
  "vfs",
@@ -3210,7 +3210,7 @@ name = "platform"
 version = "0.1.6"
 dependencies = [
  "keyring",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "uuid",
  "which",
 ]
@@ -3405,7 +3405,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "vfs",
 ]
@@ -3422,7 +3422,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "vfs",
 ]
@@ -3439,7 +3439,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "vfs",
 ]
@@ -3460,7 +3460,7 @@ dependencies = [
  "serde",
  "sha2 0.10.9",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "vfs",
 ]
@@ -3477,7 +3477,7 @@ dependencies = [
  "sha2 0.10.9",
  "ssh2",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "uuid",
  "vfs",
@@ -3493,7 +3493,7 @@ dependencies = [
  "pavao",
  "remote-core",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "vfs",
 ]
@@ -3724,7 +3724,7 @@ dependencies = [
  "config",
  "platform",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "vfs",
 ]
@@ -5056,7 +5056,7 @@ dependencies = [
  "sha2 0.10.9",
  "ssh2",
  "tempfile",
- "thiserror 1.0.69",
+ "thiserror 2.0.18",
  "tokio",
  "uuid",
 ]

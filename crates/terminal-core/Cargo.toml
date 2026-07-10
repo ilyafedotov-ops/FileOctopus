@@ -10,7 +10,7 @@ portable-pty = "0.8"
 serde = { version = "1", features = ["derive"] }
 sha2 = "0.10"
 ssh2 = "0.9"
-thiserror = "1"
+thiserror = "2"
 uuid = { version = "1", features = ["v4", "serde"] }
 
 [dev-dependencies]

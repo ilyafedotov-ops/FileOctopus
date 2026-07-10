@@ -11,7 +11,7 @@ remote-core = { path = "../remote-core" }
 sha2 = "0.10"
 data-encoding = "2"
 ssh2 = "0.9"
-thiserror = "1"
+thiserror = "2"
 tokio = { version = "1", features = ["rt"] }
 uuid = { version = "1", features = ["v4"] }
 vfs = { path = "../vfs" }
