@@ -15,7 +15,7 @@ vfs = { path = "../vfs" }
 zip = "8.6.0"
 tar = "0.4"
 flate2 = "1"
-bzip2 = "0.4"
+bzip2 = "0.6"
 cap-fs-ext = "4.0.2"
 cap-std = "4.0.2"
 hex = "0.4"
