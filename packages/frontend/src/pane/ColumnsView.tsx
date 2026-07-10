@@ -2,11 +2,9 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { FileEntryDto, FileOctopusClient } from "@fileoctopus/ts-api";
 import { createRequestId } from "../paneTypes";
 import {
-  isRemoteUri,
-  uriScheme,
-  profileIdFromRemoteUri,
-  buildRemoteUri,
-  remotePathFromUri,
+  isSupportedNavigationUri,
+  parentUriFromUri,
+  rootUriForUri,
 } from "@fileoctopus/ts-api";
 import {
   isParentDirectoryEntry,
@@ -47,6 +45,7 @@ export function ColumnsView({
     () => uriStack(activeUri, rootUri),
     [activeUri, rootUri],
   );
+  const visibleStack = useMemo(() => stack.slice(-MAX_COLUMNS), [stack]);
   const [columns, setColumns] = useState<Record<string, FileEntryDto[]>>({});
   const inflightRef = useRef<Map<string, InflightMeta>>(new Map());
 
@@ -121,7 +120,7 @@ export function ColumnsView({
   // Start and cancel column listings as the stack changes.
   useEffect(() => {
     const inflight = inflightRef.current;
-    const targetUris = new Set(stack.slice(0, MAX_COLUMNS));
+    const targetUris = new Set(visibleStack);
 
     // Settle listings for URIs that left the stack.
     for (const [requestId, meta] of inflight) {
@@ -133,7 +132,7 @@ export function ColumnsView({
     }
 
     // Kick off new listings.
-    for (const uri of stack.slice(0, MAX_COLUMNS)) {
+    for (const uri of visibleStack) {
       const alreadyInflight = Array.from(inflight.values()).some(
         (m) => m.uri === uri,
       );
@@ -197,11 +196,11 @@ export function ColumnsView({
         inflight.delete(requestId);
       }
     };
-  }, [client, showHidden, stack]);
+  }, [client, showHidden, visibleStack]);
 
   return (
     <div className="fo-columns-view" role="list">
-      {stack.slice(0, MAX_COLUMNS).map((uri) => (
+      {visibleStack.map((uri) => (
         <section className="fo-columns-column" key={uri}>
           {(columns[uri] ?? []).map((entry) => (
             <button
@@ -234,41 +233,37 @@ export function ColumnsView({
 }
 
 function uriStack(activeUri: string, rootUriValue: string): string[] {
-  if (isRemoteUri(activeUri)) {
-    const scheme = uriScheme(activeUri);
-    const profileId = profileIdFromRemoteUri(activeUri);
-    if (!scheme || !profileId) {
-      return [rootUriValue, activeUri];
-    }
-
-    const path = remotePathFromUri(activeUri) ?? "/";
-    const parts = path.split("/").filter(Boolean);
-    const stack = [rootUriValue];
-    let current = "";
-
-    for (const part of parts) {
-      current = `${current}/${part}`;
-      stack.push(buildRemoteUri(scheme, profileId, current));
-    }
-
-    return stack.length > 0 ? stack : [rootUriValue];
+  if (activeUri === rootUriValue) {
+    return [activeUri];
   }
 
-  if (!activeUri.startsWith("local://")) {
+  if (!isSupportedNavigationUri(activeUri)) {
     return [rootUriValue, activeUri];
   }
 
-  const path = activeUri.replace("local://", "");
-  const parts = path.split("/").filter(Boolean);
-  const stack = [rootUriValue];
-  let current = rootUriValue;
+  const ancestors = [activeUri];
+  const visited = new Set(ancestors);
+  let current = activeUri;
 
-  for (const part of parts) {
-    current = current.endsWith("/")
-      ? `${current}${part}`
-      : `${current}/${part}`;
-    stack.push(current);
+  while (current !== rootUriValue) {
+    const parent = parentUriFromUri(current);
+    if (!parent || visited.has(parent)) {
+      break;
+    }
+
+    ancestors.push(parent);
+    visited.add(parent);
+    current = parent;
   }
 
-  return stack.length > 0 ? stack : [rootUriValue];
+  if (current === rootUriValue) {
+    return ancestors.reverse();
+  }
+
+  const navigationRoot = rootUriForUri(activeUri);
+  if (!visited.has(navigationRoot)) {
+    ancestors.push(navigationRoot);
+  }
+
+  return ancestors.reverse();
 }

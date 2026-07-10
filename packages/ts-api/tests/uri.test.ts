@@ -55,6 +55,56 @@ describe("uri helpers", () => {
     ]);
   });
 
+  it("uses canonical Windows drive URIs for root and parent navigation", () => {
+    const documents = "local://C:/Users/Ilya/Documents";
+
+    expect(rootUriForUri(documents)).toBe("local://C:/");
+    expect(parentUriFromUri(documents)).toBe("local://C:/Users/Ilya");
+    expect(parentUriFromUri("local://C:/Users")).toBe("local://C:/");
+    expect(parentUriFromUri("local://C:/")).toBeNull();
+  });
+
+  it("navigates from a top-level Unix path to the local root", () => {
+    expect(parentUriFromUri("local:///home")).toBe("local:///");
+    expect(parentUriFromUri("local:///")).toBeNull();
+  });
+
+  it("builds canonical Windows drive breadcrumb URIs", () => {
+    expect(
+      breadcrumbSegmentsFromUri("local://C:/Users/Ilya/Documents"),
+    ).toEqual([
+      { label: "C:", uri: "local://C:/" },
+      { label: "Users", uri: "local://C:/Users" },
+      { label: "Ilya", uri: "local://C:/Users/Ilya" },
+      { label: "Documents", uri: "local://C:/Users/Ilya/Documents" },
+    ]);
+  });
+
+  it("keeps Windows UNC navigation within the share root", () => {
+    const shareRoot = "local:////server/share/";
+    const folder = "local:////server/share/folder";
+    const nested = "local:////server/share/folder/nested";
+
+    expect(rootUriForUri(nested)).toBe(shareRoot);
+    expect(rootUriForUri(shareRoot)).toBe(shareRoot);
+    expect(parentUriFromUri(nested)).toBe(folder);
+    expect(parentUriFromUri(folder)).toBe(shareRoot);
+    expect(parentUriFromUri(shareRoot)).toBeNull();
+  });
+
+  it("builds Windows UNC breadcrumbs from valid share URIs", () => {
+    expect(
+      breadcrumbSegmentsFromUri("local:////server/share/folder/nested"),
+    ).toEqual([
+      { label: "//server/share", uri: "local:////server/share/" },
+      { label: "folder", uri: "local:////server/share/folder" },
+      {
+        label: "nested",
+        uri: "local:////server/share/folder/nested",
+      },
+    ]);
+  });
+
   it("builds network breadcrumb segments with virtual URIs", () => {
     expect(displayPathFromUri("network:///cloud")).toBe(
       "Network / Cloud Storage",

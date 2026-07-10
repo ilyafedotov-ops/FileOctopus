@@ -52,7 +52,11 @@ describe("parentEntry", () => {
   });
 
   it("returns null at filesystem root", () => {
-    expect(createParentDirectoryEntry("local:///Users")).toBeNull();
+    expect(createParentDirectoryEntry("local:///")).toBeNull();
+  });
+
+  it("creates a parent entry from a top-level directory to root", () => {
+    expect(createParentDirectoryEntry("local:///Users")?.uri).toBe("local:///");
   });
 
   it("creates a parent directory entry for remote paths", () => {
