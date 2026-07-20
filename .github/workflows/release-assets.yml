@@ -6,7 +6,7 @@ on:
       tag:
         description: "Prerelease tag in vX.Y.Z format"
         required: true
-        default: "v0.1.6"
+        default: "v0.1.7"
       commit_sha:
         description: "Exact protected main commit to build"
         required: true

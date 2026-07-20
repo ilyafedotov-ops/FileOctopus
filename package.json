@@ -2,7 +2,7 @@
   "name": "fileoctopus",
   "private": true,
   "description": "Tauri v2 desktop file manager with a Rust-owned filesystem boundary and React TypeScript UI.",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "license": "MIT",
   "repository": {
     "type": "git",

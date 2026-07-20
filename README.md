@@ -7,7 +7,7 @@ execution.
 
 ## Status
 
-FileOctopus is pre-1.0. Current release `v0.1.6` includes the core local
+FileOctopus is pre-1.0. Current release `v0.1.7` includes the core local
 browsing, file operations, navigation, job progress, preferences, diagnostics,
 Git status, embedded terminal, remote providers, cloud provider connectors,
 plugins, archive browsing, previews, diff/merge, ACLs, and sync features present

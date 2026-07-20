@@ -160,7 +160,7 @@ Returns the application's name, semantic version, build profile, optional commit
 
 ```ts
 const info = await client.getAppInfo();
-// { name: "FileOctopus", version: "0.1.6", buildProfile: "release", commitSha: "abc123", targetOs: "linux" }
+// { name: "FileOctopus", version: "0.1.7", buildProfile: "release", commitSha: "abc123", targetOs: "linux" }
 ```
 
 ### `fs_stat`
